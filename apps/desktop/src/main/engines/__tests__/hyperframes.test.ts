@@ -35,7 +35,7 @@ describe('page', () => {
     expect(html).toBe(
       '<html><head lang="x"><base href="/project/"><script src="/project/node_modules/hyperframes/dist/hyperframe.runtime.iife.js"></script>' +
         '<script src="node_modules/gsap/dist/gsap.min.js"></script></head><body><script>t()</script>' +
-        '<script src="/studio/hyperframes.js?v=7"></script></body></html>',
+        '<script src="/studio/hyperframes.js?v=7"></script><script src="/studio/pick.js"></script></body></html>',
     );
   });
 });

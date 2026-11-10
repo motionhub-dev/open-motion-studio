@@ -196,9 +196,6 @@ button.primary {
   border-top: 1px solid var(--line);
 }
 
-.transport input {
-  flex: 1;
-}
 
 .time {
   font-variant-numeric: tabular-nums;
@@ -475,4 +472,97 @@ button.link {
   flex-direction: row;
   align-items: center;
   gap: 8px;
+}
+
+.stage .marks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.stage .marks.tool-pick,
+.stage .marks.tool-region {
+  pointer-events: auto;
+  cursor: crosshair;
+}
+
+.mark {
+  position: absolute;
+  border: 2px solid #ff1744;
+  border-radius: 2px;
+}
+
+.mark.drawing {
+  border-style: dashed;
+}
+
+.mark span,
+.chips .number,
+.flag {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: #ff1744;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.mark span {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+}
+
+.scrub {
+  flex: 1;
+  position: relative;
+  display: flex;
+}
+
+.scrub input {
+  flex: 1;
+}
+
+.flag {
+  position: absolute;
+  top: -14px;
+  transform: translateX(-50%);
+  border: 0;
+  cursor: pointer;
+}
+
+.transport button[aria-pressed='true'] {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
+}
+
+.chips {
+  list-style: none;
+  margin: 0;
+  padding: 8px 16px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chips li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 2px 4px 2px 4px;
+}
+
+.message .marked {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
 }

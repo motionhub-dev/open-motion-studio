@@ -251,7 +251,7 @@ export const remotion: Engine = {
   detect: isRemotionProject,
   create,
   watch,
-  page: async (_dir, version) => htmlPage(`<div id="root" style="width:100%;height:100%"></div><script src="build/preview.js?v=${version}"></script>`),
+  page: async (_dir, version) => htmlPage(`<div id="root" style="width:100%;height:100%"></div><script src="build/preview.js?v=${version}"></script><script src="studio/pick.js"></script>`),
   exportFilm,
   motionTaken: async () => {},
   skill: SKILL,

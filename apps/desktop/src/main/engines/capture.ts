@@ -9,7 +9,7 @@ import { spawn } from 'node:child_process';
 import { rename, rm } from 'node:fs/promises';
 import ffmpegStatic from 'ffmpeg-static';
 import { PREVIEW_URL, type PreviewSource, servePreview } from './preview';
-import type { FilmInfo } from '../../shared/preview';
+import type { Box, FilmInfo } from '../../shared/preview';
 
 export const RENDER_PARTITION = 'oms-render';
 
@@ -46,7 +46,8 @@ function timeout<T>(promise: Promise<T>, what: string): Promise<T> {
 /** A film opened still, ready to be photographed at any time; close() when done. */
 export interface Stage {
   film: FilmInfo;
-  frame(t: number): Promise<NativeImage>;
+  /** The frame at `t`; with a box, outlined in red where the person marked it. */
+  frame(t: number, box?: Box): Promise<NativeImage>;
   close(): void;
 }
 
@@ -82,11 +83,16 @@ export async function openStage(version: number): Promise<Stage> {
     await contents.executeJavaScript('document.fonts.ready.then(() => true)');
     return {
       film,
-      async frame(t) {
+      async frame(t, box) {
         await timeout(contents.executeJavaScript(`window.__oms.seek(${Number(t)})`), `The frame at ${t.toFixed(2)} s`);
         const error = await failed();
         if (error) throw new Error(error);
+        if (box) {
+          await contents.executeJavaScript(`window.__omsMark?.(${JSON.stringify(box)})`);
+          await contents.executeJavaScript('new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))');
+        }
         const image = await contents.capturePage();
+        if (box) await contents.executeJavaScript('window.__omsMark?.(null)');
         const size = image.getSize();
         return size.width === film.width && size.height === film.height
           ? image

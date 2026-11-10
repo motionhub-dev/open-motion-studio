@@ -22,6 +22,7 @@ declare global {
     __hfWaitForSeekCompletion?: () => Promise<unknown>;
     __oms?: FilmInfo & { seek(t: number): Promise<number> };
     __omsError?: string;
+    __omsFrame?: FilmInfo;
   }
 }
 
@@ -106,6 +107,7 @@ async function start(): Promise<void> {
     };
     requestAnimationFrame(report);
   }
+  window.__omsFrame = film;
   post({ type: 'oms:ready', film });
 }
 

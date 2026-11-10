@@ -107,7 +107,7 @@ export const native: Engine = {
   create: async (dir) => startFilm(dir),
   watch: watchFilm,
   // The core holds React and the runtime, and loads the film's bundle itself.
-  page: async () => htmlPage(`<div id="root"></div><script src="studio/core.js"></script>`),
+  page: async () => htmlPage(`<div id="root"></div><script src="studio/core.js"></script><script src="studio/pick.js"></script>`),
   exportFilm: (_dir, version, file, onProgress, signal) => exportFrames(version, file, onProgress, signal),
   motionTaken: async () => {},
   skill: SKILL,

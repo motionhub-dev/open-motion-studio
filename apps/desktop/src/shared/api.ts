@@ -90,9 +90,24 @@ export interface ProviderInput {
   key?: string;
 }
 
+import type { Box, PickedElement } from './preview';
+
+/** A place the person marked on the picture, sent with their next message. */
+export interface Mark {
+  /** Seconds into the film. */
+  t: number;
+  /** The marked box, in fractions of the frame. */
+  box: Box;
+  /** The element picked there, or null for a region dragged out. */
+  element: PickedElement | null;
+}
+
+/** The most marks one message may carry. */
+export const MAX_MARKS = 5;
+
 /** One entry of the conversation, as the assistant panel shows it. */
 export type ChatItem =
-  | { kind: 'user'; text: string }
+  | { kind: 'user'; text: string; marks: number }
   | { kind: 'assistant'; text: string }
   | { kind: 'tool'; id: string; name: string; summary: string; result?: { ok: boolean; text: string; image?: string } }
   | { kind: 'notice'; text: string; error: boolean };
@@ -140,8 +155,8 @@ export interface StudioApi {
 
   /** The open project's conversation with the agent. */
   conversation(): Promise<ChatItem[]>;
-  /** Sends a message to the agent; resolves when its turn ends. */
-  sendMessage(text: string): Promise<void>;
+  /** Sends a message, with the places marked on the picture, to the agent; resolves when its turn ends. */
+  sendMessage(text: string, marks: Mark[]): Promise<void>;
   /** Stops the agent's turn. */
   stopAgent(): Promise<void>;
   /** Forgets the open project's conversation. */

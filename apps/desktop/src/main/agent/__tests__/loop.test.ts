@@ -29,7 +29,7 @@ function setup(replies: Message[]) {
     useMotion: vi.fn(),
   };
   const controller = new AbortController();
-  const turn = { messages, text: 'Make a film', call, tools, emit: (e: AgentEvent) => events.push(e), save: vi.fn(), signal: controller.signal };
+  const turn = { messages, content: 'Make a film', call, tools, emit: (e: AgentEvent) => events.push(e), save: vi.fn(), signal: controller.signal };
   return { events, messages, call, turn, controller };
 }
 

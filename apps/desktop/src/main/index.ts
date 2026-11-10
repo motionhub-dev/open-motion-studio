@@ -16,6 +16,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { CHANNELS, EVENTS, type AgentEvent, type BuildResult, type Project } from '../shared/api';
 import { runTurn, transcript } from './agent/loop';
+import { markedMessage, readMarks } from './agent/marks';
 import { type MessageParam, caller, failure } from './agent/model';
 import { TOOLS, type ToolContext } from './agent/tools';
 import { openStage, serveRenders } from './engines/capture';
@@ -170,9 +171,10 @@ function registerHandlers(): void {
     await saveConversation(state.project.path, []);
   });
   ipcMain.handle(CHANNELS.stopAgent, () => working?.abort());
-  ipcMain.handle(CHANNELS.sendMessage, async (_event, text: unknown) => {
+  ipcMain.handle(CHANNELS.sendMessage, async (_event, text: unknown, rawMarks: unknown) => {
     const state = requireOpen();
-    if (typeof text !== 'string' || !text.trim()) throw new Error('Write a message first.');
+    const marks = readMarks(rawMarks);
+    if (typeof text !== 'string' || (!text.trim() && !marks.length)) throw new Error('Write a message first.');
     const engine = state.engine;
     if (!engine) throw new Error('Start a film in this folder first.');
     if (working) throw new Error('The agent is already working.');
@@ -192,10 +194,16 @@ function registerHandlers(): void {
       useMotion: (id) => takeMotion(state, id),
     };
     try {
+      // A model that reads images sees each marked moment; any other reads the marks described.
+      const content = await markedMessage(text.trim(), marks, provider.images !== false, async () => {
+        const result = await tools.build();
+        if (!result.ok) throw new Error('The film does not build, so its marked frames cannot be shown.');
+        return openStage(result.version);
+      });
       await runTurn(
         {
           messages: await conversation(state),
-          text: text.trim(),
+          content,
           call: caller(provider, engine.skill, TOOLS),
           tools,
           emit: (event: AgentEvent) => {

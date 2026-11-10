@@ -152,7 +152,7 @@ async function watch(dir: string, onBuilt: (result: BuildResult) => void): Promi
 async function page(dir: string, version: number): Promise<string> {
   const html = await readFile(join(dir, 'index.html'), 'utf8');
   const head = `<base href="/project/"><script src="/project/${RUNTIME}"></script>`;
-  const bridge = `<script src="/studio/hyperframes.js?v=${version}"></script>`;
+  const bridge = `<script src="/studio/hyperframes.js?v=${version}"></script><script src="/studio/pick.js"></script>`;
   const withHead = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, (tag) => `${tag}${head}`) : `${head}${html}`;
   return /<\/body>/i.test(withHead) ? withHead.replace(/<\/body>/i, `${bridge}</body>`) : `${withHead}${bridge}`;
 }

@@ -3,7 +3,9 @@
 // it, or it reaches MAX_CALLS. The conversation is kept as the protocol's own messages, so
 // it can be sent back exactly as it was (thinking blocks included).
 
+import type Anthropic from '@anthropic-ai/sdk';
 import type { AgentEvent, ChatItem } from '../../shared/api';
+import { MARKS_TAG } from './marks';
 import type { Call, MessageParam } from './model';
 import { type ToolContext, type ToolOutcome, runTool } from './tools';
 
@@ -12,7 +14,8 @@ export const MAX_CALLS = 40;
 
 export interface Turn {
   messages: MessageParam[];
-  text: string;
+  /** The person's message: their words, and anything that goes with them (marks.ts). */
+  content: string | Anthropic.Beta.BetaContentBlockParam[];
   call: Call;
   tools: ToolContext;
   emit(event: AgentEvent): void;
@@ -48,7 +51,7 @@ function summary(name: string, input: unknown): string {
 /** Runs one turn on `messages`, which it extends in place. Never throws: a failure ends the turn with a notice. */
 export async function runTurn(turn: Turn, failure: (error: unknown) => string): Promise<void> {
   const { messages, emit, signal } = turn;
-  messages.push({ role: 'user', content: turn.text });
+  messages.push({ role: 'user', content: turn.content });
   await turn.save(messages);
   let notice: { text: string; error: boolean } | undefined;
   try {
@@ -115,9 +118,17 @@ export function transcript(messages: MessageParam[]): ChatItem[] {
   const tools = new Map<string, Extract<ChatItem, { kind: 'tool' }>>();
   for (const message of messages) {
     const blocks = typeof message.content === 'string' ? [{ type: 'text' as const, text: message.content }] : (message.content ?? []);
+    if (message.role === 'user' && !blocks.some((b) => b.type === 'tool_result')) {
+      // The person's words, and how many places they marked: the rest of the message is for the agent.
+      const text = blocks.flatMap((b) => (b.type === 'text' && !b.text.startsWith(MARKS_TAG) && !/^Mark \d+:$/.test(b.text) ? [b.text] : [])).join('\n');
+      const described = blocks.find((b) => b.type === 'text' && b.text.startsWith(MARKS_TAG));
+      const marks = described?.type === 'text' ? described.text.split('\n').filter((line) => /^\d+\. /.test(line)).length : 0;
+      if (text.trim() || marks) items.push({ kind: 'user', text, marks });
+      continue;
+    }
     for (const block of blocks) {
       if (block.type === 'text' && block.text.trim()) {
-        items.push({ kind: message.role === 'user' ? 'user' : 'assistant', text: block.text });
+        items.push(message.role === 'user' ? { kind: 'user', text: block.text, marks: 0 } : { kind: 'assistant', text: block.text });
       } else if (block.type === 'tool_use') {
         const item = { kind: 'tool' as const, id: block.id, name: block.name, summary: summary(block.name, block.input) };
         tools.set(block.id, item);

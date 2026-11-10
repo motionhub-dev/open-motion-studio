@@ -74,6 +74,7 @@ function Preview() {
         },
       };
     }
+    (window as {__omsFrame?: Info}).__omsFrame = info;
     post({type: 'oms:ready', film: info});
     return () => removeEventListener('message', onMessage);
   }, []);

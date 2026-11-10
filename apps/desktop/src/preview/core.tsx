@@ -24,6 +24,8 @@ declare global {
     __oms?: FilmInfo & { seek(t: number): Promise<number> };
     /** In a render: the first error the page met, for the main process to report. */
     __omsError?: string;
+    /** The film's size, for studio/pick.js. */
+    __omsFrame?: FilmInfo;
     require?: (name: string) => unknown;
   }
 }
@@ -190,6 +192,7 @@ async function start(): Promise<void> {
     const film = info(module);
     const root = createRoot(document.getElementById('root')!);
     root.render(render ? <Still Film={module.default} film={film} /> : <Player Film={module.default} film={film} />);
+    window.__omsFrame = film;
     post({ type: 'oms:ready', film });
   } catch (error) {
     post({ type: 'oms:error', message: error instanceof Error ? error.message : String(error) });

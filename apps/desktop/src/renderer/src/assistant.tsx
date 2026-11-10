@@ -2,7 +2,7 @@
 // tools it used between, with the stills it looked at.
 
 import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react';
-import type { AgentEvent, ChatItem } from '../../shared/api';
+import type { AgentEvent, ChatItem, Mark } from '../../shared/api';
 import { reason } from './reason';
 
 function apply(items: ChatItem[], event: AgentEvent): ChatItem[] {
@@ -25,7 +25,21 @@ function apply(items: ChatItem[], event: AgentEvent): ChatItem[] {
   }
 }
 
-export function Assistant({ ready, onSettings }: { ready: boolean; onSettings(): void }) {
+/** What a mark is called in the composer: the words or element picked, or the region, and its moment. */
+function markLabel(mark: Mark): string {
+  const what = mark.element ? (mark.element.text ? `“${mark.element.text.slice(0, 28)}”` : mark.element.path.split(' > ').pop()) : 'a region';
+  return `${what} at ${mark.t.toFixed(1)} s`;
+}
+
+interface Props {
+  ready: boolean;
+  onSettings(): void;
+  marks: Mark[];
+  onRemoveMark(index: number): void;
+  onSent(): void;
+}
+
+export function Assistant({ ready, onSettings, marks, onRemoveMark, onSent }: Props) {
   const [items, setItems] = useState<ChatItem[]>([]);
   const [draft, setDraft] = useState('');
   const [working, setWorking] = useState(false);
@@ -46,12 +60,14 @@ export function Assistant({ ready, onSettings }: { ready: boolean; onSettings():
   async function send(event?: FormEvent) {
     event?.preventDefault();
     const text = draft.trim();
-    if (!text || working) return;
+    if ((!text && !marks.length) || working) return;
+    const sent = marks;
     setDraft('');
     setWorking(true);
-    setItems((current) => [...current, { kind: 'user', text }]);
+    onSent();
+    setItems((current) => [...current, { kind: 'user', text, marks: sent.length }]);
     try {
-      await window.studio.sendMessage(text);
+      await window.studio.sendMessage(text, sent);
     } catch (e) {
       setItems((current) => [...current, { kind: 'notice', text: reason(e), error: true }]);
       setWorking(false);
@@ -105,16 +121,33 @@ export function Assistant({ ready, onSettings }: { ready: boolean; onSettings():
           ) : (
             <p key={i} className={`message ${item.kind}${item.kind === 'notice' && item.error ? ' error' : ''}`}>
               {item.text}
+              {item.kind === 'user' && item.marks > 0 && (
+                <span className="marked">
+                  {item.marks} {item.marks === 1 ? 'mark' : 'marks'} on the picture
+                </span>
+              )}
             </p>
           ),
         )}
         {working && <p className="note">Working…</p>}
       </div>
+      {marks.length > 0 && (
+        <ul className="chips" aria-label="Marks for the next message">
+          {marks.map((mark, i) => (
+            <li key={i}>
+              <span className="number">{i + 1}</span> {markLabel(mark)}
+              <button type="button" className="quiet" aria-label={`Remove mark ${i + 1}`} onClick={() => onRemoveMark(i)}>
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       <form className="composer" onSubmit={send}>
         <textarea
           value={draft}
           rows={3}
-          placeholder="Ask for a film, or a change to this one"
+          placeholder={marks.length ? 'Say what should change at the marks (1, 2…)' : 'Ask for a film, or a change to this one'}
           aria-label="Message"
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={onKey}
@@ -124,7 +157,7 @@ export function Assistant({ ready, onSettings }: { ready: boolean; onSettings():
             Stop
           </button>
         ) : (
-          <button type="submit" className="primary" disabled={!draft.trim() || !ready}>
+          <button type="submit" className="primary" disabled={(!draft.trim() && !marks.length) || !ready}>
             Send
           </button>
         )}

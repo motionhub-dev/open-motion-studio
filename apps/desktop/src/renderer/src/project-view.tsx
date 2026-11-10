@@ -1,7 +1,7 @@
 // An open project: its film's preview and export. A folder with no film yet is offered one.
 
 import { useEffect, useState } from 'react';
-import type { BuildResult, Project, Providers } from '../../shared/api';
+import { type BuildResult, MAX_MARKS, type Mark, type Project, type Providers } from '../../shared/api';
 import { Assistant } from './assistant';
 import { MotionPanel } from './motion-panel';
 import { Preview } from './preview';
@@ -14,6 +14,8 @@ export function ProjectView({ project, onChange, onClose }: { project: Project; 
   const [notice, setNotice] = useState<{ text: string; error: boolean } | null>(null);
   const [providers, setProviders] = useState<Providers | null>(null);
   const [settings, setSettings] = useState(false);
+  /** The places marked on the picture for the next message. */
+  const [marks, setMarks] = useState<Mark[]>([]);
 
   useEffect(() => void window.studio.providers().then(setProviders), []);
   const active = providers?.providers.find((p) => p.id === providers.active);
@@ -81,8 +83,14 @@ export function ProjectView({ project, onChange, onClose }: { project: Project; 
       )}
       {project.engine ? (
         <div className="workspace">
-          <Assistant ready={!!active?.ready} onSettings={() => setSettings(true)} />
-          <Preview build={build} />
+          <Assistant
+            ready={!!active?.ready}
+            onSettings={() => setSettings(true)}
+            marks={marks}
+            onRemoveMark={(i) => setMarks((m) => m.filter((_, j) => j !== i))}
+            onSent={() => setMarks([])}
+          />
+          <Preview build={build} marks={marks} onMark={(mark) => setMarks((m) => (m.length < MAX_MARKS ? [...m, mark] : m))} />
           <MotionPanel />
         </div>
       ) : (
