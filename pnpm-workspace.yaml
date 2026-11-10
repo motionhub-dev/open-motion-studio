@@ -1,0 +1,7 @@
+packages:
+  - apps/*
+
+# Dependencies whose install script fetches their binary.
+onlyBuiltDependencies:
+  - esbuild
+  - ffmpeg-static

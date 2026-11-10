@@ -1,0 +1,129 @@
+# Changelog
+
+Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
+`CLAUDE.md`, "The changelog".
+
+## 2026-11-10 — An inspector, keyboard shortcuts, tooltips, and a Mac window without a title bar
+
+- **What:** The right panel has Motions and Inspector tabs; an element picked on the picture opens in the inspector
+  with its path, moment, position and size in the film's pixels, words, look and attributes. A pick now reports the
+  element's computed font, size, weight, colour, and background, opacity and transform where set
+  (`PickedElement.styles`), and the agent reads them with the mark. ? (or the keyboard button) lists the shortcuts.
+  Controls show their tips, with their keys, in one layer no panel clips. On macOS the window has no title bar: its
+  buttons sit over the top bar, which moves the window.
+- **Why:** P3 of the visual direction.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/design.md`, `apps/desktop/src/renderer/src/{inspector,tooltip}.tsx`, `apps/desktop/src/preview/pick.ts`.
+
+## 2026-11-10 — The assistant reads as Markdown, motions open as pages, Models tests a connection
+
+- **What:** The assistant draws the agent's replies as Markdown, and a still clicked seeks the film to its moment and
+  opens large; the composer grows with its text. The Motions panel shows posters, and a motion opened is its page: its
+  colours, its components with their previews, its MOTION.md (`motionDetail`). Models is two panes, providers and the
+  selected one's form, starting a new one from a service card, with **Test connection** (`testProvider`), which makes one
+  call as the form stands and says whether the model answered and called a tool.
+- **Why:** P2 of the visual direction.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/design.md`, `apps/desktop/src/renderer/src/`, `apps/desktop/src/main/agent/test-connection.ts`.
+
+## 2026-11-10 — The Studio wears motionhub's paper and ink
+
+- **What:** A visual layer from one set of tokens, light and dark (`docs/design.md`): motionhub's colours, Inter and
+  JetBrains Mono shipped with the app, Lucide icons. The launcher has a card per engine and recent projects with their
+  engine and path. The workspace has a top bar (the project, its engine, whether it builds, the model, Export with its
+  progress), panels whose sizes are dragged and remembered, the film on ink with the marking tools over it, a transport
+  with frame steps, a mm:ss.cc clock and looping, and the timeline along the bottom with a ruler, the clips, the marks and
+  the playhead. Keys: Space, ← →, C, Esc. An export ends in a toast with Show in folder (`showExported`).
+- **Why:** P1 of the visual direction: the Studio looked like a prototype.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/design.md`, `apps/desktop/src/renderer/src/`.
+
+## 2026-11-10 — A HyperFrames film has a read-only timeline
+
+- **What:** Under the preview of a HyperFrames film, its clips as its runtime lists them, a lane per track, with the
+  playhead; clicking a clip seeks to its start. The bridge reports the clips and the frame rate with the film
+  (`FilmInfo.clips`). Native and Remotion films show no timeline.
+- **Why:** Step 6's timeline, where an engine already knows its clips.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/tech/architecture.md` ("The UI").
+
+## 2026-11-10 — Point at the picture for the agent
+
+- **What:** Two tools on the preview, Pick and Region, mark an element or a region of the picture at the moment shown,
+  up to five for the next message. The marks are flagged on the scrubber and listed above the message box. The agent
+  receives each described (its moment, its box, the element's path, words and `data-*` attributes) and, where the model
+  reads images, the frame at that moment with the mark outlined in red. One script on every preview page
+  (`studio/pick.js`) answers for all three engines. `sendMessage` takes the marks.
+- **Why:** Step 6 of the order of work: a person who cannot say which thing is wrong points at it.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/tech/architecture.md` ("The agent", "The engine contract").
+
+## 2026-11-10 — A film can be a HyperFrames project
+
+- **What:** The home screen makes a HyperFrames project too: scaffolded with GSAP loaded from `node_modules`, installed
+  with npm, previewed as its own `index.html` under HyperFrames' runtime with the Studio's bridge, written by the agent
+  with a HyperFrames skill, and exported with the project's own `hyperframes render` and the Studio's ffmpeg. Taking a
+  motion runs `motionhub-hyperframes`, which writes `assets/motion/`. The preview scheme now serves the project's own
+  files (`/project/`) and the Studio's scripts (`/studio/`), allows inline scripts and fetches within itself, and is
+  CORS-enabled, so a motion's fonts load in every engine. HyperFrames' usage telemetry is off for the commands the
+  Studio runs.
+- **Why:** Step 5 of the order of work: every engine in ADR 0001.
+- **Breaking:** None.
+- **Upgrade:** Nothing. A HyperFrames project needs Node.js and npm.
+- **Refs:** `docs/tech/architecture.md` ("The engine contract"), ADR 0001, ADR 0004.
+
+## 2026-11-10 — A film can be a Remotion project
+
+- **What:** The home screen makes a native film or a Remotion project. A Remotion project is scaffolded (its
+  compositions listed in `src/compositions.ts`, which `src/Root.tsx` registers) and installed with the person's npm; it
+  previews in `@remotion/player` on the Studio's preview page, the agent writes it with a Remotion skill, and it exports
+  with the project's own `remotion render`. Motions reach it through `@motionhub/remotion`. A folder holding a Remotion
+  project opens as one. The engine contract is now code (`engines/engine.ts`).
+- **Why:** Step 4 of the order of work: the person keeps the engine they know.
+- **Breaking:** None.
+- **Upgrade:** Nothing. A Remotion project needs Node.js and npm on the person's machine, and its first export downloads
+  Remotion's headless Chrome.
+- **Refs:** `docs/tech/architecture.md` ("The engine contract"), ADR 0001, ADR 0004.
+
+## 2026-11-10 — The agent runs on any OpenAI Chat Completions server too
+
+- **What:** A provider now names its protocol: Anthropic Messages or OpenAI Chat Completions. The Chat Completions
+  translation keeps the agent's conversation in the Messages shape, so a project's conversation can move between
+  providers. Presets for OpenRouter, OpenAI, DeepSeek, Gemini, Ollama and LM Studio join Anthropic and MiniMax; a provider
+  says whether its model reads images, and a server on this computer needs no key.
+- **Why:** Step 3 of the order of work: any model the person chooses.
+- **Breaking:** A provider saved before this has no protocol and is treated as Messages; re-save it to set one.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/tech/architecture.md` ("Providers"), ADR 0003.
+
+## 2026-11-10 — Make a native film with an agent, a motion from motionhub, and export it
+
+- **What:** A new project is a native film: `film.tsx`, a React component drawn by `useTime()` from `@motionhub/runtime`,
+  bundled with esbuild on every change, played in a sandboxed frame on the `oms-preview:` scheme and exported to an H.264
+  MP4 by photographing each frame offscreen and piping it to ffmpeg. The motion panel searches motionhub.dev and takes a
+  motion into `motions/@<scope>/<slug>/` with `motions.lock.json`, as `@motionhub/cli` does. The assistant runs the
+  Studio's own agent on a provider the person sets up (any server speaking the Anthropic Messages protocol; presets for
+  Anthropic and MiniMax): it writes and edits the film, checks it, looks at stills and takes motions. Providers are kept
+  in the app's `settings.json`, keys sealed with `safeStorage` in `keys.json`; a project's conversation in
+  `.motion-studio/session.json`.
+- **Why:** Step 2 of the order of work: the whole product on one engine.
+- **Breaking:** None.
+- **Upgrade:** Nothing. The app now ships esbuild and ffmpeg (`ffmpeg-static`, a GPL build: see the architecture's open
+  questions).
+- **Refs:** `docs/tech/architecture.md`, ADR 0004.
+
+## 2026-11-10 — The desktop app opens and creates projects
+
+- **What:** The Electron app (`apps/desktop`) opens a folder as a project, makes an empty folder a new project (its
+  `.motion-studio/` state directory, added to `.gitignore`), and lists the ten most recent projects (kept in the app's
+  `userData` as `recent-projects.json`). CI builds installers for macOS (DMG, zip), Windows (NSIS) and Linux (AppImage,
+  tarball) on every push to `main`, tag and pull request.
+- **Why:** Step 1 of the order of work: packaging and signing settled before the product is built on them.
+- **Breaking:** None.
+- **Upgrade:** Nothing. Signed builds need the secrets listed in `CLAUDE.md` ("Commands").
+- **Refs:** `docs/tech/architecture.md` ("Order of work"), ADR 0002.
