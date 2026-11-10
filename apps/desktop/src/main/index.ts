@@ -23,6 +23,7 @@ import { TOOLS, type ToolContext } from './agent/tools';
 import type { BuildContext } from 'esbuild';
 import { exportFrames, openStage, serveRenders } from './film/capture';
 import { FILM_SKILL, startFilm, watchFilm } from './film/film';
+import { writeRemotionProject } from './film/remotion-export';
 import { registerPreviewScheme, servePreview } from './film/preview';
 import { motionDetail, projectMotions, searchMotions, useMotion } from './motions';
 import { STATE_DIR, createProject, isRecent, openProject, projectAt, recentProjects, rememberProject } from './project';
@@ -242,6 +243,28 @@ function registerHandlers(): void {
   });
 
   ipcMain.handle(CHANNELS.cancelExport, () => exporting?.abort());
+  ipcMain.handle(CHANNELS.exportRemotion, async (event) => {
+    const state = requireOpen();
+    const { build } = state;
+    if (!state.project.film || !build?.ok) throw new Error('The film does not build: fix its errors before exporting.');
+    const path = await chooseFolder(event.sender, {
+      title: 'Choose an empty folder for the Remotion project',
+      buttonLabel: 'Export',
+      properties: ['openDirectory', 'createDirectory'],
+    });
+    if (path === null) return null;
+    // The scenes as the film has them now, from the build the person sees.
+    const stage = await openStage(build.version);
+    let scenes: string[];
+    try {
+      scenes = stage.film.scenes.map((scene) => scene.id);
+    } finally {
+      stage.close();
+    }
+    await writeRemotionProject(state.project.path, path, state.project.name, scenes);
+    exported = path;
+    return path;
+  });
   ipcMain.handle(CHANNELS.showExported, () => {
     if (exported) shell.showItemInFolder(exported);
   });

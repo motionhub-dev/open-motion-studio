@@ -1,8 +1,9 @@
 // A film as a Remotion project (docs/tech/architecture.md, "Export"): the project's own files as they are, and beside them a
-// Remotion entry whose one composition draws the film inside @motionhub/remotion's <MotionProvider>. There each scene is a
-// Remotion <Sequence> named by its id, so the scenes are on Remotion Studio's timeline, and filmMetadata gives the
-// composition its length from them, so it follows them as the film changes. Nothing is installed or run: the person runs
-// npm and Remotion themselves, under Remotion's licence.
+// Remotion entry whose one composition draws the film inside @motionhub/remotion's <MotionProvider>, each scene in a
+// Series.Sequence of its own written on its own line (Remotion Studio tells sequences apart by where they are written), so the
+// scenes are named clips on its timeline. Their lengths come from film.tsx; the scenes themselves are the ones the film had
+// when it was exported, and filmMetadata says so when they no longer are. Nothing is installed or run: the person runs npm and
+// Remotion themselves, under Remotion's licence.
 
 import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { basename, join, relative, resolve, sep } from 'node:path';
@@ -28,14 +29,33 @@ export const compositionId = (name: string): string =>
     .replace(/[^A-Za-z0-9-]+/g, '-')
     .replace(/^-+|-+$/g, '') || 'film';
 
-const ROOT = (id: string) => `// The Remotion composition of the film in ../film.tsx, written by Open Motion Studio.
-import {Composition} from 'remotion';
-import {MotionProvider, filmMetadata} from '@motionhub/remotion';
+const ROOT = (id: string, scenes: string[]) => {
+  const literal = (text: string) => JSON.stringify(text);
+  const sequences = scenes
+    .map((scene) => `      <Series.Sequence name={${literal(scene)}} durationInFrames={frames[${literal(scene)}]}>{scene(${literal(scene)})}</Series.Sequence>`)
+    .join('\n');
+  return `// The Remotion composition of the film in ../film.tsx, written by Open Motion Studio. Each scene of the film is drawn in a
+// Series.Sequence of its own, so the scenes are named clips on Remotion Studio's timeline; their lengths come from film.tsx.
+import {Composition, Series} from 'remotion';
+import {FilmScene} from '@motionhub/runtime';
+import {MotionProvider, filmMetadata, sceneFrames} from '@motionhub/remotion';
 import Main, {film} from '../film';
+
+/** The film's scenes, in order. A scene added to, taken out of or moved in film.tsx is changed here and in the Series too. */
+const SCENES = [${scenes.map(literal).join(', ')}];
+
+const frames = sceneFrames(Main, film);
+const scene = (id: string) => (
+  <FilmScene id={id}>
+    <Main />
+  </FilmScene>
+);
 
 const Film = () => (
   <MotionProvider tokens={{}} root={false}>
-    <Main />
+    <Series>
+${sequences}
+    </Series>
   </MotionProvider>
 );
 
@@ -47,10 +67,11 @@ export const Root = () => (
     fps={film.fps ?? 30}
     width={film.width ?? 1920}
     height={film.height ?? 1080}
-    calculateMetadata={() => filmMetadata(Main, film)}
+    calculateMetadata={() => filmMetadata(Main, film, SCENES)}
   />
 );
 `;
+};
 
 const INDEX = `import {registerRoot} from 'remotion';
 import {Root} from './Root';
@@ -74,7 +95,7 @@ const TSCONFIG = {
 
 const README = (name: string, id: string) => `# ${name}
 
-A film made in Open Motion Studio, as a Remotion project. Its scenes are Remotion \`<Sequence>\`s, named by their ids.
+A film made in Open Motion Studio, as a Remotion project. Each scene is a \`Series.Sequence\` in \`src/Root.tsx\`, named by its id.
 
 \`\`\`bash
 npm install
@@ -82,8 +103,9 @@ npx remotion studio
 npx remotion render ${id} out/${id}.mp4
 \`\`\`
 
-The film is \`film.tsx\`, unchanged: a \`<Film>\` of \`<Scene>\`s from \`@motionhub/runtime\`. \`src/Root.tsx\` gives it to Remotion, and
-takes its length from its scenes.
+The film is \`film.tsx\`, unchanged: a \`<Film>\` of \`<Scene>\`s from \`@motionhub/runtime\`. \`src/Root.tsx\` draws each scene in a
+\`Series.Sequence\` of its own and takes every length from \`film.tsx\`. A scene added to, taken out of or moved in \`film.tsx\` is
+added, taken out or moved in \`SCENES\` and the \`Series\` in \`src/Root.tsx\` too; until it is, Remotion says which.
 
 Remotion has its own licence: free for individuals and for companies of up to three people, a company licence beyond
 (https://remotion.dev/license).
@@ -105,7 +127,8 @@ async function readJson(file: string): Promise<Record<string, unknown> | null> {
  * project. A package.json the project has keeps its own dependencies, with Remotion's added; a tsconfig.json or README.md it has
  * is kept as it is. Returns the composition's id.
  */
-export async function writeRemotionProject(dir: string, out: string, name: string): Promise<string> {
+export async function writeRemotionProject(dir: string, out: string, name: string, scenes: string[]): Promise<string> {
+  if (!scenes.length) throw new Error('The film has no scenes to export.');
   const project = resolve(dir);
   const target = resolve(out);
   if (target === project || target.startsWith(project + sep)) throw new Error('Export the Remotion project to a folder outside the film’s own.');
@@ -134,7 +157,7 @@ export async function writeRemotionProject(dir: string, out: string, name: strin
   );
   await mkdir(join(target, 'src'), { recursive: true });
   await writeFile(join(target, 'src', 'index.ts'), INDEX);
-  await writeFile(join(target, 'src', 'Root.tsx'), ROOT(id));
+  await writeFile(join(target, 'src', 'Root.tsx'), ROOT(id, scenes));
   if (!(await readJson(join(target, 'tsconfig.json')))) await writeFile(join(target, 'tsconfig.json'), json(TSCONFIG));
   try {
     await writeFile(join(target, 'README.md'), README(name, id), { flag: 'wx' });

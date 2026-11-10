@@ -30,13 +30,15 @@ afterEach(async () => {
 describe('writeRemotionProject', () => {
   it('copies the film as it is, leaves out the Studio’s state and installed packages, and adds a Remotion entry', async () => {
     const out = join(root, 'out');
-    expect(await writeRemotionProject(film, out, 'heat pump')).toBe('heat-pump');
+    expect(await writeRemotionProject(film, out, 'heat pump', ['intro', 'how'])).toBe('heat-pump');
     expect((await readdir(out)).sort()).toEqual(['.gitignore', 'README.md', 'film.tsx', 'motions', 'package.json', 'parts', 'src', 'tsconfig.json']);
     expect(await readFile(join(out, 'film.tsx'), 'utf8')).toBe('export const film = {fps: 25};\n');
     expect(await readFile(join(out, 'motions', '@iamsuosi', 'plumb-line', 'tokens.json'), 'utf8')).toBe('{}');
     const root_ = await readFile(join(out, 'src', 'Root.tsx'), 'utf8');
     expect(root_).toContain('id="heat-pump"');
-    expect(root_).toContain('calculateMetadata={() => filmMetadata(Main, film)}');
+    expect(root_).toContain('calculateMetadata={() => filmMetadata(Main, film, SCENES)}');
+    expect(root_).toContain('const SCENES = ["intro", "how"];');
+    expect(root_.match(/<Series.Sequence name=\{"(\w+)"\} durationInFrames=\{frames\["\1"\]\}>\{scene\("\1"\)\}<\/Series.Sequence>\n/g)).toHaveLength(2);
     expect(root_).toContain("import Main, {film} from '../film';");
     expect(await readFile(join(out, 'src', 'index.ts'), 'utf8')).toContain('registerRoot(Root)');
     const manifest = JSON.parse(await readFile(join(out, 'package.json'), 'utf8'));
@@ -49,7 +51,7 @@ describe('writeRemotionProject', () => {
     await writeFile(join(film, 'package.json'), JSON.stringify({ name: 'mine', dependencies: { three: '0.180.0', react: '18.0.0' } }));
     await writeFile(join(film, 'README.md'), 'Mine.\n');
     const out = join(root, 'out');
-    await writeRemotionProject(film, out, 'heat pump');
+    await writeRemotionProject(film, out, 'heat pump', ['intro', 'how']);
     const manifest = JSON.parse(await readFile(join(out, 'package.json'), 'utf8'));
     expect(manifest.name).toBe('mine');
     expect(manifest.dependencies).toEqual({ ...REMOTION_DEPENDENCIES, three: '0.180.0' });
@@ -60,9 +62,10 @@ describe('writeRemotionProject', () => {
     const full = join(root, 'full');
     await mkdir(full);
     await writeFile(join(full, 'x.txt'), 'x');
-    await expect(writeRemotionProject(film, full, 'f')).rejects.toThrow('not empty');
-    await expect(writeRemotionProject(film, join(film, 'export'), 'f')).rejects.toThrow('outside');
-    await expect(writeRemotionProject(film, film, 'f')).rejects.toThrow('outside');
+    await expect(writeRemotionProject(film, full, 'f', ['a'])).rejects.toThrow('not empty');
+    await expect(writeRemotionProject(film, join(film, 'export'), 'f', ['a'])).rejects.toThrow('outside');
+    await expect(writeRemotionProject(film, film, 'f', ['a'])).rejects.toThrow('outside');
+    await expect(writeRemotionProject(film, join(root, 'empty'), 'f', [])).rejects.toThrow('no scenes');
   });
 
   it('names the composition in letters, digits and dashes', () => {
