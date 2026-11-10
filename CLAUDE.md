@@ -96,7 +96,8 @@ The shape is [`docs/tech/architecture.md`](docs/tech/architecture.md). What ever
 
 ## Documentation
 
-`docs/README.md` is the index; every document is in exactly one category, named by the question it answers: `docs/prd/`
+`docs/README.md` is the index and `docs/design.md` the visual system (colour, type, the workspace's layout; a colour is
+a token in `styles.css` and nowhere else); every other document is in exactly one category, named by the question it answers: `docs/prd/`
 (what is built, for whom, why), `docs/tech/` (how it is built), `docs/adr/` (`NNNN-kebab-title.md`: which decision was
 taken and what it cost), `docs/ops/` (how it is released and operated). Nothing else sits at the top of `docs/`, and the
 root holds `README.md`, `CLAUDE.md`, `CHANGELOG.md` and no other prose.

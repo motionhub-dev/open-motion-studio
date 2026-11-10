@@ -10,6 +10,8 @@ export interface Project {
   name: string;
   /** The absolute path of the folder. */
   path: string;
+  /** The path as the Studio shows it: the home folder written `~`. */
+  display: string;
   /** The engine its film is written for, or null for a folder that holds no film yet. */
   engine: EngineId | null;
 }
@@ -170,6 +172,8 @@ export interface StudioApi {
   onExportProgress(listener: (done: number) => void): () => void;
   /** Stops the running export, if any. */
   cancelExport(): Promise<void>;
+  /** Shows the last exported file in the system's file manager. */
+  showExported(): Promise<void>;
 }
 
 /** Invoked channels, one per request method of StudioApi. */
@@ -194,6 +198,7 @@ export const CHANNELS = {
   clearConversation: 'agent:clear',
   exportFilm: 'film:export',
   cancelExport: 'film:cancel-export',
+  showExported: 'film:show-exported',
 } as const;
 
 /** Events the main process sends. */

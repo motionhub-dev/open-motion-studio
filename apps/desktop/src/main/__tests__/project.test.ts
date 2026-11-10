@@ -23,6 +23,16 @@ afterEach(async () => {
 });
 
 describe('openProject', () => {
+  it('shows a folder under the home folder with ~', async () => {
+    const { homedir } = await import('node:os');
+    const inside = await mkdtemp(join(homedir(), '.oms-display-'));
+    try {
+      expect((await openProject(inside)).display).toBe(`~${inside.slice(homedir().length)}`);
+    } finally {
+      await rm(inside, { recursive: true, force: true });
+    }
+  });
+
   it('opens a folder without writing to it', async () => {
     await writeFile(join(root, 'index.html'), '');
     const project = await openProject(root);
@@ -42,7 +52,7 @@ describe('createProject', () => {
   it('makes a new folder a project, with its state ignored by git', async () => {
     const dir = join(root, 'new', 'film');
     const project = await createProject(dir);
-    expect(project).toEqual({ name: 'film', path: dir, engine: null });
+    expect(project).toEqual({ name: 'film', path: dir, display: dir, engine: null });
     expect((await stat(join(dir, '.motion-studio'))).isDirectory()).toBe(true);
     expect(await readFile(join(dir, '.gitignore'), 'utf8')).toBe('.motion-studio/\n');
   });
@@ -87,7 +97,7 @@ describe('the recent list', () => {
   async function folder(name: string) {
     const path = join(root, name);
     await mkdir(path);
-    return { name, path, engine: null };
+    return { name, path, display: path, engine: null };
   }
 
   it('is empty when nothing was stored or the file is corrupt', async () => {

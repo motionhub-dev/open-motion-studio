@@ -2,7 +2,8 @@
 // tools it used between, with the stills it looked at.
 
 import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react';
-import type { AgentEvent, ChatItem, Mark } from '../../shared/api';
+import { ArrowUp, Check, Loader, Square, X } from 'lucide-react';
+import type { AgentEvent, ChatItem, EngineId, Mark } from '../../shared/api';
 import { reason } from './reason';
 
 function apply(items: ChatItem[], event: AgentEvent): ChatItem[] {
@@ -31,15 +32,23 @@ function markLabel(mark: Mark): string {
   return `${what} at ${mark.t.toFixed(1)} s`;
 }
 
+/** Ways to begin, for an empty conversation, by the engine the film is written for. */
+const STARTS: Record<EngineId, string[]> = {
+  native: ['A 30-second explainer on how a heat pump works', 'Find a motion for a data story and show me three'],
+  remotion: ['A 20-second product teaser with three feature cards', 'Find a motion for a data story and show me three'],
+  hyperframes: ['A 15-second title sequence for a podcast episode', 'Find a motion for a data story and show me three'],
+};
+
 interface Props {
   ready: boolean;
+  engine: EngineId;
   onSettings(): void;
   marks: Mark[];
   onRemoveMark(index: number): void;
   onSent(): void;
 }
 
-export function Assistant({ ready, onSettings, marks, onRemoveMark, onSent }: Props) {
+export function Assistant({ ready, engine, onSettings, marks, onRemoveMark, onSent }: Props) {
   const [items, setItems] = useState<ChatItem[]>([]);
   const [draft, setDraft] = useState('');
   const [working, setWorking] = useState(false);
@@ -91,29 +100,43 @@ export function Assistant({ ready, onSettings, marks, onRemoveMark, onSent }: Pr
   }
 
   return (
-    <aside className="panel assistant">
-      <div className="panel-head">
+    <>
+      <div className="head">
         <h2>Assistant</h2>
+        <span className="spacer" />
         <button type="button" className="quiet" onClick={clear} disabled={working || items.length === 0}>
           New conversation
         </button>
       </div>
       <div className="log" ref={log} aria-live="polite">
         {items.length === 0 && (
-          <p className="note">
-            Say what the film is about, who it is for and how long it runs. {ready ? '' : 'First, '}
-            {!ready && (
-              <button type="button" className="link" onClick={onSettings}>
-                set up a model
+          <div className="starts">
+            <p className="note">
+              Say what the film is about, who it is for and how long it runs.
+              {!ready && (
+                <>
+                  {' '}
+                  First,{' '}
+                  <button type="button" className="link" onClick={onSettings}>
+                    set up a model
+                  </button>
+                  .
+                </>
+              )}
+            </p>
+            {STARTS[engine].map((start) => (
+              <button key={start} type="button" className="start" onClick={() => setDraft(start)}>
+                {start}
               </button>
-            )}
-          </p>
+            ))}
+          </div>
         )}
         {items.map((item, i) =>
           item.kind === 'tool' ? (
             <details key={item.id} open={!!item.result?.image} className={`tool${item.result && !item.result.ok ? ' failed' : ''}`}>
               <summary>
-                {item.result ? (item.result.ok ? '✓' : '✗') : '…'} {item.summary}
+                {!item.result ? <Loader size={13} className="spin" /> : item.result.ok ? <Check size={13} className="ok" /> : <X size={13} />}
+                <span>{item.summary}</span>
               </summary>
               {item.result?.image && <img src={item.result.image} alt={item.result.text} />}
               {item.result && !item.result.image && <pre>{item.result.text}</pre>}
@@ -129,7 +152,11 @@ export function Assistant({ ready, onSettings, marks, onRemoveMark, onSent }: Pr
             </p>
           ),
         )}
-        {working && <p className="note">Working…</p>}
+        {working && (
+          <p className="note working">
+            <Loader size={13} className="spin" /> Working…
+          </p>
+        )}
       </div>
       {marks.length > 0 && (
         <ul className="chips" aria-label="Marks for the next message">
@@ -137,7 +164,7 @@ export function Assistant({ ready, onSettings, marks, onRemoveMark, onSent }: Pr
             <li key={i}>
               <span className="number">{i + 1}</span> {markLabel(mark)}
               <button type="button" className="quiet" aria-label={`Remove mark ${i + 1}`} onClick={() => onRemoveMark(i)}>
-                ×
+                <X size={12} />
               </button>
             </li>
           ))}
@@ -146,22 +173,22 @@ export function Assistant({ ready, onSettings, marks, onRemoveMark, onSent }: Pr
       <form className="composer" onSubmit={send}>
         <textarea
           value={draft}
-          rows={3}
+          rows={2}
           placeholder={marks.length ? 'Say what should change at the marks (1, 2…)' : 'Ask for a film, or a change to this one'}
           aria-label="Message"
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={onKey}
         />
         {working ? (
-          <button type="button" onClick={() => void window.studio.stopAgent()}>
-            Stop
+          <button type="button" className="send" aria-label="Stop" title="Stop" onClick={() => void window.studio.stopAgent()}>
+            <Square size={13} fill="currentColor" />
           </button>
         ) : (
-          <button type="submit" className="primary" disabled={(!draft.trim() && !marks.length) || !ready}>
-            Send
+          <button type="submit" className="send" aria-label="Send" title="Send (Enter)" disabled={(!draft.trim() && !marks.length) || !ready}>
+            <ArrowUp size={16} />
           </button>
         )}
       </form>
-    </aside>
+    </>
   );
 }

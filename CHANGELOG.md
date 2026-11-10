@@ -3,6 +3,19 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-10 — The Studio wears motionhub's paper and ink
+
+- **What:** A visual layer from one set of tokens, light and dark (`docs/design.md`): motionhub's colours, Inter and
+  JetBrains Mono shipped with the app, Lucide icons. The launcher has a card per engine and recent projects with their
+  engine and path. The workspace has a top bar (the project, its engine, whether it builds, the model, Export with its
+  progress), panels whose sizes are dragged and remembered, the film on ink with the marking tools over it, a transport
+  with frame steps, a mm:ss.cc clock and looping, and the timeline along the bottom with a ruler, the clips, the marks and
+  the playhead. Keys: Space, ← →, C, Esc. An export ends in a toast with Show in folder (`showExported`).
+- **Why:** P1 of the visual direction: the Studio looked like a prototype.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/design.md`, `apps/desktop/src/renderer/src/`.
+
 ## 2026-11-10 — A HyperFrames film has a read-only timeline
 
 - **What:** Under the preview of a HyperFrames film, its clips as its runtime lists them, a lane per track, with the

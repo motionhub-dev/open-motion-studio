@@ -183,8 +183,9 @@ Two protocols, every provider a preset over one of them:
 
 ## The UI
 
-Built: the assistant, the preview, the motion panel and the models dialog, in a fixed three-column layout. Planned: a
-dockable layout (dockview), each panel a projection of the project:
+Built: the launcher, a top bar, and the assistant, the stage, the motion panel and the transport with the timeline as
+panels whose sizes the person drags and the app keeps; the look and the layout are [the design](../design.md). The
+panels, built and planned, each a projection of the project:
 
 | Panel | What it does | Writes |
 | --- | --- | --- |

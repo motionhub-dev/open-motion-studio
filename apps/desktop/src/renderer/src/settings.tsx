@@ -51,7 +51,7 @@ export function Settings({ providers, onChange, onClose }: { providers: Provider
           </button>
         </div>
         {providers.weakKeyStorage && (
-          <p className="error">This system has no keychain, so keys are kept with a fixed secret any program on it could open.</p>
+          <p className="error" style={{ marginBottom: 12 }}>This system has no keychain, so keys are kept with a fixed secret any program on it could open.</p>
         )}
         <ul className="list">
           {providers.providers.map((p) => (
@@ -134,16 +134,16 @@ export function Settings({ providers, onChange, onClose }: { providers: Provider
               />
             </label>
             <div className="actions">
-              <button type="submit" className="primary">
+              <button type="submit" className="button primary">
                 Save
               </button>
-              <button type="button" onClick={() => setForm(null)}>
+              <button type="button" className="button" onClick={() => setForm(null)}>
                 Cancel
               </button>
             </div>
           </form>
         ) : (
-          <button type="button" onClick={() => setForm(blank())}>
+          <button type="button" className="button" onClick={() => setForm(blank())} style={{ marginTop: 12 }}>
             Add a provider
           </button>
         )}

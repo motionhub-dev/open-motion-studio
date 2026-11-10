@@ -35,6 +35,7 @@ const api: StudioApi = {
   exportFilm: () => ipcRenderer.invoke(CHANNELS.exportFilm),
   onExportProgress: (listener) => subscribe(EVENTS.exportProgress, listener),
   cancelExport: () => ipcRenderer.invoke(CHANNELS.cancelExport),
+  showExported: () => ipcRenderer.invoke(CHANNELS.showExported),
 };
 
 contextBridge.exposeInMainWorld('studio', api);

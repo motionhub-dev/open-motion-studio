@@ -38,7 +38,7 @@ const POLICY = [
 /** A preview page around `body`, for an engine whose page is the Studio's own. */
 export const htmlPage = (body: string) => `<!doctype html>
 <html><head><meta charset="utf-8"><title>Preview</title>
-<style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}</style>
+<style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}</style>
 </head><body>${body}</body></html>`;
 
 const TYPES: Record<string, string> = {

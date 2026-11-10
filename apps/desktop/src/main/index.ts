@@ -41,6 +41,8 @@ let open: {
 } | null = null;
 let mainWindow: BrowserWindow | null = null;
 let exporting: AbortController | null = null;
+/** The file the last export wrote: the one path the renderer may ask to be shown, without naming it. */
+let exported: string | null = null;
 let working: AbortController | null = null;
 
 const sessionFile = (dir: string): string => join(dir, STATE_DIR, 'session.json');
@@ -236,6 +238,7 @@ function registerHandlers(): void {
     exporting = controller;
     try {
       await engine.exportFilm(state.project.path, build.version, result.filePath, (done) => send(EVENTS.exportProgress, done), controller.signal);
+      exported = result.filePath;
       return result.filePath;
     } finally {
       exporting = null;
@@ -243,6 +246,9 @@ function registerHandlers(): void {
   });
 
   ipcMain.handle(CHANNELS.cancelExport, () => exporting?.abort());
+  ipcMain.handle(CHANNELS.showExported, () => {
+    if (exported) shell.showItemInFolder(exported);
+  });
 }
 
 function createWindow(): void {

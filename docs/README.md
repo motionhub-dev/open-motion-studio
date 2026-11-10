@@ -1,6 +1,6 @@
 # Documentation
 
-Read [positioning](prd/positioning.md) first, then [the architecture](tech/architecture.md).
+Read [positioning](prd/positioning.md) first, then [the architecture](tech/architecture.md). The visual system is [design](design.md).
 
 ## Product
 

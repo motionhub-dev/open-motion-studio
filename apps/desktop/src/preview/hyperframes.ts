@@ -80,7 +80,9 @@ function info(player: HyperFramesPlayer): FilmInfo {
 /** Shows the page's fixed-size frame whole, centred, in a preview of any size. */
 function fit(film: FilmInfo): void {
   const body = document.body;
-  document.documentElement.style.background = '#000';
+  // A page's body background would paint the whole window (CSS carries it up to the canvas
+  // when the root has none); a transparent image on the root keeps it to the scaled frame.
+  document.documentElement.style.background = 'linear-gradient(transparent, transparent)';
   document.documentElement.style.overflow = 'hidden';
   const place = () => {
     const scale = Math.min(innerWidth / film.width, innerHeight / film.height);
