@@ -237,8 +237,9 @@ export function Stage({ player, build, marks, onMark }: { player: Player; build:
           type="button"
           className="icon-button"
           aria-pressed={tool === 'pick'}
-          aria-label="Pick an element (C)"
-          title={full ? `A message carries at most ${MAX_MARKS} marks` : 'Pick an element (C)'}
+          aria-label="Pick an element"
+          data-tip={full ? `A message carries at most ${MAX_MARKS} marks` : 'Pick an element'}
+          data-key={full ? undefined : 'C'}
           disabled={!film || full}
           onClick={() => player.setTool(tool === 'pick' ? null : 'pick')}
         >
@@ -248,8 +249,9 @@ export function Stage({ player, build, marks, onMark }: { player: Player; build:
           type="button"
           className="icon-button"
           aria-pressed={tool === 'region'}
-          aria-label="Mark a region (C)"
-          title={full ? `A message carries at most ${MAX_MARKS} marks` : 'Mark a region (C)'}
+          aria-label="Mark a region"
+          data-tip={full ? `A message carries at most ${MAX_MARKS} marks` : 'Mark a region'}
+          data-key={full ? undefined : 'C'}
           disabled={!film || full}
           onClick={() => player.setTool(tool === 'region' ? null : 'region')}
         >
@@ -288,13 +290,13 @@ export function Transport({
   return (
     <>
       <div className="transport">
-        <button type="button" className="icon-button" aria-label="Previous frame (←)" title="Previous frame (←)" disabled={!film} onClick={() => player.step(-1)}>
+        <button type="button" className="icon-button" aria-label="Previous frame" data-tip="Previous frame" data-key="←" disabled={!film} onClick={() => player.step(-1)}>
           <SkipBack size={15} />
         </button>
-        <button type="button" className="play" aria-label={playing ? 'Pause (Space)' : 'Play (Space)'} title={playing ? 'Pause (Space)' : 'Play (Space)'} disabled={!film} onClick={player.toggle}>
+        <button type="button" className="play" aria-label={playing ? 'Pause' : 'Play'} data-tip={playing ? 'Pause' : 'Play'} data-key="Space" disabled={!film} onClick={player.toggle}>
           {playing ? <Pause size={15} fill="currentColor" /> : <Play size={15} fill="currentColor" />}
         </button>
-        <button type="button" className="icon-button" aria-label="Next frame (→)" title="Next frame (→)" disabled={!film} onClick={() => player.step(1)}>
+        <button type="button" className="icon-button" aria-label="Next frame" data-tip="Next frame" data-key="→" disabled={!film} onClick={() => player.step(1)}>
           <SkipForward size={15} />
         </button>
         <span className="timecode" aria-label="Time">
@@ -305,7 +307,7 @@ export function Transport({
           className="icon-button"
           aria-pressed={player.loop}
           aria-label="Loop"
-          title="Loop"
+          data-tip="Loop"
           disabled={!film}
           onClick={() => player.setLoop(!player.loop)}
           style={{ marginLeft: 6 }}
@@ -322,7 +324,7 @@ export function Transport({
           type="button"
           className="icon-button"
           aria-label={folded ? 'Show the timeline' : 'Fold the timeline'}
-          title={folded ? 'Show the timeline' : 'Fold the timeline'}
+          data-tip={folded ? 'Show the timeline' : 'Fold the timeline'}
           onClick={() => onFold(!folded)}
         >
           {folded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}

@@ -56,14 +56,20 @@ key where it has one.
 A top bar over a grid of panels (`project-view.tsx`):
 
 - **Top bar**: the mark (it closes the project), the project's name (its path on hover), its engine and whether it
-  builds, then the model in use (which opens Models) and Export, which shows its progress and cancels while it runs.
-- **Assistant** down the left, the **stage** in the middle, **Motions** on the right, the **transport and timeline**
-  along the bottom under the stage and the right panel.
+  builds, then the keyboard shortcuts, the model in use (which opens Models) and Export, which shows its progress and
+  cancels while it runs. On a Mac the window has no title bar (`hiddenInset`): its buttons sit over the top bar, which
+  leaves them room and moves the window; the launcher keeps a strip at its top to move it by.
+- **Assistant** down the left, the **stage** in the middle, **Motions** and the **Inspector** as tabs on the right, the
+  **transport and timeline** along the bottom under the stage and the right panel.
 - The assistant's and the right panel's widths and the timeline's height are dragged at their edges (or set with the
   arrow keys on the handle), and the timeline folds to its transport; `layout.tsx` keeps them in the app's local storage.
 - The stage draws the film's frame contained and centred with room around it, on ink with a shadow; the marking tools
   float over its top right corner.
-- Keys: Space plays, ← → step a frame (Shift, a second), C cycles Pick, Region and off, Esc puts a tool down.
+- Keys: Space plays, ← → step a frame (Shift, a second), C cycles Pick, Region and off, Esc puts a tool down, ? lists
+  them all in a dialog (`SHORTCUTS` in `project-view.tsx`).
+- A control's tip is its `data-tip`, with its key in `data-key`: one layer over everything (`tooltip.tsx`) shows it
+  after a short rest, below the control or above where there is no room. Native `title` is kept for text that is cut
+  short (a path, a clip).
 - An export's result is a toast, with Show in folder.
 
 The launcher (`app.tsx`) is the mark and the title, Open folder, a card for each engine (what it is, what it needs, the
@@ -79,6 +85,10 @@ while no model is set up.
 - **Motions** (`motion-panel.tsx`): the project's motions as poster cards (initials when a motion has no poster); one
   opened is its page — poster, name, line, its colour tokens as swatches, its components with their previews, and its
   MOTION.md. The catalogue search answers as cards with Use.
+- **Inspector** (`inspector.tsx`): the element last picked, which the panel switches to — its name and path, the
+  moment (clicked, the stage goes there), its position and size in the film's pixels, its words, its look (font, size,
+  weight, colour with a swatch, and background, opacity and transform where set) and its attributes. It stays after its
+  mark is sent.
 - **Models** (`settings.tsx`): two panes. The providers down the left, an initial for each, the active one badged; the
   selected one, or a new one, as a form on the right. A new one starts from a service card (each with its protocol);
   the address and model are in mono, the key field says it is sealed in the keychain and never shown again. **Test

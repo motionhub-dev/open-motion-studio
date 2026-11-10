@@ -1634,3 +1634,185 @@ button.motion-card:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* The side panel's tabs. */
+
+.sheet > .head.tabs {
+  gap: 2px;
+  padding: 0 8px;
+}
+
+.tabs [role='tab'] {
+  height: 28px;
+  padding: 0 10px;
+  border: none;
+  border-radius: var(--r-control);
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tabs [role='tab']:hover {
+  color: var(--text);
+}
+
+.tabs [role='tab'][aria-selected='true'] {
+  background: var(--s2);
+  color: var(--text);
+}
+
+/* The inspector. */
+
+.inspector {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inspector .note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.inspected {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.inspected .path {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.inspector dl {
+  display: grid;
+  grid-template-columns: minmax(72px, auto) 1fr;
+  gap: 6px 12px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.inspector dt {
+  color: var(--muted);
+}
+
+.inspector dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.inspector dd .quiet {
+  padding: 0;
+  font-size: 12px;
+}
+
+.swatch-dot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+}
+
+/* Keys, in tooltips, the shortcuts dialog and notes. */
+
+kbd {
+  display: inline-block;
+  min-width: 18px;
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  text-align: center;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 280px;
+  padding: 5px 8px;
+  border-radius: var(--r-control);
+  background: var(--text);
+  color: var(--sheet);
+  font-size: 12px;
+  pointer-events: none;
+  box-shadow: var(--float-shadow);
+}
+
+.tooltip.above {
+  transform: translate(-50%, -100%);
+}
+
+.tooltip kbd {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--sheet) 35%, transparent);
+  color: var(--sheet);
+}
+
+.dialog.shortcuts {
+  width: min(460px, 100%);
+}
+
+.shortcuts dl {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+}
+
+.shortcuts dl > div {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.shortcuts dt {
+  display: flex;
+  gap: 4px;
+}
+
+.shortcuts dd {
+  margin: 0;
+  color: var(--text2);
+}
+
+/* On a Mac the window has no title bar: its buttons sit over the top bar, which moves the
+   window, and the launcher keeps a strip to move it by. */
+
+:root[data-platform='mac'] .topbar {
+  padding-left: 84px;
+  -webkit-app-region: drag;
+}
+
+:root[data-platform='mac'] .topbar :is(button, a, input, select) {
+  -webkit-app-region: no-drag;
+}
+
+:root[data-platform='mac'] .launcher::before {
+  content: '';
+  position: fixed;
+  inset: 0 0 auto;
+  height: 40px;
+  -webkit-app-region: drag;
+}

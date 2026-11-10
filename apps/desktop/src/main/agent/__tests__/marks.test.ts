@@ -9,7 +9,7 @@ vi.mock('electron', () => ({}));
 const title: Mark = {
   t: 2.4,
   box: { x: 0.25, y: 0.4, w: 0.5, h: 0.1 },
-  element: { path: 'div#root > h1#title', text: 'A new film', attributes: { 'data-start': '0' } },
+  element: { path: 'div#root > h1#title', text: 'A new film', attributes: { 'data-start': '0' }, styles: { 'font-size': '130px', color: 'rgb(255, 255, 255)' } },
 };
 const region: Mark = { t: 3, box: { x: 0, y: 0.5, w: 0.5, h: 0.5 }, element: null };
 
@@ -30,7 +30,7 @@ describe('describeMarks', () => {
   it('names each mark’s moment, place and element, by number', () => {
     const text = describeMarks([title, region], true);
     expect(text.startsWith(MARKS_TAG)).toBe(true);
-    expect(text).toContain('1. At 2.40 s, the element `div#root > h1#title` (data-start="0") showing "A new film", drawn at left 25%, top 40%, 50% wide, 10% high.');
+    expect(text).toContain('1. At 2.40 s, the element `div#root > h1#title` (data-start="0") showing "A new film", drawn at left 25%, top 40%, 50% wide, 10% high, styled font-size: 130px; color: rgb(255, 255, 255).');
     expect(text).toContain('2. At 3.00 s, a region of the frame (left 0%, top 50%, 50% wide, 50% high).');
     expect(text).toContain('outlined in red');
     expect(describeMarks([region], false)).not.toContain('outlined in red');

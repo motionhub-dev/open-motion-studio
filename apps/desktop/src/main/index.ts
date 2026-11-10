@@ -265,6 +265,8 @@ function createWindow(): void {
     minHeight: 600,
     show: false,
     title: 'Open Motion Studio',
+    // On a Mac the top bar is the title bar: the window's buttons sit over it (styles.css leaves them room).
+    ...(process.platform === 'darwin' ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 18, y: 18 } } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,

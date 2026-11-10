@@ -40,6 +40,8 @@ export interface PickedElement {
   text: string;
   /** Its data-* attributes, src, href, alt and aria-label. */
   attributes: Record<string, string>;
+  /** The computed styles that say how it looks: font, size, weight, colour, and background, opacity and transform where set. */
+  styles: Record<string, string>;
 }
 
 export type ToPreview =

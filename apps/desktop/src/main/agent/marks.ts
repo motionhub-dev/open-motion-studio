@@ -28,12 +28,19 @@ export function readMarks(value: unknown): Mark[] {
       ? {
           path: String(mark.element.path ?? '').slice(0, 300),
           text: String(mark.element.text ?? '').slice(0, 200),
-          attributes: Object.fromEntries(Object.entries(mark.element.attributes ?? {}).slice(0, 8).map(([k, v]) => [String(k).slice(0, 60), String(v).slice(0, 120)])),
+          attributes: strings(mark.element.attributes),
+          styles: strings(mark.element.styles),
         }
       : null;
     return { t: mark.t, box: { x: box.x, y: box.y, w: box.w, h: box.h }, element };
   });
 }
+
+/** A record of strings from the renderer, at most eight entries, each cut short. */
+const strings = (value: unknown): Record<string, string> =>
+  value && typeof value === 'object'
+    ? Object.fromEntries(Object.entries(value).slice(0, 8).map(([k, v]) => [String(k).slice(0, 60), String(v).slice(0, 120)]))
+    : {};
 
 const percent = (value: number) => `${Math.round(value * 100)}%`;
 
@@ -44,7 +51,8 @@ export function describeMarks(marks: Mark[], pictures: boolean): string {
     if (!mark.element) return `${i + 1}. At ${mark.t.toFixed(2)} s, a region of the frame (${where}).`;
     const attributes = Object.entries(mark.element.attributes).map(([k, v]) => `${k}="${v}"`).join(' ');
     const words = mark.element.text ? ` showing "${mark.element.text}"` : '';
-    return `${i + 1}. At ${mark.t.toFixed(2)} s, the element \`${mark.element.path}\`${attributes ? ` (${attributes})` : ''}${words}, drawn at ${where}.`;
+    const styles = Object.entries(mark.element.styles).map(([k, v]) => `${k}: ${v}`).join('; ');
+    return `${i + 1}. At ${mark.t.toFixed(2)} s, the element \`${mark.element.path}\`${attributes ? ` (${attributes})` : ''}${words}, drawn at ${where}${styles ? `, styled ${styles}` : ''}.`;
   });
   return [
     MARKS_TAG,

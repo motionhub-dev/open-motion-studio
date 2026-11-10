@@ -3,6 +3,19 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-10 — An inspector, keyboard shortcuts, tooltips, and a Mac window without a title bar
+
+- **What:** The right panel has Motions and Inspector tabs; an element picked on the picture opens in the inspector
+  with its path, moment, position and size in the film's pixels, words, look and attributes. A pick now reports the
+  element's computed font, size, weight, colour, and background, opacity and transform where set
+  (`PickedElement.styles`), and the agent reads them with the mark. ? (or the keyboard button) lists the shortcuts.
+  Controls show their tips, with their keys, in one layer no panel clips. On macOS the window has no title bar: its
+  buttons sit over the top bar, which moves the window.
+- **Why:** P3 of the visual direction.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/design.md`, `apps/desktop/src/renderer/src/{inspector,tooltip}.tsx`, `apps/desktop/src/preview/pick.ts`.
+
 ## 2026-11-10 — The assistant reads as Markdown, motions open as pages, Models tests a connection
 
 - **What:** The assistant draws the agent's replies as Markdown, and a still clicked seeks the film to its moment and

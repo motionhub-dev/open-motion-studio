@@ -127,9 +127,6 @@ export function MotionPanel() {
 
   return (
     <>
-      <div className="head">
-        <h2>Motions</h2>
-      </div>
       {open ? (
         <Page id={open} onBack={() => setOpen(null)} />
       ) : (

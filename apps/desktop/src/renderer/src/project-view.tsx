@@ -1,12 +1,13 @@
 // An open project: the top bar, and the workspace's panels on the ground: the assistant down
-// the left, the stage in the middle, motions on the right, the transport and timeline along
-// the bottom. A folder with no film yet is offered one. Keys: Space plays, ← → step a frame
-// (Shift, a second), C cycles the marking tools, Esc puts one down.
+// the left, the stage in the middle, motions and the inspector on the right, the transport and
+// timeline along the bottom. A folder with no film yet is offered one. The keys are SHORTCUTS,
+// shown by ? or the keyboard button.
 
-import { ChevronDown, Download, X } from 'lucide-react';
+import { ChevronDown, Download, Keyboard, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { type BuildResult, type EngineId, MAX_MARKS, type Mark, type Project, type Providers } from '../../shared/api';
 import { Assistant } from './assistant';
+import { Inspector } from './inspector';
 import { LIMITS, Splitter, useLayout } from './layout';
 import { Logo } from './logo';
 import { MotionPanel } from './motion-panel';
@@ -16,6 +17,45 @@ import { reason } from './reason';
 export const ENGINE_NAMES: Record<EngineId, string> = { native: 'Film', remotion: 'Remotion', hyperframes: 'HyperFrames' };
 
 type Toast = { text: string; error: boolean; file?: string };
+
+/** Every key the workspace answers, as the shortcuts dialog lists them. */
+const SHORTCUTS: [keys: string[], what: string][] = [
+  [['Space'], 'Play or pause'],
+  [['←', '→'], 'Step a frame'],
+  [['Shift', '←', '→'], 'Step a second'],
+  [['C'], 'Pick an element, then mark a region, then put the tool down'],
+  [['Esc'], 'Put the tool down, or close a dialog'],
+  [['Enter'], 'Send the message'],
+  [['Shift', 'Enter'], 'A new line in the message'],
+  [['?'], 'Show these shortcuts'],
+];
+
+function Shortcuts({ onClose }: { onClose(): void }) {
+  return (
+    <div className="dialog-backdrop" role="presentation" onClick={onClose}>
+      <div className="dialog shortcuts" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts" onClick={(e) => e.stopPropagation()}>
+        <div className="panel-head">
+          <h2>Keyboard shortcuts</h2>
+          <button type="button" className="icon-button" aria-label="Close" data-tip="Close" data-key="Esc" onClick={onClose}>
+            <X size={16} />
+          </button>
+        </div>
+        <dl>
+          {SHORTCUTS.map(([keys, what]) => (
+            <div key={what}>
+              <dt>
+                {keys.map((key) => (
+                  <kbd key={key}>{key}</kbd>
+                ))}
+              </dt>
+              <dd>{what}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </div>
+  );
+}
 
 /** Whether a key press belongs to a field the person is typing in. */
 const typing = (target: EventTarget | null) =>
@@ -35,12 +75,17 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
   const [toast, setToast] = useState<Toast | null>(null);
   /** The places marked on the picture for the next message. */
   const [marks, setMarks] = useState<Mark[]>([]);
+  /** The element last picked, which the inspector shows; it stays after its mark is sent. */
+  const [inspected, setInspected] = useState<Mark | null>(null);
+  const [side, setSide] = useState<'motions' | 'inspector'>('motions');
+  const [shortcuts, setShortcuts] = useState(false);
   const [layout, setLayout] = useLayout();
   const player = usePlayer(build);
   const active = providers?.providers.find((p) => p.id === providers.active);
 
   useEffect(() => {
     setBuild(null);
+    setInspected(null);
     const stop = window.studio.onBuild(setBuild);
     void window.studio.lastBuild().then((last) => last && setBuild((b) => b ?? last));
     return stop;
@@ -56,8 +101,11 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && shortcuts) return setShortcuts(false);
       if (typing(event.target) || event.metaKey || event.ctrlKey || event.altKey) return;
-      if (event.key === ' ') {
+      if (event.key === '?') {
+        setShortcuts((open) => !open);
+      } else if (event.key === ' ') {
         event.preventDefault();
         player.toggle();
       } else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
@@ -95,6 +143,11 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
     }
   }
 
+  function seek(t: number) {
+    if (player.playing) player.tell({ type: 'oms:pause' });
+    player.seek(t);
+  }
+
   const status = !build ? (
     <span className="status busy">Building…</span>
   ) : build.ok ? (
@@ -108,7 +161,7 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
   return (
     <main className="project">
       <header className="topbar">
-        <button type="button" className="icon-button" aria-label="Close the project" title="Close the project" onClick={onClose}>
+        <button type="button" className="icon-button" aria-label="Close the project" data-tip="Close the project" onClick={onClose}>
           <Logo />
         </button>
         <span className="name" title={project.path}>
@@ -117,7 +170,10 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
         {project.engine && <span className="badge">{ENGINE_NAMES[project.engine]}</span>}
         {project.engine && status}
         <span className="spacer" />
-        <button type="button" className="button" onClick={onSettings} title="Models">
+        <button type="button" className="icon-button" aria-label="Keyboard shortcuts" data-tip="Keyboard shortcuts" data-key="?" onClick={() => setShortcuts(true)}>
+          <Keyboard size={16} />
+        </button>
+        <button type="button" className="button" onClick={onSettings} data-tip="Models">
           {active ? (
             <>
               {active.model}
@@ -135,7 +191,7 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
               Export
             </button>
           ) : (
-            <button type="button" className="button" onClick={() => void window.studio.cancelExport()} title="Cancel the export">
+            <button type="button" className="button" onClick={() => void window.studio.cancelExport()} data-tip="Cancel the export">
               <X size={14} />
               Exporting {Math.round(progress * 100)}%
             </button>
@@ -155,10 +211,7 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
               marks={marks}
               onRemoveMark={(i) => setMarks((m) => m.filter((_, j) => j !== i))}
               onSent={() => setMarks([])}
-              onSeek={(t) => {
-                if (player.playing) player.tell({ type: 'oms:pause' });
-                player.seek(t);
-              }}
+              onSeek={seek}
             />
             <Splitter axis="x" value={layout.left} limits={LIMITS.left} onChange={(left) => setLayout({ left })} label="Resize the assistant" style={{ right: -7 }} />
           </section>
@@ -166,10 +219,23 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
             player={player}
             build={build}
             marks={marks}
-            onMark={(mark) => setMarks((m) => (m.length < MAX_MARKS ? [...m, mark] : m))}
+            onMark={(mark) => {
+              setMarks((m) => (m.length < MAX_MARKS ? [...m, mark] : m));
+              if (mark.element) {
+                setInspected(mark);
+                setSide('inspector');
+              }
+            }}
           />
-          <aside className="sheet side" aria-label="Motions">
-            <MotionPanel />
+          <aside className="sheet side" aria-label={side === 'motions' ? 'Motions' : 'Inspector'}>
+            <div className="head tabs" role="tablist">
+              {(['motions', 'inspector'] as const).map((tab) => (
+                <button key={tab} type="button" role="tab" aria-selected={side === tab} onClick={() => setSide(tab)}>
+                  {tab === 'motions' ? 'Motions' : 'Inspector'}
+                </button>
+              ))}
+            </div>
+            {side === 'motions' ? <MotionPanel /> : <Inspector mark={inspected} film={player.film} onSeek={seek} />}
             <Splitter axis="x" sign={-1} value={layout.right} limits={LIMITS.right} onChange={(right) => setLayout({ right })} label="Resize the side panel" style={{ left: -7 }} />
           </aside>
           <section className="sheet transport-sheet" aria-label="Transport and timeline">
@@ -187,6 +253,8 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
           </button>
         </div>
       )}
+
+      {shortcuts && <Shortcuts onClose={() => setShortcuts(false)} />}
 
       {toast && (
         <div className={`toast${toast.error ? ' bad' : ''}`} role={toast.error ? 'alert' : 'status'}>

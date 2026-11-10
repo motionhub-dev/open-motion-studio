@@ -221,11 +221,11 @@ export function Assistant({ ready, engine, onSettings, marks, onRemoveMark, onSe
           onKeyDown={onKey}
         />
         {working ? (
-          <button type="button" className="send" aria-label="Stop" title="Stop" onClick={() => void window.studio.stopAgent()}>
+          <button type="button" className="send" aria-label="Stop" data-tip="Stop" onClick={() => void window.studio.stopAgent()}>
             <Square size={13} fill="currentColor" />
           </button>
         ) : (
-          <button type="submit" className="send" aria-label="Send" title="Send (Enter)" disabled={(!draft.trim() && !marks.length) || !ready}>
+          <button type="submit" className="send" aria-label="Send" data-tip="Send" data-key="Enter" disabled={(!draft.trim() && !marks.length) || !ready}>
             <ArrowUp size={16} />
           </button>
         )}
@@ -235,7 +235,7 @@ export function Assistant({ ready, engine, onSettings, marks, onRemoveMark, onSe
           <figure className="lightbox" role="dialog" aria-modal="true" aria-label="Still" onClick={(e) => e.stopPropagation()}>
             <img src={shown.image} alt={shown.caption} />
             <figcaption>{shown.caption}</figcaption>
-            <button type="button" className="icon-button" aria-label="Close (Esc)" title="Close (Esc)" onClick={() => setShown(null)}>
+            <button type="button" className="icon-button" aria-label="Close" data-tip="Close" data-key="Esc" onClick={() => setShown(null)}>
               <X size={16} />
             </button>
           </figure>

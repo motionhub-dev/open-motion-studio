@@ -192,6 +192,7 @@ panels, built and planned, each a projection of the project:
 | **Assistant** | The conversation, the agent's words as Markdown, tool calls folded, stills the agent took inline (one clicked seeks to its moment and opens large); the turn's spend is planned | Through the agent |
 | **Preview** | The engine's preview with transport; the mark tools (pick an element, drag a region) attach to the next message, flagged on the scrubber (built) | Nothing |
 | **Motion** | The project's motions as poster cards; one opened shows its colours, its components with their previews and its MOTION.md (`motionDetail`); the catalogue search with Use (built). Reels are planned | Through `useMotion` |
+| **Inspector** | The element last picked: its path, moment, box in the film's pixels, words, computed look (`PickedElement.styles`, which the agent also reads) and attributes (built) | Nothing |
 | **Files** | The tree and a read-only CodeMirror view; open in the person's own editor | Nothing |
 | **Timeline** | Read-only: the film's clips as the engine reports them (`FilmInfo.clips`), a lane per track, the playhead; a clip clicked seeks to its start. Built for HyperFrames, whose runtime lists them in `window.__clipManifest` | Nothing |
 | **Export** | Queue, progress, open the file | Nothing |

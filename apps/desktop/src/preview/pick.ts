@@ -41,6 +41,12 @@ function name(element: Element): string {
   return `${element.tagName.toLowerCase()}${id}${classes}`;
 }
 
+/** The computed styles a picked element reports: how it looks, in the words a film's code uses. */
+const STYLES = ['font-family', 'font-size', 'font-weight', 'color', 'background-color', 'opacity', 'transform'];
+
+/** Values not worth reporting, because they are what an element has unless told otherwise. */
+const DEFAULTS: Record<string, string> = { 'background-color': 'rgba(0, 0, 0, 0)', opacity: '1', transform: 'none' };
+
 function describe(element: Element, frame: DOMRect): PickedElement & { box: Box } {
   const path: string[] = [];
   for (let e: Element | null = element; e && e !== document.body && path.length < 5; e = e.parentElement) path.unshift(name(e));
@@ -52,13 +58,19 @@ function describe(element: Element, frame: DOMRect): PickedElement & { box: Box 
   );
   const text = (element.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 120);
   const r = element.getBoundingClientRect();
+  const computed = getComputedStyle(element);
+  const styles = Object.fromEntries(
+    STYLES.map((property) => [property, computed.getPropertyValue(property).trim()] as const).filter(
+      ([property, value]) => value && value !== DEFAULTS[property],
+    ),
+  );
   const box = {
     x: (r.left - frame.left) / frame.width,
     y: (r.top - frame.top) / frame.height,
     w: r.width / frame.width,
     h: r.height / frame.height,
   };
-  return { path: path.join(' > '), text, attributes, box };
+  return { path: path.join(' > '), text, attributes, styles, box };
 }
 
 addEventListener('message', (event: MessageEvent<ToPreview>) => {
