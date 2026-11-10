@@ -55,7 +55,7 @@ key where it has one.
 
 A top bar over a grid of panels (`project-view.tsx`):
 
-- **Top bar**: the mark (it closes the project), the project's name (its path on hover), its engine and whether it
+- **Top bar**: the mark (it closes the project), the project's name (its path on hover) and whether its film
   builds, then the keyboard shortcuts, the model in use (which opens Models) and Export, which shows its progress and
   cancels while it runs. On a Mac the window has no title bar (`hiddenInset`): its buttons sit over the top bar, which
   leaves them room and moves the window; the launcher keeps a strip at its top to move it by.
@@ -69,12 +69,11 @@ A top bar over a grid of panels (`project-view.tsx`):
   them all in a dialog (`SHORTCUTS` in `project-view.tsx`).
 - A control's tip is its `data-tip`, with its key in `data-key`: one layer over everything (`tooltip.tsx`) shows it
   after a short rest, below the control or above where there is no room. Native `title` is kept for text that is cut
-  short (a path, a clip).
+  short (a path, a mark's moment).
 - An export's result is a toast, with Show in folder.
 
-The launcher (`app.tsx`) is the mark and the title, Open folder, a card for each engine (what it is, what it needs, the
-Remotion licence in a line), the recent projects with their engine and path (`~` for the home folder), and a banner
-while no model is set up.
+The launcher (`app.tsx`) is the mark and the title, Open folder and New film (which starts one in an empty folder), the
+recent projects with their path (`~` for the home folder), and a banner while no model is set up.
 
 ## The panels and the models dialog
 

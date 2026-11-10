@@ -5,7 +5,7 @@
 
 import { ChevronDown, Download, Keyboard, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { type BuildResult, type EngineId, MAX_MARKS, type Mark, type Project, type Providers } from '../../shared/api';
+import { type BuildResult, MAX_MARKS, type Mark, type Project, type Providers } from '../../shared/api';
 import { Assistant } from './assistant';
 import { Inspector } from './inspector';
 import { LIMITS, Splitter, useLayout } from './layout';
@@ -14,7 +14,6 @@ import { MotionPanel } from './motion-panel';
 import { Stage, Transport, usePlayer } from './preview';
 import { reason } from './reason';
 
-export const ENGINE_NAMES: Record<EngineId, string> = { native: 'Film', remotion: 'Remotion', hyperframes: 'HyperFrames' };
 
 type Toast = { text: string; error: boolean; file?: string };
 
@@ -89,7 +88,7 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
     const stop = window.studio.onBuild(setBuild);
     void window.studio.lastBuild().then((last) => last && setBuild((b) => b ?? last));
     return stop;
-  }, [project.path, project.engine]);
+  }, [project.path, project.film]);
 
   useEffect(() => window.studio.onExportProgress(setProgress), []);
 
@@ -167,8 +166,7 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
         <span className="name" title={project.path}>
           {project.name}
         </span>
-        {project.engine && <span className="badge">{ENGINE_NAMES[project.engine]}</span>}
-        {project.engine && status}
+        {project.film && status}
         <span className="spacer" />
         <button type="button" className="icon-button" aria-label="Keyboard shortcuts" data-tip="Keyboard shortcuts" data-key="?" onClick={() => setShortcuts(true)}>
           <Keyboard size={16} />
@@ -184,7 +182,7 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
           )}
           <ChevronDown size={14} />
         </button>
-        {project.engine &&
+        {project.film &&
           (progress === null ? (
             <button type="button" className="button accent" onClick={exportFilm} disabled={!build?.ok}>
               <Download size={15} />
@@ -198,7 +196,7 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
           ))}
       </header>
 
-      {project.engine ? (
+      {project.film ? (
         <div
           className="workspace"
           style={{ '--left': `${layout.left}px`, '--right': `${layout.right}px`, '--bottom': `${bottom}px` } as React.CSSProperties}
@@ -206,7 +204,6 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
           <section className="sheet assistant" aria-label="Assistant">
             <Assistant
               ready={!!active?.ready}
-              engine={project.engine}
               onSettings={onSettings}
               marks={marks}
               onRemoveMark={(i) => setMarks((m) => m.filter((_, j) => j !== i))}

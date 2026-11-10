@@ -1,7 +1,7 @@
-// Pointing at the picture, for every engine: loaded on every preview page after the engine's
-// own bridge, which sets window.__omsFrame. Every page shows its frame whole and centred in the
-// window (scaled down in the Studio's preview, at its own size in a render), so a point given
-// as fractions of the frame is found on the page the same way whatever drew it.
+// Pointing at the picture: loaded on the preview page after the core, which sets
+// window.__omsFrame. The page shows its frame whole and centred in the window (scaled down in
+// the Studio's preview, at its own size in a render), so a point given as fractions of the
+// frame is found on the page the same way in both.
 //
 //   oms:pick {x, y}  -> oms:picked {element, box}: the visible element drawn there, described
 //   window.__omsMark(box | null)  outlines a box (fractions of the frame) for a still of a mark

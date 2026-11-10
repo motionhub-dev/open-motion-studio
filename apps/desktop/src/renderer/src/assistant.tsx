@@ -4,7 +4,7 @@
 
 import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { ArrowUp, Check, Loader, Square, X } from 'lucide-react';
-import type { AgentEvent, ChatItem, EngineId, Mark } from '../../shared/api';
+import type { AgentEvent, ChatItem, Mark } from '../../shared/api';
 import { Markdown } from './markdown';
 import { timecode } from './preview';
 import { reason } from './reason';
@@ -35,16 +35,15 @@ function markLabel(mark: Mark): string {
   return `${what} at ${mark.t.toFixed(1)} s`;
 }
 
-/** Ways to begin, for an empty conversation, by the engine the film is written for. */
-const STARTS: Record<EngineId, string[]> = {
-  native: ['A 30-second explainer on how a heat pump works', 'Find a motion for a data story and show me three'],
-  remotion: ['A 20-second product teaser with three feature cards', 'Find a motion for a data story and show me three'],
-  hyperframes: ['A 15-second title sequence for a podcast episode', 'Find a motion for a data story and show me three'],
-};
+/** Ways to begin, for an empty conversation. */
+const STARTS = [
+  'A 30-second explainer on how a heat pump works',
+  'A 15-second title sequence for a podcast episode',
+  'Find a motion for a data story and show me three',
+];
 
 interface Props {
   ready: boolean;
-  engine: EngineId;
   onSettings(): void;
   marks: Mark[];
   onRemoveMark(index: number): void;
@@ -56,7 +55,7 @@ interface Props {
 /** The composer grows with its text to about eight lines. */
 const COMPOSER_MAX = 180;
 
-export function Assistant({ ready, engine, onSettings, marks, onRemoveMark, onSent, onSeek }: Props) {
+export function Assistant({ ready, onSettings, marks, onRemoveMark, onSent, onSeek }: Props) {
   const [items, setItems] = useState<ChatItem[]>([]);
   const [draft, setDraft] = useState('');
   const [working, setWorking] = useState(false);
@@ -148,7 +147,7 @@ export function Assistant({ ready, engine, onSettings, marks, onRemoveMark, onSe
                 </>
               )}
             </p>
-            {STARTS[engine].map((start) => (
+            {STARTS.map((start) => (
               <button key={start} type="button" className="start" onClick={() => setDraft(start)}>
                 {start}
               </button>

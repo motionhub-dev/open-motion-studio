@@ -1,6 +1,5 @@
-// The read-only timeline: a ruler to seek on, the film's clips as its engine reports them (a
-// lane per track: HyperFrames lists them, the other engines do not), the person's marks, and
-// the playhead through all of them. A clip or a mark clicked seeks to its start.
+// The read-only timeline: a ruler to seek on, the person's marks, and the playhead through
+// both. A mark clicked seeks to its moment.
 
 import type { MouseEvent } from 'react';
 import type { Mark } from '../../shared/api';
@@ -12,15 +11,14 @@ function stepFor(seconds: number): number {
   return [0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300].find((step) => seconds / step <= 10) ?? 600;
 }
 
-const short = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+/** A tick's label, m:ss, with its half second where the step is one. */
+const short = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}${Number.isInteger(s) ? '' : '.5'}`;
 
 export function Timeline({ film, t, marks, onSeek }: { film: FilmInfo; t: number; marks: Mark[]; onSeek(t: number): void }) {
   const seconds = film.seconds || 1;
   const at = (s: number) => `${Math.min(100, Math.max(0, (s / seconds) * 100))}%`;
   const step = stepFor(seconds);
   const ticks = Array.from({ length: Math.floor(seconds / step) + 1 }, (_, i) => i * step);
-  const clips = film.clips ?? [];
-  const tracks = [...new Set(clips.map((clip) => clip.track))].sort((a, b) => a - b);
 
   const seekAt = (event: MouseEvent<HTMLDivElement>) => {
     const r = event.currentTarget.getBoundingClientRect();
@@ -30,9 +28,6 @@ export function Timeline({ film, t, marks, onSeek }: { film: FilmInfo; t: number
   return (
     <div className="timeline" aria-label="Timeline">
       <div className="names" aria-hidden="true">
-        {tracks.map((track) => (
-          <span key={track}>Track {track + 1}</span>
-        ))}
         <span>Marks</span>
       </div>
       <div className="tracks">
@@ -43,24 +38,6 @@ export function Timeline({ film, t, marks, onSeek }: { film: FilmInfo; t: number
             </span>
           ))}
         </div>
-        {tracks.map((track) => (
-          <div key={track} className="lane">
-            {clips
-              .filter((clip) => clip.track === track)
-              .map((clip) => (
-                <button
-                  key={`${clip.id}-${clip.start}`}
-                  type="button"
-                  className={`clip${t >= clip.start && t < clip.start + clip.duration ? ' current' : ''}`}
-                  style={{ left: at(clip.start), width: at(clip.duration) }}
-                  title={`${clip.label}: ${timecode(clip.start)} to ${timecode(clip.start + clip.duration)}`}
-                  onClick={() => onSeek(clip.start)}
-                >
-                  {clip.label}
-                </button>
-              ))}
-          </div>
-        ))}
         <div className="lane">
           {marks.map((mark, i) => (
             <button

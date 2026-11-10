@@ -1,6 +1,6 @@
-// The native engine (docs/tech/architecture.md, "The engine contract"): a film is
-// `film.tsx` at the project's root, a React component that draws by `useTime()` from
-// @motionhub/runtime, as a motion's reel does, exporting its length and size:
+// The film (docs/tech/architecture.md, "The film"): `film.tsx` at the project's root, a
+// React component that draws by `useTime()` from @motionhub/runtime, as a motion's reel
+// does, exporting its length and size:
 //
 //   export const film = {seconds: 12, width: 1920, height: 1080, fps: 30};
 //   export default function Film() { ... }
@@ -15,10 +15,10 @@ import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { BuildResult } from '../../shared/api';
 import { STATE_DIR } from '../project';
-import { exportFrames } from './capture';
-import type { Engine } from './engine';
-import { htmlPage } from './preview';
-import SKILL from './native.md?raw';
+import SKILL from './film.md?raw';
+
+/** What the agent is told about making a film (film.md). */
+export const FILM_SKILL: string = SKILL;
 
 export const FILM = 'film.tsx';
 /** Where a project's film is bundled to. A function, so this module reads STATE_DIR only once it is defined. */
@@ -30,7 +30,8 @@ const PROVIDED = ['react', 'react/jsx-runtime', '@motionhub/runtime'];
 /** The kinds of file a film may import, served beside its bundle. */
 const ASSETS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif', '.svg', '.woff', '.woff2', '.ttf', '.otf', '.mp4', '.webm', '.mp3', '.wav', '.ogg'];
 
-export const isNativeProject = (dir: string): boolean => existsSync(join(dir, FILM));
+/** Whether a folder holds a film. */
+export const hasFilm = (dir: string): boolean => existsSync(join(dir, FILM));
 
 const STARTER = `import {MotionRoot, interpolate, useTime} from '@motionhub/runtime';
 
@@ -48,7 +49,7 @@ export default function Film() {
 }
 `;
 
-/** Starts a native film in the project: writes film.tsx unless there is one. */
+/** Starts a film in the project: writes film.tsx unless there is one. */
 export async function startFilm(dir: string): Promise<void> {
   const file = join(dir, FILM);
   if (existsSync(file)) return;
@@ -100,15 +101,3 @@ export async function watchFilm(dir: string, onBuilt: (result: BuildResult) => v
   await ctx.watch();
   return ctx;
 }
-
-export const native: Engine = {
-  id: 'native',
-  detect: isNativeProject,
-  create: async (dir) => startFilm(dir),
-  watch: watchFilm,
-  // The core holds React and the runtime, and loads the film's bundle itself.
-  page: async () => htmlPage(`<div id="root"></div><script src="studio/core.js"></script><script src="studio/pick.js"></script>`),
-  exportFilm: (_dir, version, file, onProgress, signal) => exportFrames(version, file, onProgress, signal),
-  motionTaken: async () => {},
-  skill: SKILL,
-};

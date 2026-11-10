@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Mark } from '../../../shared/api';
-import type { Stage } from '../../engines/capture';
+import type { Stage } from '../../film/capture';
 import { transcript } from '../loop';
 import { MARKS_TAG, describeMarks, markedMessage, readMarks } from '../marks';
 

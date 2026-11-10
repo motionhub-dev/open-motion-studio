@@ -1,4 +1,4 @@
-// Stills and export for the native engine: the film's page opened with ?render=1 in an
+// Stills and export: the film's page opened with ?render=1 in an
 // offscreen window, moved to each frame's time and photographed. Export pipes the frames
 // to ffmpeg as H.264 (High, level 4.1, BT.709, a key frame every two seconds, the index
 // ahead of the frames), which any phone plays. Nothing in the film runs on a clock, so a
@@ -8,7 +8,7 @@ import { BrowserWindow, app, session, type NativeImage } from 'electron';
 import { spawn } from 'node:child_process';
 import { rename, rm } from 'node:fs/promises';
 import ffmpegStatic from 'ffmpeg-static';
-import { PREVIEW_URL, type PreviewSource, servePreview } from './preview';
+import { PREVIEW_URL, servePreview } from './preview';
 import type { Box, FilmInfo } from '../../shared/preview';
 
 export const RENDER_PARTITION = 'oms-render';
@@ -29,7 +29,7 @@ export function ffmpegPath(): string {
 }
 
 /** Serves the render partition's oms-preview: scheme from the open project. Call once, when the app is ready. */
-export function serveRenders(film: () => PreviewSource | null): void {
+export function serveRenders(film: () => string | null): void {
   servePreview(session.fromPartition(RENDER_PARTITION), film);
 }
 
@@ -71,7 +71,7 @@ export async function openStage(version: number): Promise<Stage> {
           const error = await failed();
           if (error) throw new Error(error);
           const info = (await contents.executeJavaScript(
-            'window.__oms ? {seconds: __oms.seconds, width: __oms.width, height: __oms.height, fps: __oms.fps, composition: __oms.composition} : null',
+            'window.__oms ? {seconds: __oms.seconds, width: __oms.width, height: __oms.height, fps: __oms.fps} : null',
           )) as FilmInfo | null;
           if (info) return info;
           await new Promise((done) => setTimeout(done, 50));

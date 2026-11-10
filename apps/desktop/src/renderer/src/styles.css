@@ -368,61 +368,6 @@ input[type='radio'] {
   gap: 12px;
 }
 
-.engines {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 12px;
-}
-
-.engine-card {
-  text-align: left;
-  padding: 18px;
-  border-radius: var(--r-panel);
-  border: 1px solid var(--line);
-  background: var(--sheet);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.engine-card:hover:not(:disabled) {
-  border-color: var(--text);
-}
-
-.engine-card .glyph {
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
-  background: var(--s2);
-  display: grid;
-  place-items: center;
-  font: 500 13px var(--font-mono);
-}
-
-.engine-card.first .glyph {
-  background: var(--text);
-  color: var(--bg);
-}
-
-.engine-card strong {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.engine-card p {
-  color: var(--text2);
-}
-
-.engine-card small {
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.engine-card small.good {
-  color: var(--good);
-  font-weight: 500;
-}
-
 .recents {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -839,30 +784,6 @@ input[type='radio'] {
 .lane {
   position: relative;
   height: 30px;
-}
-
-.timeline .clip {
-  position: absolute;
-  top: 4px;
-  height: 22px;
-  min-width: 4px;
-  padding: 0 8px;
-  border-radius: 5px;
-  border: 1px solid var(--line);
-  background: var(--s2);
-  color: var(--text);
-  font-size: 11px;
-  line-height: 20px;
-  text-align: left;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.timeline .clip.current {
-  border-color: var(--text);
-  background: var(--text);
-  color: var(--bg);
 }
 
 .timeline .flag {

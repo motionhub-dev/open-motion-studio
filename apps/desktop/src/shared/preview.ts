@@ -1,27 +1,11 @@
-// The preview bridge protocol: the messages between the Studio and a film's preview frame.
-// Every engine's preview answers the same messages (docs/tech/architecture.md, "The engine
-// contract").
+// The preview bridge protocol: the messages between the Studio and a film's preview frame
+// (docs/tech/architecture.md, "The film").
 
 export interface FilmInfo {
   seconds: number;
   width: number;
   height: number;
   fps: number;
-  /** The Remotion composition the page shows; none for a native film. */
-  composition?: string;
-  /** The film's timed pieces, where its engine knows them (HyperFrames); none otherwise. */
-  clips?: Clip[];
-}
-
-/** One timed piece of a film, as its engine reports it, for the read-only timeline. */
-export interface Clip {
-  id: string;
-  label: string;
-  /** Seconds into the film. */
-  start: number;
-  duration: number;
-  /** The lane it is drawn in. */
-  track: number;
 }
 
 /** A box on the frame, in fractions of its width and height. */
