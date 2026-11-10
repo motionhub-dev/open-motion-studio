@@ -1,1 +1,9 @@
-# open-motion-studio
+# Open Motion Studio
+
+An open-source desktop IDE for making motion video with an agent: pick a motion from [motionhub.dev](https://motionhub.dev),
+talk to an agent on the model and provider of your choice, watch it play, point at what to change, and export an MP4.
+Projects are written for Remotion, HyperFrames, or the Studio's own native engine.
+
+**Status: planning.** Nothing is built yet. Start with [the documentation](docs/README.md).
+
+Licensed under the [Apache License 2.0](LICENSE).
