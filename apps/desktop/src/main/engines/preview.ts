@@ -1,16 +1,24 @@
-// The oms-preview: scheme, which serves a native film's preview page: the page itself, the
-// preview core and the film's bundle with its assets. It is what a film's code runs under,
-// so its policy lets the page load only from this scheme and connect nowhere
-// (CLAUDE.md, "Architecture rules").
+// The oms-preview: scheme, which serves the open film's preview page: the page its engine
+// writes, the native preview core, the film's bundle with its assets, and the project's
+// public/ folder. It is what a film's code runs under, so its policy lets the page load only
+// from this scheme and connect nowhere (ADR 0004).
 //
 //   oms-preview://film/                 the page (?render=1 for stills and export, ?v= the build)
-//   oms-preview://film/core.js          the preview core (resources/preview/core.js)
+//   oms-preview://film/core.js          the native preview core (resources/preview/core.js)
 //   oms-preview://film/build/<file>     the film's bundle and assets, from <project>/.motion-studio/build/
+//   oms-preview://film/public/<file>    the project's public/ folder (Remotion's staticFile())
 
 import { app, protocol, type Session } from 'electron';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize, sep } from 'node:path';
+import type { Engine } from './engine';
 import { buildDir } from './native';
+
+/** The film the scheme serves: the open project's folder and its engine. */
+export interface PreviewSource {
+  dir: string;
+  engine: Engine;
+}
 
 export const SCHEME = 'oms-preview';
 export const PREVIEW_URL = `${SCHEME}://film/`;
@@ -21,14 +29,14 @@ const POLICY = [
   `style-src ${SCHEME}: 'unsafe-inline'`,
   `img-src ${SCHEME}: data: blob:`,
   `font-src ${SCHEME}: data:`,
-  `media-src ${SCHEME}: blob:`,
+  `media-src ${SCHEME}: data: blob:`,
   "connect-src 'none'",
 ].join('; ');
 
-const PAGE = `<!doctype html>
+const page = (body: string) => `<!doctype html>
 <html><head><meta charset="utf-8"><title>Preview</title>
 <style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}</style>
-</head><body><div id="root"></div><script src="core.js"></script></body></html>`;
+</head><body>${body}</body></html>`;
 
 const TYPES: Record<string, string> = {
   '.js': 'text/javascript',
@@ -73,17 +81,19 @@ function respond(body: string | Buffer, type: string): Response {
   });
 }
 
-/** Serves the film of the project `projectDir()` names on `session`'s oms-preview: scheme. */
-export function servePreview(session: Session, projectDir: () => string | null): void {
+/** Serves the film `film()` names on `session`'s oms-preview: scheme. */
+export function servePreview(session: Session, film: () => PreviewSource | null): void {
   session.protocol.handle(SCHEME, async (request) => {
     const url = new URL(request.url);
-    const dir = projectDir();
-    if (url.host !== 'film' || !dir) return new Response('Not found', { status: 404 });
+    const source = film();
+    if (url.host !== 'film' || !source) return new Response('Not found', { status: 404 });
+    const version = Number(url.searchParams.get('v')) || 0;
     try {
-      if (url.pathname === '/' || url.pathname === '/index.html') return respond(PAGE, 'text/html');
+      if (url.pathname === '/' || url.pathname === '/index.html') return respond(page(source.engine.page(version)), 'text/html');
       if (url.pathname === '/core.js') return respond(await readFile(coreFile()), TYPES['.js']!);
-      if (url.pathname.startsWith('/build/')) {
-        const file = within(buildDir(dir), url.pathname.slice('/build/'.length));
+      for (const [prefix, root] of [['/build/', buildDir(source.dir)], ['/public/', join(source.dir, 'public')]] as const) {
+        if (!url.pathname.startsWith(prefix)) continue;
+        const file = within(root, url.pathname.slice(prefix.length));
         if (file) return respond(await readFile(file), TYPES[extname(file).toLowerCase()] ?? 'application/octet-stream');
       }
     } catch (error) {

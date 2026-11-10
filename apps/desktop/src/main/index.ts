@@ -12,17 +12,16 @@ import {
   type OpenDialogOptions,
   type WebContents,
 } from 'electron';
-import type { BuildContext } from 'esbuild';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { CHANNELS, EVENTS, type AgentEvent, type BuildResult, type Project } from '../shared/api';
 import { runTurn, transcript } from './agent/loop';
 import { type MessageParam, caller, failure } from './agent/model';
-import SKILL from './agent/native.md?raw';
 import { TOOLS, type ToolContext } from './agent/tools';
-import { exportFilm, openStage, serveRenders } from './engines/capture';
-import { startFilm, watchFilm } from './engines/native';
-import { registerPreviewScheme, servePreview } from './engines/preview';
+import { openStage, serveRenders } from './engines/capture';
+import { type Bundler, type Engine, engineById } from './engines/engine';
+import { native } from './engines/native';
+import { type PreviewSource, registerPreviewScheme, servePreview } from './engines/preview';
 import { projectMotions, searchMotions, useMotion } from './motions';
 import { STATE_DIR, createProject, isRecent, openProject, projectAt, recentProjects, rememberProject } from './project';
 import { ProviderStore } from './providers';
@@ -31,10 +30,11 @@ const recentsFile = (): string => join(app.getPath('userData'), 'recent-projects
 let providerStore: ProviderStore | null = null;
 const providers = (): ProviderStore => (providerStore ??= new ProviderStore(app.getPath('userData')));
 
-/** The project open in the window, its film's bundler and its conversation. One window, one project. */
+/** The project open in the window, its engine, its film's bundler and its conversation. One window, one project. */
 let open: {
   project: Project;
-  watcher: BuildContext | null;
+  engine: Engine | null;
+  watcher: Bundler | null;
   build: BuildResult | null;
   messages: MessageParam[] | null;
 } | null = null;
@@ -61,7 +61,7 @@ async function saveConversation(dir: string, messages: MessageParam[]): Promise<
   await writeFile(sessionFile(dir), JSON.stringify(messages));
 }
 
-const projectDir = (): string | null => open?.project.path ?? null;
+const previewSource = (): PreviewSource | null => (open?.engine ? { dir: open.project.path, engine: open.engine } : null);
 
 function send(channel: string, value: unknown): void {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, value);
@@ -79,10 +79,11 @@ async function closeOpen(): Promise<void> {
 async function use(project: Project): Promise<Project> {
   await closeOpen();
   await rememberProject(recentsFile(), project);
-  const state: NonNullable<typeof open> = { project, watcher: null, build: null, messages: null };
+  const engine = project.engine ? engineById(project.engine) : null;
+  const state: NonNullable<typeof open> = { project, engine, watcher: null, build: null, messages: null };
   open = state;
-  if (project.engine === 'native') {
-    state.watcher = await watchFilm(project.path, (result) => {
+  if (engine) {
+    state.watcher = await engine.watch(project.path, (result) => {
       if (open !== state) return;
       state.build = result;
       send(EVENTS.build, result);
@@ -111,7 +112,8 @@ function registerHandlers(): void {
     return path === null ? null : use(await openProject(path));
   });
 
-  ipcMain.handle(CHANNELS.createProject, async (event) => {
+  ipcMain.handle(CHANNELS.createProject, async (event, id: unknown) => {
+    const engine = engineById(id);
     const path = await chooseFolder(event.sender, {
       title: 'Choose an empty folder for the new project',
       buttonLabel: 'Create project',
@@ -119,7 +121,7 @@ function registerHandlers(): void {
     });
     if (path === null) return null;
     const project = await createProject(path);
-    await startFilm(project.path);
+    await engine.create(project.path, (line) => send(EVENTS.createProgress, line));
     return use(projectAt(project.path));
   });
 
@@ -133,7 +135,7 @@ function registerHandlers(): void {
 
   ipcMain.handle(CHANNELS.startFilm, async () => {
     const { project } = requireOpen();
-    await startFilm(project.path);
+    await native.create(project.path, () => {});
     return use(projectAt(project.path));
   });
 
@@ -164,7 +166,8 @@ function registerHandlers(): void {
   ipcMain.handle(CHANNELS.sendMessage, async (_event, text: unknown) => {
     const state = requireOpen();
     if (typeof text !== 'string' || !text.trim()) throw new Error('Write a message first.');
-    if (state.project.engine !== 'native') throw new Error('Start a film in this folder first.');
+    const engine = state.engine;
+    if (!engine) throw new Error('Start a film in this folder first.');
     if (working) throw new Error('The agent is already working.');
     const provider = await providers().active();
     const controller = new AbortController();
@@ -186,7 +189,7 @@ function registerHandlers(): void {
         {
           messages: await conversation(state),
           text: text.trim(),
-          call: caller(provider, SKILL, TOOLS),
+          call: caller(provider, engine.skill, TOOLS),
           tools,
           emit: (event: AgentEvent) => {
             if (open === state) send(EVENTS.agent, event);
@@ -204,8 +207,8 @@ function registerHandlers(): void {
   ipcMain.handle(CHANNELS.exportFilm, async (event) => {
     const state = requireOpen();
     if (exporting) throw new Error('An export is already running.');
-    const build = state.build;
-    if (!build?.ok) throw new Error('The film does not build: fix its errors before exporting.');
+    const { build, engine } = state;
+    if (!engine || !build?.ok) throw new Error('The film does not build: fix its errors before exporting.');
     const window = BrowserWindow.fromWebContents(event.sender);
     const options = {
       title: 'Export the film',
@@ -217,7 +220,7 @@ function registerHandlers(): void {
     const controller = new AbortController();
     exporting = controller;
     try {
-      await exportFilm(build.version, result.filePath, (done) => send(EVENTS.exportProgress, done), controller.signal);
+      await engine.exportFilm(state.project.path, build.version, result.filePath, (done) => send(EVENTS.exportProgress, done), controller.signal);
       return result.filePath;
     } finally {
       exporting = null;
@@ -268,8 +271,8 @@ function createWindow(): void {
 registerPreviewScheme();
 
 void app.whenReady().then(() => {
-  servePreview(session.defaultSession, projectDir);
-  serveRenders(projectDir);
+  servePreview(session.defaultSession, previewSource);
+  serveRenders(previewSource);
   registerHandlers();
   createWindow();
   app.on('activate', () => {

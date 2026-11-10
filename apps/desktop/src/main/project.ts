@@ -6,7 +6,7 @@
 import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
 import type { Project } from '../shared/api';
-import { isNativeProject } from './engines/native';
+import { engineOf } from './engines/engine';
 
 export const STATE_DIR = '.motion-studio';
 export const MAX_RECENTS = 10;
@@ -25,7 +25,7 @@ async function isDirectory(path: string): Promise<boolean> {
 
 export function projectAt(path: string): Project {
   const absolute = resolve(path);
-  return { name: basename(absolute), path: absolute, engine: isNativeProject(absolute) ? 'native' : null };
+  return { name: basename(absolute), path: absolute, engine: engineOf(absolute)?.id ?? null };
 }
 
 /** Opens an existing folder as a project. Nothing is written to it. */
@@ -44,12 +44,12 @@ export async function createProject(path: string): Promise<Project> {
     if (entries.length > 0) throw new Error(`The folder is not empty: ${path}`);
   }
   await mkdir(join(path, STATE_DIR), { recursive: true });
-  await ignoreStateDir(path);
+  await ignore(path, [`${STATE_DIR}/`]);
   return projectAt(path);
 }
 
-/** Adds `.motion-studio/` to the folder's .gitignore unless a line already ignores it. */
-export async function ignoreStateDir(path: string): Promise<void> {
+/** Adds each entry (a folder, `name/`) to the folder's .gitignore unless a line already ignores it. */
+export async function ignore(path: string, entries: string[]): Promise<void> {
   const file = join(path, '.gitignore');
   let text = '';
   try {
@@ -57,12 +57,11 @@ export async function ignoreStateDir(path: string): Promise<void> {
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
   }
-  const ignored = text
-    .split(/\r?\n/)
-    .some((line) => [STATE_DIR, `${STATE_DIR}/`, `/${STATE_DIR}`, `/${STATE_DIR}/`].includes(line.trim()));
-  if (ignored) return;
+  const lines = new Set(text.split(/\r?\n/).map((line) => line.trim().replace(/^\/|\/$/g, '')));
+  const missing = entries.filter((entry) => !lines.has(entry.replace(/^\/|\/$/g, '')));
+  if (!missing.length) return;
   const separator = text === '' || text.endsWith('\n') ? '' : '\n';
-  await writeFile(file, `${text}${separator}${STATE_DIR}/\n`);
+  await writeFile(file, `${text}${separator}${missing.join('\n')}\n`);
 }
 
 /** The recent list as stored, most recent first. A missing or unreadable file is an empty list. */

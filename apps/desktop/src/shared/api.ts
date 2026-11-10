@@ -2,7 +2,8 @@
 // implements it with ipcRenderer on the channels below; the main process registers a
 // handler for each and validates whatever the renderer sends.
 
-export type Engine = 'native';
+/** The engines a film can be written for. */
+export type EngineId = 'native' | 'remotion';
 
 export interface Project {
   /** The folder's name, as the Studio shows it. */
@@ -10,7 +11,7 @@ export interface Project {
   /** The absolute path of the folder. */
   path: string;
   /** The engine its film is written for, or null for a folder that holds no film yet. */
-  engine: Engine | null;
+  engine: EngineId | null;
 }
 
 /** The film's bundle, rebuilt whenever a file it imports changes. */
@@ -108,8 +109,10 @@ export interface StudioApi {
   recentProjects(): Promise<Project[]>;
   /** Asks for a folder and opens it; null when the person cancels. */
   openProject(): Promise<Project | null>;
-  /** Asks for an empty (or new) folder and makes it a native project; null when the person cancels. */
-  createProject(): Promise<Project | null>;
+  /** Asks for an empty (or new) folder and makes it a project for `engine`; null when the person cancels. */
+  createProject(engine: EngineId): Promise<Project | null>;
+  /** Calls `listener` with each step of making a project (Remotion's install); returns the unsubscribe. */
+  onCreateProgress(listener: (line: string) => void): () => void;
   /** Opens a folder from the recent list; any other path is refused. */
   openRecent(path: string): Promise<Project>;
   /** Starts a native film in the open project, which holds none yet. */
@@ -183,4 +186,5 @@ export const EVENTS = {
   build: 'film:built',
   exportProgress: 'film:export-progress',
   agent: 'agent:event',
+  createProgress: 'project:create-progress',
 } as const;

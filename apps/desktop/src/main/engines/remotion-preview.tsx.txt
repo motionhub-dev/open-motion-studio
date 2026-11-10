@@ -1,0 +1,101 @@
+// Written by Open Motion Studio into .motion-studio/remotion/: the preview page of a Remotion
+// project. It plays the project's composition in @remotion/player, from the project's own
+// node_modules, and answers the preview bridge (src/shared/preview.ts in the Studio). Not
+// for editing: the Studio writes it again whenever it opens the project.
+import './static-base';
+import {Player, type PlayerRef} from '@remotion/player';
+import {useEffect, useRef, useState} from 'react';
+import {createRoot} from 'react-dom/client';
+import {compositions} from '../../src/compositions';
+
+type Info = {seconds: number; width: number; height: number; fps: number; composition: string};
+declare global {
+  interface Window {
+    __oms?: Info & {seek(t: number): Promise<number>};
+    __omsError?: string;
+  }
+}
+
+const params = new URLSearchParams(location.search);
+const render = params.get('render') === '1';
+const post = (message: unknown) => {
+  const m = message as {type: string; message?: string};
+  if (m.type === 'oms:error') window.__omsError ??= m.message;
+  parent.postMessage(message, '*');
+};
+addEventListener('error', (e) => post({type: 'oms:error', message: String(e.error?.stack ?? e.message)}));
+addEventListener('unhandledrejection', (e) => post({type: 'oms:error', message: String(e.reason?.stack ?? e.reason)}));
+
+const raf = () => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done())));
+
+function Preview() {
+  const comp = compositions.find((c) => c.id === params.get('composition')) ?? compositions[0];
+  const player = useRef<PlayerRef>(null);
+  const [buffering, setBuffering] = useState(false);
+  const waiting = useRef(false);
+  waiting.current = buffering;
+
+  if (!comp) throw new Error('src/compositions.ts lists no composition.');
+  const info: Info = {seconds: comp.durationInFrames / comp.fps, width: comp.width, height: comp.height, fps: comp.fps, composition: comp.id};
+
+  useEffect(() => {
+    const p = player.current;
+    if (!p) return;
+    const onWaiting = () => setBuffering(true);
+    const onResume = () => setBuffering(false);
+    const onFrame = (e: {detail: {frame: number}}) => post({type: 'oms:time', t: e.detail.frame / comp.fps, playing: p.isPlaying()});
+    const onState = () => post({type: 'oms:time', t: p.getCurrentFrame() / comp.fps, playing: p.isPlaying()});
+    const onError = (e: {detail: {error: Error}}) => post({type: 'oms:error', message: String(e.detail.error?.stack ?? e.detail.error)});
+    p.addEventListener('waiting', onWaiting);
+    p.addEventListener('resume', onResume);
+    p.addEventListener('frameupdate', onFrame);
+    p.addEventListener('play', onState);
+    p.addEventListener('pause', onState);
+    p.addEventListener('ended', onState);
+    p.addEventListener('error', onError);
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== parent) return;
+      const m = event.data as {type?: string; t?: number};
+      if (m?.type === 'oms:play') p.play();
+      else if (m?.type === 'oms:pause') p.pause();
+      else if (m?.type === 'oms:seek') p.seekTo(Math.round((m.t ?? 0) * comp.fps));
+    };
+    addEventListener('message', onMessage);
+    if (render) {
+      window.__oms = {
+        ...info,
+        seek: async (t) => {
+          p.seekTo(Math.min(comp.durationInFrames - 1, Math.round(t * comp.fps)));
+          await raf();
+          // A frame that waits on something (delayRender, media) is photographed once it has it.
+          while (waiting.current) await new Promise((done) => setTimeout(done, 20));
+          await raf();
+          return t;
+        },
+      };
+    }
+    post({type: 'oms:ready', film: info});
+    return () => removeEventListener('message', onMessage);
+  }, []);
+
+  return (
+    <Player
+      ref={player}
+      component={comp.component}
+      durationInFrames={comp.durationInFrames}
+      fps={comp.fps}
+      compositionWidth={comp.width}
+      compositionHeight={comp.height}
+      inputProps={(comp as {defaultProps?: Record<string, unknown>}).defaultProps ?? {}}
+      style={{width: '100%', height: '100%'}}
+      controls={false}
+      clickToPlay={false}
+    />
+  );
+}
+
+try {
+  createRoot(document.getElementById('root')!).render(<Preview />);
+} catch (error) {
+  post({type: 'oms:error', message: error instanceof Error ? error.message : String(error)});
+}

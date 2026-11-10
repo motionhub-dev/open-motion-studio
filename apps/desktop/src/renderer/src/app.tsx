@@ -9,6 +9,9 @@ export function App() {
   const [project, setProject] = useState<Project | null>(null);
   const [recents, setRecents] = useState<Project[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  useEffect(() => window.studio.onCreateProgress(setBusy), []);
 
   useEffect(() => {
     if (project) return;
@@ -22,6 +25,8 @@ export function App() {
       if (opened) setProject(opened);
     } catch (e) {
       setError(reason(e));
+    } finally {
+      setBusy(null);
     }
   }
 
@@ -42,13 +47,26 @@ export function App() {
     <main className="home">
       <h1>Open Motion Studio</h1>
       <div className="actions">
-        <button type="button" className="primary" onClick={() => run(window.studio.createProject)}>
-          New project
+        <button type="button" className="primary" disabled={busy !== null} onClick={() => run(() => window.studio.createProject('native'))}>
+          New film
         </button>
-        <button type="button" onClick={() => run(window.studio.openProject)}>
+        <button type="button" disabled={busy !== null} onClick={() => run(() => window.studio.createProject('remotion'))}>
+          New Remotion project
+        </button>
+        <button type="button" disabled={busy !== null} onClick={() => run(window.studio.openProject)}>
           Open folder
         </button>
       </div>
+      <p className="note">
+        A film draws with @motionhub/runtime and needs nothing else. A Remotion project needs Node.js, runs the Remotion
+        it installs, and is under Remotion's licence: free for individuals and companies of up to three people, paid for
+        larger ones (remotion.dev/license).
+      </p>
+      {busy && (
+        <p className="note" role="status">
+          {busy}
+        </p>
+      )}
       {error && (
         <p className="error" role="alert">
           {error}

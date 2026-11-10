@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   MAX_RECENTS,
   createProject,
-  ignoreStateDir,
+  ignore,
   isRecent,
   openProject,
   recentProjects,
@@ -59,17 +59,23 @@ describe('createProject', () => {
   });
 });
 
-describe('ignoreStateDir', () => {
+describe('ignore', () => {
   it('appends to an existing .gitignore on a line of its own', async () => {
     await writeFile(join(root, '.gitignore'), 'node_modules');
-    await ignoreStateDir(root);
+    await ignore(root, ['.motion-studio/']);
     expect(await readFile(join(root, '.gitignore'), 'utf8')).toBe('node_modules\n.motion-studio/\n');
+  });
+
+  it('adds only the entries a .gitignore lacks', async () => {
+    await writeFile(join(root, '.gitignore'), '/node_modules\n');
+    await ignore(root, ['node_modules/', 'out/']);
+    expect(await readFile(join(root, '.gitignore'), 'utf8')).toBe('/node_modules\nout/\n');
   });
 
   it('leaves a .gitignore that already ignores the state directory', async () => {
     for (const line of ['.motion-studio', '/.motion-studio/']) {
       await writeFile(join(root, '.gitignore'), `dist\r\n${line}\r\n`);
-      await ignoreStateDir(root);
+      await ignore(root, ['.motion-studio/']);
       expect(await readFile(join(root, '.gitignore'), 'utf8')).toBe(`dist\r\n${line}\r\n`);
     }
   });

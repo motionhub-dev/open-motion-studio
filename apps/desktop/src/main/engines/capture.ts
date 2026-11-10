@@ -8,7 +8,7 @@ import { BrowserWindow, app, session, type NativeImage } from 'electron';
 import { spawn } from 'node:child_process';
 import { rename, rm } from 'node:fs/promises';
 import ffmpegStatic from 'ffmpeg-static';
-import { PREVIEW_URL, servePreview } from './preview';
+import { PREVIEW_URL, type PreviewSource, servePreview } from './preview';
 import type { FilmInfo } from '../../shared/preview';
 
 export const RENDER_PARTITION = 'oms-render';
@@ -29,8 +29,8 @@ export function ffmpegPath(): string {
 }
 
 /** Serves the render partition's oms-preview: scheme from the open project. Call once, when the app is ready. */
-export function serveRenders(projectDir: () => string | null): void {
-  servePreview(session.fromPartition(RENDER_PARTITION), projectDir);
+export function serveRenders(film: () => PreviewSource | null): void {
+  servePreview(session.fromPartition(RENDER_PARTITION), film);
 }
 
 function timeout<T>(promise: Promise<T>, what: string): Promise<T> {
@@ -70,7 +70,7 @@ export async function openStage(version: number): Promise<Stage> {
           const error = await failed();
           if (error) throw new Error(error);
           const info = (await contents.executeJavaScript(
-            'window.__oms ? {seconds: __oms.seconds, width: __oms.width, height: __oms.height, fps: __oms.fps} : null',
+            'window.__oms ? {seconds: __oms.seconds, width: __oms.width, height: __oms.height, fps: __oms.fps, composition: __oms.composition} : null',
           )) as FilmInfo | null;
           if (info) return info;
           await new Promise((done) => setTimeout(done, 50));
@@ -111,7 +111,7 @@ const write = (stream: NodeJS.WritableStream, chunk: Buffer) =>
  * The video is written beside `file` and moved into place only when it is whole, so a failed
  * or cancelled export leaves whatever was at `file` untouched.
  */
-export async function exportFilm(
+export async function exportFrames(
   version: number,
   file: string,
   onProgress: (done: number) => void,

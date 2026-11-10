@@ -7,6 +7,8 @@ export interface FilmInfo {
   width: number;
   height: number;
   fps: number;
+  /** The Remotion composition the page shows; none for a native film. */
+  composition?: string;
 }
 
 export type ToPreview = { type: 'oms:play' } | { type: 'oms:pause' } | { type: 'oms:seek'; t: number };

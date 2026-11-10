@@ -1,6 +1,6 @@
 # 4. A film's code runs in a sandboxed frame on its own scheme
 
-> **Status:** Accepted · **Date:** 2026-11-10
+> **Status:** Accepted — the scheme also serves the project's `public/` and allows `data:` media, for Remotion · **Date:** 2026-11-10
 
 ## Context
 

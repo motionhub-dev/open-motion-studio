@@ -3,6 +3,19 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-10 — A film can be a Remotion project
+
+- **What:** The home screen makes a native film or a Remotion project. A Remotion project is scaffolded (its
+  compositions listed in `src/compositions.ts`, which `src/Root.tsx` registers) and installed with the person's npm; it
+  previews in `@remotion/player` on the Studio's preview page, the agent writes it with a Remotion skill, and it exports
+  with the project's own `remotion render`. Motions reach it through `@motionhub/remotion`. A folder holding a Remotion
+  project opens as one. The engine contract is now code (`engines/engine.ts`).
+- **Why:** Step 4 of the order of work: the person keeps the engine they know.
+- **Breaking:** None.
+- **Upgrade:** Nothing. A Remotion project needs Node.js and npm on the person's machine, and its first export downloads
+  Remotion's headless Chrome.
+- **Refs:** `docs/tech/architecture.md` ("The engine contract"), ADR 0001, ADR 0004.
+
 ## 2026-11-10 — The agent runs on any OpenAI Chat Completions server too
 
 - **What:** A provider now names its protocol: Anthropic Messages or OpenAI Chat Completions. The Chat Completions

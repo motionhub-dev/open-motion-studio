@@ -13,7 +13,11 @@ import { type BuildContext, type Message, type Plugin, context, formatMessages }
 import { existsSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import type { BuildResult } from '../../shared/api';
 import { STATE_DIR } from '../project';
+import { exportFrames } from './capture';
+import type { Engine } from './engine';
+import SKILL from './native.md?raw';
 
 export const FILM = 'film.tsx';
 /** Where a project's film is bundled to. A function, so this module reads STATE_DIR only once it is defined. */
@@ -22,7 +26,7 @@ export const buildDir = (dir: string): string => join(dir, STATE_DIR, 'build');
 /** What the preview core provides; everything else a film imports is bundled. */
 const PROVIDED = ['react', 'react/jsx-runtime', '@motionhub/runtime'];
 
-/** Files a film may import, served beside its bundle. */
+/** The kinds of file a film may import, served beside its bundle. */
 const ASSETS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif', '.svg', '.woff', '.woff2', '.ttf', '.otf', '.mp4', '.webm', '.mp3', '.wav', '.ogg'];
 
 export const isNativeProject = (dir: string): boolean => existsSync(join(dir, FILM));
@@ -50,24 +54,13 @@ export async function startFilm(dir: string): Promise<void> {
   await writeFile(file, STARTER);
 }
 
-export interface BuildResult {
-  ok: boolean;
-  /** Counts builds, so a page can ask for the bundle it was told about. */
-  version: number;
-  /** esbuild's errors, formatted as it prints them. */
-  errors: string[];
-}
-
-const formatted = async (messages: Message[]): Promise<string[]> =>
+export const formatted = async (messages: Message[]): Promise<string[]> =>
   messages.length ? await formatMessages(messages, { kind: 'error', color: false }) : [];
 
-/**
- * Bundles film.tsx and keeps it bundled: every change to a file it imports rebuilds it,
- * and `onBuilt` hears each result. Returns the context, to dispose when the project closes.
- */
-export async function watchFilm(dir: string, onBuilt: (result: BuildResult) => void): Promise<BuildContext> {
+/** An esbuild plugin that numbers each build and reports its errors to `onBuilt`. */
+export function reporter(onBuilt: (result: BuildResult) => void): Plugin {
   let version = 0;
-  const report: Plugin = {
+  return {
     name: 'report',
     setup(build) {
       build.onEnd(async (result) => {
@@ -76,6 +69,16 @@ export async function watchFilm(dir: string, onBuilt: (result: BuildResult) => v
       });
     },
   };
+}
+
+/** Files a film may import, served beside its bundle. */
+export const ASSET_LOADERS = Object.fromEntries(ASSETS.map((ext) => [ext, 'file' as const]));
+
+/**
+ * Bundles film.tsx and keeps it bundled: every change to a file it imports rebuilds it,
+ * and `onBuilt` hears each result. Returns the context, to dispose when the project closes.
+ */
+export async function watchFilm(dir: string, onBuilt: (result: BuildResult) => void): Promise<BuildContext> {
   const ctx = await context({
     absWorkingDir: dir,
     entryPoints: [FILM],
@@ -87,12 +90,23 @@ export async function watchFilm(dir: string, onBuilt: (result: BuildResult) => v
     target: 'chrome130',
     jsx: 'automatic',
     external: PROVIDED,
-    loader: Object.fromEntries(ASSETS.map((ext) => [ext, 'file' as const])),
+    loader: ASSET_LOADERS,
     publicPath: 'build',
     sourcemap: 'inline',
     logLevel: 'silent',
-    plugins: [report],
+    plugins: [reporter(onBuilt)],
   });
   await ctx.watch();
   return ctx;
 }
+
+export const native: Engine = {
+  id: 'native',
+  detect: isNativeProject,
+  create: async (dir) => startFilm(dir),
+  watch: watchFilm,
+  // The core holds React and the runtime, and loads the film's bundle itself.
+  page: () => `<div id="root"></div><script src="core.js"></script>`,
+  exportFilm: (_dir, version, file, onProgress, signal) => exportFrames(version, file, onProgress, signal),
+  skill: SKILL,
+};

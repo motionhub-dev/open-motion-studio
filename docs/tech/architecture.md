@@ -1,6 +1,6 @@
 # Architecture
 
-> **Status:** Plan — steps 1 to 3 built, signing waits for certificates · **Updated:** 2026-11-10
+> **Status:** Plan — steps 1 to 4 built, signing waits for certificates · **Updated:** 2026-11-10
 
 The components of the Studio and what each owns, the engine contract, the agent and its providers, what is expensive to change, and the order of work.
 
@@ -26,17 +26,18 @@ apps/desktop/
     index.ts           the window, the open project, and a handler for every StudioApi method
     project.ts         open / create a folder, detect its engine, the recent list
     engines/
-      native.ts        film.tsx: start one, bundle it with esbuild on every change
-      preview.ts       the oms-preview: scheme a film's page, the preview core and its bundle are served on
-      capture.ts       an offscreen window that photographs the film: stills, and export through ffmpeg
-      remotion/        (step 4) drives the project's own Remotion
-      hyperframes/     (step 5) drives the project's own HyperFrames CLI
+      engine.ts        the engine contract, and the engines in the order a folder is matched against them
+      native.ts        film.tsx: start one, bundle it with esbuild on every change; native.md is its skill
+      remotion.ts      a Remotion project: scaffold and npm install, a Player preview, export by its own CLI;
+                       remotion-preview.tsx.txt is the preview page's entry, remotion.md its skill
+      preview.ts       the oms-preview: scheme a film's page, its bundle and the project's public/ are served on
+      capture.ts       an offscreen window that photographs the film: stills, and native export through ffmpeg
+      hyperframes.ts   (step 5) drives the project's own HyperFrames CLI
     agent/
       loop.ts          one turn: call the model, run the tools it asks for, until it ends its turn
       model.ts         a call to the model: a Messages server through the official SDK, or Chat Completions
       openai.ts        the Chat Completions translation, to and from the Messages shape
       tools.ts         what the agent may do to the project
-      native.md        what the agent is told about making a native film in a motion
     providers.ts       the providers, and their keys sealed with safeStorage
     motions.ts         the catalogue and a project's motions, through @motionhub/cli's library
   src/preview/core.tsx the preview core: React, @motionhub/runtime and the player a film's page loads first
@@ -56,29 +57,31 @@ apps/desktop/
 
 ## The engine contract
 
-The one interface the Studio will have more than one implementation of. It is written down in code when the second
-engine (Remotion, step 4) is built against it, from what native needed: today native's are `isNativeProject`,
-`startFilm`, `watchFilm` (the bundle and its errors), `openStage` (a still at any time) and `exportFilm`. The plan:
+The one interface the Studio has more than one implementation of (`engines/engine.ts`), written from what native and
+Remotion needed:
 
 ```ts
 interface Engine {
-  id: 'native' | 'remotion' | 'hyperframes';
-  detect(dir): Promise<boolean>;                  // package.json deps, config files
-  create(dir, opts): Promise<void>;               // a new project, with the engine's own scaffold
-  doctor(dir): Promise<Check[]>;                  // node, its own dependencies installed, ffmpeg, Chromium
-  useMotion(dir, pack): Promise<InstallReport>;   // where its components and tokens go in this engine
-  preview(dir): Promise<Preview>;                 // a URL the renderer frames, and a stop()
-  still(dir, t, size?): Promise<Png>;             // what the agent looks at
-  render(dir, opts, onProgress): Promise<Mp4>;    // export
-  skill: string;                                  // the engine's skill file, given to the agent with the core one
+  id: 'native' | 'remotion';
+  detect(dir): boolean;                                  // film.tsx; remotion among package.json's dependencies
+  create(dir, log): Promise<void>;                       // a new project: its scaffold and, for Remotion, npm install
+  watch(dir, onBuilt): Promise<Bundler>;                 // the preview's bundle, rebuilt on every change
+  page(version): string;                                 // the preview page's body
+  exportFilm(dir, version, file, onProgress, signal);    // an MP4
+  skill: string;                                         // what the agent is told about this engine
 }
 ```
 
+Stills are not an engine's: every preview page answers the bridge below, and `capture.ts` photographs any of them. A
+motion is taken into a project the same way for every engine (below), so `useMotion` is not an engine's either. A
+`doctor` comes when an engine needs more than npm and its own packages.
+
 - **The preview speaks one message protocol**, whatever the engine (`src/shared/preview.ts`): the Studio sends `play`,
   `pause` and `seek`, the page answers `ready` (the film's length and size), `time` and `error`; `pick(x, y)` (the element
-  under a point and its component) comes with marks in step 6. The native core answers it; Remotion's player and
+  under a point and its component) comes with marks in step 6. The native core and the Remotion page answer it;
   HyperFrames' `window.__timelines` will, through a bridge script the adapter injects. The page runs in a sandboxed frame
-  on its own scheme ([ADR 0004](../adr/0004-a-films-code-runs-in-a-sandboxed-frame-on-its-own-scheme.md)).
+  on its own scheme ([ADR 0004](../adr/0004-a-films-code-runs-in-a-sandboxed-frame-on-its-own-scheme.md)), which also
+  serves the project's `public/` folder (Remotion's `staticFile()` is pointed there) and allows `data:` media.
 - **Remotion and HyperFrames run from the project's own `node_modules`**, never from a copy bundled into the Studio. The
   Studio pins no version of either, a project upgrades on its own, and Remotion's licence is between the person and
   Remotion (the Studio says so where a Remotion project is created).
@@ -89,19 +92,29 @@ interface Engine {
   on the core's own clock; a still or an export opens the page with `?render=1` in an offscreen window, moves it to each
   frame's time (`window.__oms.seek`) and photographs it, and export pipes the frames to ffmpeg (shipped with the app) as
   H.264 High at level 4.1, BT.709, a key frame every two seconds, faststart. A motion's reel plays as a film unchanged.
+- **Remotion** (built) is a Remotion 4 project run from its own `node_modules`. A new one is scaffolded
+  (`src/index.ts`, `src/Root.tsx`, `src/compositions.ts`, `src/Film.tsx`, Remotion, `@remotion/player` and the motionhub
+  binding pinned) and installed with the person's own npm, found through a login shell's PATH since an app opened from
+  the Dock has none. The project lists its compositions in `src/compositions.ts`, which `Root.tsx` registers: the Player
+  needs the component itself, and that list is the one public way to reach it, where Remotion's own composition registry
+  is internal and changes between versions. The preview is the first composition in `@remotion/player`, on a page whose
+  entry the Studio writes into `.motion-studio/remotion/` and bundles with esbuild from the project's packages. Export is
+  the project's own `remotion render`, so it exports exactly as from a terminal, sound included; its progress is read
+  from what it prints. The first export downloads Remotion's headless Chrome. The Studio shows Remotion's licence where
+  a Remotion project is made.
 - **A motion is taken into a project the way `@motionhub/cli get` takes it** (built, through the CLI's own library): the
   whole package, checked against the index's SHA-256, into `motions/@<scope>/<slug>/`, recorded in `motions.lock.json`.
   The copy is the project's and is never changed; a project's own motions are `motions/<name>/`. Native imports a
-  motion's `tokens.json` and `react/parts/` directly and wraps the film in `<MotionScope tokens>`; Remotion will go
-  through `@motionhub/remotion` and HyperFrames through `@motionhub/hyperframes`.
+  motion's `tokens.json` and `react/parts/` directly and wraps the film in `<MotionScope tokens>`; Remotion goes through
+  `@motionhub/remotion` (`<MotionProvider tokens>`), and HyperFrames will through `@motionhub/hyperframes`.
 
 ## The agent
 
 A loop of our own ([ADR 0003](../adr/0003-a-built-in-agent-on-the-persons-own-model.md)): the model is called with the
 conversation and the tools, tool calls are executed in `main`, their results appended, until the model ends its turn.
 
-- **Context** (built): the engine's skill (`agent/native.md`: the film's format, how to draw in a motion, how to work)
-  as the system prompt. The agent finds the project's files and motions with its tools. Marks and a selected element come
+- **Context** (built): the engine's skill (`engines/native.md` or `engines/remotion.md`: the film's format, how to
+  draw in a motion, how to work) as the system prompt. The agent finds the project's files and motions with its tools. Marks and a selected element come
   in step 6.
 - **Tools** (built): `list_files`, `read_file`, `write_file`, `edit_file`; `check` (builds the film and draws its start,
   middle and end, reporting any error); `still(time)` (the frame as a picture); `search_motions`, `use_motion`. A tool's
@@ -182,7 +195,10 @@ Each step is a vertical slice that runs end to end before the next begins.
    a Claude model, a DeepSeek model and a local model. *Built*, and a turn driven end to end in the app against a
    scripted Chat Completions server (write, check and a still sent back as a picture). Not yet: the same brief on real
    models, which needs their keys and a local model.
-4. **Remotion**: the adapter, its skill, motions through `@motionhub/remotion`.
+4. **Remotion**: the adapter, its skill, motions through `@motionhub/remotion`. *Built*, and driven end to end in the
+   app: a new project made and installed, its composition previewed, an agent turn (write, check, still), an export by
+   `remotion render`, and a motionhub reel played through `@motionhub/remotion`. The export was checked with a local
+   headless Chrome, since this environment cannot reach Remotion's download host.
 5. **HyperFrames**: the adapter, its skill, motions through `@motionhub/hyperframes`.
 6. **Pointing**: marks, the pick bridge in each engine, the read-only timeline.
 
@@ -199,8 +215,11 @@ What gates what: 2 gates everything (the contract is written against a working e
   another H.264 encoder (the platform's own, or OpenH264).
 - **Keys on Linux without a keyring**: refused today. Allowing them with a fixed secret, after the person agrees, is a
   choice for the person to make, not a default.
-- **Fonts**: a motion's faces (its `react/fonts/` or `CREDITS.md`) are not loaded yet, so its type falls back to the
-  system's faces in the preview and the export.
+- **Fonts**: a motion's faces (its `react/fonts/` or `CREDITS.md`) are not loaded yet in a native film, so its type
+  falls back to the system's faces. In Remotion, `MotionFonts` loads them from Google Fonts in the export, but the
+  preview, which connects nowhere, falls back to the system's.
+- **The agent cannot install packages**: a Remotion film that needs one more package asks the person to run npm. A
+  `shell` tool that asks first would close this.
 - **Telemetry**: none is planned; crash reports, if any, opt-in.
 
 ## How done is verified
