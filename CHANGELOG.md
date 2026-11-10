@@ -3,6 +3,16 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-10 — A HyperFrames film has a read-only timeline
+
+- **What:** Under the preview of a HyperFrames film, its clips as its runtime lists them, a lane per track, with the
+  playhead; clicking a clip seeks to its start. The bridge reports the clips and the frame rate with the film
+  (`FilmInfo.clips`). Native and Remotion films show no timeline.
+- **Why:** Step 6's timeline, where an engine already knows its clips.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/tech/architecture.md` ("The UI").
+
 ## 2026-11-10 — Point at the picture for the agent
 
 - **What:** Two tools on the preview, Pick and Region, mark an element or a region of the picture at the moment shown,

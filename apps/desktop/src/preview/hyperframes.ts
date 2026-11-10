@@ -4,7 +4,7 @@
 // window.__player, scales the page to the frame in the Studio's preview, and with ?render=1
 // exposes window.__oms.seek(t) for stills.
 
-import type { FilmInfo, FromPreview, ToPreview } from '../shared/preview';
+import type { Clip, FilmInfo, FromPreview, ToPreview } from '../shared/preview';
 
 interface HyperFramesPlayer {
   play(): void;
@@ -19,6 +19,11 @@ declare global {
   interface Window {
     __player?: HyperFramesPlayer;
     __playerReady?: boolean;
+    /** What the runtime knows of the composition: its frame rate and every timed clip, in film seconds. */
+    __clipManifest?: {
+      fps?: { numerator: number; denominator: number };
+      clips?: { id?: string; label?: string; start?: number; duration?: number; track?: number }[];
+    };
     __hfWaitForSeekCompletion?: () => Promise<unknown>;
     __oms?: FilmInfo & { seek(t: number): Promise<number> };
     __omsError?: string;
@@ -50,14 +55,25 @@ async function started(): Promise<HyperFramesPlayer> {
   return window.__player;
 }
 
+/** The runtime's clips, as the timeline draws them. */
+function clips(): Clip[] {
+  return (window.__clipManifest?.clips ?? []).flatMap((clip, i) =>
+    typeof clip.start === 'number' && typeof clip.duration === 'number' && clip.duration > 0
+      ? [{ id: clip.id || `clip-${i}`, label: clip.label || clip.id || `Clip ${i + 1}`, start: clip.start, duration: clip.duration, track: clip.track ?? 0 }]
+      : [],
+  );
+}
+
 function info(player: HyperFramesPlayer): FilmInfo {
   const root = document.querySelector<HTMLElement>('[data-composition-id]');
   const number = (value: string | undefined, fallback: number) => (Number(value) > 0 ? Number(value) : fallback);
+  const rate = window.__clipManifest?.fps;
   return {
     seconds: player.getDuration(),
     width: number(root?.dataset.width, 1920),
     height: number(root?.dataset.height, 1080),
-    fps: 30,
+    fps: rate && rate.denominator > 0 ? rate.numerator / rate.denominator : 30,
+    clips: clips(),
   };
 }
 

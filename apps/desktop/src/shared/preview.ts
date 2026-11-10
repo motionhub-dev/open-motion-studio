@@ -9,6 +9,19 @@ export interface FilmInfo {
   fps: number;
   /** The Remotion composition the page shows; none for a native film. */
   composition?: string;
+  /** The film's timed pieces, where its engine knows them (HyperFrames); none otherwise. */
+  clips?: Clip[];
+}
+
+/** One timed piece of a film, as its engine reports it, for the read-only timeline. */
+export interface Clip {
+  id: string;
+  label: string;
+  /** Seconds into the film. */
+  start: number;
+  duration: number;
+  /** The lane it is drawn in. */
+  track: number;
 }
 
 /** A box on the frame, in fractions of its width and height. */

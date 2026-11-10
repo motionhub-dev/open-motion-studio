@@ -1,6 +1,6 @@
 # Architecture
 
-> **Status:** Plan — steps 1 to 5 built, and step 6's marks; signing waits for certificates · **Updated:** 2026-11-10
+> **Status:** Plan — steps 1 to 5 built, and step 6's marks and HyperFrames' timeline; signing waits for certificates · **Updated:** 2026-11-10
 
 The components of the Studio and what each owns, the engine contract, the agent and its providers, what is expensive to change, and the order of work.
 
@@ -192,7 +192,7 @@ dockable layout (dockview), each panel a projection of the project:
 | **Preview** | The engine's preview with transport; the mark tools (pick an element, drag a region) attach to the next message, flagged on the scrubber (built) | Nothing |
 | **Motion** | The project's motion, its components and their cards; the catalogue search and reels | Through `motion_use` |
 | **Files** | The tree and a read-only CodeMirror view; open in the person's own editor | Nothing |
-| **Timeline** | Read-only: the composition's sequences as the engine reports them, seekable | Nothing (v1) |
+| **Timeline** | Read-only: the film's clips as the engine reports them (`FilmInfo.clips`), a lane per track, the playhead; a clip clicked seeks to its start. Built for HyperFrames, whose runtime lists them in `window.__clipManifest` | Nothing |
 | **Export** | Queue, progress, open the file | Nothing |
 | **Settings** | Providers and keys, models, permissions, engine checks (`doctor`) | App settings |
 
@@ -232,9 +232,10 @@ Each step is a vertical slice that runs end to end before the next begins.
    into `assets/motion/`, a page drawing one of its components in its own face, and an export by `hyperframes render`.
 6. **Pointing**: marks, the pick bridge in each engine, the read-only timeline. *Marks built*, and driven in the app on
    all three engines: an element picked and a region dragged out on a native film, sent with a message, the agent given
-   both described and each frame outlined; an element picked on a Remotion and a HyperFrames film. *Not built*: the
-   timeline, which needs each engine to report its clips (HyperFrames' runtime knows them; a native or Remotion film's
-   sequences are inside its React).
+   both described and each frame outlined; an element picked on a Remotion and a HyperFrames film. *Timeline built for
+   HyperFrames*: its bridge reports the runtime's clips (`window.__clipManifest`) and frame rate with the film, and the
+   preview draws them under the transport. *Not built*: a timeline for native and Remotion films, whose sequences are
+   inside their React and are known only by running it.
 
 What gates what: 2 gates everything (the contract is written against a working engine, then implemented twice more);
 3 gates nothing else and can run beside 4 and 5.

@@ -7,6 +7,7 @@
 import { type PointerEvent, useEffect, useRef, useState } from 'react';
 import { type BuildResult, MAX_MARKS, type Mark } from '../../shared/api';
 import type { Box, FilmInfo, FromPreview, ToPreview } from '../../shared/preview';
+import { Timeline } from './timeline';
 
 const clock = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toFixed(1).padStart(4, '0')}`;
 
@@ -232,6 +233,9 @@ export function Preview({ build, marks, onMark }: { build: BuildResult | null; m
           Region
         </button>
       </div>
+      {film?.clips && film.clips.length > 0 && (
+        <Timeline clips={film.clips} seconds={film.seconds} t={t} onSeek={(at) => tell({ type: 'oms:seek', t: at })} />
+      )}
     </div>
   );
 }
