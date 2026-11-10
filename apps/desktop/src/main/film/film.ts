@@ -1,7 +1,6 @@
 // The film (docs/tech/architecture.md, "The film"): `film.tsx` at the project's root, a
-// React component drawn by `useTime()` from @motionhub/runtime, as a motion's reel is. It
-// draws a <Film> of <Scene>s, each of <Layer>s and <Line>s, whose durations give its
-// length, or, drawn as one component, exports its length in `film.seconds`:
+// React component that draws a <Film> of <Scene>s from @motionhub/runtime, each of <Layer>s
+// and <Line>s; the scenes' durations are its length, and `film` gives its size and rate:
 //
 //   export const film = {width: 1920, height: 1080, fps: 30};
 //   export default function Main() { return <Film><Scene id="intro" duration={4}>…</Scene></Film>; }

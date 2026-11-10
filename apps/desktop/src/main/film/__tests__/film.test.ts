@@ -66,7 +66,7 @@ describe('watchFilm', () => {
   it('reports an error, and the next build when it is fixed', async () => {
     await writeFile(join(root, FILM), 'export default function Film( {');
     const results = await builds(2, async () => {
-      await writeFile(join(root, FILM), 'export const film = {seconds: 1};\nexport default function Film() { return null; }\n');
+      await writeFile(join(root, FILM), 'export const film = {width: 1280, height: 720};\nexport default function Main() { return null; }\n');
     });
     expect(results[0]?.ok).toBe(false);
     expect(results[0]?.errors[0]).toContain('film.tsx');

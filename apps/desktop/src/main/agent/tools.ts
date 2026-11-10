@@ -70,7 +70,7 @@ export const TOOLS: Tool[] = [
   },
   {
     name: 'check',
-    description: 'Builds the film and plays it at its start, the middle of each scene (or its middle) and its end. Reports build errors and errors thrown while drawing, or, when it is sound, its length and size and each scene: its span, its layers\' boxes and its lines.',
+    description: 'Builds the film and plays it at its start, the middle of each scene and its end. Reports build errors and errors thrown while drawing, or, when it is sound, its length and size and each scene: its span, its layers\' boxes and its lines.',
     input_schema: { type: 'object', properties: {} },
   },
   {
@@ -204,12 +204,11 @@ async function check(ctx: ToolContext): Promise<ToolOutcome> {
   const stage = await ctx.stage(result.version);
   try {
     const { seconds, width, height, fps, scenes } = stage.film;
-    // A film of scenes is drawn in the middle of each, so an error in any scene shows; another at its start, middle and end.
-    const moments = scenes ? scenes.map((scene) => scene.start + scene.duration / 2) : [seconds / 2];
+    // Drawn at its start, in the middle of each scene, so an error in any scene shows, and at its end.
+    const moments = scenes.map((scene) => scene.start + scene.duration / 2);
     for (const t of [0, ...moments, Math.max(0, seconds - 1 / fps)]) await stage.frame(t);
-    const summary = `The film builds and draws: ${seconds} s at ${width}×${height}, ${fps} fps`;
-    if (!scenes) return text(`${summary}.`);
-    return text([`${summary}, in ${scenes.length} scene${scenes.length === 1 ? '' : 's'}:`, ...scenes.map(outlineLine)].join('\n'));
+    const summary = `The film builds and draws: ${seconds} s at ${width}×${height}, ${fps} fps, in ${scenes.length} scene${scenes.length === 1 ? '' : 's'}:`;
+    return text([summary, ...scenes.map(outlineLine)].join('\n'));
   } finally {
     stage.close();
   }

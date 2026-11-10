@@ -18,8 +18,8 @@ agent writes code anyway, and draws motion inside a box from time better than it
   pixels, drawing React) and `<Line id>`s (what the scene says, its script, which draws nothing). These are
   `@motionhub/runtime`'s (0.5.0), so a motion's reel and a film can be written the same way; the format is specified
   there, in `packages/runtime/README.md` of `motionhub-dev/motions`.
-- **Scenes are laid end to end; their durations are the film's length.** `film` keeps the size and rate only; a film
-  that draws a `<Film>` and also gives `film.seconds` is refused, so the length has one source.
+- **Scenes are laid end to end; their durations are the film's length.** `film` keeps the size and rate only, and a
+  `film.seconds` is refused, so the length has one source.
 - **A layer is on screen for its whole scene, and its content moves itself** from `useTime()`, counted from its scene's
   start. There is no declared animation: no appear, tween or set, nothing anchored to a word.
 - **The structure is read at run time, not from the source.** `<Film>` reads it from its own elements and reports it to
@@ -27,7 +27,9 @@ agent writes code anyway, and draws motion inside a box from time better than it
   so the Studio never parses or rewrites `film.tsx`.
 - **A line is spoken by nobody yet.** Narration is a later step (it needs audio in the export first); a line is the
   scene's script until then.
-- A film drawn as one component, with `film.seconds`, still plays: a motion's reel is one.
+- **Every film draws a `<Film>`.** A film drawn as one component with `film.seconds`, the earlier format, is refused
+  with a message that says how to write one: two formats side by side would make every feature that reads the
+  structure handle its absence. A motion's reel, which is one component, plays as a film inside one scene.
 
 ## Consequences
 

@@ -59,14 +59,13 @@ apps/desktop/
 One engine, the Studio's own ([ADR 0005](../adr/0005-the-studio-has-one-engine-its-own.md)), in `src/main/film/`.
 
 - **A film is `film.tsx`** at the project's root, a React component that draws by `useTime()` from `@motionhub/runtime`,
-  the way a motion's reel does, exporting `film = {width?, height?, fps?}` (1920×1080 at 30 fps by default). A folder
+  exporting `film = {width?, height?, fps?}` (1920×1080 at 30 fps by default). A folder
   holds a film when it holds that file; one that does not is offered a starter.
 - **It draws a `<Film>` of scenes** ([ADR 0006](../adr/0006-a-film-is-scenes-of-layers-and-lines.md)): `<Scene id
   duration>`s laid end to end, each holding `<Layer id x y w h z>`s (boxes of the frame, in its pixels, shown for the
   whole scene, whose content moves itself from `useTime()`, counted from the scene's start) and `<Line id>`s (what the
   scene says; nothing speaks them yet). A layer directly in `<Film>` is drawn across every scene. The scenes' durations
-  are the film's length, so a `<Film>` with `film.seconds` too is refused; a film drawn as one component, as a reel is,
-  gives `film.seconds` instead. The preview core draws the film once, off the page, to learn its structure from what
+  are the film's length, so `film.seconds` is refused, and so is a film whose default export draws no `<Film>`. The preview core draws the film once, off the page, to learn its structure from what
   `<Film>` reports (`onFilm`), and sends it with the film (`FilmInfo.scenes`, `FilmInfo.layers`). esbuild bundles it into
   `.motion-studio/build/film.js` on every change of a file it imports, leaving React and the runtime to the preview core,
   which provides them to the bundle as `require`.
@@ -85,7 +84,7 @@ One engine, the Studio's own ([ADR 0005](../adr/0005-the-studio-has-one-engine-i
 - **Playing, stills and export**: the Studio plays the film on the core's own clock; a still or an export opens the page
   with `?render=1` in an offscreen window, moves it to each frame's time (`window.__oms.seek`) and photographs it, and
   export pipes the frames to ffmpeg (shipped with the app) as H.264 High at level 4.1, BT.709, a key frame every two
-  seconds, faststart. A motion's reel plays as a film unchanged.
+  seconds, faststart. A motion's reel plays as a film inside one scene.
 - **A motion is taken into a project the way `@motionhub/cli get` takes it** (built, through the CLI's own library): the
   whole package, checked against the index's SHA-256, into `motions/@<scope>/<slug>/`, recorded in `motions.lock.json`.
   The copy is the project's and is never changed; a project's own motions are `motions/<name>/`. A film imports a

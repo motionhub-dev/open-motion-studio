@@ -9,10 +9,12 @@ Every key change to Open Motion Studio, newest first, by date. What counts as ke
   and `<Line id>`s (what it says), from `@motionhub/runtime` 0.5.0; the scenes' durations are its length, so `film`
   keeps only its size and rate. A new film starts as two scenes. The timeline shows the scenes, a pick names the scene
   and layer it is in (in the Inspector and to the agent), and `check` draws each scene and outlines them. There is no
-  declared animation: a layer's content moves itself. A film drawn as one component, with `film.seconds`, still plays;
-  one that draws a `<Film>` and gives `film.seconds` too is refused. `film.width`, `height` and `fps` are checked.
+  declared animation: a layer's content moves itself. Every film draws a `<Film>`: one drawn as one component, or one
+  that gives `film.seconds`, is refused with a message saying how to write it. `film.width`, `height` and `fps` are
+  checked.
 - **Why:** The Studio and the agent knew nothing of what a film was made of (ADR 0006).
-- **Breaking:** None for a film drawn as one component.
+- **Breaking:** A film written before this, one component with `film.seconds`, no longer plays; wrap it in
+  `<Film><Scene id="main" duration={…}>…</Scene></Film>` and take `seconds` out of `film`, or ask the agent to.
 - **Upgrade:** Nothing.
 - **Refs:** `docs/adr/0006-a-film-is-scenes-of-layers-and-lines.md`, `docs/tech/architecture.md` ("The film").
 

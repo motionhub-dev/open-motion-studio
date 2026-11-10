@@ -1,5 +1,5 @@
-// The read-only timeline: a ruler to seek on, the film's scenes (for a film of scenes), the
-// person's marks, and the playhead through them all. A scene clicked seeks to its start, a
+// The read-only timeline: a ruler to seek on, the film's scenes, the person's marks, and the
+// playhead through them all. A scene clicked seeks to its start, a
 // mark to its moment.
 
 import type { MouseEvent } from 'react';
@@ -29,7 +29,7 @@ export function Timeline({ film, t, marks, onSeek }: { film: FilmInfo; t: number
   return (
     <div className="timeline" aria-label="Timeline">
       <div className="names" aria-hidden="true">
-        {film.scenes && <span>Scenes</span>}
+        <span>Scenes</span>
         <span>Marks</span>
       </div>
       <div className="tracks">
@@ -40,22 +40,20 @@ export function Timeline({ film, t, marks, onSeek }: { film: FilmInfo; t: number
             </span>
           ))}
         </div>
-        {film.scenes && (
-          <div className="lane">
-            {film.scenes.map((scene) => (
-              <button
-                key={scene.id}
-                type="button"
-                className={`scene${t >= scene.start && t < scene.start + scene.duration ? ' current' : ''}`}
-                style={{ left: at(scene.start), width: at(scene.duration) }}
-                title={[`${scene.id}: ${timecode(scene.start)} to ${timecode(scene.start + scene.duration)}`, ...scene.lines.map((line) => line.text)].join('\n')}
-                onClick={() => onSeek(scene.start)}
-              >
-                {scene.id}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="lane">
+          {film.scenes.map((scene) => (
+            <button
+              key={scene.id}
+              type="button"
+              className={`scene${t >= scene.start && t < scene.start + scene.duration ? ' current' : ''}`}
+              style={{ left: at(scene.start), width: at(scene.duration) }}
+              title={[`${scene.id}: ${timecode(scene.start)} to ${timecode(scene.start + scene.duration)}`, ...scene.lines.map((line) => line.text)].join('\n')}
+              onClick={() => onSeek(scene.start)}
+            >
+              {scene.id}
+            </button>
+          ))}
+        </div>
         <div className="lane">
           {marks.map((mark, i) => (
             <button

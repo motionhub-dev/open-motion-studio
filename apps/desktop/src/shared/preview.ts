@@ -6,10 +6,10 @@ export interface FilmInfo {
   width: number;
   height: number;
   fps: number;
-  /** Its scenes in order, for a film drawn as a <Film> of scenes; none for a film drawn as one component. */
-  scenes?: SceneInfo[];
+  /** Its scenes in order: its <Film>'s, end to end. */
+  scenes: SceneInfo[];
   /** The film's own layers, drawn across every scene. */
-  layers?: LayerBox[];
+  layers: LayerBox[];
 }
 
 /** A box of the frame a <Layer> draws in, in the film's pixels. */

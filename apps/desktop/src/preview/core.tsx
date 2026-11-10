@@ -60,29 +60,25 @@ interface FilmModule {
 const positive = (value: unknown, name: string, fallback: number): number => {
   if (value === undefined) return fallback;
   if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value;
-  throw new Error(`film.${name} must be a positive number of ${name === 'fps' ? 'frames a second' : name === 'seconds' ? 'seconds' : 'pixels'}.`);
+  throw new Error(`film.${name} must be a positive number of ${name === 'fps' ? 'frames a second' : 'pixels'}.`);
 };
 
 /**
- * What the film is: its size and rate from `export const film`, and its length from its scenes when it draws a <Film>, or from
- * `film.seconds` when it does not. Learning whether it draws a <Film> takes one render, off the page, at its start.
+ * What the film is: its size and rate from `export const film`, and its length and scenes from the <Film> it draws. Learning
+ * them takes one render, off the page, at its start.
  */
 function info(module: FilmModule): FilmInfo {
   const film = module.film ?? {};
   if (typeof module.default !== 'function') throw new Error('film.tsx has no default export: export default the film component.');
   const frame = { width: positive(film.width, 'width', 1920), height: positive(film.height, 'height', 1080), fps: positive(film.fps, 'fps', 30) };
+  const write = 'its default export returns a <Film> of <Scene id duration>s, whose durations are its length';
+  if ('seconds' in film) throw new Error(`film.tsx gives film.seconds, which a film no longer has: ${write}. Take seconds out of film.`);
   const outline = outlineOf(module.default, frame);
-  if (outline) {
-    if (film.seconds !== undefined) throw new Error('film.tsx draws a <Film>, whose scenes decide its length: take `seconds` out of `film`.');
-    return { ...frame, seconds: outline.seconds, scenes: outline.scenes, layers: outline.layers };
-  }
-  if (film.seconds === undefined) {
-    throw new Error('film.tsx needs its length: draw a <Film> of <Scene duration>s, or export const film = {seconds: 10}.');
-  }
-  return { ...frame, seconds: positive(film.seconds, 'seconds', 0) };
+  if (!outline) throw new Error(`film.tsx draws no <Film>: ${write}.`);
+  return { ...frame, seconds: outline.seconds, scenes: outline.scenes, layers: outline.layers };
 }
 
-/** The structure a <Film> reports when the film is drawn once, off the page, at its start; null for a film that draws none. */
+/** The structure the film's <Film> reports when it is drawn once, off the page, at its start; null when it draws none. */
 function outlineOf(Film: ComponentType, frame: { width: number; height: number; fps: number }): FilmOutline | null {
   let outline: FilmOutline | null = null;
   let failure: unknown = null;
