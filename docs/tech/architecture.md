@@ -1,12 +1,13 @@
 # Architecture
 
-> **Status:** Plan — step 1 built, signing waits for certificates · **Updated:** 2026-11-10
+> **Status:** Plan — steps 1 and 2 built, signing waits for certificates · **Updated:** 2026-11-10
 
 The components of the Studio and what each owns, the engine contract, the agent and its providers, what is expensive to change, and the order of work.
 
 The decisions behind it are [ADR 0001](../adr/0001-the-studio-is-engine-neutral.md) (three engines behind one contract),
-[ADR 0002](../adr/0002-the-studio-is-an-electron-desktop-app.md) (an Electron desktop app) and
-[ADR 0003](../adr/0003-a-built-in-agent-on-the-persons-own-model.md) (a built-in agent on the person's own model). What the
+[ADR 0002](../adr/0002-the-studio-is-an-electron-desktop-app.md) (an Electron desktop app),
+[ADR 0003](../adr/0003-a-built-in-agent-on-the-persons-own-model.md) (a built-in agent on the person's own model) and
+[ADR 0004](../adr/0004-a-films-code-runs-in-a-sandboxed-frame-on-its-own-scheme.md) (where a film's code runs). What the
 product is and is not is [positioning](../prd/positioning.md).
 
 ## Goal and non-goals
@@ -22,31 +23,41 @@ One Electron app. Packages are split out only when something is published on its
 ```
 apps/desktop/
   src/main/            Node: the only process that touches the disk, the network and child processes
-    project.ts         open / create a folder, detect its engine, watch its files (chokidar)
-    engines/           the engine contract and its three adapters
-      native/          bundles and plays @motionhub/runtime compositions; exports by seeking Chromium + ffmpeg
-      remotion/        drives the project's own Remotion (its bundler, studio server and renderer)
-      hyperframes/     drives the project's own HyperFrames CLI (preview, render)
-    agent/             the loop, its tools, its sessions
-    providers/         two protocols: anthropic-messages.ts, openai-chat.ts; presets; keys in the OS keychain
-    motionhub.ts       search the catalogue, fetch a package, check its SHA-256, install it into a project
+    index.ts           the window, the open project, and a handler for every StudioApi method
+    project.ts         open / create a folder, detect its engine, the recent list
+    engines/
+      native.ts        film.tsx: start one, bundle it with esbuild on every change
+      preview.ts       the oms-preview: scheme a film's page, the preview core and its bundle are served on
+      capture.ts       an offscreen window that photographs the film: stills, and export through ffmpeg
+      remotion/        (step 4) drives the project's own Remotion
+      hyperframes/     (step 5) drives the project's own HyperFrames CLI
+    agent/
+      loop.ts          one turn: call the model, run the tools it asks for, until it ends its turn
+      model.ts         a call to an Anthropic Messages server through the official SDK
+      tools.ts         what the agent may do to the project
+      native.md        what the agent is told about making a native film in a motion
+    providers.ts       the providers, and their keys sealed with safeStorage
+    motions.ts         the catalogue and a project's motions, through @motionhub/cli's library
+  src/preview/core.tsx the preview core: React, @motionhub/runtime and the player a film's page loads first
   src/preload/         the typed bridge the renderer calls (contextIsolation on, no Node in the renderer)
+  src/shared/          what both sides agree on: StudioApi, and the preview bridge's messages
   src/renderer/        React UI
-skills/                what the agent is told: the core skill, and one skill per engine
 ```
 
 | Component | Owns | Never does |
 | --- | --- | --- |
-| `project` | The folder is the truth: files on disk, git if the person uses it. The Studio's own state for a project is `.motion-studio/` (sessions, marks' stills, export queue), which `init` adds to `.gitignore` | Keep a copy of the project elsewhere |
+| `project` | The folder is the truth: files on disk, git if the person uses it. The Studio's own state for a project is `.motion-studio/` (the film's bundle in `build/`, the conversation in `session.json`), which a new project's `.gitignore` leaves out | Keep a copy of the project elsewhere |
 | `engines/*` | Turning a project into a playable preview, a still at a time, and an MP4 | Know about the agent or the UI |
-| `agent` | The conversation, the tools, what the agent may do without asking | Hold a key, or call a provider except through `providers` |
-| `providers` | Speaking to a model server; the key, read from the keychain at the moment of a call | Store a key in a file, or send anything to a server the person did not configure |
-| `motionhub` | Reading the public catalogue and installing a motion as the engine wants it | Publish; a person's motion reaches the catalogue as a pull request to `motionhub-dev/motions` |
-| renderer | Panels, selection, marks, settings | Reach the disk or network except through preload |
+| `agent` | The conversation, the tools, what the agent may do | Hold a key longer than a turn, or write the Studio's state, a motion from motionhub, dependencies or git |
+| `providers` | The providers in `settings.json` (userData); each key sealed with `safeStorage` in `keys.json`, opened for a call | Put a key in a reply to the renderer, a log, an error or a project |
+| `motions` | Reading the public catalogue and taking a motion into a project, the way `@motionhub/cli get` does | Publish; a person's motion reaches the catalogue as a pull request to `motionhub-dev/motions` |
+| renderer | Panels, selection, marks, settings | Reach the disk or network except through preload (posters from motionhub.dev are the one exception) |
 
 ## The engine contract
 
-The one interface the Studio has more than one implementation of. Each adapter is a module in `engines/<id>/` exporting:
+The one interface the Studio will have more than one implementation of. It is written down in code when the second
+engine (Remotion, step 4) is built against it, from what native needed: today native's are `isNativeProject`,
+`startFilm`, `watchFilm` (the bundle and its errors), `openStage` (a still at any time) and `exportFilm`. The plan:
 
 ```ts
 interface Engine {
@@ -62,36 +73,45 @@ interface Engine {
 }
 ```
 
-- **The preview speaks one message protocol**, whatever the engine: the Studio injects a small bridge script into the
-  previewed page (`seek`, `play`, `pause`, `time`, `duration`, `pick(x, y)` → the element under a point and its
-  component). Remotion's player, HyperFrames' `window.__timelines` and the native clock each answer it in the adapter.
-  The renderer frames the preview in a sandboxed `<webview>` on its own partition, since its code is the agent's.
+- **The preview speaks one message protocol**, whatever the engine (`src/shared/preview.ts`): the Studio sends `play`,
+  `pause` and `seek`, the page answers `ready` (the film's length and size), `time` and `error`; `pick(x, y)` (the element
+  under a point and its component) comes with marks in step 6. The native core answers it; Remotion's player and
+  HyperFrames' `window.__timelines` will, through a bridge script the adapter injects. The page runs in a sandboxed frame
+  on its own scheme ([ADR 0004](../adr/0004-a-films-code-runs-in-a-sandboxed-frame-on-its-own-scheme.md)).
 - **Remotion and HyperFrames run from the project's own `node_modules`**, never from a copy bundled into the Studio. The
   Studio pins no version of either, a project upgrades on its own, and Remotion's licence is between the person and
   Remotion (the Studio says so where a Remotion project is created).
-- **Native** is a composition file (`src/main.tsx`) that draws with `@motionhub/runtime` only (`useTime`, `Sequence`,
-  `interpolate`, `Easing`, tokens), the way a motion's reel does. The Studio bundles it with esbuild, plays it with its own
-  clock, and exports by seeking each frame in an offscreen Chromium and piping it to ffmpeg (shipped with the app). This is
-  the engine the Studio owns, and so the one that is built first.
-- **A motion is installed by copying**, as the motionhub format intends: its `react/parts/` into the project, its tokens
-  in the engine's form (Remotion values through `@motionhub/remotion`, CSS variables and eases through
-  `@motionhub/hyperframes`, `@motionhub/runtime`'s provider for native), and `MOTION.md` beside them for the agent. The
-  copy is the project's: changing it does not change the catalogue's.
+- **Native** (built) is `film.tsx` at the project's root, a React component that draws by `useTime()` from
+  `@motionhub/runtime`, the way a motion's reel does, exporting `film = {seconds, width?, height?, fps?}` (1920×1080 at
+  30 fps by default). esbuild bundles it into `.motion-studio/build/film.js` on every change of a file it imports,
+  leaving React and the runtime to the preview core, which provides them to the bundle as `require`. The Studio plays it
+  on the core's own clock; a still or an export opens the page with `?render=1` in an offscreen window, moves it to each
+  frame's time (`window.__oms.seek`) and photographs it, and export pipes the frames to ffmpeg (shipped with the app) as
+  H.264 High at level 4.1, BT.709, a key frame every two seconds, faststart. A motion's reel plays as a film unchanged.
+- **A motion is taken into a project the way `@motionhub/cli get` takes it** (built, through the CLI's own library): the
+  whole package, checked against the index's SHA-256, into `motions/@<scope>/<slug>/`, recorded in `motions.lock.json`.
+  The copy is the project's and is never changed; a project's own motions are `motions/<name>/`. Native imports a
+  motion's `tokens.json` and `react/parts/` directly and wraps the film in `<MotionScope tokens>`; Remotion will go
+  through `@motionhub/remotion` and HyperFrames through `@motionhub/hyperframes`.
 
 ## The agent
 
 A loop of our own ([ADR 0003](../adr/0003-a-built-in-agent-on-the-persons-own-model.md)): the model is called with the
 conversation and the tools, tool calls are executed in `main`, their results appended, until the model ends its turn.
 
-- **Context**: the core skill, the engine's skill, the project's motion (`MOTION.md` and its components' `meta`), the file
-  tree, and what the person attached (marks, selected element, files).
-- **Tools**: `read`, `write`, `edit`, `list`, `search` inside the project; `still(t)` (an image to a model that reads
-  images, the measured layout in text to one that does not); `check` (the engine's type check and build); `render`;
-  `motion_search`, `motion_show`, `motion_use`; `shell` for the rest (installing a package, the engine's own CLI).
-- **Permissions**: reading and writing inside the project need no approval; `shell`, network outside the provider and
-  anything outside the folder ask, with "always for this project" remembered in `.motion-studio/`.
-- **Sessions** are JSONL in `.motion-studio/sessions/`, so a conversation reopens with its project.
-- **A turn has limits**: a number of model calls and a token budget the person sets, shown as it is spent.
+- **Context** (built): the engine's skill (`agent/native.md`: the film's format, how to draw in a motion, how to work)
+  as the system prompt. The agent finds the project's files and motions with its tools. Marks and a selected element come
+  in step 6.
+- **Tools** (built): `list_files`, `read_file`, `write_file`, `edit_file`; `check` (builds the film and draws its start,
+  middle and end, reporting any error); `still(time)` (the frame as a picture); `search_motions`, `use_motion`. A tool's
+  mistake goes back to the model as a failed result, never as a thrown error. Planned: `shell`, which asks first, and
+  `still` as measured layout in text for a model that does not read images.
+- **Permissions**: the agent reads anything in the project and writes anything but `.motion-studio/`, `motions/@*/`,
+  `node_modules/` and `.git/`, without asking; nothing it has now reaches outside the project.
+- **The conversation** is kept in `.motion-studio/session.json` as the protocol's own messages (thinking blocks
+  included), so it reopens with its project and is sent back exactly as it was. A tool call that was cut off or stopped
+  is answered as not run, so the conversation stays valid.
+- **A turn has a limit** of 40 model calls; a token budget the person sets is not built.
 
 ## Providers
 
@@ -102,16 +122,20 @@ Two protocols, every provider a preset over one of them:
 | Anthropic Messages | Anthropic, MiniMax, any compatible server |
 | OpenAI Chat Completions | OpenAI, OpenRouter, DeepSeek, Gemini (its OpenAI-compatible endpoint), Ollama and LM Studio (local), any compatible server |
 
-- A provider is `{id, protocol, baseUrl, models[]}` in the app's settings; its key lives in the OS keychain (Electron
-  `safeStorage`) and nowhere else. A model records whether it reads images and whether it calls tools; one that cannot call
-  tools is refused for the agent.
-- The loop speaks one internal message shape; each protocol module translates to and from it, streaming included (a tool
-  call's arguments stream as they come).
-- Prompt caching is used where the protocol has it (Anthropic's `cache_control`, OpenRouter's pass-through).
+- Built: the Anthropic Messages protocol, through the official SDK pointed at the provider's address, with presets for
+  Anthropic (`claude-opus-5-5`) and MiniMax and a custom address (https, or http on this machine). Anthropic's own API also
+  gets server-side refusal fallbacks, `effort: high` and automatic caching of the conversation; every server gets its
+  system prompt marked for caching.
+- A provider is `{id, name, baseUrl, model}` in `settings.json` in the app's userData, with the active one. Its key is
+  sealed with Electron's `safeStorage` (the OS keychain's secret) and kept as ciphertext in `keys.json` beside it, opened
+  only for a call, and never sent to the renderer. A system with no keychain refuses to keep a key.
+- Planned with Chat Completions (step 3): the loop's messages stay in the Messages shape and the new protocol module
+  translates to and from it, streaming included; a model records whether it reads images and calls tools.
 
 ## The UI
 
-A dockable layout (dockview), each panel a projection of the project:
+Built: the assistant, the preview, the motion panel and the models dialog, in a fixed three-column layout. Planned: a
+dockable layout (dockview), each panel a projection of the project:
 
 | Panel | What it does | Writes |
 | --- | --- | --- |
@@ -142,7 +166,10 @@ Each step is a vertical slice that runs end to end before the next begins.
    `.github/workflows/build.yml` runs the gate and packages a DMG and zip, an NSIS installer, and an AppImage and tarball,
    signed and notarised once the secrets in `CLAUDE.md` are set, unsigned until then.
 2. **Native, one provider**: a native project, a motion from motionhub, the agent on one Anthropic-protocol model, the
-   preview, `still`, export to MP4. This is the whole product on one engine.
+   preview, `still`, export to MP4. This is the whole product on one engine. *Built*, and driven end to end in the app:
+   a motion taken from a local copy of the catalogue and its reel played as a film, a turn of the agent against a
+   scripted Messages server (write, check, still, reply), a 6 s film exported in about 13 s. Not yet: a turn on a real
+   model, and the first frame a motion's own faces need (they fall back to the system's).
 3. **Every provider**: the Chat Completions protocol, the presets, the keychain, the model picker; the same brief made on
    a Claude model, a DeepSeek model and a local model.
 4. **Remotion**: the adapter, its skill, motions through `@motionhub/remotion`.
@@ -157,10 +184,14 @@ What gates what: 2 gates everything (the contract is written against a working e
 - **Narration**: whether text-to-speech and voices ever belong in the Studio, and through which providers. Out of the
   first version.
 - **Signing**: an Apple Developer ID and a Windows code-signing certificate, whose account they are under, and their cost.
-- **ffmpeg**: which build is shipped and its licence (an LGPL build keeps the app Apache-2.0 compatible).
+- **ffmpeg**: the app ships `ffmpeg-static`'s build for now, which is GPL (it holds x264). Shipping it beside an
+  Apache-2.0 app is aggregation, but owes its licence and an offer of its source; an LGPL build without x264 would need
+  another H.264 encoder (the platform's own, or OpenH264).
+- **Keys on Linux without a keyring**: refused today. Allowing them with a fixed secret, after the person agrees, is a
+  choice for the person to make, not a default.
+- **Fonts**: a motion's faces (its `react/fonts/` or `CREDITS.md`) are not loaded yet, so its type falls back to the
+  system's faces in the preview and the export.
 - **Telemetry**: none is planned; crash reports, if any, opt-in.
-- **Native's composition format**: whether a native composition is a single file or a scene list, decided in step 2 on
-  real projects.
 
 ## How done is verified
 

@@ -1,6 +1,6 @@
 # 2. The Studio is an Electron desktop app
 
-> **Status:** Accepted · **Date:** 2026-11-10
+> **Status:** Accepted — its preview line superseded by [0004](0004-a-films-code-runs-in-a-sandboxed-frame-on-its-own-scheme.md) · **Date:** 2026-11-10
 
 ## Context
 

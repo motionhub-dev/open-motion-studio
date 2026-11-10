@@ -56,7 +56,7 @@ downloads Electron.
 pnpm dev              # the desktop app with hot reload (electron-vite)
 pnpm typecheck        # the gate, in CI's order: typecheck → test → build
 pnpm test
-pnpm build            # bundles main, preload and renderer into apps/desktop/out/
+pnpm build            # the preview core into resources/preview/, then main, preload and renderer into out/
 pnpm package          # an installer for this platform into apps/desktop/dist/ (unsigned without signing secrets)
 ```
 
@@ -76,14 +76,19 @@ The shape is [`docs/tech/architecture.md`](docs/tech/architecture.md). What ever
   `contextIsolation`, `sandbox` and no Node; it reaches the main process only through the preload bridge
   (`apps/desktop/src/preload/`), whose API type is `StudioApi` in `src/shared/api.ts`. A new capability is a new method
   there, validated in the main process: the renderer is not trusted with paths it was not given by a dialog.
-- **A project's preview runs code an agent wrote**: it gets its own sandboxed partition and never the preload bridge.
+- **A film's code is an agent's**: it runs only in a sandboxed frame or an offscreen window on the `oms-preview:` scheme,
+  which serves nothing but the film's build and lets it connect nowhere, and never gets the preload bridge
+  ([ADR 0004](docs/adr/0004-a-films-code-runs-in-a-sandboxed-frame-on-its-own-scheme.md)). The renderer's one network
+  exception is posters from motionhub.dev.
 - **The folder is the truth.** The Studio's own state for a project is `.motion-studio/` inside it, ignored by git; the
   app's own state (recent projects, settings) is in Electron's `userData`. Nothing else is written.
-- **A key lives only in the OS keychain** (`safeStorage`), read at the moment of a call. Never in a file, a log, an IPC
-  reply or an error message.
+- **A key is sealed with `safeStorage`** (the OS keychain's secret) and kept only as ciphertext in `keys.json` in
+  userData, opened at the moment of a call. Never in plain text in a file, a log, an IPC reply, an error message or a
+  project.
 - **Remotion and HyperFrames run from the project's own `node_modules`.** The Studio bundles neither.
 - **The motion format is motionhub's**, specified in `github.com/motionhub-dev/motions`; a change to it lands there
-  first.
+  first. A project keeps its motions as `@motionhub/cli` does (`motions/@<scope>/<slug>/` and `motions.lock.json`), and
+  the Studio never changes a copy taken from the hub.
 
 ## Documentation
 
