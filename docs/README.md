@@ -17,3 +17,4 @@ Read [positioning](prd/positioning.md) first, then [the architecture](tech/archi
 - [0003 A built-in agent on the person's own model](adr/0003-a-built-in-agent-on-the-persons-own-model.md) — our own loop, two protocols, the person's key.
 - [0004 A film's code runs in a sandboxed frame on its own scheme](adr/0004-a-films-code-runs-in-a-sandboxed-frame-on-its-own-scheme.md) — how agent-written code is isolated from the app.
 - [0005 The Studio has one engine, its own](adr/0005-the-studio-has-one-engine-its-own.md) — a film is film.tsx on `@motionhub/runtime`; no adapters.
+- [0006 A film is scenes of layers and lines](adr/0006-a-film-is-scenes-of-layers-and-lines.md) — `<Film>` of scenes; no declared animation; read at run time.

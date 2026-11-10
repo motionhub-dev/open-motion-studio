@@ -30,6 +30,8 @@ export function readMarks(value: unknown): Mark[] {
           text: String(mark.element.text ?? '').slice(0, 200),
           attributes: strings(mark.element.attributes),
           styles: strings(mark.element.styles),
+          ...(typeof mark.element.scene === 'string' ? { scene: mark.element.scene.slice(0, 60) } : {}),
+          ...(typeof mark.element.layer === 'string' ? { layer: mark.element.layer.slice(0, 60) } : {}),
         }
       : null;
     return { t: mark.t, box: { x: box.x, y: box.y, w: box.w, h: box.h }, element };
@@ -52,7 +54,9 @@ export function describeMarks(marks: Mark[], pictures: boolean): string {
     const attributes = Object.entries(mark.element.attributes).map(([k, v]) => `${k}="${v}"`).join(' ');
     const words = mark.element.text ? ` showing "${mark.element.text}"` : '';
     const styles = Object.entries(mark.element.styles).map(([k, v]) => `${k}: ${v}`).join('; ');
-    return `${i + 1}. At ${mark.t.toFixed(2)} s, the element \`${mark.element.path}\`${attributes ? ` (${attributes})` : ''}${words}, drawn at ${where}${styles ? `, styled ${styles}` : ''}.`;
+    const { scene, layer } = mark.element;
+    const within = layer ? ` in layer \`${layer}\`${scene ? ` of scene \`${scene}\`` : ''}` : scene ? ` in scene \`${scene}\`` : '';
+    return `${i + 1}. At ${mark.t.toFixed(2)} s, the element \`${mark.element.path}\`${within}${attributes ? ` (${attributes})` : ''}${words}, drawn at ${where}${styles ? `, styled ${styles}` : ''}.`;
   });
   return [
     MARKS_TAG,

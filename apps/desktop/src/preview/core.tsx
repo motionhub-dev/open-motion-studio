@@ -11,10 +11,11 @@
 // Built by scripts/build-preview.mjs into resources/preview/core.js.
 
 import * as runtime from '@motionhub/runtime';
-import { MotionRuntimeProvider } from '@motionhub/runtime';
+import { type FilmOutline, MotionRuntimeProvider } from '@motionhub/runtime';
 import * as React from 'react';
 import { type ComponentType, useEffect, useRef, useState } from 'react';
 import * as jsxRuntime from 'react/jsx-runtime';
+import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import type { FilmInfo, FromPreview, ToPreview } from '../shared/preview';
 
@@ -56,13 +57,47 @@ interface FilmModule {
   film?: Partial<FilmInfo>;
 }
 
+const positive = (value: unknown, name: string, fallback: number): number => {
+  if (value === undefined) return fallback;
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value;
+  throw new Error(`film.${name} must be a positive number of ${name === 'fps' ? 'frames a second' : name === 'seconds' ? 'seconds' : 'pixels'}.`);
+};
+
+/**
+ * What the film is: its size and rate from `export const film`, and its length from its scenes when it draws a <Film>, or from
+ * `film.seconds` when it does not. Learning whether it draws a <Film> takes one render, off the page, at its start.
+ */
 function info(module: FilmModule): FilmInfo {
   const film = module.film ?? {};
   if (typeof module.default !== 'function') throw new Error('film.tsx has no default export: export default the film component.');
-  if (!(typeof film.seconds === 'number' && film.seconds > 0)) {
-    throw new Error('film.tsx must export `film` with its length: export const film = {seconds: 10}.');
+  const frame = { width: positive(film.width, 'width', 1920), height: positive(film.height, 'height', 1080), fps: positive(film.fps, 'fps', 30) };
+  const outline = outlineOf(module.default, frame);
+  if (outline) {
+    if (film.seconds !== undefined) throw new Error('film.tsx draws a <Film>, whose scenes decide its length: take `seconds` out of `film`.');
+    return { ...frame, seconds: outline.seconds, scenes: outline.scenes, layers: outline.layers };
   }
-  return { seconds: film.seconds, width: film.width ?? 1920, height: film.height ?? 1080, fps: film.fps ?? 30 };
+  if (film.seconds === undefined) {
+    throw new Error('film.tsx needs its length: draw a <Film> of <Scene duration>s, or export const film = {seconds: 10}.');
+  }
+  return { ...frame, seconds: positive(film.seconds, 'seconds', 0) };
+}
+
+/** The structure a <Film> reports when the film is drawn once, off the page, at its start; null for a film that draws none. */
+function outlineOf(Film: ComponentType, frame: { width: number; height: number; fps: number }): FilmOutline | null {
+  let outline: FilmOutline | null = null;
+  let failure: unknown = null;
+  const root = createRoot(document.createElement('div'), { onUncaughtError: (error) => (failure ??= error) });
+  const value = { useTime: () => 0, useCompositionTime: () => 0, ...frame, Video: Footage, onFilm: (o: FilmOutline) => (outline = o) };
+  flushSync(() =>
+    root.render(
+      <MotionRuntimeProvider value={value}>
+        <Film />
+      </MotionRuntimeProvider>,
+    ),
+  );
+  root.unmount();
+  if (failure) throw failure;
+  return outline;
 }
 
 /** A <Video> stand-in until the Studio plays footage. */

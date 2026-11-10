@@ -63,6 +63,8 @@ A top bar over a grid of panels (`project-view.tsx`):
   **transport and timeline** along the bottom under the stage and the right panel.
 - The assistant's and the right panel's widths and the timeline's height are dragged at their edges (or set with the
   arrow keys on the handle), and the timeline folds to its transport; `layout.tsx` keeps them in the app's local storage.
+- The timeline (`timeline.tsx`) is a ruler, a Scenes lane for a film of scenes (each scene a block named by its id, the
+  one under the playhead inked, its lines on hover), the Marks lane and the playhead through them.
 - The stage draws the film's frame contained and centred with room around it, on ink with a shadow; the marking tools
   float over its top right corner.
 - Keys: Space plays, ← → step a frame (Shift, a second), C cycles Pick, Region and off, Esc puts a tool down, ? lists
@@ -85,7 +87,7 @@ recent projects with their path (`~` for the home folder), and a banner while no
   opened is its page — poster, name, line, its colour tokens as swatches, its components with their previews, and its
   MOTION.md. The catalogue search answers as cards with Use.
 - **Inspector** (`inspector.tsx`): the element last picked, which the panel switches to — its name and path, the
-  moment (clicked, the stage goes there), its position and size in the film's pixels, its words, its look (font, size,
+  moment (clicked, the stage goes there), the scene and layer it is in, its position and size in the film's pixels, its words, its look (font, size,
   weight, colour with a swatch, and background, opacity and transform where set) and its attributes. It stays after its
   mark is sent.
 - **Models** (`settings.tsx`): two panes. The providers down the left, an initial for each, the active one badged; the

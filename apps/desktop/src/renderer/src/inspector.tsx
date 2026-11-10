@@ -46,6 +46,8 @@ export function Inspector({ mark, film, onSeek }: { mark: Mark | null; film: Fil
             {timecode(mark.t)}
           </button>
         </dd>
+        {element?.scene && <Row name="Scene" value={element.scene} />}
+        {element?.layer && <Row name="Layer" value={element.layer} />}
         <Row name="Position" value={`${px(box.x, film?.width)}, ${px(box.y, film?.height)}`} />
         <Row name="Size" value={`${px(box.w, film?.width)} × ${px(box.h, film?.height)}`} />
         {element?.text && <Row name="Text" value={element.text} />}

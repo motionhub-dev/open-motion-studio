@@ -70,7 +70,10 @@ function describe(element: Element, frame: DOMRect): PickedElement & { box: Box 
     w: r.width / frame.width,
     h: r.height / frame.height,
   };
-  return { path: path.join(' > '), text, attributes, styles, box };
+  // In a film of scenes, the <Scene> and <Layer> it is drawn in (the runtime marks their boxes).
+  const scene = element.closest('[data-scene]')?.getAttribute('data-scene');
+  const layer = element.closest('[data-layer]')?.getAttribute('data-layer');
+  return { path: path.join(' > '), text, attributes, styles, ...(scene ? { scene } : {}), ...(layer ? { layer } : {}), box };
 }
 
 addEventListener('message', (event: MessageEvent<ToPreview>) => {

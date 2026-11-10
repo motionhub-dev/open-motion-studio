@@ -1,9 +1,10 @@
 // The film (docs/tech/architecture.md, "The film"): `film.tsx` at the project's root, a
-// React component that draws by `useTime()` from @motionhub/runtime, as a motion's reel
-// does, exporting its length and size:
+// React component drawn by `useTime()` from @motionhub/runtime, as a motion's reel is. It
+// draws a <Film> of <Scene>s, each of <Layer>s and <Line>s, whose durations give its
+// length, or, drawn as one component, exports its length in `film.seconds`:
 //
-//   export const film = {seconds: 12, width: 1920, height: 1080, fps: 30};
-//   export default function Film() { ... }
+//   export const film = {width: 1920, height: 1080, fps: 30};
+//   export default function Main() { return <Film><Scene id="intro" duration={4}>…</Scene></Film>; }
 //
 // The Studio bundles it with esbuild into .motion-studio/build/film.js, leaving React and
 // the runtime to the preview core (src/preview/core.tsx), and plays, stills and exports
@@ -33,18 +34,39 @@ const ASSETS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif', '.svg', '.wof
 /** Whether a folder holds a film. */
 export const hasFilm = (dir: string): boolean => existsSync(join(dir, FILM));
 
-const STARTER = `import {MotionRoot, interpolate, useTime} from '@motionhub/runtime';
+const STARTER = `import {Film, Layer, Line, Scene, interpolate, useTime} from '@motionhub/runtime';
 
-/** The film's length and size. */
-export const film = {seconds: 6, width: 1920, height: 1080, fps: 30};
+/** The film's size and rate; its scenes decide its length. */
+export const film = {width: 1920, height: 1080, fps: 30};
 
-export default function Film() {
+function Title({children}: {children: string}) {
   const t = useTime();
-  const opacity = interpolate(t, [0.5, 1.5], [0, 1], {clamp: true});
+  const opacity = interpolate(t, [0.3, 1.2], [0, 1], {clamp: true});
   return (
-    <MotionRoot style={{background: '#111', color: '#fafafa', display: 'grid', placeItems: 'center'}}>
-      <h1 style={{fontFamily: 'system-ui, sans-serif', fontSize: 120, opacity}}>A new film</h1>
-    </MotionRoot>
+    <h1 style={{margin: 0, height: '100%', display: 'grid', placeItems: 'center', fontFamily: 'system-ui, sans-serif', fontSize: 120, color: '#fafafa', opacity}}>
+      {children}
+    </h1>
+  );
+}
+
+export default function Main() {
+  return (
+    <Film>
+      <Layer id="ground">
+        <div style={{width: '100%', height: '100%', background: '#111'}} />
+      </Layer>
+      <Scene id="opening" duration={3}>
+        <Line id="opening-line">A new film.</Line>
+        <Layer id="title" y={340} h={400}>
+          <Title>A new film</Title>
+        </Layer>
+      </Scene>
+      <Scene id="next" duration={3}>
+        <Layer id="title" y={340} h={400}>
+          <Title>Ask the agent for the rest</Title>
+        </Layer>
+      </Scene>
+    </Film>
   );
 }
 `;

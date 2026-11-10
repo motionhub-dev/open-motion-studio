@@ -6,6 +6,30 @@ export interface FilmInfo {
   width: number;
   height: number;
   fps: number;
+  /** Its scenes in order, for a film drawn as a <Film> of scenes; none for a film drawn as one component. */
+  scenes?: SceneInfo[];
+  /** The film's own layers, drawn across every scene. */
+  layers?: LayerBox[];
+}
+
+/** A box of the frame a <Layer> draws in, in the film's pixels. */
+export interface LayerBox {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  z: number;
+}
+
+/** One <Scene> of a film: its span, its layers and what it says. */
+export interface SceneInfo {
+  id: string;
+  /** Seconds into the film. */
+  start: number;
+  duration: number;
+  layers: LayerBox[];
+  lines: { id: string; text: string }[];
 }
 
 /** A box on the frame, in fractions of its width and height. */
@@ -26,6 +50,9 @@ export interface PickedElement {
   attributes: Record<string, string>;
   /** The computed styles that say how it looks: font, size, weight, colour, and background, opacity and transform where set. */
   styles: Record<string, string>;
+  /** The <Scene> and the <Layer> it is drawn in, for a film of scenes. */
+  scene?: string;
+  layer?: string;
 }
 
 export type ToPreview =
