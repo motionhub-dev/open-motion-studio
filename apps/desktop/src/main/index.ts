@@ -18,6 +18,7 @@ import { CHANNELS, EVENTS, type BuildResult, type Project } from '../shared/api'
 import { exportFilm, serveRenders } from './engines/capture';
 import { startFilm, watchFilm } from './engines/native';
 import { registerPreviewScheme, servePreview } from './engines/preview';
+import { projectMotions, searchMotions, useMotion } from './motions';
 import { createProject, isRecent, openProject, projectAt, recentProjects, rememberProject } from './project';
 
 const recentsFile = (): string => join(app.getPath('userData'), 'recent-projects.json');
@@ -105,6 +106,10 @@ function registerHandlers(): void {
   ipcMain.handle(CHANNELS.closeProject, () => closeOpen());
 
   ipcMain.handle(CHANNELS.lastBuild, () => open?.build ?? null);
+
+  ipcMain.handle(CHANNELS.projectMotions, () => projectMotions(requireOpen().project.path));
+  ipcMain.handle(CHANNELS.searchMotions, (_event, words: unknown) => searchMotions(typeof words === 'string' ? words : ''));
+  ipcMain.handle(CHANNELS.useMotion, (_event, id: unknown) => useMotion(requireOpen().project.path, id));
 
   ipcMain.handle(CHANNELS.exportFilm, async (event) => {
     const state = requireOpen();

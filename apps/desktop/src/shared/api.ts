@@ -22,6 +22,35 @@ export interface BuildResult {
   errors: string[];
 }
 
+/** A motion in motionhub.dev's catalogue. */
+export interface CatalogueMotion {
+  /** `@<scope>/<slug>`. */
+  id: string;
+  version: string;
+  name: string;
+  line: string;
+  /** What it is for, in its own words, or ''. */
+  fit: string;
+  tags: string[];
+  /** The poster's address, or null. */
+  poster: string | null;
+  /** Its page on motionhub.dev. */
+  page: string;
+}
+
+/** A motion the open project holds, in motions/. */
+export interface ProjectMotion {
+  /** `@<scope>/<slug>` for one taken from the hub, its folder's name for the project's own. */
+  id: string;
+  /** Its folder, relative to the project. */
+  path: string;
+  name: string;
+  line: string;
+  /** The version the lock records, or null. */
+  version: string | null;
+  fromHub: boolean;
+}
+
 export interface StudioApi {
   /** Recent projects, most recent first, without folders that no longer exist. */
   recentProjects(): Promise<Project[]>;
@@ -41,6 +70,13 @@ export interface StudioApi {
   /** Calls `listener` after every build of the open project; returns the unsubscribe. */
   onBuild(listener: (result: BuildResult) => void): () => void;
 
+  /** The motions the open project holds. */
+  projectMotions(): Promise<ProjectMotion[]>;
+  /** The catalogue's motions that contain every word ('' for all). */
+  searchMotions(words: string): Promise<CatalogueMotion[]>;
+  /** Takes a motion from the catalogue into the open project. */
+  useMotion(id: string): Promise<ProjectMotion>;
+
   /** Asks where to save, then exports the film as an MP4; the path, or null when the person cancels. */
   exportFilm(): Promise<string | null>;
   /** Calls `listener` with the running export's progress (0 to 1); returns the unsubscribe. */
@@ -58,6 +94,9 @@ export const CHANNELS = {
   startFilm: 'project:start-film',
   closeProject: 'project:close',
   lastBuild: 'film:last-build',
+  projectMotions: 'motions:project',
+  searchMotions: 'motions:search',
+  useMotion: 'motions:use',
   exportFilm: 'film:export',
   cancelExport: 'film:cancel-export',
 } as const;

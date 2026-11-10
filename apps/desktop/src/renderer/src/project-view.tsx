@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { BuildResult, Project } from '../../shared/api';
+import { MotionPanel } from './motion-panel';
 import { Preview } from './preview';
 import { reason } from './reason';
 
@@ -69,7 +70,10 @@ export function ProjectView({ project, onChange, onClose }: { project: Project; 
         </p>
       )}
       {project.engine ? (
-        <Preview build={build} />
+        <div className="workspace">
+          <Preview build={build} />
+          <MotionPanel />
+        </div>
       ) : (
         <div className="empty">
           <p>This folder holds no film yet.</p>
