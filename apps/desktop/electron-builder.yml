@@ -8,7 +8,13 @@ directories:
   output: dist
 files:
   - out/**
+  - resources/**
   - package.json
+# Binaries the app runs as processes cannot be read from inside the archive.
+asarUnpack:
+  - '**/node_modules/esbuild/**'
+  - '**/node_modules/@esbuild/**'
+  - '**/node_modules/ffmpeg-static/**'
 npmRebuild: false
 # No update channel yet (auto-update is not in the first version), so no update metadata.
 publish: null

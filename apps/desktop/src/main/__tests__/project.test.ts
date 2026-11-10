@@ -42,7 +42,7 @@ describe('createProject', () => {
   it('makes a new folder a project, with its state ignored by git', async () => {
     const dir = join(root, 'new', 'film');
     const project = await createProject(dir);
-    expect(project).toEqual({ name: 'film', path: dir });
+    expect(project).toEqual({ name: 'film', path: dir, engine: null });
     expect((await stat(join(dir, '.motion-studio'))).isDirectory()).toBe(true);
     expect(await readFile(join(dir, '.gitignore'), 'utf8')).toBe('.motion-studio/\n');
   });
@@ -81,7 +81,7 @@ describe('the recent list', () => {
   async function folder(name: string) {
     const path = join(root, name);
     await mkdir(path);
-    return { name, path };
+    return { name, path, engine: null };
   }
 
   it('is empty when nothing was stored or the file is corrupt', async () => {

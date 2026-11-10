@@ -1,15 +1,9 @@
-// Step 1 of the order of work (docs/tech/architecture.md): open or create a project
-// folder, and reopen a recent one. The project view is a placeholder until the
-// native engine and the agent arrive.
+// The home screen (open or create a project, reopen a recent one) and the open project.
 
 import { useEffect, useState } from 'react';
 import type { Project } from '../../shared/api';
-
-/** Electron prefixes an error thrown in a handler with where it came from; the person needs only the reason. */
-function reason(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error);
-  return message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '');
-}
+import { ProjectView } from './project-view';
+import { reason } from './reason';
 
 export function App() {
   const [project, setProject] = useState<Project | null>(null);
@@ -33,17 +27,14 @@ export function App() {
 
   if (project) {
     return (
-      <main className="project">
-        <header>
-          <div>
-            <h1>{project.name}</h1>
-            <p className="path">{project.path}</p>
-          </div>
-          <button type="button" onClick={() => setProject(null)}>
-            Close project
-          </button>
-        </header>
-      </main>
+      <ProjectView
+        project={project}
+        onChange={setProject}
+        onClose={() => {
+          void window.studio.closeProject();
+          setProject(null);
+        }}
+      />
     );
   }
 

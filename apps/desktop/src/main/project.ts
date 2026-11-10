@@ -6,6 +6,7 @@
 import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
 import type { Project } from '../shared/api';
+import { isNativeProject } from './engines/native';
 
 export const STATE_DIR = '.motion-studio';
 export const MAX_RECENTS = 10;
@@ -22,9 +23,9 @@ async function isDirectory(path: string): Promise<boolean> {
   }
 }
 
-function projectAt(path: string): Project {
+export function projectAt(path: string): Project {
   const absolute = resolve(path);
-  return { name: basename(absolute), path: absolute };
+  return { name: basename(absolute), path: absolute, engine: isNativeProject(absolute) ? 'native' : null };
 }
 
 /** Opens an existing folder as a project. Nothing is written to it. */
