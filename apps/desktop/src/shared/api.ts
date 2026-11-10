@@ -187,7 +187,9 @@ export interface StudioApi {
   onExportProgress(listener: (done: number) => void): () => void;
   /** Stops the running export, if any. */
   cancelExport(): Promise<void>;
-  /** Shows the last exported file in the system's file manager. */
+  /** Asks for an empty (or new) folder, then writes the film there as a Remotion project; the folder, or null when the person cancels. */
+  exportRemotion(): Promise<string | null>;
+  /** Shows the last exported file or folder in the system's file manager. */
   showExported(): Promise<void>;
 }
 
@@ -215,6 +217,7 @@ export const CHANNELS = {
   clearConversation: 'agent:clear',
   exportFilm: 'film:export',
   cancelExport: 'film:cancel-export',
+  exportRemotion: 'film:export-remotion',
   showExported: 'film:show-exported',
 } as const;
 

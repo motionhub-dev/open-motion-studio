@@ -36,6 +36,7 @@ const api: StudioApi = {
   exportFilm: () => ipcRenderer.invoke(CHANNELS.exportFilm),
   onExportProgress: (listener) => subscribe(EVENTS.exportProgress, listener),
   cancelExport: () => ipcRenderer.invoke(CHANNELS.cancelExport),
+  exportRemotion: () => ipcRenderer.invoke(CHANNELS.exportRemotion),
   showExported: () => ipcRenderer.invoke(CHANNELS.showExported),
 };
 

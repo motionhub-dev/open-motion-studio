@@ -30,6 +30,7 @@ apps/desktop/
       preview.ts       the oms-preview: scheme the film's page, the Studio's preview scripts, the film's bundle and
                        the project's own files are served on
       capture.ts       an offscreen window that photographs the film: stills, and export through ffmpeg
+      remotion-export.ts  the film written as a Remotion project
     agent/
       loop.ts          one turn: call the model, run the tools it asks for, until it ends its turn
       model.ts         a call to the model: a Messages server through the official SDK, or Chat Completions
@@ -89,6 +90,24 @@ One engine, the Studio's own ([ADR 0005](../adr/0005-the-studio-has-one-engine-i
   whole package, checked against the index's SHA-256, into `motions/@<scope>/<slug>/`, recorded in `motions.lock.json`.
   The copy is the project's and is never changed; a project's own motions are `motions/<name>/`. A film imports a
   motion's `tokens.json` and `react/parts/` directly and wraps itself in `<MotionScope tokens>`.
+
+## Export
+
+Two ways out, both from the top bar's Export: an MP4 (above), and, from the menu beside it, a **Remotion project**
+(`film/remotion-export.ts`), for someone who wants to go on in Remotion or render there.
+
+- **What is written**: into an empty folder outside the film's own, the project's files as they are (`.motion-studio/`,
+  `node_modules/` and `.git/` left out), a `package.json` pinning Remotion 4, `@motionhub/remotion` and
+  `@motionhub/runtime` (a project's own `package.json` keeps its dependencies), `src/index.ts`, `src/Root.tsx`, a
+  `tsconfig.json` and a `README.md` unless the project has them, and `node_modules/` and `out/` in `.gitignore`.
+  `film.tsx` is not changed.
+- **Each scene is a `Series.Sequence`** in `src/Root.tsx`, one written on each line, holding `<FilmScene id>` around
+  the film inside `@motionhub/remotion`'s `<MotionProvider>`: Remotion Studio tells sequences apart by where they are
+  written, so made in a loop they would show as one row. Each scene's length comes from `film.tsx` (`sceneFrames`), and
+  so does the composition's (`calculateMetadata` with `filmMetadata`); the scenes listed are the ones the film had when
+  it was exported, from the build on screen, and `filmMetadata` names any the film has added, taken out or moved since.
+- **Nothing is run**: the person runs npm and Remotion themselves. Remotion's licence is theirs and Remotion's; the
+  README says so.
 
 ## The agent
 

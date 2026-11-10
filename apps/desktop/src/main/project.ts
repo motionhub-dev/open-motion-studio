@@ -37,15 +37,19 @@ export async function openProject(path: string): Promise<Project> {
   return projectAt(path);
 }
 
+/** Refuses a folder that holds anything but what an OS leaves in one; a folder that does not exist yet is empty. */
+export async function requireEmpty(path: string): Promise<void> {
+  if (!(await isDirectory(path))) return;
+  const entries = (await readdir(path)).filter((entry) => !IGNORABLE.has(entry));
+  if (entries.length > 0) throw new Error(`The folder is not empty: ${path}`);
+}
+
 /**
  * Makes a new project in a folder that does not exist yet or is empty: creates the
  * folder, the Studio's state directory, and a .gitignore that leaves that directory out.
  */
 export async function createProject(path: string): Promise<Project> {
-  if (await isDirectory(path)) {
-    const entries = (await readdir(path)).filter((entry) => !IGNORABLE.has(entry));
-    if (entries.length > 0) throw new Error(`The folder is not empty: ${path}`);
-  }
+  await requireEmpty(path);
   await mkdir(join(path, STATE_DIR), { recursive: true });
   await ignore(path, [`${STATE_DIR}/`]);
   return projectAt(path);
