@@ -1,0 +1,36 @@
+# Installers for macOS, Windows and Linux. Signing is driven by environment variables
+# that CI fills from secrets (CLAUDE.md, "Commands"); without them a build is unsigned.
+# macOS is notarised when APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD and APPLE_TEAM_ID are set.
+appId: dev.motionhub.studio
+productName: Open Motion Studio
+artifactName: open-motion-studio-${version}-${os}-${arch}.${ext}
+directories:
+  output: dist
+files:
+  - out/**
+  - package.json
+npmRebuild: false
+# No update channel yet (auto-update is not in the first version), so no update metadata.
+publish: null
+mac:
+  category: public.app-category.video
+  hardenedRuntime: true
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
+win:
+  target:
+    - target: nsis
+      arch: [x64, arm64]
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+linux:
+  category: AudioVideo
+  target:
+    - target: AppImage
+      arch: [x64, arm64]
+    - target: tar.gz
+      arch: [x64, arm64]

@@ -1,0 +1,15 @@
+{
+  "name": "open-motion-studio-workspace",
+  "private": true,
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter ./apps/desktop dev",
+    "typecheck": "pnpm --filter ./apps/desktop typecheck",
+    "test": "pnpm --filter ./apps/desktop test",
+    "build": "pnpm --filter ./apps/desktop build",
+    "package": "pnpm --filter ./apps/desktop package"
+  }
+}

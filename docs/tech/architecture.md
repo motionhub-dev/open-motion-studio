@@ -1,6 +1,6 @@
 # Architecture
 
-> **Status:** Plan · **Updated:** 2026-11-10
+> **Status:** Plan — step 1 built, signing waits for certificates · **Updated:** 2026-11-10
 
 The components of the Studio and what each owns, the engine contract, the agent and its providers, what is expensive to change, and the order of work.
 
@@ -137,7 +137,10 @@ Cheap to change at any time: every panel, the layout, the skills' wording, the p
 Each step is a vertical slice that runs end to end before the next begins.
 
 1. **Shell**: the Electron app opens and creates a folder, signed builds on all three platforms from CI. Packaging is
-   settled first because signing and notarisation are what most often block a desktop app late.
+   settled first because signing and notarisation are what most often block a desktop app late. *Built*: the app opens a
+   folder, makes an empty one a project (its `.motion-studio/`, ignored by git) and keeps ten recent projects;
+   `.github/workflows/build.yml` runs the gate and packages a DMG and zip, an NSIS installer, and an AppImage and tarball,
+   signed and notarised once the secrets in `CLAUDE.md` are set, unsigned until then.
 2. **Native, one provider**: a native project, a motion from motionhub, the agent on one Anthropic-protocol model, the
    preview, `still`, export to MP4. This is the whole product on one engine.
 3. **Every provider**: the Chat Completions protocol, the presets, the keychain, the model picker; the same brief made on
