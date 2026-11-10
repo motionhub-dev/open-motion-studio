@@ -1,9 +1,12 @@
-// The conversation with the agent: what the person asked, what the agent said, and the
-// tools it used between, with the stills it looked at.
+// The conversation with the agent: what the person asked, what the agent said (its Markdown
+// drawn), and the tools it used between, with the stills it looked at. A still opens large and
+// takes the film to its moment.
 
 import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { ArrowUp, Check, Loader, Square, X } from 'lucide-react';
 import type { AgentEvent, ChatItem, EngineId, Mark } from '../../shared/api';
+import { Markdown } from './markdown';
+import { timecode } from './preview';
 import { reason } from './reason';
 
 function apply(items: ChatItem[], event: AgentEvent): ChatItem[] {
@@ -14,7 +17,7 @@ function apply(items: ChatItem[], event: AgentEvent): ChatItem[] {
       return [...items, { kind: 'assistant', text: event.text }];
     }
     case 'tool':
-      return [...items, { kind: 'tool', id: event.id, name: event.name, summary: event.summary }];
+      return [...items, { kind: 'tool', id: event.id, name: event.name, summary: event.summary, at: event.at }];
     case 'tool-result':
       return items.map((item) =>
         item.kind === 'tool' && item.id === event.id
@@ -46,13 +49,34 @@ interface Props {
   marks: Mark[];
   onRemoveMark(index: number): void;
   onSent(): void;
+  /** Takes the film to a moment. */
+  onSeek(t: number): void;
 }
 
-export function Assistant({ ready, engine, onSettings, marks, onRemoveMark, onSent }: Props) {
+/** The composer grows with its text to about eight lines. */
+const COMPOSER_MAX = 180;
+
+export function Assistant({ ready, engine, onSettings, marks, onRemoveMark, onSent, onSeek }: Props) {
   const [items, setItems] = useState<ChatItem[]>([]);
   const [draft, setDraft] = useState('');
   const [working, setWorking] = useState(false);
+  const [shown, setShown] = useState<{ image: string; caption: string } | null>(null);
   const log = useRef<HTMLDivElement>(null);
+  const composer = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const field = composer.current;
+    if (!field) return;
+    field.style.height = 'auto';
+    field.style.height = `${Math.min(COMPOSER_MAX, field.scrollHeight)}px`;
+  }, [draft]);
+
+  useEffect(() => {
+    if (!shown) return;
+    const onKey = (event: globalThis.KeyboardEvent) => event.key === 'Escape' && setShown(null);
+    addEventListener('keydown', onKey);
+    return () => removeEventListener('keydown', onKey);
+  }, [shown]);
 
   useEffect(() => {
     void window.studio.conversation().then(setItems);
@@ -138,9 +162,25 @@ export function Assistant({ ready, engine, onSettings, marks, onRemoveMark, onSe
                 {!item.result ? <Loader size={13} className="spin" /> : item.result.ok ? <Check size={13} className="ok" /> : <X size={13} />}
                 <span>{item.summary}</span>
               </summary>
-              {item.result?.image && <img src={item.result.image} alt={item.result.text} />}
+              {item.result?.image && (
+                <button
+                  type="button"
+                  className="still"
+                  title={item.at !== undefined ? `Open, and go to ${timecode(item.at)}` : 'Open'}
+                  onClick={() => {
+                    if (item.at !== undefined) onSeek(item.at);
+                    setShown({ image: item.result!.image!, caption: item.result!.text });
+                  }}
+                >
+                  <img src={item.result.image} alt={item.result.text} />
+                </button>
+              )}
               {item.result && !item.result.image && <pre>{item.result.text}</pre>}
             </details>
+          ) : item.kind === 'assistant' ? (
+            <div key={i} className="message assistant">
+              <Markdown source={item.text} />
+            </div>
           ) : (
             <p key={i} className={`message ${item.kind}${item.kind === 'notice' && item.error ? ' error' : ''}`}>
               {item.text}
@@ -172,8 +212,9 @@ export function Assistant({ ready, engine, onSettings, marks, onRemoveMark, onSe
       )}
       <form className="composer" onSubmit={send}>
         <textarea
+          ref={composer}
           value={draft}
-          rows={2}
+          rows={1}
           placeholder={marks.length ? 'Say what should change at the marks (1, 2…)' : 'Ask for a film, or a change to this one'}
           aria-label="Message"
           onChange={(e) => setDraft(e.target.value)}
@@ -189,6 +230,17 @@ export function Assistant({ ready, engine, onSettings, marks, onRemoveMark, onSe
           </button>
         )}
       </form>
+      {shown && (
+        <div className="dialog-backdrop dim" role="presentation" onClick={() => setShown(null)}>
+          <figure className="lightbox" role="dialog" aria-modal="true" aria-label="Still" onClick={(e) => e.stopPropagation()}>
+            <img src={shown.image} alt={shown.caption} />
+            <figcaption>{shown.caption}</figcaption>
+            <button type="button" className="icon-button" aria-label="Close (Esc)" title="Close (Esc)" onClick={() => setShown(null)}>
+              <X size={16} />
+            </button>
+          </figure>
+        </div>
+      )}
     </>
   );
 }

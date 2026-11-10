@@ -3,6 +3,18 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-10 — The assistant reads as Markdown, motions open as pages, Models tests a connection
+
+- **What:** The assistant draws the agent's replies as Markdown, and a still clicked seeks the film to its moment and
+  opens large; the composer grows with its text. The Motions panel shows posters, and a motion opened is its page: its
+  colours, its components with their previews, its MOTION.md (`motionDetail`). Models is two panes, providers and the
+  selected one's form, starting a new one from a service card, with **Test connection** (`testProvider`), which makes one
+  call as the form stands and says whether the model answered and called a tool.
+- **Why:** P2 of the visual direction.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/design.md`, `apps/desktop/src/renderer/src/`, `apps/desktop/src/main/agent/test-connection.ts`.
+
 ## 2026-11-10 — The Studio wears motionhub's paper and ink
 
 - **What:** A visual layer from one set of tokens, light and dark (`docs/design.md`): motionhub's colours, Inter and

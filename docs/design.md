@@ -69,3 +69,18 @@ A top bar over a grid of panels (`project-view.tsx`):
 The launcher (`app.tsx`) is the mark and the title, Open folder, a card for each engine (what it is, what it needs, the
 Remotion licence in a line), the recent projects with their engine and path (`~` for the home folder), and a banner
 while no model is set up.
+
+## The panels and the models dialog
+
+- **Assistant** (`assistant.tsx`): the person's words in a bubble, the agent's as Markdown (`markdown.tsx`: drawn as React
+  elements, never as HTML), each tool call a line with its state. A still is a thumbnail; clicking it seeks the stage
+  to its moment and opens it large on a dimmed ground (Esc closes). The composer grows with its text up to 180px; Enter
+  sends, Shift+Enter breaks the line.
+- **Motions** (`motion-panel.tsx`): the project's motions as poster cards (initials when a motion has no poster); one
+  opened is its page — poster, name, line, its colour tokens as swatches, its components with their previews, and its
+  MOTION.md. The catalogue search answers as cards with Use.
+- **Models** (`settings.tsx`): two panes. The providers down the left, an initial for each, the active one badged; the
+  selected one, or a new one, as a form on the right. A new one starts from a service card (each with its protocol);
+  the address and model are in mono, the key field says it is sealed in the keychain and never shown again. **Test
+  connection** makes one call as the form stands (the typed key, else the stored one) and says whether the model
+  answered and called a tool, and how fast.

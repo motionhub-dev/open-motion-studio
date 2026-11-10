@@ -64,6 +64,19 @@ describe('ProviderStore', () => {
     await expect(store.save({ ...WIRE, protocol: 'grpc' as never, name: 'X', baseUrl: 'https://x.example', model: 'm' })).rejects.toThrow();
   });
 
+  it('drafts a provider for a test without saving it: the typed key, else the stored one', async () => {
+    const store = new ProviderStore(dir);
+    const { providers } = await store.save({ ...WIRE, name: 'A', baseUrl: 'https://a.example', model: 'm', key: KEY });
+    const id = providers[0]!.id;
+    expect(await store.draft({ ...WIRE, id, name: 'A', baseUrl: 'https://a.example', model: 'm2' })).toMatchObject({ id, model: 'm2', key: KEY });
+    expect(await store.draft({ ...WIRE, id, name: 'A', baseUrl: 'https://a.example', model: 'm', key: ' sk-new ' })).toMatchObject({ key: 'sk-new' });
+    expect(await store.draft({ protocol: 'openai', images: false, name: 'L', baseUrl: 'http://127.0.0.1:1234/v1', model: 'q' })).toMatchObject({ key: '' });
+    await expect(store.draft({ ...WIRE, name: 'B', baseUrl: 'https://b.example', model: 'm' })).rejects.toThrow("Type B's key");
+    await expect(store.draft({ ...WIRE, name: 'B', baseUrl: 'http://b.example', model: 'm', key: KEY })).rejects.toThrow();
+    expect((await store.list()).providers).toHaveLength(1);
+    expect((await store.list()).providers[0]!.model).toBe('m');
+  });
+
   it('forgets the key with the provider, and says when no model is set up', async () => {
     const store = new ProviderStore(dir);
     const { providers } = await store.save({ ...WIRE, name: 'A', baseUrl: 'https://a.example', model: 'm', key: KEY });

@@ -18,12 +18,13 @@ import { CHANNELS, EVENTS, type AgentEvent, type BuildResult, type Project } fro
 import { runTurn, transcript } from './agent/loop';
 import { markedMessage, readMarks } from './agent/marks';
 import { type MessageParam, caller, failure } from './agent/model';
+import { testProvider } from './agent/test-connection';
 import { TOOLS, type ToolContext } from './agent/tools';
 import { openStage, serveRenders } from './engines/capture';
 import { type Bundler, type Engine, engineById } from './engines/engine';
 import { native } from './engines/native';
 import { type PreviewSource, registerPreviewScheme, servePreview } from './engines/preview';
-import { projectMotions, searchMotions, useMotion } from './motions';
+import { motionDetail, projectMotions, searchMotions, useMotion } from './motions';
 import { STATE_DIR, createProject, isRecent, openProject, projectAt, recentProjects, rememberProject } from './project';
 import { ProviderStore } from './providers';
 
@@ -156,6 +157,7 @@ function registerHandlers(): void {
   ipcMain.handle(CHANNELS.projectMotions, () => projectMotions(requireOpen().project.path));
   ipcMain.handle(CHANNELS.searchMotions, (_event, words: unknown) => searchMotions(typeof words === 'string' ? words : ''));
   ipcMain.handle(CHANNELS.useMotion, (_event, id: unknown) => takeMotion(requireOpen(), id));
+  ipcMain.handle(CHANNELS.motionDetail, (_event, id: unknown) => motionDetail(requireOpen().project.path, id));
 
   ipcMain.handle(CHANNELS.providers, () => providers().list());
   ipcMain.handle(CHANNELS.saveProvider, (_event, input: unknown) => {
@@ -164,6 +166,10 @@ function registerHandlers(): void {
   });
   ipcMain.handle(CHANNELS.removeProvider, (_event, id: unknown) => providers().remove(id));
   ipcMain.handle(CHANNELS.activateProvider, (_event, id: unknown) => providers().activate(id));
+  ipcMain.handle(CHANNELS.testProvider, async (_event, input: unknown) => {
+    if (!input || typeof input !== 'object') throw new Error('Not a provider.');
+    return testProvider(await providers().draft(input as Parameters<ProviderStore['draft']>[0]));
+  });
 
   ipcMain.handle(CHANNELS.conversation, async () => (open ? transcript(await conversation(open)) : []));
   ipcMain.handle(CHANNELS.clearConversation, async () => {

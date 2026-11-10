@@ -52,6 +52,19 @@ export interface ProjectMotion {
   /** The version the lock records, or null. */
   version: string | null;
   fromHub: boolean;
+  /** Its poster, relative to the project, or null. */
+  poster: string | null;
+}
+
+/** What a motion in the project holds, for its page in the motion panel. */
+export interface MotionDetail {
+  motion: ProjectMotion;
+  /** Its MOTION.md, as written. */
+  markdown: string;
+  /** Its colour tokens, by name. */
+  colors: { name: string; value: string }[];
+  /** Its components, from each file's `meta`. */
+  components: { file: string; name: string; purpose: string; line: string; preview: string | null }[];
 }
 
 /** The wire protocols a provider may speak. */
@@ -107,17 +120,20 @@ export interface Mark {
 /** The most marks one message may carry. */
 export const MAX_MARKS = 5;
 
+/** What a connection test found. */
+export type ProviderTest = { ok: true; ms: number; calledTool: boolean } | { ok: false; error: string };
+
 /** One entry of the conversation, as the assistant panel shows it. */
 export type ChatItem =
   | { kind: 'user'; text: string; marks: number }
   | { kind: 'assistant'; text: string }
-  | { kind: 'tool'; id: string; name: string; summary: string; result?: { ok: boolean; text: string; image?: string } }
+  | { kind: 'tool'; id: string; name: string; summary: string; at?: number; result?: { ok: boolean; text: string; image?: string } }
   | { kind: 'notice'; text: string; error: boolean };
 
 /** What the agent reports while it works. */
 export type AgentEvent =
   | { type: 'text'; text: string }
-  | { type: 'tool'; id: string; name: string; summary: string }
+  | { type: 'tool'; id: string; name: string; summary: string; at?: number }
   | { type: 'tool-result'; id: string; ok: boolean; text: string; image?: string }
   | { type: 'end'; notice?: { text: string; error: boolean } };
 
@@ -148,12 +164,16 @@ export interface StudioApi {
   searchMotions(words: string): Promise<CatalogueMotion[]>;
   /** Takes a motion from the catalogue into the open project. */
   useMotion(id: string): Promise<ProjectMotion>;
+  /** What a motion the open project holds says and has. */
+  motionDetail(id: string): Promise<MotionDetail>;
 
   /** The model providers and which one is active. */
   providers(): Promise<Providers>;
   saveProvider(input: ProviderInput): Promise<Providers>;
   removeProvider(id: string): Promise<Providers>;
   activateProvider(id: string): Promise<Providers>;
+  /** Calls the model as the form describes it, once, asking it to call a tool. Uses the stored key when none is typed. */
+  testProvider(input: ProviderInput): Promise<ProviderTest>;
 
   /** The open project's conversation with the agent. */
   conversation(): Promise<ChatItem[]>;
@@ -188,10 +208,12 @@ export const CHANNELS = {
   projectMotions: 'motions:project',
   searchMotions: 'motions:search',
   useMotion: 'motions:use',
+  motionDetail: 'motions:detail',
   providers: 'providers:list',
   saveProvider: 'providers:save',
   removeProvider: 'providers:remove',
   activateProvider: 'providers:activate',
+  testProvider: 'providers:test',
   conversation: 'agent:conversation',
   sendMessage: 'agent:send',
   stopAgent: 'agent:stop',

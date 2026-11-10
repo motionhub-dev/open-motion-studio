@@ -24,6 +24,12 @@ export interface Turn {
   signal: AbortSignal;
 }
 
+/** The moment a still was taken at, so the person can go to it. */
+function moment(name: string, input: unknown): number | undefined {
+  const time = (input as { time?: unknown } | null)?.time;
+  return name === 'still' && typeof time === 'number' ? time : undefined;
+}
+
 function summary(name: string, input: unknown): string {
   const i = (input ?? {}) as Record<string, unknown>;
   switch (name) {
@@ -88,7 +94,7 @@ export async function runTurn(turn: Turn, failure: (error: unknown) => string): 
           results.push({ id: use.id, outcome: { ok: false, content: 'Stopped by the person.', text: 'Stopped.' } });
           continue;
         }
-        emit({ type: 'tool', id: use.id, name: use.name, summary: summary(use.name, use.input) });
+        emit({ type: 'tool', id: use.id, name: use.name, summary: summary(use.name, use.input), at: moment(use.name, use.input) });
         const outcome = await runTool(use.name, use.input, turn.tools);
         emit({ type: 'tool-result', id: use.id, ok: outcome.ok, text: outcome.text, image: outcome.image });
         results.push({ id: use.id, outcome });
@@ -130,7 +136,7 @@ export function transcript(messages: MessageParam[]): ChatItem[] {
       if (block.type === 'text' && block.text.trim()) {
         items.push(message.role === 'user' ? { kind: 'user', text: block.text, marks: 0 } : { kind: 'assistant', text: block.text });
       } else if (block.type === 'tool_use') {
-        const item = { kind: 'tool' as const, id: block.id, name: block.name, summary: summary(block.name, block.input) };
+        const item = { kind: 'tool' as const, id: block.id, name: block.name, summary: summary(block.name, block.input), at: moment(block.name, block.input) };
         tools.set(block.id, item);
         items.push(item);
       } else if (block.type === 'tool_result') {

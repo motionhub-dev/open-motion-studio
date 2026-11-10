@@ -155,6 +155,10 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
               marks={marks}
               onRemoveMark={(i) => setMarks((m) => m.filter((_, j) => j !== i))}
               onSent={() => setMarks([])}
+              onSeek={(t) => {
+                if (player.playing) player.tell({ type: 'oms:pause' });
+                player.seek(t);
+              }}
             />
             <Splitter axis="x" value={layout.left} limits={LIMITS.left} onChange={(left) => setLayout({ left })} label="Resize the assistant" style={{ right: -7 }} />
           </section>

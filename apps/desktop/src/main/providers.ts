@@ -67,6 +67,19 @@ function cleanText(value: unknown, what: string): string {
   return value.trim();
 }
 
+/** A provider as the form gave it, checked; a new one is given an id. */
+function cleanProvider(input: ProviderInput): StoredProvider {
+  if (input.protocol !== 'anthropic' && input.protocol !== 'openai') throw new Error('A provider speaks Messages or Chat Completions.');
+  return {
+    id: typeof input.id === 'string' && input.id ? input.id : randomUUID(),
+    name: cleanText(input.name, 'a name'),
+    protocol: input.protocol,
+    baseUrl: cleanUrl(input.baseUrl),
+    model: cleanText(input.model, 'a model'),
+    images: input.images !== false,
+  };
+}
+
 /** The providers as the renderer may see them: no key, only whether one is set. */
 export class ProviderStore {
   constructor(private readonly dir: string) {}
@@ -100,15 +113,7 @@ export class ProviderStore {
   /** Adds a provider (no id) or changes one; a key, when given, replaces the stored one. */
   async save(input: ProviderInput): Promise<Providers> {
     const settings = await this.settings();
-    if (input.protocol !== 'anthropic' && input.protocol !== 'openai') throw new Error('A provider speaks Messages or Chat Completions.');
-    const provider: StoredProvider = {
-      id: typeof input.id === 'string' && input.id ? input.id : randomUUID(),
-      name: cleanText(input.name, 'a name'),
-      protocol: input.protocol,
-      baseUrl: cleanUrl(input.baseUrl),
-      model: cleanText(input.model, 'a model'),
-      images: input.images !== false,
-    };
+    const provider = cleanProvider(input);
     const at = settings.providers.findIndex((p) => p.id === provider.id);
     if (input.id && at < 0) throw new Error('That provider no longer exists.');
     if (at >= 0) settings.providers[at] = provider;
@@ -147,14 +152,28 @@ export class ProviderStore {
 
   /** The active provider with its key opened, for one call. */
   async active(): Promise<Provider> {
-    const [settings, keys] = await Promise.all([this.settings(), this.keys()]);
+    const settings = await this.settings();
     const provider = settings.providers.find((p) => p.id === settings.active);
     if (!provider) throw new Error('No model is set up: add a provider in Settings.');
-    const sealed = keys[provider.id];
-    if (!sealed) {
-      if (isLocal(provider.baseUrl)) return { ...provider, key: '' };
-      throw new Error(`${provider.name} has no key: add one in Settings.`);
-    }
-    return { ...provider, key: safeStorage.decryptString(Buffer.from(sealed, 'base64')) };
+    return this.opened(provider, undefined);
+  }
+
+  /**
+   * A provider as the form describes it, not saved, with a key for one call: the one typed, else
+   * the one stored for it, else none for a server on this machine. For a connection test.
+   */
+  async draft(input: ProviderInput): Promise<Provider> {
+    const provider = cleanProvider(input);
+    const typed = typeof input.key === 'string' && input.key.trim() ? input.key.trim() : undefined;
+    if (!typed && !isLocal(provider.baseUrl) && !(await this.keys())[provider.id]) throw new Error(`Type ${provider.name}'s key to test it.`);
+    return this.opened(provider, typed);
+  }
+
+  private async opened(provider: StoredProvider, typed: string | undefined): Promise<Provider> {
+    if (typed) return { ...provider, key: typed };
+    const sealed = (await this.keys())[provider.id];
+    if (sealed) return { ...provider, key: safeStorage.decryptString(Buffer.from(sealed, 'base64')) };
+    if (isLocal(provider.baseUrl)) return { ...provider, key: '' };
+    throw new Error(`${provider.name} has no key: add one in Settings.`);
   }
 }

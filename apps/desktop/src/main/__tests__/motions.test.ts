@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { projectMotions, searchMotions, useMotion } from '../motions';
+import { motionDetail, projectMotions, searchMotions, useMotion } from '../motions';
 
 const ID = '@someone/paper-cut';
 let root: string;
@@ -112,7 +112,42 @@ describe('projectMotions', () => {
     await mkdir(join(project, 'motions', 'house-look'), { recursive: true });
     await writeFile(join(project, 'motions', 'house-look', 'motion.json'), JSON.stringify({ name: { en: 'House look' } }));
     expect(await projectMotions(project)).toEqual([
-      { id: 'house-look', path: join('motions', 'house-look'), name: 'House look', line: '', version: null, fromHub: false },
+      { id: 'house-look', path: join('motions', 'house-look'), name: 'House look', line: '', version: null, fromHub: false, poster: null },
     ]);
+  });
+});
+
+describe('motionDetail', () => {
+  it('reads a motion’s text, colours and components as its files say them', async () => {
+    const folder = join(project, 'motions', 'paper');
+    await mkdir(join(folder, 'react', 'parts'), { recursive: true });
+    await mkdir(join(folder, 'react', 'previews'), { recursive: true });
+    await writeFile(join(folder, 'motion.json'), JSON.stringify({ name: { en: 'Paper' } }));
+    await writeFile(join(folder, 'MOTION.md'), '# Paper\n\n## Essence\nCut paper.');
+    await writeFile(join(folder, 'poster.jpg'), '');
+    await writeFile(
+      join(folder, 'tokens.json'),
+      JSON.stringify({ color: { $type: 'color', ground: { $value: { hex: '#F7EFDD' } }, ink: { $value: '#1B2A47' } } }),
+    );
+    await writeFile(
+      join(folder, 'react', 'parts', 'gauge.tsx'),
+      "export const meta = {\n  name: {en: 'Depth gauge', 'zh-CN': 'x'},\n  purpose: 'data',\n  line: 'A card with a depth on it.',\n};\nexport const Gauge = () => null;\n",
+    );
+    await writeFile(join(folder, 'react', 'parts', 'shared.ts'), 'export const C = 1;');
+    await writeFile(join(folder, 'react', 'previews', 'gauge.jpg'), '');
+    const detail = await motionDetail(project, 'paper');
+    expect(detail.motion).toMatchObject({ name: 'Paper', poster: 'motions/paper/poster.jpg' });
+    expect(detail.markdown).toContain('Cut paper.');
+    expect(detail.colors).toEqual([
+      { name: 'ground', value: '#F7EFDD' },
+      { name: 'ink', value: '#1B2A47' },
+    ]);
+    expect(detail.components).toEqual([
+      { file: 'gauge.tsx', name: 'Depth gauge', purpose: 'data', line: 'A card with a depth on it.', preview: 'motions/paper/react/previews/gauge.jpg' },
+    ]);
+  });
+
+  it('answers only for a motion the project holds', async () => {
+    await expect(motionDetail(project, '../../etc')).rejects.toThrow('holds no motion');
   });
 });

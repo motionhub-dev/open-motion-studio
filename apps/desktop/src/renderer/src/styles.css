@@ -1046,23 +1046,6 @@ input[type='radio'] {
   gap: 12px;
 }
 
-.list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.list li {
-  display: flex;
-  flex-direction: column;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--line);
-  background: var(--bg);
-}
 
 .search {
   display: flex;
@@ -1074,47 +1057,6 @@ input[type='radio'] {
   min-width: 0;
 }
 
-.cards {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.card {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  overflow: hidden;
-  background: var(--bg);
-}
-
-.card img {
-  display: block;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  object-fit: cover;
-  background: var(--s2);
-}
-
-.card > div {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px 12px;
-}
-
-.card p {
-  font-size: 12px;
-  color: var(--text2);
-}
-
-.card .button {
-  align-self: flex-start;
-  margin-top: 6px;
-  height: 30px;
-}
 
 /* Dialogs. */
 
@@ -1151,39 +1093,161 @@ input[type='radio'] {
   font-weight: 600;
 }
 
-.provider {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+/* The models dialog: providers down the left, the selected one's form on the right. */
+
+.dialog.models {
+  width: min(860px, 100%);
+  padding: 0;
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  overflow: hidden;
 }
 
-.provider label {
+.models-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px 12px;
+  background: var(--bg);
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+}
+
+.models-list h2 {
+  font-size: 16px;
+  font-weight: 600;
+  padding: 0 8px;
+}
+
+.models-list .note {
+  padding: 0 8px 10px;
+}
+
+.models-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.provider-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-width: 0;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--r-button);
+  background: none;
+  color: var(--text);
+  text-align: left;
 }
 
-.provider label > span {
+.provider-row:hover {
+  background: var(--s2);
+}
+
+.provider-row.selected {
+  background: var(--sheet);
+  border-color: var(--line);
+}
+
+.provider-row.add {
+  color: var(--muted);
+  min-height: 36px;
+}
+
+.provider-row .avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-control);
+  background: var(--s2);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.provider-row .who {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  flex: 1;
 }
 
-.provider .actions {
-  display: flex;
-  gap: 2px;
+.provider-row .who .mono {
+  font-size: 11px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .provider-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-top: 16px;
+  gap: 14px;
+  padding: 8px 22px 20px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
 }
 
-.provider-form label {
+.presets {
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.presets legend {
+  margin-bottom: 6px;
+}
+
+.preset {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-button);
+  background: var(--sheet);
+  color: var(--text);
+  text-align: left;
+}
+
+.preset span {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.preset:hover {
+  border-color: var(--text2);
+}
+
+.preset.selected {
+  border-color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--text);
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.fields .wide {
+  grid-column: 1 / -1;
+}
+
+.fields label {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1192,12 +1256,25 @@ input[type='radio'] {
   color: var(--text2);
 }
 
-.provider-form label input,
-.provider-form label select {
+.fields label input,
+.fields label select {
   font-weight: 400;
 }
 
-.provider-form label.check {
+.fields input.mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.fields .hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.fields label.check {
   flex-direction: row;
   align-items: center;
   gap: 8px;
@@ -1205,10 +1282,44 @@ input[type='radio'] {
   color: var(--text);
 }
 
+.test {
+  font-size: 12px;
+  padding: 8px 10px;
+  border-radius: var(--r-control);
+  border: 1px solid var(--line);
+}
+
+.test.good {
+  color: var(--good);
+}
+
+.test.bad {
+  color: var(--bad);
+  background: var(--bad-ground);
+  border-color: var(--bad-line);
+}
+
 .provider-form .actions {
   display: flex;
+  align-items: center;
   gap: 8px;
-  justify-content: flex-end;
+}
+
+.provider-form .actions .spacer {
+  flex: 1;
+}
+
+@media (max-width: 720px) {
+  .dialog.models {
+    grid-template-columns: 1fr;
+  }
+  .models-list {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+  .presets {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .starts {
@@ -1256,6 +1367,270 @@ input[type='radio'] {
   }
 }
 
-.list li.provider {
-  flex-direction: row;
+/* Markdown, in the agent's replies and a motion's MOTION.md. */
+
+.markdown {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  white-space: normal;
+}
+
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 4px;
+}
+
+.markdown h3 {
+  font-size: 14px;
+}
+
+.markdown strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.markdown ul,
+.markdown ol {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.markdown code {
+  font: 12px var(--font-mono);
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--s2);
+}
+
+.markdown pre {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--r-button);
+  background: var(--s2);
+  overflow-x: auto;
+}
+
+.markdown pre code {
+  padding: 0;
+  background: none;
+}
+
+.markdown blockquote {
+  margin: 0;
+  padding-left: 10px;
+  border-left: 2px solid var(--line);
+  color: var(--muted);
+}
+
+.markdown hr {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.markdown a {
+  color: var(--text);
+}
+
+.message.assistant {
+  white-space: normal;
+}
+
+.tool .still {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+}
+
+.tool .still img {
+  margin: 0;
+}
+
+.dialog-backdrop.dim {
+  background: var(--overlay);
+}
+
+.lightbox {
+  position: relative;
+  margin: 0;
+  width: min(1200px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lightbox img {
+  width: 100%;
+  border-radius: var(--r-button);
+  box-shadow: var(--float-shadow);
+}
+
+.lightbox figcaption {
+  color: var(--sheet);
+  font-size: 12px;
+  text-align: center;
+}
+
+.lightbox .icon-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--overlay);
+  color: #fff;
+}
+
+/* The motion panel. */
+
+.poster {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: var(--s2);
+}
+
+.poster.blank {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font: 500 16px var(--font-mono);
+}
+
+.motion-cards,
+.catalogue,
+.components,
+.swatches {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.motion-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.motion-card {
+  width: 100%;
+  padding: 0;
+  text-align: left;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+button.motion-card:hover {
+  border-color: var(--text);
+}
+
+.motion-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px 12px;
+  min-width: 0;
+}
+
+.motion-title p {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text2);
+}
+
+.motion-title .path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.catalogue {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+.catalogue .motion-title {
+  padding: 8px 10px 4px;
+}
+
+.catalogue .button {
+  margin: 0 10px 10px;
+  height: 28px;
+  font-size: 12px;
+}
+
+.back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.side .body > .poster {
+  border-radius: 10px;
+  border: 1px solid var(--line);
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.swatches li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px 0 3px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font: 11px var(--font-mono);
+  color: var(--text2);
+}
+
+.swatches span {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+}
+
+.components {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.components li {
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  overflow: hidden;
+  font-size: 12px;
+  background: var(--bg);
+}
+
+.components li > span:last-child {
+  display: block;
+  padding: 6px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
