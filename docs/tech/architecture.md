@@ -59,15 +59,21 @@ apps/desktop/
 One engine, the Studio's own ([ADR 0005](../adr/0005-the-studio-has-one-engine-its-own.md)), in `src/main/film/`.
 
 - **A film is `film.tsx`** at the project's root, a React component that draws by `useTime()` from `@motionhub/runtime`,
-  the way a motion's reel does, exporting `film = {seconds, width?, height?, fps?}` (1920×1080 at 30 fps by default). A
-  folder holds a film when it holds that file; one that does not is offered a starter. esbuild bundles it into
+  exporting `film = {width?, height?, fps?}` (1920×1080 at 30 fps by default). A folder
+  holds a film when it holds that file; one that does not is offered a starter.
+- **It draws a `<Film>` of scenes** ([ADR 0006](../adr/0006-a-film-is-scenes-of-layers-and-lines.md)): `<Scene id
+  duration>`s laid end to end, each holding `<Layer id x y w h z>`s (boxes of the frame, in its pixels, shown for the
+  whole scene, whose content moves itself from `useTime()`, counted from the scene's start) and `<Line id>`s (what the
+  scene says; nothing speaks them yet). A layer directly in `<Film>` is drawn across every scene. The scenes' durations
+  are the film's length, so `film.seconds` is refused, and so is a film whose default export draws no `<Film>`. The preview core draws the film once, off the page, to learn its structure from what
+  `<Film>` reports (`onFilm`), and sends it with the film (`FilmInfo.scenes`, `FilmInfo.layers`). esbuild bundles it into
   `.motion-studio/build/film.js` on every change of a file it imports, leaving React and the runtime to the preview core,
   which provides them to the bundle as `require`.
 - **The preview speaks one message protocol** (`src/shared/preview.ts`): the Studio sends `play`, `pause`, `seek` and
-  `pick(x, y)`, the page answers `ready` (the film's length, size and frame rate), `time`, `error` and `picked`. The core
+  `pick(x, y)`, the page answers `ready` (the film's length, size, frame rate and scenes), `time`, `error` and `picked`. The core
   answers the first three and sets `window.__omsFrame` (the film's size); `studio/pick.js` answers `pick` with the
-  visible element drawn there, described by its path among its ancestors, its words, its `data-*` attributes and its
-  computed look, and its box. The page draws its frame whole and centred, so a point given as fractions of the frame is
+  visible element drawn there, described by its path among its ancestors, its words, its `data-*` attributes, its
+  computed look and the scene and layer it is drawn in, and its box. The page draws its frame whole and centred, so a point given as fractions of the frame is
   found the same way in the preview and in a render.
 - **The page runs in a sandboxed frame on its own scheme**
   ([ADR 0004](../adr/0004-a-films-code-runs-in-a-sandboxed-frame-on-its-own-scheme.md)), which serves the Studio's preview
@@ -78,7 +84,7 @@ One engine, the Studio's own ([ADR 0005](../adr/0005-the-studio-has-one-engine-i
 - **Playing, stills and export**: the Studio plays the film on the core's own clock; a still or an export opens the page
   with `?render=1` in an offscreen window, moves it to each frame's time (`window.__oms.seek`) and photographs it, and
   export pipes the frames to ffmpeg (shipped with the app) as H.264 High at level 4.1, BT.709, a key frame every two
-  seconds, faststart. A motion's reel plays as a film unchanged.
+  seconds, faststart. A motion's reel plays as a film inside one scene.
 - **A motion is taken into a project the way `@motionhub/cli get` takes it** (built, through the CLI's own library): the
   whole package, checked against the index's SHA-256, into `motions/@<scope>/<slug>/`, recorded in `motions.lock.json`.
   The copy is the project's and is never changed; a project's own motions are `motions/<name>/`. A film imports a
@@ -99,7 +105,8 @@ conversation and the tools, tool calls are executed in `main`, their results app
   The conversation keeps them in the person's message; the assistant panel shows only their words and how many marks
   went with them.
 - **Tools** (built): `list_files`, `read_file`, `write_file`, `edit_file`; `check` (builds the film and draws its start,
-  middle and end, reporting any error); `still(time)` (the frame as a picture); `search_motions`, `use_motion`. A tool's
+  the middle of each scene and its end, reporting any error, or each scene with its span, its layers' boxes and its
+  lines); `still(time)` (the frame as a picture); `search_motions`, `use_motion`. A tool's
   mistake goes back to the model as a failed result, never as a thrown error. Planned: `shell`, which asks first, and
   `still` as measured layout in text for a model that does not read images.
 - **Permissions**: the agent reads anything in the project and writes anything but `.motion-studio/`, `motions/@*/`,
@@ -147,9 +154,9 @@ panels, built and planned, each a projection of the project:
 | **Assistant** | The conversation, the agent's words as Markdown, tool calls folded, stills the agent took inline (one clicked seeks to its moment and opens large); the turn's spend is planned | Through the agent |
 | **Preview** | The film's preview with transport; the mark tools (pick an element, drag a region) attach to the next message, flagged on the scrubber (built) | Nothing |
 | **Motion** | The project's motions as poster cards; one opened shows its colours, its components with their previews and its MOTION.md (`motionDetail`); the catalogue search with Use (built). Reels are planned | Through `useMotion` |
-| **Inspector** | The element last picked: its path, moment, box in the film's pixels, words, computed look (`PickedElement.styles`, which the agent also reads) and attributes (built) | Nothing |
+| **Inspector** | The element last picked: its path, moment, scene and layer, box in the film's pixels, words, computed look (`PickedElement.styles`, which the agent also reads) and attributes (built) | Nothing |
 | **Files** | The tree and a read-only CodeMirror view; open in the person's own editor | Nothing |
-| **Timeline** | Read-only: a ruler to seek on, the marks and the playhead (built). The film's sequences are planned: they are inside its React, known only by running it | Nothing |
+| **Timeline** | Read-only: a ruler to seek on, the film's scenes (a scene clicked seeks to its start; its lines on hover), the marks and the playhead (built) | Nothing |
 | **Export** | Queue, progress, open the file | Nothing |
 | **Settings** | Providers and keys in two panes, with a connection test (`testProvider`: one call as the form stands, asking for a tool call, with the typed key or the stored one; the reply carries no key) (built); permissions are planned | App settings |
 
@@ -184,8 +191,7 @@ Each step is a vertical slice that runs end to end before the next begins.
    with the contract ([ADR 0005](../adr/0005-the-studio-has-one-engine-its-own.md)). The git history keeps them.
 6. **Pointing**: marks, the pick bridge, the read-only timeline. *Marks built*, and driven in the app: an element picked
    and a region dragged out, sent with a message, the agent given both described and each frame outlined. *Timeline
-   built*: a ruler, the marks and the playhead. *Not built*: the film's sequences on it, which are inside its React and
-   are known only by running it.
+   built*: a ruler, the film's scenes, the marks and the playhead.
 
 What gates what: 2 gates everything; 3 gates nothing else.
 

@@ -7,6 +7,7 @@ import type Anthropic from '@anthropic-ai/sdk';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import type { BuildResult } from '../../shared/api';
+import type { SceneInfo } from '../../shared/preview';
 import type { Stage } from '../film/capture';
 import { STATE_DIR } from '../project';
 
@@ -69,7 +70,7 @@ export const TOOLS: Tool[] = [
   },
   {
     name: 'check',
-    description: 'Builds the film and plays it at its start, middle and end. Reports build errors and errors thrown while drawing, or the film\'s length and size when it is sound.',
+    description: 'Builds the film and plays it at its start, the middle of each scene and its end. Reports build errors and errors thrown while drawing, or, when it is sound, its length and size and each scene: its span, its layers\' boxes and its lines.',
     input_schema: { type: 'object', properties: {} },
   },
   {
@@ -202,12 +203,23 @@ async function check(ctx: ToolContext): Promise<ToolOutcome> {
   if ('content' in result) return result;
   const stage = await ctx.stage(result.version);
   try {
-    const { seconds, width, height, fps } = stage.film;
-    for (const t of [0, seconds / 2, Math.max(0, seconds - 1 / fps)]) await stage.frame(t);
-    return text(`The film builds and draws: ${seconds} s at ${width}×${height}, ${fps} fps.`);
+    const { seconds, width, height, fps, scenes } = stage.film;
+    // Drawn at its start, in the middle of each scene, so an error in any scene shows, and at its end.
+    const moments = scenes.map((scene) => scene.start + scene.duration / 2);
+    for (const t of [0, ...moments, Math.max(0, seconds - 1 / fps)]) await stage.frame(t);
+    const summary = `The film builds and draws: ${seconds} s at ${width}×${height}, ${fps} fps, in ${scenes.length} scene${scenes.length === 1 ? '' : 's'}:`;
+    return text([summary, ...scenes.map(outlineLine)].join('\n'));
   } finally {
     stage.close();
   }
+}
+
+/** One scene as `check` reports it: its span, its layers' boxes, and what it says. */
+function outlineLine(scene: SceneInfo): string {
+  const seconds = (s: number) => `${Math.round(s * 100) / 100}`;
+  const layers = scene.layers.map((l) => `${l.id} (${l.x},${l.y} ${l.w}×${l.h})`).join(', ') || 'no layers';
+  const lines = scene.lines.map((l) => `"${l.text}"`).join(' ');
+  return `- ${scene.id}, ${seconds(scene.start)} to ${seconds(scene.start + scene.duration)} s: ${layers}${lines ? `; says ${lines}` : ''}`;
 }
 
 async function still(ctx: ToolContext, time: unknown): Promise<ToolOutcome> {

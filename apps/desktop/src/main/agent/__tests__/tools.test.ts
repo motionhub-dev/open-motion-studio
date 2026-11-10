@@ -83,4 +83,25 @@ describe('runTool', () => {
     expect(outcome.text).toContain('oops');
     expect(ctx.stage).not.toHaveBeenCalled();
   });
+
+  it('checks a film of scenes in the middle of each, and outlines them', async () => {
+    const frame = vi.fn().mockResolvedValue(undefined);
+    const close = vi.fn();
+    const scenes = [
+      { id: 'intro', start: 0, duration: 4, layers: [{ id: 'title', x: 0, y: 300, w: 1920, h: 400, z: 0 }], lines: [{ id: 'l1', text: 'Heat moves uphill.' }] },
+      { id: 'how', start: 4, duration: 6, layers: [], lines: [] },
+    ];
+    ctx.build = vi.fn().mockResolvedValue({ ok: true, version: 2, errors: [] });
+    ctx.stage = vi.fn().mockResolvedValue({ film: { seconds: 10, width: 1920, height: 1080, fps: 30, scenes, layers: [] }, frame, close });
+    const outcome = await runTool('check', {}, ctx);
+    expect(frame.mock.calls.map(([t]) => t)).toEqual([0, 2, 7, 10 - 1 / 30]);
+    expect(outcome.text).toBe(
+      [
+        'The film builds and draws: 10 s at 1920×1080, 30 fps, in 2 scenes:',
+        '- intro, 0 to 4 s: title (0,300 1920×400); says "Heat moves uphill."',
+        '- how, 4 to 10 s: no layers',
+      ].join('\n'),
+    );
+    expect(close).toHaveBeenCalled();
+  });
 });

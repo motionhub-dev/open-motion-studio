@@ -3,6 +3,21 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-10 — A film is scenes of layers and lines
+
+- **What:** A film draws a `<Film>` of `<Scene id duration>`s, each holding `<Layer id x y w h z>`s (boxes of the frame)
+  and `<Line id>`s (what it says), from `@motionhub/runtime` 0.5.0; the scenes' durations are its length, so `film`
+  keeps only its size and rate. A new film starts as two scenes. The timeline shows the scenes, a pick names the scene
+  and layer it is in (in the Inspector and to the agent), and `check` draws each scene and outlines them. There is no
+  declared animation: a layer's content moves itself. Every film draws a `<Film>`: one drawn as one component, or one
+  that gives `film.seconds`, is refused with a message saying how to write it. `film.width`, `height` and `fps` are
+  checked.
+- **Why:** The Studio and the agent knew nothing of what a film was made of (ADR 0006).
+- **Breaking:** A film written before this, one component with `film.seconds`, no longer plays; wrap it in
+  `<Film><Scene id="main" duration={…}>…</Scene></Film>` and take `seconds` out of `film`, or ask the agent to.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/adr/0006-a-film-is-scenes-of-layers-and-lines.md`, `docs/tech/architecture.md` ("The film").
+
 ## 2026-11-10 — The Studio keeps one engine, its own
 
 - **What:** Remotion and HyperFrames projects are no longer made or opened, and the engine contract is gone: a film is
