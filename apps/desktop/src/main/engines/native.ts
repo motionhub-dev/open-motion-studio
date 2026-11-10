@@ -17,6 +17,7 @@ import type { BuildResult } from '../../shared/api';
 import { STATE_DIR } from '../project';
 import { exportFrames } from './capture';
 import type { Engine } from './engine';
+import { htmlPage } from './preview';
 import SKILL from './native.md?raw';
 
 export const FILM = 'film.tsx';
@@ -106,7 +107,8 @@ export const native: Engine = {
   create: async (dir) => startFilm(dir),
   watch: watchFilm,
   // The core holds React and the runtime, and loads the film's bundle itself.
-  page: () => `<div id="root"></div><script src="core.js"></script>`,
+  page: async () => htmlPage(`<div id="root"></div><script src="studio/core.js"></script>`),
   exportFilm: (_dir, version, file, onProgress, signal) => exportFrames(version, file, onProgress, signal),
+  motionTaken: async () => {},
   skill: SKILL,
 };

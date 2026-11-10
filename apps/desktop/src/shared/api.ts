@@ -3,7 +3,7 @@
 // handler for each and validates whatever the renderer sends.
 
 /** The engines a film can be written for. */
-export type EngineId = 'native' | 'remotion';
+export type EngineId = 'native' | 'remotion' | 'hyperframes';
 
 export interface Project {
   /** The folder's name, as the Studio shows it. */

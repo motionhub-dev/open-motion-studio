@@ -1,12 +1,12 @@
 // The oms-preview: scheme, which serves the open film's preview page: the page its engine
-// writes, the native preview core, the film's bundle with its assets, and the project's
-// public/ folder. It is what a film's code runs under, so its policy lets the page load only
-// from this scheme and connect nowhere (ADR 0004).
+// writes, the Studio's preview scripts, the film's bundle with its assets, and the project's
+// own files. It is what a film's code runs under, so its policy lets the page load only from
+// this scheme and reach nothing else (ADR 0004).
 //
-//   oms-preview://film/                 the page (?render=1 for stills and export, ?v= the build)
-//   oms-preview://film/core.js          the native preview core (resources/preview/core.js)
-//   oms-preview://film/build/<file>     the film's bundle and assets, from <project>/.motion-studio/build/
-//   oms-preview://film/public/<file>    the project's public/ folder (Remotion's staticFile())
+//   oms-preview://film/                  the page (?render=1 for stills and export, ?v= the build)
+//   oms-preview://film/studio/<file>     the Studio's preview scripts (resources/preview/: core.js, hyperframes.js)
+//   oms-preview://film/build/<file>      the film's bundle and assets, from <project>/.motion-studio/build/
+//   oms-preview://film/project/<file>    the project's own files (Remotion's public/, a HyperFrames page and its assets)
 
 import { app, protocol, type Session } from 'electron';
 import { readFile } from 'node:fs/promises';
@@ -25,15 +25,18 @@ export const PREVIEW_URL = `${SCHEME}://film/`;
 
 const POLICY = [
   "default-src 'none'",
-  `script-src ${SCHEME}:`,
+  // HyperFrames compositions are pages with scripts of their own inline.
+  `script-src ${SCHEME}: 'unsafe-inline'`,
   `style-src ${SCHEME}: 'unsafe-inline'`,
   `img-src ${SCHEME}: data: blob:`,
   `font-src ${SCHEME}: data:`,
   `media-src ${SCHEME}: data: blob:`,
-  "connect-src 'none'",
+  // A HyperFrames page fetches its sub-compositions; nothing beyond the scheme.
+  `connect-src ${SCHEME}:`,
 ].join('; ');
 
-const page = (body: string) => `<!doctype html>
+/** A preview page around `body`, for an engine whose page is the Studio's own. */
+export const htmlPage = (body: string) => `<!doctype html>
 <html><head><meta charset="utf-8"><title>Preview</title>
 <style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000}</style>
 </head><body>${body}</body></html>`;
@@ -62,10 +65,12 @@ const TYPES: Record<string, string> = {
 
 /** Must run before the app is ready. */
 export function registerPreviewScheme(): void {
-  protocol.registerSchemesAsPrivileged([{ scheme: SCHEME, privileges: { standard: true, secure: true } }]);
+  // CORS-enabled: a font or a fetched file is a CORS request, and a sandboxed frame's origin is null.
+  protocol.registerSchemesAsPrivileged([{ scheme: SCHEME, privileges: { standard: true, secure: true, corsEnabled: true, supportFetchAPI: true } }]);
 }
 
-export const coreFile = (): string => join(app.getAppPath(), 'resources', 'preview', 'core.js');
+/** Where the Studio's preview scripts are built to (scripts/build-preview.mjs). */
+export const studioScripts = (): string => join(app.getAppPath(), 'resources', 'preview');
 
 /** A path under `root` for a URL path, or null when it would leave it. */
 export function within(root: string, urlPath: string): string | null {
@@ -77,7 +82,13 @@ export function within(root: string, urlPath: string): string | null {
 
 function respond(body: string | Buffer, type: string): Response {
   return new Response(body, {
-    headers: { 'content-type': type, 'content-security-policy': POLICY, 'cache-control': 'no-store' },
+    headers: {
+      'content-type': type,
+      'content-security-policy': POLICY,
+      'cache-control': 'no-store',
+      // The only page that can ask is the film's own, from this scheme: the scheme serves nothing private to it.
+      'access-control-allow-origin': '*',
+    },
   });
 }
 
@@ -89,9 +100,13 @@ export function servePreview(session: Session, film: () => PreviewSource | null)
     if (url.host !== 'film' || !source) return new Response('Not found', { status: 404 });
     const version = Number(url.searchParams.get('v')) || 0;
     try {
-      if (url.pathname === '/' || url.pathname === '/index.html') return respond(page(source.engine.page(version)), 'text/html');
-      if (url.pathname === '/core.js') return respond(await readFile(coreFile()), TYPES['.js']!);
-      for (const [prefix, root] of [['/build/', buildDir(source.dir)], ['/public/', join(source.dir, 'public')]] as const) {
+      if (url.pathname === '/' || url.pathname === '/index.html') return respond(await source.engine.page(source.dir, version), 'text/html');
+      const roots = [
+        ['/studio/', studioScripts()],
+        ['/build/', buildDir(source.dir)],
+        ['/project/', source.dir],
+      ] as const;
+      for (const [prefix, root] of roots) {
         if (!url.pathname.startsWith(prefix)) continue;
         const file = within(root, url.pathname.slice(prefix.length));
         if (file) return respond(await readFile(file), TYPES[extname(file).toLowerCase()] ?? 'application/octet-stream');

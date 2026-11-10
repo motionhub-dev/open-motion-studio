@@ -18,6 +18,7 @@ import { STATE_DIR, ignore } from '../project';
 import { openStage } from './capture';
 import type { Engine } from './engine';
 import { ASSET_LOADERS, buildDir, reporter } from './native';
+import { htmlPage } from './preview';
 import PREVIEW from './remotion-preview.tsx.txt?raw';
 import SKILL from './remotion.md?raw';
 
@@ -64,8 +65,9 @@ export async function run(
   dir: string,
   onLine: (line: string) => void,
   signal?: AbortSignal,
+  extraEnv: Record<string, string> = {},
 ): Promise<void> {
-  const env = await toolEnv();
+  const env = { ...(await toolEnv()), ...extraEnv };
   await new Promise<void>((done, fail) => {
     // Windows runs npm.cmd and a project's .cmd shims through its shell, which splits a path at its spaces.
     const windows = process.platform === 'win32';
@@ -194,7 +196,7 @@ async function watch(dir: string, onBuilt: (result: BuildResult) => void) {
   await mkdir(entryDir(dir), { recursive: true });
   await writeFile(join(entryDir(dir), 'preview.tsx'), PREVIEW);
   // Remotion's staticFile() prefixes this, so public/ files are served by the preview scheme.
-  await writeFile(join(entryDir(dir), 'static-base.ts'), "(window as {remotion_staticBase?: string}).remotion_staticBase = '/public';\n");
+  await writeFile(join(entryDir(dir), 'static-base.ts'), "(window as {remotion_staticBase?: string}).remotion_staticBase = '/project/public';\n");
   const ctx = await context({
     absWorkingDir: dir,
     entryPoints: [join(entryDir(dir), 'preview.tsx')],
@@ -249,7 +251,8 @@ export const remotion: Engine = {
   detect: isRemotionProject,
   create,
   watch,
-  page: (version) => `<div id="root" style="width:100%;height:100%"></div><script src="build/preview.js?v=${version}"></script>`,
+  page: async (_dir, version) => htmlPage(`<div id="root" style="width:100%;height:100%"></div><script src="build/preview.js?v=${version}"></script>`),
   exportFilm,
+  motionTaken: async () => {},
   skill: SKILL,
 };

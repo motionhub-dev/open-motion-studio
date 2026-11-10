@@ -99,6 +99,13 @@ async function chooseFolder(sender: WebContents, options: OpenDialogOptions): Pr
   return result.canceled ? null : (result.filePaths[0] ?? null);
 }
 
+/** Takes a motion into the open project, and lets its engine turn it into files of its own. */
+async function takeMotion(state: NonNullable<typeof open>, id: unknown) {
+  const taken = await useMotion(state.project.path, id);
+  await state.engine?.motionTaken(state.project.path);
+  return taken;
+}
+
 function requireOpen(): NonNullable<typeof open> {
   if (!open) throw new Error('No project is open.');
   return open;
@@ -145,7 +152,7 @@ function registerHandlers(): void {
 
   ipcMain.handle(CHANNELS.projectMotions, () => projectMotions(requireOpen().project.path));
   ipcMain.handle(CHANNELS.searchMotions, (_event, words: unknown) => searchMotions(typeof words === 'string' ? words : ''));
-  ipcMain.handle(CHANNELS.useMotion, (_event, id: unknown) => useMotion(requireOpen().project.path, id));
+  ipcMain.handle(CHANNELS.useMotion, (_event, id: unknown) => takeMotion(requireOpen(), id));
 
   ipcMain.handle(CHANNELS.providers, () => providers().list());
   ipcMain.handle(CHANNELS.saveProvider, (_event, input: unknown) => {
@@ -182,7 +189,7 @@ function registerHandlers(): void {
       },
       stage: (version) => openStage(version),
       searchMotions: (words) => searchMotions(words),
-      useMotion: (id) => useMotion(dir, id),
+      useMotion: (id) => takeMotion(state, id),
     };
     try {
       await runTurn(

@@ -1,6 +1,6 @@
 # 4. A film's code runs in a sandboxed frame on its own scheme
 
-> **Status:** Accepted — the scheme also serves the project's `public/` and allows `data:` media, for Remotion · **Date:** 2026-11-10
+> **Status:** Accepted — the scheme also serves the project's own files and allows inline scripts, `data:` media and fetches within it, for Remotion and HyperFrames (see the architecture) · **Date:** 2026-11-10
 
 ## Context
 

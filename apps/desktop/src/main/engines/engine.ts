@@ -4,6 +4,7 @@
 // answers the preview bridge (src/shared/preview.ts), and capture.ts photographs it.
 
 import type { BuildResult, EngineId } from '../../shared/api';
+import { hyperframes } from './hyperframes';
 import { native } from './native';
 import { remotion } from './remotion';
 
@@ -22,16 +23,18 @@ export interface Engine {
   create(dir: string, log: (line: string) => void): Promise<void>;
   /** Bundles the film's preview into the project's build folder, and again on every change. */
   watch(dir: string, onBuilt: (result: BuildResult) => void): Promise<Bundler>;
-  /** The preview page's HTML, served at oms-preview://film/ (preview.ts). */
-  page(version: number): string;
+  /** The preview page, a whole HTML document, served at oms-preview://film/ (preview.ts). */
+  page(dir: string, version: number): Promise<string>;
   /** Renders build `version` of the film to `file` as an MP4, reporting the share done (0 to 1). */
   exportFilm(dir: string, version: number, file: string, onProgress: (done: number) => void, signal: AbortSignal): Promise<void>;
+  /** Called after a motion is taken into the project, for an engine that turns motions into files of its own. */
+  motionTaken(dir: string): Promise<void>;
   /** What the agent is told about making a film in this engine. */
   skill: string;
 }
 
-/** Every engine, in the order a folder is matched against them: a Remotion project may also hold a film.tsx. */
-export const ENGINES: Engine[] = [remotion, native];
+/** Every engine, in the order a folder is matched against them: a Remotion or HyperFrames project may also hold a film.tsx. */
+export const ENGINES: Engine[] = [hyperframes, remotion, native];
 
 export const engineOf = (dir: string): Engine | null => ENGINES.find((engine) => engine.detect(dir)) ?? null;
 

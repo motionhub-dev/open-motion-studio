@@ -1,6 +1,7 @@
-// Builds the preview core (src/preview/core.tsx: React, @motionhub/runtime and the player)
-// into resources/preview/core.js, which the main process serves to every native film's
-// preview. Run before `dev` and `build`.
+// Builds the Studio's preview scripts into resources/preview/, which the main process serves
+// at oms-preview://film/studio/: core.js (src/preview/core.tsx: React, @motionhub/runtime and
+// the native player) and hyperframes.js (src/preview/hyperframes.ts: the bridge to a
+// HyperFrames page). Run before `dev` and `build`.
 
 import { build } from 'esbuild';
 import { fileURLToPath } from 'node:url';
@@ -9,8 +10,8 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 
 await build({
   absWorkingDir: root,
-  entryPoints: ['src/preview/core.tsx'],
-  outfile: 'resources/preview/core.js',
+  entryPoints: { core: 'src/preview/core.tsx', hyperframes: 'src/preview/hyperframes.ts' },
+  outdir: 'resources/preview',
   bundle: true,
   format: 'iife',
   platform: 'browser',

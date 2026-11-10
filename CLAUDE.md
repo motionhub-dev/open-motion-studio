@@ -77,7 +77,8 @@ The shape is [`docs/tech/architecture.md`](docs/tech/architecture.md). What ever
   (`apps/desktop/src/preload/`), whose API type is `StudioApi` in `src/shared/api.ts`. A new capability is a new method
   there, validated in the main process: the renderer is not trusted with paths it was not given by a dialog.
 - **A film's code is an agent's**: it runs only in a sandboxed frame or an offscreen window on the `oms-preview:` scheme,
-  which serves nothing but the film's build and the project's `public/` and lets it connect nowhere, and never gets the preload bridge
+  which serves nothing but the Studio's preview scripts, the film's build and the project's own files and lets it reach
+  nothing beyond the scheme, and never gets the preload bridge
   ([ADR 0004](docs/adr/0004-a-films-code-runs-in-a-sandboxed-frame-on-its-own-scheme.md)). The renderer's one network
   exception is posters from motionhub.dev.
 - **The folder is the truth.** The Studio's own state for a project is `.motion-studio/` inside it, ignored by git; the
@@ -86,7 +87,8 @@ The shape is [`docs/tech/architecture.md`](docs/tech/architecture.md). What ever
   userData, opened at the moment of a call. Never in plain text in a file, a log, an IPC reply, an error message or a
   project.
 - **Remotion and HyperFrames run from the project's own `node_modules`.** The Studio bundles neither, and runs the
-  person's own npm and the project's CLIs through `toolEnv()` (`engines/remotion.ts`), the PATH a login shell has.
+  person's own npm and the project's CLIs through `run()` and `toolEnv()` (`engines/remotion.ts`), the PATH a login
+  shell has. HyperFrames' commands run with its usage telemetry off.
 - **An engine is the contract in `engines/engine.ts`.** What only one engine needs stays in its module.
 - **The motion format is motionhub's**, specified in `github.com/motionhub-dev/motions`; a change to it lands there
   first. A project keeps its motions as `@motionhub/cli` does (`motions/@<scope>/<slug>/` and `motions.lock.json`), and

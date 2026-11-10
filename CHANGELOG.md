@@ -3,6 +3,20 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-10 — A film can be a HyperFrames project
+
+- **What:** The home screen makes a HyperFrames project too: scaffolded with GSAP loaded from `node_modules`, installed
+  with npm, previewed as its own `index.html` under HyperFrames' runtime with the Studio's bridge, written by the agent
+  with a HyperFrames skill, and exported with the project's own `hyperframes render` and the Studio's ffmpeg. Taking a
+  motion runs `motionhub-hyperframes`, which writes `assets/motion/`. The preview scheme now serves the project's own
+  files (`/project/`) and the Studio's scripts (`/studio/`), allows inline scripts and fetches within itself, and is
+  CORS-enabled, so a motion's fonts load in every engine. HyperFrames' usage telemetry is off for the commands the
+  Studio runs.
+- **Why:** Step 5 of the order of work: every engine in ADR 0001.
+- **Breaking:** None.
+- **Upgrade:** Nothing. A HyperFrames project needs Node.js and npm.
+- **Refs:** `docs/tech/architecture.md` ("The engine contract"), ADR 0001, ADR 0004.
+
 ## 2026-11-10 — A film can be a Remotion project
 
 - **What:** The home screen makes a native film or a Remotion project. A Remotion project is scaffolded (its

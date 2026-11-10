@@ -1,6 +1,6 @@
 # Architecture
 
-> **Status:** Plan — steps 1 to 4 built, signing waits for certificates · **Updated:** 2026-11-10
+> **Status:** Plan — steps 1 to 5 built, signing waits for certificates · **Updated:** 2026-11-10
 
 The components of the Studio and what each owns, the engine contract, the agent and its providers, what is expensive to change, and the order of work.
 
@@ -30,9 +30,11 @@ apps/desktop/
       native.ts        film.tsx: start one, bundle it with esbuild on every change; native.md is its skill
       remotion.ts      a Remotion project: scaffold and npm install, a Player preview, export by its own CLI;
                        remotion-preview.tsx.txt is the preview page's entry, remotion.md its skill
-      preview.ts       the oms-preview: scheme a film's page, its bundle and the project's public/ are served on
+      hyperframes.ts   a HyperFrames project: scaffold and npm install, its own page with its runtime as the
+                       preview, export by its own CLI; hyperframes.md is its skill
+      preview.ts       the oms-preview: scheme a film's page, the Studio's preview scripts, the film's bundle and
+                       the project's own files are served on
       capture.ts       an offscreen window that photographs the film: stills, and native export through ffmpeg
-      hyperframes.ts   (step 5) drives the project's own HyperFrames CLI
     agent/
       loop.ts          one turn: call the model, run the tools it asks for, until it ends its turn
       model.ts         a call to the model: a Messages server through the official SDK, or Chat Completions
@@ -40,7 +42,8 @@ apps/desktop/
       tools.ts         what the agent may do to the project
     providers.ts       the providers, and their keys sealed with safeStorage
     motions.ts         the catalogue and a project's motions, through @motionhub/cli's library
-  src/preview/core.tsx the preview core: React, @motionhub/runtime and the player a film's page loads first
+  src/preview/         the Studio's preview scripts: core.tsx (React, @motionhub/runtime and the native player)
+                       and hyperframes.ts (the bridge to a HyperFrames page)
   src/preload/         the typed bridge the renderer calls (contextIsolation on, no Node in the renderer)
   src/shared/          what both sides agree on: StudioApi, and the preview bridge's messages
   src/renderer/        React UI
@@ -62,26 +65,31 @@ Remotion needed:
 
 ```ts
 interface Engine {
-  id: 'native' | 'remotion';
-  detect(dir): boolean;                                  // film.tsx; remotion among package.json's dependencies
-  create(dir, log): Promise<void>;                       // a new project: its scaffold and, for Remotion, npm install
-  watch(dir, onBuilt): Promise<Bundler>;                 // the preview's bundle, rebuilt on every change
-  page(version): string;                                 // the preview page's body
+  id: 'native' | 'remotion' | 'hyperframes';
+  detect(dir): boolean;                                  // hyperframes.json or the package; remotion; film.tsx
+  create(dir, log): Promise<void>;                       // a new project: its scaffold and, but for native, npm install
+  watch(dir, onBuilt): Promise<Bundler>;                 // the preview's bundle (or, for HyperFrames, a new version per change)
+  page(dir, version): Promise<string>;                   // the preview page, a whole HTML document
   exportFilm(dir, version, file, onProgress, signal);    // an MP4
+  motionTaken(dir): Promise<void>;                       // after a motion is taken (HyperFrames writes assets/motion/)
   skill: string;                                         // what the agent is told about this engine
 }
 ```
 
 Stills are not an engine's: every preview page answers the bridge below, and `capture.ts` photographs any of them. A
-motion is taken into a project the same way for every engine (below), so `useMotion` is not an engine's either. A
-`doctor` comes when an engine needs more than npm and its own packages.
+motion is taken into a project the same way for every engine (below); `motionTaken` is what follows for an engine that
+turns motions into files of its own. A `doctor` comes when an engine needs more than npm and its own packages.
 
 - **The preview speaks one message protocol**, whatever the engine (`src/shared/preview.ts`): the Studio sends `play`,
   `pause` and `seek`, the page answers `ready` (the film's length and size), `time` and `error`; `pick(x, y)` (the element
-  under a point and its component) comes with marks in step 6. The native core and the Remotion page answer it;
-  HyperFrames' `window.__timelines` will, through a bridge script the adapter injects. The page runs in a sandboxed frame
-  on its own scheme ([ADR 0004](../adr/0004-a-films-code-runs-in-a-sandboxed-frame-on-its-own-scheme.md)), which also
-  serves the project's `public/` folder (Remotion's `staticFile()` is pointed there) and allows `data:` media.
+  under a point and its component) comes with marks in step 6; HyperFrames' runtime already has `getElementsAtPoint`.
+  The native core, the Remotion page and the HyperFrames bridge answer it. The page runs in a sandboxed frame on its own
+  scheme ([ADR 0004](../adr/0004-a-films-code-runs-in-a-sandboxed-frame-on-its-own-scheme.md)), which serves the
+  Studio's preview scripts at `/studio/`, the film's bundle at `/build/` and the project's own files at `/project/`
+  (Remotion's `staticFile()` points into `/project/public`, a HyperFrames page resolves its paths there). It allows
+  inline scripts and `data:` media, which HyperFrames pages and Remotion's Player use, lets the page fetch from the
+  scheme alone, and answers with `access-control-allow-origin: *`, since a sandboxed frame's origin is null and its
+  fonts are CORS requests.
 - **Remotion and HyperFrames run from the project's own `node_modules`**, never from a copy bundled into the Studio. The
   Studio pins no version of either, a project upgrades on its own, and Remotion's licence is between the person and
   Remotion (the Studio says so where a Remotion project is created).
@@ -102,19 +110,30 @@ motion is taken into a project the same way for every engine (below), so `useMot
   the project's own `remotion render`, so it exports exactly as from a terminal, sound included; its progress is read
   from what it prints. The first export downloads Remotion's headless Chrome. The Studio shows Remotion's licence where
   a Remotion project is made.
+- **HyperFrames** (built) is a HyperFrames 0.9 project run from its own `node_modules`. A new one is scaffolded
+  (`index.html`, `hyperframes.json`, HyperFrames, GSAP and `@motionhub/hyperframes` pinned) and installed with npm, with
+  GSAP loaded from `node_modules`, never a CDN, so the preview and the export need no network. The preview is the
+  project's own `index.html`, given a `<base>` into `/project/`, HyperFrames' runtime (`hyperframe.runtime.iife.js`) ahead
+  of its scripts and the Studio's bridge after them, which drives the runtime's `window.__player` and scales the
+  fixed-size page to the frame. There is nothing to bundle: a change to any of the project's files is a new version of
+  the preview. Export is the project's own `hyperframes render`, given the Studio's ffmpeg; its progress is read from the
+  `@hf-progress` lines it prints. Every command the Studio runs for HyperFrames runs with its usage telemetry off
+  (`HYPERFRAMES_NO_TELEMETRY`, `DO_NOT_TRACK`).
 - **A motion is taken into a project the way `@motionhub/cli get` takes it** (built, through the CLI's own library): the
   whole package, checked against the index's SHA-256, into `motions/@<scope>/<slug>/`, recorded in `motions.lock.json`.
   The copy is the project's and is never changed; a project's own motions are `motions/<name>/`. Native imports a
   motion's `tokens.json` and `react/parts/` directly and wraps the film in `<MotionScope tokens>`; Remotion goes through
-  `@motionhub/remotion` (`<MotionProvider tokens>`), and HyperFrames will through `@motionhub/hyperframes`.
+  `@motionhub/remotion` (`<MotionProvider tokens>`), and HyperFrames through `@motionhub/hyperframes`, whose
+  `motionhub-hyperframes` the Studio runs after a motion is taken, writing `assets/motion/` (`motion.js`, `motion.css` and
+  the motions' faces as local files).
 
 ## The agent
 
 A loop of our own ([ADR 0003](../adr/0003-a-built-in-agent-on-the-persons-own-model.md)): the model is called with the
 conversation and the tools, tool calls are executed in `main`, their results appended, until the model ends its turn.
 
-- **Context** (built): the engine's skill (`engines/native.md` or `engines/remotion.md`: the film's format, how to
-  draw in a motion, how to work) as the system prompt. The agent finds the project's files and motions with its tools. Marks and a selected element come
+- **Context** (built): the engine's skill (`engines/native.md`, `engines/remotion.md` or `engines/hyperframes.md`: the
+  film's format, how to draw in a motion, how to work) as the system prompt. The agent finds the project's files and motions with its tools. Marks and a selected element come
   in step 6.
 - **Tools** (built): `list_files`, `read_file`, `write_file`, `edit_file`; `check` (builds the film and draws its start,
   middle and end, reporting any error); `still(time)` (the frame as a picture); `search_motions`, `use_motion`. A tool's
@@ -199,7 +218,9 @@ Each step is a vertical slice that runs end to end before the next begins.
    app: a new project made and installed, its composition previewed, an agent turn (write, check, still), an export by
    `remotion render`, and a motionhub reel played through `@motionhub/remotion`. The export was checked with a local
    headless Chrome, since this environment cannot reach Remotion's download host.
-5. **HyperFrames**: the adapter, its skill, motions through `@motionhub/hyperframes`.
+5. **HyperFrames**: the adapter, its skill, motions through `@motionhub/hyperframes`. *Built*, and driven end to end in
+   the app: a new project made and installed, played, an agent turn (write, check, still), a motion taken and turned
+   into `assets/motion/`, a page drawing one of its components in its own face, and an export by `hyperframes render`.
 6. **Pointing**: marks, the pick bridge in each engine, the read-only timeline.
 
 What gates what: 2 gates everything (the contract is written against a working engine, then implemented twice more);
@@ -217,8 +238,11 @@ What gates what: 2 gates everything (the contract is written against a working e
   choice for the person to make, not a default.
 - **Fonts**: a motion's faces (its `react/fonts/` or `CREDITS.md`) are not loaded yet in a native film, so its type
   falls back to the system's faces. In Remotion, `MotionFonts` loads them from Google Fonts in the export, but the
-  preview, which connects nowhere, falls back to the system's.
-- **The agent cannot install packages**: a Remotion film that needs one more package asks the person to run npm. A
+  preview, which connects nowhere, falls back to the system's. In HyperFrames they are local files, so both have them.
+- **Existing HyperFrames projects that load GSAP from a CDN** do not play in the preview, which connects nowhere; the
+  agent's skill moves GSAP to `node_modules`.
+- **The agent cannot install packages**: a Remotion or HyperFrames film that needs one more package asks the person
+  to run npm. A
   `shell` tool that asks first would close this.
 - **Telemetry**: none is planned; crash reports, if any, opt-in.
 

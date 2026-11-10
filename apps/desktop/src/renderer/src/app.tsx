@@ -53,14 +53,18 @@ export function App() {
         <button type="button" disabled={busy !== null} onClick={() => run(() => window.studio.createProject('remotion'))}>
           New Remotion project
         </button>
+        <button type="button" disabled={busy !== null} onClick={() => run(() => window.studio.createProject('hyperframes'))}>
+          New HyperFrames project
+        </button>
         <button type="button" disabled={busy !== null} onClick={() => run(window.studio.openProject)}>
           Open folder
         </button>
       </div>
       <p className="note">
-        A film draws with @motionhub/runtime and needs nothing else. A Remotion project needs Node.js, runs the Remotion
-        it installs, and is under Remotion's licence: free for individuals and companies of up to three people, paid for
-        larger ones (remotion.dev/license).
+        A film draws with @motionhub/runtime and needs nothing else. A Remotion or HyperFrames project needs Node.js and
+        runs the engine it installs. Remotion is under its own licence: free for individuals and companies of up to three
+        people, paid for larger ones (remotion.dev/license). HyperFrames is Apache-2.0; the Studio turns its usage
+        telemetry off for the commands it runs.
       </p>
       {busy && (
         <p className="note" role="status">
