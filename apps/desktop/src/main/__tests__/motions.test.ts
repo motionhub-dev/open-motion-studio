@@ -1,10 +1,10 @@
-import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { type Server, createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { gzipSync } from 'node:zlib';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { projectMotions, searchMotions, useMotion } from '../motions';
 
@@ -14,16 +14,39 @@ let project: string;
 let server: Server;
 let base: string;
 
+/** A gzipped ustar archive of `files`, as motionhub.dev packs a motion (paths under its id). Built here, not with tar,
+ * because the BSD tar of macOS and Windows reads an argument starting with @ as another archive. */
+function tgz(files: Record<string, string>): Buffer {
+  const blocks: Buffer[] = [];
+  for (const [path, text] of Object.entries(files)) {
+    const body = Buffer.from(text);
+    const header = Buffer.alloc(512);
+    const put = (value: string, at: number, width: number) => header.write(value.slice(0, width), at, 'utf8');
+    const octal = (value: number, width: number) => value.toString(8).padStart(width - 1, '0') + '\0';
+    put(path, 0, 100);
+    put(octal(0o644, 8), 100, 8);
+    put(octal(0, 8), 108, 8);
+    put(octal(0, 8), 116, 8);
+    put(octal(body.length, 12), 124, 12);
+    put(octal(0, 12), 136, 12);
+    put('        ', 148, 8);
+    put('0', 156, 1);
+    put('ustar\0' + '00', 257, 8);
+    const sum = header.reduce((total, byte) => total + byte, 0);
+    put(octal(sum, 7) + ' ', 148, 8);
+    blocks.push(header, body, Buffer.alloc((512 - (body.length % 512)) % 512));
+  }
+  return gzipSync(Buffer.concat([...blocks, Buffer.alloc(1024)]));
+}
+
 /** A catalogue of one motion, packed as motionhub.dev packs it: a ustar archive with paths under the motion's id. */
 beforeAll(async () => {
   root = await mkdtemp(join(tmpdir(), 'oms-hub-'));
-  const motion = join(root, 'src', ...ID.split('/'));
-  await mkdir(join(motion, 'react', 'parts'), { recursive: true });
-  await writeFile(join(motion, 'motion.json'), JSON.stringify({ slug: 'paper-cut', name: { en: 'Paper Cut' }, line: { en: 'Layers of cut paper.' } }));
-  await writeFile(join(motion, 'MOTION.md'), '# Paper Cut\n');
-  await writeFile(join(motion, 'react', 'parts', 'title.tsx'), 'export const Title = () => null;\n');
-  execFileSync('tar', ['--format=ustar', '-czf', join(root, 'package.tgz'), '-C', join(root, 'src'), ID]);
-  const tgz = await readFile(join(root, 'package.tgz'));
+  const tgzFile = tgz({
+    [`${ID}/motion.json`]: JSON.stringify({ slug: 'paper-cut', name: { en: 'Paper Cut' }, line: { en: 'Layers of cut paper.' } }),
+    [`${ID}/MOTION.md`]: '# Paper Cut\n',
+    [`${ID}/react/parts/title.tsx`]: 'export const Title = () => null;\n',
+  });
   const index = {
     spec: 'motion/0.1',
     motions: [
@@ -34,13 +57,13 @@ beforeAll(async () => {
         line: { en: 'Layers of cut paper.' },
         tags: ['paper', 'light'],
         poster: `/m/${ID}/poster.jpg`,
-        package: { url: `/m/${ID}/1.2.0.tgz`, sha256: createHash('sha256').update(tgz).digest('hex'), bytes: tgz.length },
+        package: { url: `/m/${ID}/1.2.0.tgz`, sha256: createHash('sha256').update(tgzFile).digest('hex'), bytes: tgzFile.length },
       },
     ],
   };
   server = createServer((request, response) => {
     if (request.url === '/api/motions.json') response.end(JSON.stringify(index));
-    else if (request.url === `/m/${ID}/1.2.0.tgz`) response.end(tgz);
+    else if (request.url === `/m/${ID}/1.2.0.tgz`) response.end(tgzFile);
     else response.writeHead(404).end();
   });
   await new Promise<void>((done) => server.listen(0, '127.0.0.1', done));
@@ -48,7 +71,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  server.close();
+  server?.close();
   await rm(root, { recursive: true, force: true });
 });
 
