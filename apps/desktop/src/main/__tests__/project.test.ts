@@ -8,6 +8,7 @@ import {
   ignore,
   isRecent,
   openProject,
+  projectAt,
   recentProjects,
   rememberProject,
 } from '../project';
@@ -52,9 +53,17 @@ describe('createProject', () => {
   it('makes a new folder a project, with its state ignored by git', async () => {
     const dir = join(root, 'new', 'film');
     const project = await createProject(dir);
-    expect(project).toEqual({ name: 'film', path: dir, display: dir, engine: null });
+    expect(project).toEqual({ name: 'film', path: dir, display: dir, film: false });
     expect((await stat(join(dir, '.motion-studio'))).isDirectory()).toBe(true);
     expect(await readFile(join(dir, '.gitignore'), 'utf8')).toBe('.motion-studio/\n');
+  });
+
+  it('knows a folder holds a film by its film.tsx', async () => {
+    const dir = join(root, 'with-film');
+    await createProject(dir);
+    expect(projectAt(dir).film).toBe(false);
+    await writeFile(join(dir, 'film.tsx'), 'export default function Film() { return null; }');
+    expect(projectAt(dir).film).toBe(true);
   });
 
   it('accepts an empty folder, ignoring what an OS leaves in one', async () => {
@@ -97,7 +106,7 @@ describe('the recent list', () => {
   async function folder(name: string) {
     const path = join(root, name);
     await mkdir(path);
-    return { name, path, display: path, engine: null };
+    return { name, path, display: path, film: false };
   }
 
   it('is empty when nothing was stored or the file is corrupt', async () => {

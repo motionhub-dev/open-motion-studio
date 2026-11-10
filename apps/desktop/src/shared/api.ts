@@ -2,9 +2,6 @@
 // implements it with ipcRenderer on the channels below; the main process registers a
 // handler for each and validates whatever the renderer sends.
 
-/** The engines a film can be written for. */
-export type EngineId = 'native' | 'remotion' | 'hyperframes';
-
 export interface Project {
   /** The folder's name, as the Studio shows it. */
   name: string;
@@ -12,8 +9,8 @@ export interface Project {
   path: string;
   /** The path as the Studio shows it: the home folder written `~`. */
   display: string;
-  /** The engine its film is written for, or null for a folder that holds no film yet. */
-  engine: EngineId | null;
+  /** Whether it holds a film (film.tsx); a folder that does not is offered one. */
+  film: boolean;
 }
 
 /** The film's bundle, rebuilt whenever a file it imports changes. */
@@ -142,13 +139,11 @@ export interface StudioApi {
   recentProjects(): Promise<Project[]>;
   /** Asks for a folder and opens it; null when the person cancels. */
   openProject(): Promise<Project | null>;
-  /** Asks for an empty (or new) folder and makes it a project for `engine`; null when the person cancels. */
-  createProject(engine: EngineId): Promise<Project | null>;
-  /** Calls `listener` with each step of making a project (Remotion's install); returns the unsubscribe. */
-  onCreateProgress(listener: (line: string) => void): () => void;
+  /** Asks for an empty (or new) folder and starts a film in it; null when the person cancels. */
+  createProject(): Promise<Project | null>;
   /** Opens a folder from the recent list; any other path is refused. */
   openRecent(path: string): Promise<Project>;
-  /** Starts a native film in the open project, which holds none yet. */
+  /** Starts a film in the open project, which holds none yet. */
   startFilm(): Promise<Project>;
   /** Closes the open project. */
   closeProject(): Promise<void>;
@@ -228,5 +223,4 @@ export const EVENTS = {
   build: 'film:built',
   exportProgress: 'film:export-progress',
   agent: 'agent:event',
-  createProgress: 'project:create-progress',
 } as const;

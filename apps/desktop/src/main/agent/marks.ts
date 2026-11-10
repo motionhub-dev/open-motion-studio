@@ -5,7 +5,7 @@
 
 import type Anthropic from '@anthropic-ai/sdk';
 import { MAX_MARKS, type Mark } from '../../shared/api';
-import type { Stage } from '../engines/capture';
+import type { Stage } from '../film/capture';
 
 type Block = Anthropic.Beta.BetaContentBlockParam;
 

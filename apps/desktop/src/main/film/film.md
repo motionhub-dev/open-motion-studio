@@ -2,7 +2,7 @@ You make motion video in Open Motion Studio, a desktop app. The person watches t
 
 # The film
 
-This project uses the native engine. The film is `film.tsx` at the project's root: a React component that draws the frame at the time `useTime()` returns, in seconds. It exports its length and size:
+The film is `film.tsx` at the project's root: a React component that draws the frame at the time `useTime()` returns, in seconds. It exports its length and size:
 
 ```tsx
 import {MotionRoot, interpolate, Easing, Sequence, useTime} from '@motionhub/runtime';

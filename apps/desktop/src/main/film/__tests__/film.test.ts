@@ -3,14 +3,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BuildResult } from '../../../shared/api';
-import { FILM, buildDir, isNativeProject, startFilm, watchFilm } from '../native';
+import { FILM, buildDir, hasFilm, startFilm, watchFilm } from '../film';
 
 vi.mock('electron', () => ({}));
 
 let root: string;
 
 beforeEach(async () => {
-  root = await mkdtemp(join(tmpdir(), 'oms-native-'));
+  root = await mkdtemp(join(tmpdir(), 'oms-film-'));
 });
 
 afterEach(async () => {
@@ -42,9 +42,9 @@ async function builds(count: number, between?: (n: number) => Promise<void>): Pr
 
 describe('startFilm', () => {
   it('writes film.tsx once, and never over one the person has', async () => {
-    expect(isNativeProject(root)).toBe(false);
+    expect(hasFilm(root)).toBe(false);
     await startFilm(root);
-    expect(isNativeProject(root)).toBe(true);
+    expect(hasFilm(root)).toBe(true);
     await writeFile(join(root, FILM), 'mine');
     await startFilm(root);
     expect(await readFile(join(root, FILM), 'utf8')).toBe('mine');

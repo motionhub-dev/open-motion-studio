@@ -13,8 +13,7 @@ function subscribe<T>(channel: string, listener: (value: T) => void): () => void
 const api: StudioApi = {
   recentProjects: () => ipcRenderer.invoke(CHANNELS.recentProjects),
   openProject: () => ipcRenderer.invoke(CHANNELS.openProject),
-  createProject: (engine) => ipcRenderer.invoke(CHANNELS.createProject, engine),
-  onCreateProgress: (listener) => subscribe(EVENTS.createProgress, listener),
+  createProject: () => ipcRenderer.invoke(CHANNELS.createProject),
   openRecent: (path) => ipcRenderer.invoke(CHANNELS.openRecent, path),
   startFilm: () => ipcRenderer.invoke(CHANNELS.startFilm),
   closeProject: () => ipcRenderer.invoke(CHANNELS.closeProject),

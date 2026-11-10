@@ -1,6 +1,6 @@
 # 1. The Studio is engine-neutral
 
-> **Status:** Accepted · **Date:** 2026-11-10
+> **Status:** Superseded by 0005 · **Date:** 2026-11-10
 
 ## Context
 

@@ -2,8 +2,8 @@
 
 An open-source (Apache-2.0) desktop IDE for making motion video with an agent: a person opens a folder, picks a motion
 from motionhub.dev, talks to an agent on the model and provider of their choice, watches it play, points at what to
-change, and exports an MP4. A project is written for Remotion, HyperFrames, or the Studio's own native engine
-(`@motionhub/runtime`). Read [`docs/prd/positioning.md`](docs/prd/positioning.md) and
+change, and exports an MP4. A film is `film.tsx`, drawn by the Studio's one engine, `@motionhub/runtime`
+([ADR 0005](docs/adr/0005-the-studio-has-one-engine-its-own.md)). Read [`docs/prd/positioning.md`](docs/prd/positioning.md) and
 [`docs/tech/architecture.md`](docs/tech/architecture.md) first; the decisions are in [`docs/adr/`](docs/adr/).
 
 ## Stage: Building
@@ -12,13 +12,13 @@ change, and exports an MP4. A project is written for Remotion, HyperFrames, or t
 developer's decision and a deliberate edit to this line, never something a task concludes.
 
 - **Compatibility is not a constraint yet.** Change a settings shape, a file under `.motion-studio/`, an IPC channel or
-  the engine contract freely. Do not version them, keep an old field beside a new one, or write a shim for a caller that
+  the film's format freely. Do not version them, keep an old field beside a new one, or write a shim for a caller that
   does not exist.
 - **Build vertical slices, not layers.** One path working end to end (open a folder → agent → preview → MP4) teaches more
   than three layers that have never met. A layer with no caller is a guess with a build step.
 - **Replace a wrong design; never wrap it.** No flag beside the old path.
 - **Test the decisions, not the scaffolding.** Pin what would be expensive to get wrong silently: what reaches the disk
-  and where, keys, the IPC surface, the engine contract, the provider protocol translations. Leave code about to be
+  and where, keys, the IPC surface, the preview bridge, the provider protocol translations. Leave code about to be
   rewritten uncovered on purpose.
 - **Building is licence to change the design, not to land a red branch.** The gate runs before every push.
 
@@ -31,9 +31,8 @@ concept and indirection is something the next reader has to load.
 
 - **Extend before you add.** A new file, module, package, dependency, setting or IPC channel has to earn itself against
   putting the change where the code already is.
-- **Build what was asked.** No option, abstraction or generalisation with one caller today. The engine contract is the one
-  interface with several implementations ([ADR 0001](docs/adr/0001-the-studio-is-engine-neutral.md)); anything only one
-  engine needs stays in its adapter.
+- **Build what was asked.** No option, abstraction or generalisation with one caller today, and no interface with one
+  implementation: the engine contract was deleted for that reason when the Studio kept one engine (ADR 0005).
 - **Deleting is part of the change.** Code, docs and tests a change made unreachable go in the same commit.
 - **Small is the means, not the goal**: never buy a smaller diff with cryptic names, skipped tests, dropped error handling
   or a known bug. When the smallest version is the wrong answer, say so and let the developer choose before writing it.
@@ -86,10 +85,8 @@ The shape is [`docs/tech/architecture.md`](docs/tech/architecture.md). What ever
 - **A key is sealed with `safeStorage`** (the OS keychain's secret) and kept only as ciphertext in `keys.json` in
   userData, opened at the moment of a call. Never in plain text in a file, a log, an IPC reply, an error message or a
   project.
-- **Remotion and HyperFrames run from the project's own `node_modules`.** The Studio bundles neither, and runs the
-  person's own npm and the project's CLIs through `run()` and `toolEnv()` (`engines/remotion.ts`), the PATH a login
-  shell has. HyperFrames' commands run with its usage telemetry off.
-- **An engine is the contract in `engines/engine.ts`.** What only one engine needs stays in its module.
+- **The Studio runs no program the person installed**: it bundles, plays and exports a film itself (`src/main/film/`,
+  with the ffmpeg it ships), and starts no npm, Node or project CLI.
 - **The motion format is motionhub's**, specified in `github.com/motionhub-dev/motions`; a change to it lands there
   first. A project keeps its motions as `@motionhub/cli` does (`motions/@<scope>/<slug>/` and `motions.lock.json`), and
   the Studio never changes a copy taken from the hub.
@@ -111,7 +108,7 @@ root holds `README.md`, `CLAUDE.md`, `CHANGELOG.md` and no other prose.
   a document updates `docs/README.md` (one line each) and every link to it.
 - **A plan is a document with `Status: Plan`** in the category it changes; when its work lands it is rewritten to
   describe what was built, or deleted. Working notes, status reports and session summaries are not documents.
-- **A decision gets an ADR when undoing it later would be expensive**: a file or wire format, the engine contract, where
+- **A decision gets an ADR when undoing it later would be expensive**: a file or wire format, the film's format, where
   keys live, the shape of the app or its distribution.
 
 ## The changelog

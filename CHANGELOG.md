@@ -3,6 +3,21 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-10 — The Studio keeps one engine, its own
+
+- **What:** Remotion and HyperFrames projects are no longer made or opened, and the engine contract is gone: a film is
+  `film.tsx` drawn by `@motionhub/runtime`, bundled, played and exported by the Studio (`src/main/film/`). The launcher
+  has Open folder and New film, with no engine to choose; the top bar and recent projects show no engine; the timeline
+  shows the ruler, the marks and the playhead (the clips lanes were HyperFrames'). `Project.engine` is `Project.film`,
+  `createProject()` takes nothing, `onCreateProgress` and `FilmInfo.clips` are gone, and the preview page's policy no
+  longer allows inline scripts.
+- **Why:** The benefits of three engines were a developer's (bringing an existing project), and their cost was every
+  picture feature built three times, the skill tuned three ways and two upstreams to follow (ADR 0005).
+- **Breaking:** A Remotion or HyperFrames project made with an earlier build is opened as a folder with no film, and is
+  offered a `film.tsx`; its own files are untouched. Open it with Remotion's or HyperFrames' own tools.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/adr/0005-the-studio-has-one-engine-its-own.md`, `docs/prd/positioning.md`, `docs/tech/architecture.md`.
+
 ## 2026-11-10 — An inspector, keyboard shortcuts, tooltips, and a Mac window without a title bar
 
 - **What:** The right panel has Motions and Inspector tabs; an element picked on the picture opens in the inspector

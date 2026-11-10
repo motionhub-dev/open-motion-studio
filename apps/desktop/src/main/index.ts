@@ -20,10 +20,10 @@ import { markedMessage, readMarks } from './agent/marks';
 import { type MessageParam, caller, failure } from './agent/model';
 import { testProvider } from './agent/test-connection';
 import { TOOLS, type ToolContext } from './agent/tools';
-import { openStage, serveRenders } from './engines/capture';
-import { type Bundler, type Engine, engineById } from './engines/engine';
-import { native } from './engines/native';
-import { type PreviewSource, registerPreviewScheme, servePreview } from './engines/preview';
+import type { BuildContext } from 'esbuild';
+import { exportFrames, openStage, serveRenders } from './film/capture';
+import { FILM_SKILL, startFilm, watchFilm } from './film/film';
+import { registerPreviewScheme, servePreview } from './film/preview';
 import { motionDetail, projectMotions, searchMotions, useMotion } from './motions';
 import { STATE_DIR, createProject, isRecent, openProject, projectAt, recentProjects, rememberProject } from './project';
 import { ProviderStore } from './providers';
@@ -32,11 +32,10 @@ const recentsFile = (): string => join(app.getPath('userData'), 'recent-projects
 let providerStore: ProviderStore | null = null;
 const providers = (): ProviderStore => (providerStore ??= new ProviderStore(app.getPath('userData')));
 
-/** The project open in the window, its engine, its film's bundler and its conversation. One window, one project. */
+/** The project open in the window, its film's bundler and its conversation. One window, one project. */
 let open: {
   project: Project;
-  engine: Engine | null;
-  watcher: Bundler | null;
+  watcher: BuildContext | null;
   build: BuildResult | null;
   messages: MessageParam[] | null;
 } | null = null;
@@ -65,7 +64,8 @@ async function saveConversation(dir: string, messages: MessageParam[]): Promise<
   await writeFile(sessionFile(dir), JSON.stringify(messages));
 }
 
-const previewSource = (): PreviewSource | null => (open?.engine ? { dir: open.project.path, engine: open.engine } : null);
+/** The folder whose film the preview scheme serves, while one is open. */
+const previewSource = (): string | null => (open?.project.film ? open.project.path : null);
 
 function send(channel: string, value: unknown): void {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, value);
@@ -83,11 +83,10 @@ async function closeOpen(): Promise<void> {
 async function use(project: Project): Promise<Project> {
   await closeOpen();
   await rememberProject(recentsFile(), project);
-  const engine = project.engine ? engineById(project.engine) : null;
-  const state: NonNullable<typeof open> = { project, engine, watcher: null, build: null, messages: null };
+  const state: NonNullable<typeof open> = { project, watcher: null, build: null, messages: null };
   open = state;
-  if (engine) {
-    state.watcher = await engine.watch(project.path, (result) => {
+  if (project.film) {
+    state.watcher = await watchFilm(project.path, (result) => {
       if (open !== state) return;
       state.build = result;
       send(EVENTS.build, result);
@@ -103,13 +102,6 @@ async function chooseFolder(sender: WebContents, options: OpenDialogOptions): Pr
   return result.canceled ? null : (result.filePaths[0] ?? null);
 }
 
-/** Takes a motion into the open project, and lets its engine turn it into files of its own. */
-async function takeMotion(state: NonNullable<typeof open>, id: unknown) {
-  const taken = await useMotion(state.project.path, id);
-  await state.engine?.motionTaken(state.project.path);
-  return taken;
-}
-
 function requireOpen(): NonNullable<typeof open> {
   if (!open) throw new Error('No project is open.');
   return open;
@@ -123,8 +115,7 @@ function registerHandlers(): void {
     return path === null ? null : use(await openProject(path));
   });
 
-  ipcMain.handle(CHANNELS.createProject, async (event, id: unknown) => {
-    const engine = engineById(id);
+  ipcMain.handle(CHANNELS.createProject, async (event) => {
     const path = await chooseFolder(event.sender, {
       title: 'Choose an empty folder for the new project',
       buttonLabel: 'Create project',
@@ -132,7 +123,7 @@ function registerHandlers(): void {
     });
     if (path === null) return null;
     const project = await createProject(path);
-    await engine.create(project.path, (line) => send(EVENTS.createProgress, line));
+    await startFilm(project.path);
     return use(projectAt(project.path));
   });
 
@@ -146,7 +137,7 @@ function registerHandlers(): void {
 
   ipcMain.handle(CHANNELS.startFilm, async () => {
     const { project } = requireOpen();
-    await native.create(project.path, () => {});
+    await startFilm(project.path);
     return use(projectAt(project.path));
   });
 
@@ -156,7 +147,7 @@ function registerHandlers(): void {
 
   ipcMain.handle(CHANNELS.projectMotions, () => projectMotions(requireOpen().project.path));
   ipcMain.handle(CHANNELS.searchMotions, (_event, words: unknown) => searchMotions(typeof words === 'string' ? words : ''));
-  ipcMain.handle(CHANNELS.useMotion, (_event, id: unknown) => takeMotion(requireOpen(), id));
+  ipcMain.handle(CHANNELS.useMotion, (_event, id: unknown) => useMotion(requireOpen().project.path, id));
   ipcMain.handle(CHANNELS.motionDetail, (_event, id: unknown) => motionDetail(requireOpen().project.path, id));
 
   ipcMain.handle(CHANNELS.providers, () => providers().list());
@@ -183,8 +174,7 @@ function registerHandlers(): void {
     const state = requireOpen();
     const marks = readMarks(rawMarks);
     if (typeof text !== 'string' || (!text.trim() && !marks.length)) throw new Error('Write a message first.');
-    const engine = state.engine;
-    if (!engine) throw new Error('Start a film in this folder first.');
+    if (!state.project.film) throw new Error('Start a film in this folder first.');
     if (working) throw new Error('The agent is already working.');
     const provider = await providers().active();
     const controller = new AbortController();
@@ -199,7 +189,7 @@ function registerHandlers(): void {
       },
       stage: (version) => openStage(version),
       searchMotions: (words) => searchMotions(words),
-      useMotion: (id) => takeMotion(state, id),
+      useMotion: (id) => useMotion(dir, id),
     };
     try {
       // A model that reads images sees each marked moment; any other reads the marks described.
@@ -212,7 +202,7 @@ function registerHandlers(): void {
         {
           messages: await conversation(state),
           content,
-          call: caller(provider, engine.skill, TOOLS),
+          call: caller(provider, FILM_SKILL, TOOLS),
           tools,
           emit: (event: AgentEvent) => {
             if (open === state) send(EVENTS.agent, event);
@@ -230,8 +220,8 @@ function registerHandlers(): void {
   ipcMain.handle(CHANNELS.exportFilm, async (event) => {
     const state = requireOpen();
     if (exporting) throw new Error('An export is already running.');
-    const { build, engine } = state;
-    if (!engine || !build?.ok) throw new Error('The film does not build: fix its errors before exporting.');
+    const { build } = state;
+    if (!state.project.film || !build?.ok) throw new Error('The film does not build: fix its errors before exporting.');
     const window = BrowserWindow.fromWebContents(event.sender);
     const options = {
       title: 'Export the film',
@@ -243,7 +233,7 @@ function registerHandlers(): void {
     const controller = new AbortController();
     exporting = controller;
     try {
-      await engine.exportFilm(state.project.path, build.version, result.filePath, (done) => send(EVENTS.exportProgress, done), controller.signal);
+      await exportFrames(build.version, result.filePath, (done) => send(EVENTS.exportProgress, done), controller.signal);
       exported = result.filePath;
       return result.filePath;
     } finally {

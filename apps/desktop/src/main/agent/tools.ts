@@ -7,7 +7,7 @@ import type Anthropic from '@anthropic-ai/sdk';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import type { BuildResult } from '../../shared/api';
-import type { Stage } from '../engines/capture';
+import type { Stage } from '../film/capture';
 import { STATE_DIR } from '../project';
 
 type Tool = Anthropic.Beta.BetaTool;

@@ -1,7 +1,7 @@
-// The preview core: what every native film's page loads before the film itself. It holds
+// The preview core: what a film's page loads before the film itself. It holds
 // React and @motionhub/runtime, gives the film's bundle its `require` for them, and draws
 // the film at the time it is told, scaled to its frame. It runs in a sandboxed frame on
-// the oms-preview: scheme (src/main/engines/native/preview.ts) and talks to the Studio only
+// the oms-preview: scheme (src/main/film/preview.ts) and talks to the Studio only
 // by postMessage, the preview bridge protocol (src/shared/preview.ts):
 //
 //   - In the Studio's preview it plays on its own clock and obeys play, pause and seek.
@@ -65,7 +65,7 @@ function info(module: FilmModule): FilmInfo {
   return { seconds: film.seconds, width: film.width ?? 1920, height: film.height ?? 1080, fps: film.fps ?? 30 };
 }
 
-/** A <Video> stand-in until the native engine plays footage. */
+/** A <Video> stand-in until the Studio plays footage. */
 const Footage = ({ style }: { style?: React.CSSProperties }) => (
   <div style={{ width: '100%', height: '100%', background: '#2a2d33', ...style }} />
 );

@@ -7,7 +7,7 @@ import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { basename, join, resolve, sep } from 'node:path';
 import type { Project } from '../shared/api';
-import { engineOf } from './engines/engine';
+import { hasFilm } from './film/film';
 
 export const STATE_DIR = '.motion-studio';
 export const MAX_RECENTS = 10;
@@ -28,7 +28,7 @@ export function projectAt(path: string): Project {
   const absolute = resolve(path);
   const home = homedir();
   const display = absolute === home || absolute.startsWith(home + sep) ? `~${absolute.slice(home.length)}` : absolute;
-  return { name: basename(absolute), path: absolute, display, engine: engineOf(absolute)?.id ?? null };
+  return { name: basename(absolute), path: absolute, display, film: hasFilm(absolute) };
 }
 
 /** Opens an existing folder as a project. Nothing is written to it. */

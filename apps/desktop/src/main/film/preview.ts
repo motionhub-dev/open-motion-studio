@@ -1,45 +1,39 @@
-// The oms-preview: scheme, which serves the open film's preview page: the page its engine
-// writes, the Studio's preview scripts, the film's bundle with its assets, and the project's
-// own files. It is what a film's code runs under, so its policy lets the page load only from
-// this scheme and reach nothing else (ADR 0004).
+// The oms-preview: scheme, which serves the open film's preview page, the Studio's preview
+// scripts, the film's bundle with its assets, and the project's own files. It is what a
+// film's code runs under, so its policy lets the page load only from this scheme and reach
+// nothing else (ADR 0004).
 //
 //   oms-preview://film/                  the page (?render=1 for stills and export, ?v= the build)
-//   oms-preview://film/studio/<file>     the Studio's preview scripts (resources/preview/: core.js, hyperframes.js)
+//   oms-preview://film/studio/<file>     the Studio's preview scripts (resources/preview/: core.js, pick.js)
 //   oms-preview://film/build/<file>      the film's bundle and assets, from <project>/.motion-studio/build/
-//   oms-preview://film/project/<file>    the project's own files (Remotion's public/, a HyperFrames page and its assets)
+//   oms-preview://film/project/<file>    the project's own files (a motion's poster and previews)
 
 import { app, protocol, type Session } from 'electron';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize, sep } from 'node:path';
-import type { Engine } from './engine';
-import { buildDir } from './native';
-
-/** The film the scheme serves: the open project's folder and its engine. */
-export interface PreviewSource {
-  dir: string;
-  engine: Engine;
-}
+import { buildDir } from './film';
 
 export const SCHEME = 'oms-preview';
 export const PREVIEW_URL = `${SCHEME}://film/`;
 
 const POLICY = [
   "default-src 'none'",
-  // HyperFrames compositions are pages with scripts of their own inline.
-  `script-src ${SCHEME}: 'unsafe-inline'`,
+  // Scripts come only from the scheme: the page carries none inline (the Studio's own
+  // calls into a render page go through executeJavaScript, which the policy does not see).
+  `script-src ${SCHEME}:`,
   `style-src ${SCHEME}: 'unsafe-inline'`,
   `img-src ${SCHEME}: data: blob:`,
   `font-src ${SCHEME}: data:`,
   `media-src ${SCHEME}: data: blob:`,
-  // A HyperFrames page fetches its sub-compositions; nothing beyond the scheme.
+  // A film may fetch its own files; nothing beyond the scheme.
   `connect-src ${SCHEME}:`,
 ].join('; ');
 
-/** A preview page around `body`, for an engine whose page is the Studio's own. */
-export const htmlPage = (body: string) => `<!doctype html>
+/** The preview page: the core holds React and the runtime and loads the film's bundle itself; pick.js answers pointing. */
+const PAGE = `<!doctype html>
 <html><head><meta charset="utf-8"><title>Preview</title>
 <style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}</style>
-</head><body>${body}</body></html>`;
+</head><body><div id="root"></div><script src="studio/core.js"></script><script src="studio/pick.js"></script></body></html>`;
 
 const TYPES: Record<string, string> = {
   '.js': 'text/javascript',
@@ -92,19 +86,18 @@ function respond(body: string | Buffer, type: string): Response {
   });
 }
 
-/** Serves the film `film()` names on `session`'s oms-preview: scheme. */
-export function servePreview(session: Session, film: () => PreviewSource | null): void {
+/** Serves the film in the folder `film()` names (none while no film is open) on `session`'s oms-preview: scheme. */
+export function servePreview(session: Session, film: () => string | null): void {
   session.protocol.handle(SCHEME, async (request) => {
     const url = new URL(request.url);
-    const source = film();
-    if (url.host !== 'film' || !source) return new Response('Not found', { status: 404 });
-    const version = Number(url.searchParams.get('v')) || 0;
+    const dir = film();
+    if (url.host !== 'film' || !dir) return new Response('Not found', { status: 404 });
     try {
-      if (url.pathname === '/' || url.pathname === '/index.html') return respond(await source.engine.page(source.dir, version), 'text/html');
+      if (url.pathname === '/' || url.pathname === '/index.html') return respond(PAGE, 'text/html');
       const roots = [
         ['/studio/', studioScripts()],
-        ['/build/', buildDir(source.dir)],
-        ['/project/', source.dir],
+        ['/build/', buildDir(dir)],
+        ['/project/', dir],
       ] as const;
       for (const [prefix, root] of roots) {
         if (!url.pathname.startsWith(prefix)) continue;
