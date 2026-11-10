@@ -1,6 +1,6 @@
 # Architecture
 
-> **Status:** Plan — steps 1 to 5 built, signing waits for certificates · **Updated:** 2026-11-10
+> **Status:** Plan — steps 1 to 5 built, and step 6's marks; signing waits for certificates · **Updated:** 2026-11-10
 
 The components of the Studio and what each owns, the engine contract, the agent and its providers, what is expensive to change, and the order of work.
 
@@ -40,10 +40,11 @@ apps/desktop/
       model.ts         a call to the model: a Messages server through the official SDK, or Chat Completions
       openai.ts        the Chat Completions translation, to and from the Messages shape
       tools.ts         what the agent may do to the project
+      marks.ts         the places a person marked on the picture, as the agent receives them
     providers.ts       the providers, and their keys sealed with safeStorage
     motions.ts         the catalogue and a project's motions, through @motionhub/cli's library
-  src/preview/         the Studio's preview scripts: core.tsx (React, @motionhub/runtime and the native player)
-                       and hyperframes.ts (the bridge to a HyperFrames page)
+  src/preview/         the Studio's preview scripts: core.tsx (React, @motionhub/runtime and the native player),
+                       hyperframes.ts (the bridge to a HyperFrames page) and pick.ts (pointing, on every page)
   src/preload/         the typed bridge the renderer calls (contextIsolation on, no Node in the renderer)
   src/shared/          what both sides agree on: StudioApi, and the preview bridge's messages
   src/renderer/        React UI
@@ -81,9 +82,11 @@ motion is taken into a project the same way for every engine (below); `motionTak
 turns motions into files of its own. A `doctor` comes when an engine needs more than npm and its own packages.
 
 - **The preview speaks one message protocol**, whatever the engine (`src/shared/preview.ts`): the Studio sends `play`,
-  `pause` and `seek`, the page answers `ready` (the film's length and size), `time` and `error`; `pick(x, y)` (the element
-  under a point and its component) comes with marks in step 6; HyperFrames' runtime already has `getElementsAtPoint`.
-  The native core, the Remotion page and the HyperFrames bridge answer it. The page runs in a sandboxed frame on its own
+  `pause`, `seek` and `pick(x, y)`, the page answers `ready` (the film's length and size), `time`, `error` and `picked`.
+  The native core, the Remotion page and the HyperFrames bridge answer the first three and set `window.__omsFrame` (the
+  film's size); `studio/pick.js`, loaded on every page, answers `pick` for all of them. Every page draws its frame whole
+  and centred, so a point given as fractions of the frame is found the same way on any of them: the visible element
+  drawn there, described by its path among its ancestors, its words and its `data-*` attributes, and its box. The page runs in a sandboxed frame on its own
   scheme ([ADR 0004](../adr/0004-a-films-code-runs-in-a-sandboxed-frame-on-its-own-scheme.md)), which serves the
   Studio's preview scripts at `/studio/`, the film's bundle at `/build/` and the project's own files at `/project/`
   (Remotion's `staticFile()` points into `/project/public`, a HyperFrames page resolves its paths there). It allows
@@ -133,8 +136,14 @@ A loop of our own ([ADR 0003](../adr/0003-a-built-in-agent-on-the-persons-own-mo
 conversation and the tools, tool calls are executed in `main`, their results appended, until the model ends its turn.
 
 - **Context** (built): the engine's skill (`engines/native.md`, `engines/remotion.md` or `engines/hyperframes.md`: the
-  film's format, how to draw in a motion, how to work) as the system prompt. The agent finds the project's files and motions with its tools. Marks and a selected element come
-  in step 6.
+  film's format, how to draw in a motion, how to work) as the system prompt. The agent finds the project's files and
+  motions with its tools.
+- **Marks** (built): the person picks an element on the picture or drags out a region, at most five for a message
+  (`MAX_MARKS`). Each mark is the moment, the box in fractions of the frame and the element picked, if any; they go with
+  the next message (`agent/marks.ts`) as a `<marks>` text describing each by number and, for a model that reads images,
+  the frame at each moment photographed with its box outlined in red (`window.__omsMark` draws it on the render page).
+  The conversation keeps them in the person's message; the assistant panel shows only their words and how many marks
+  went with them.
 - **Tools** (built): `list_files`, `read_file`, `write_file`, `edit_file`; `check` (builds the film and draws its start,
   middle and end, reporting any error); `still(time)` (the frame as a picture); `search_motions`, `use_motion`. A tool's
   mistake goes back to the model as a failed result, never as a thrown error. Planned: `shell`, which asks first, and
@@ -180,7 +189,7 @@ dockable layout (dockview), each panel a projection of the project:
 | Panel | What it does | Writes |
 | --- | --- | --- |
 | **Assistant** | The conversation, tool calls folded, stills the agent took shown inline, the model picker, the turn's spend | Through the agent |
-| **Preview** | The engine's preview with transport; the mark tools (pick an element, drag a region) attach to the next message | Nothing |
+| **Preview** | The engine's preview with transport; the mark tools (pick an element, drag a region) attach to the next message, flagged on the scrubber (built) | Nothing |
 | **Motion** | The project's motion, its components and their cards; the catalogue search and reels | Through `motion_use` |
 | **Files** | The tree and a read-only CodeMirror view; open in the person's own editor | Nothing |
 | **Timeline** | Read-only: the composition's sequences as the engine reports them, seekable | Nothing (v1) |
@@ -221,7 +230,11 @@ Each step is a vertical slice that runs end to end before the next begins.
 5. **HyperFrames**: the adapter, its skill, motions through `@motionhub/hyperframes`. *Built*, and driven end to end in
    the app: a new project made and installed, played, an agent turn (write, check, still), a motion taken and turned
    into `assets/motion/`, a page drawing one of its components in its own face, and an export by `hyperframes render`.
-6. **Pointing**: marks, the pick bridge in each engine, the read-only timeline.
+6. **Pointing**: marks, the pick bridge in each engine, the read-only timeline. *Marks built*, and driven in the app on
+   all three engines: an element picked and a region dragged out on a native film, sent with a message, the agent given
+   both described and each frame outlined; an element picked on a Remotion and a HyperFrames film. *Not built*: the
+   timeline, which needs each engine to report its clips (HyperFrames' runtime knows them; a native or Remotion film's
+   sequences are inside its React).
 
 What gates what: 2 gates everything (the contract is written against a working engine, then implemented twice more);
 3 gates nothing else and can run beside 4 and 5.
