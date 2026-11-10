@@ -13,20 +13,53 @@ import {
   type WebContents,
 } from 'electron';
 import type { BuildContext } from 'esbuild';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { CHANNELS, EVENTS, type BuildResult, type Project } from '../shared/api';
-import { exportFilm, serveRenders } from './engines/capture';
+import { CHANNELS, EVENTS, type AgentEvent, type BuildResult, type Project } from '../shared/api';
+import { runTurn, transcript } from './agent/loop';
+import { type MessageParam, caller, failure } from './agent/model';
+import SKILL from './agent/native.md?raw';
+import { TOOLS, type ToolContext } from './agent/tools';
+import { exportFilm, openStage, serveRenders } from './engines/capture';
 import { startFilm, watchFilm } from './engines/native';
 import { registerPreviewScheme, servePreview } from './engines/preview';
 import { projectMotions, searchMotions, useMotion } from './motions';
-import { createProject, isRecent, openProject, projectAt, recentProjects, rememberProject } from './project';
+import { STATE_DIR, createProject, isRecent, openProject, projectAt, recentProjects, rememberProject } from './project';
+import { ProviderStore } from './providers';
 
 const recentsFile = (): string => join(app.getPath('userData'), 'recent-projects.json');
+let providerStore: ProviderStore | null = null;
+const providers = (): ProviderStore => (providerStore ??= new ProviderStore(app.getPath('userData')));
 
-/** The project open in the window, and its film's bundler. One window, one project. */
-let open: { project: Project; watcher: BuildContext | null; build: BuildResult | null } | null = null;
+/** The project open in the window, its film's bundler and its conversation. One window, one project. */
+let open: {
+  project: Project;
+  watcher: BuildContext | null;
+  build: BuildResult | null;
+  messages: MessageParam[] | null;
+} | null = null;
 let mainWindow: BrowserWindow | null = null;
 let exporting: AbortController | null = null;
+let working: AbortController | null = null;
+
+const sessionFile = (dir: string): string => join(dir, STATE_DIR, 'session.json');
+
+/** The open project's conversation, read from disk the first time it is asked for. */
+async function conversation(state: NonNullable<typeof open>): Promise<MessageParam[]> {
+  if (state.messages) return state.messages;
+  try {
+    state.messages = JSON.parse(await readFile(sessionFile(state.project.path), 'utf8')) as MessageParam[];
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+    state.messages = [];
+  }
+  return state.messages;
+}
+
+async function saveConversation(dir: string, messages: MessageParam[]): Promise<void> {
+  await mkdir(join(dir, STATE_DIR), { recursive: true });
+  await writeFile(sessionFile(dir), JSON.stringify(messages));
+}
 
 const projectDir = (): string | null => open?.project.path ?? null;
 
@@ -36,6 +69,7 @@ function send(channel: string, value: unknown): void {
 
 async function closeOpen(): Promise<void> {
   exporting?.abort();
+  working?.abort();
   const watcher = open?.watcher;
   open = null;
   await watcher?.dispose();
@@ -45,7 +79,7 @@ async function closeOpen(): Promise<void> {
 async function use(project: Project): Promise<Project> {
   await closeOpen();
   await rememberProject(recentsFile(), project);
-  const state: NonNullable<typeof open> = { project, watcher: null, build: null };
+  const state: NonNullable<typeof open> = { project, watcher: null, build: null, messages: null };
   open = state;
   if (project.engine === 'native') {
     state.watcher = await watchFilm(project.path, (result) => {
@@ -110,6 +144,62 @@ function registerHandlers(): void {
   ipcMain.handle(CHANNELS.projectMotions, () => projectMotions(requireOpen().project.path));
   ipcMain.handle(CHANNELS.searchMotions, (_event, words: unknown) => searchMotions(typeof words === 'string' ? words : ''));
   ipcMain.handle(CHANNELS.useMotion, (_event, id: unknown) => useMotion(requireOpen().project.path, id));
+
+  ipcMain.handle(CHANNELS.providers, () => providers().list());
+  ipcMain.handle(CHANNELS.saveProvider, (_event, input: unknown) => {
+    if (!input || typeof input !== 'object') throw new Error('Not a provider.');
+    return providers().save(input as Parameters<ProviderStore['save']>[0]);
+  });
+  ipcMain.handle(CHANNELS.removeProvider, (_event, id: unknown) => providers().remove(id));
+  ipcMain.handle(CHANNELS.activateProvider, (_event, id: unknown) => providers().activate(id));
+
+  ipcMain.handle(CHANNELS.conversation, async () => (open ? transcript(await conversation(open)) : []));
+  ipcMain.handle(CHANNELS.clearConversation, async () => {
+    const state = requireOpen();
+    if (working) throw new Error('The agent is working: stop it first.');
+    state.messages = [];
+    await saveConversation(state.project.path, []);
+  });
+  ipcMain.handle(CHANNELS.stopAgent, () => working?.abort());
+  ipcMain.handle(CHANNELS.sendMessage, async (_event, text: unknown) => {
+    const state = requireOpen();
+    if (typeof text !== 'string' || !text.trim()) throw new Error('Write a message first.');
+    if (state.project.engine !== 'native') throw new Error('Start a film in this folder first.');
+    if (working) throw new Error('The agent is already working.');
+    const provider = await providers().active();
+    const controller = new AbortController();
+    working = controller;
+    const dir = state.project.path;
+    const tools: ToolContext = {
+      dir,
+      build: async () => {
+        if (open !== state || !state.watcher) throw new Error('The project was closed.');
+        await state.watcher.rebuild();
+        return state.build!;
+      },
+      stage: (version) => openStage(version),
+      searchMotions: (words) => searchMotions(words),
+      useMotion: (id) => useMotion(dir, id),
+    };
+    try {
+      await runTurn(
+        {
+          messages: await conversation(state),
+          text: text.trim(),
+          call: caller(provider, SKILL, TOOLS),
+          tools,
+          emit: (event: AgentEvent) => {
+            if (open === state) send(EVENTS.agent, event);
+          },
+          save: (messages) => saveConversation(dir, messages),
+          signal: controller.signal,
+        },
+        (error) => failure(error, provider.name),
+      );
+    } finally {
+      working = null;
+    }
+  });
 
   ipcMain.handle(CHANNELS.exportFilm, async (event) => {
     const state = requireOpen();

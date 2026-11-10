@@ -51,6 +51,47 @@ export interface ProjectMotion {
   fromHub: boolean;
 }
 
+/** A model provider as the renderer sees it: never its key. */
+export interface ProviderView {
+  id: string;
+  name: string;
+  /** Where it is reached: a server that speaks the Anthropic Messages protocol. */
+  baseUrl: string;
+  model: string;
+  hasKey: boolean;
+}
+
+export interface Providers {
+  providers: ProviderView[];
+  /** The provider the agent runs on, or null. */
+  active: string | null;
+  /** True where this machine has no keychain and keys are sealed with a fixed secret (Linux without a keyring). */
+  weakKeyStorage: boolean;
+}
+
+/** A provider to add (no id) or change. A key, when given, replaces the stored one. */
+export interface ProviderInput {
+  id?: string;
+  name: string;
+  baseUrl: string;
+  model: string;
+  key?: string;
+}
+
+/** One entry of the conversation, as the assistant panel shows it. */
+export type ChatItem =
+  | { kind: 'user'; text: string }
+  | { kind: 'assistant'; text: string }
+  | { kind: 'tool'; id: string; name: string; summary: string; result?: { ok: boolean; text: string; image?: string } }
+  | { kind: 'notice'; text: string; error: boolean };
+
+/** What the agent reports while it works. */
+export type AgentEvent =
+  | { type: 'text'; text: string }
+  | { type: 'tool'; id: string; name: string; summary: string }
+  | { type: 'tool-result'; id: string; ok: boolean; text: string; image?: string }
+  | { type: 'end'; notice?: { text: string; error: boolean } };
+
 export interface StudioApi {
   /** Recent projects, most recent first, without folders that no longer exist. */
   recentProjects(): Promise<Project[]>;
@@ -77,6 +118,23 @@ export interface StudioApi {
   /** Takes a motion from the catalogue into the open project. */
   useMotion(id: string): Promise<ProjectMotion>;
 
+  /** The model providers and which one is active. */
+  providers(): Promise<Providers>;
+  saveProvider(input: ProviderInput): Promise<Providers>;
+  removeProvider(id: string): Promise<Providers>;
+  activateProvider(id: string): Promise<Providers>;
+
+  /** The open project's conversation with the agent. */
+  conversation(): Promise<ChatItem[]>;
+  /** Sends a message to the agent; resolves when its turn ends. */
+  sendMessage(text: string): Promise<void>;
+  /** Stops the agent's turn. */
+  stopAgent(): Promise<void>;
+  /** Forgets the open project's conversation. */
+  clearConversation(): Promise<void>;
+  /** Calls `listener` with what the agent does; returns the unsubscribe. */
+  onAgentEvent(listener: (event: AgentEvent) => void): () => void;
+
   /** Asks where to save, then exports the film as an MP4; the path, or null when the person cancels. */
   exportFilm(): Promise<string | null>;
   /** Calls `listener` with the running export's progress (0 to 1); returns the unsubscribe. */
@@ -97,6 +155,14 @@ export const CHANNELS = {
   projectMotions: 'motions:project',
   searchMotions: 'motions:search',
   useMotion: 'motions:use',
+  providers: 'providers:list',
+  saveProvider: 'providers:save',
+  removeProvider: 'providers:remove',
+  activateProvider: 'providers:activate',
+  conversation: 'agent:conversation',
+  sendMessage: 'agent:send',
+  stopAgent: 'agent:stop',
+  clearConversation: 'agent:clear',
   exportFilm: 'film:export',
   cancelExport: 'film:cancel-export',
 } as const;
@@ -105,4 +171,5 @@ export const CHANNELS = {
 export const EVENTS = {
   build: 'film:built',
   exportProgress: 'film:export-progress',
+  agent: 'agent:event',
 } as const;

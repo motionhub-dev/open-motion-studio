@@ -1,15 +1,22 @@
 // An open project: its film's preview and export. A folder with no film yet is offered one.
 
 import { useEffect, useState } from 'react';
-import type { BuildResult, Project } from '../../shared/api';
+import type { BuildResult, Project, Providers } from '../../shared/api';
+import { Assistant } from './assistant';
 import { MotionPanel } from './motion-panel';
 import { Preview } from './preview';
 import { reason } from './reason';
+import { Settings } from './settings';
 
 export function ProjectView({ project, onChange, onClose }: { project: Project; onChange(p: Project): void; onClose(): void }) {
   const [build, setBuild] = useState<BuildResult | null>(null);
   const [progress, setProgress] = useState<number | null>(null);
   const [notice, setNotice] = useState<{ text: string; error: boolean } | null>(null);
+  const [providers, setProviders] = useState<Providers | null>(null);
+  const [settings, setSettings] = useState(false);
+
+  useEffect(() => void window.studio.providers().then(setProviders), []);
+  const active = providers?.providers.find((p) => p.id === providers.active);
 
   useEffect(() => {
     setBuild(null);
@@ -49,6 +56,9 @@ export function ProjectView({ project, onChange, onClose }: { project: Project; 
           <p className="path">{project.path}</p>
         </div>
         <div className="actions">
+          <button type="button" onClick={() => setSettings(true)}>
+            {active ? `Model: ${active.name}` : 'Set up a model'}
+          </button>
           {project.engine &&
             (progress === null ? (
               <button type="button" className="primary" onClick={exportFilm} disabled={!build?.ok}>
@@ -71,6 +81,7 @@ export function ProjectView({ project, onChange, onClose }: { project: Project; 
       )}
       {project.engine ? (
         <div className="workspace">
+          <Assistant ready={!!active?.hasKey} onSettings={() => setSettings(true)} />
           <Preview build={build} />
           <MotionPanel />
         </div>
@@ -82,6 +93,7 @@ export function ProjectView({ project, onChange, onClose }: { project: Project; 
           </button>
         </div>
       )}
+      {settings && providers && <Settings providers={providers} onChange={setProviders} onClose={() => setSettings(false)} />}
     </main>
   );
 }
