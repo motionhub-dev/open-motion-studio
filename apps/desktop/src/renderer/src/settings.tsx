@@ -1,15 +1,22 @@
-// The model providers: add one (a preset or any server that speaks the Anthropic Messages
-// protocol), give it a key, and choose which one the agent runs on. A key goes to the main
-// process and is never shown again.
+// The model providers: add one (a preset, or any server that speaks the Anthropic Messages
+// or the OpenAI Chat Completions protocol), give it a key, and choose which one the agent
+// runs on. A key goes to the main process and is never shown again.
 
 import { type FormEvent, useState } from 'react';
 import type { ProviderInput, Providers } from '../../shared/api';
 import { reason } from './reason';
 
+/** Where each service is reached. A model left empty is the person's to name: services rename theirs often. */
 const PRESETS: Omit<ProviderInput, 'key'>[] = [
-  { name: 'Anthropic', baseUrl: 'https://api.anthropic.com', model: 'claude-opus-5-5' },
-  { name: 'MiniMax', baseUrl: 'https://api.minimax.io/anthropic', model: 'MiniMax-M3' },
-  { name: 'Custom', baseUrl: 'https://', model: '' },
+  { name: 'Anthropic', protocol: 'anthropic', baseUrl: 'https://api.anthropic.com', model: 'claude-opus-5-5', images: true },
+  { name: 'OpenRouter', protocol: 'openai', baseUrl: 'https://openrouter.ai/api/v1', model: '', images: true },
+  { name: 'OpenAI', protocol: 'openai', baseUrl: 'https://api.openai.com/v1', model: '', images: true },
+  { name: 'DeepSeek', protocol: 'openai', baseUrl: 'https://api.deepseek.com', model: 'deepseek-chat', images: false },
+  { name: 'Gemini', protocol: 'openai', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', model: '', images: true },
+  { name: 'MiniMax', protocol: 'anthropic', baseUrl: 'https://api.minimax.io/anthropic', model: 'MiniMax-M3', images: false },
+  { name: 'Ollama (this computer)', protocol: 'openai', baseUrl: 'http://localhost:11434/v1', model: '', images: false },
+  { name: 'LM Studio (this computer)', protocol: 'openai', baseUrl: 'http://localhost:1234/v1', model: '', images: false },
+  { name: 'Custom', protocol: 'openai', baseUrl: 'https://', model: '', images: true },
 ];
 
 const blank = (): ProviderInput => ({ ...PRESETS[0]!, key: '' });
@@ -59,8 +66,8 @@ export function Settings({ providers, onChange, onClose }: { providers: Provider
                 <span>
                   <strong>{p.name}</strong>
                   <span className="path">
-                    {p.model} · {p.baseUrl}
-                    {p.hasKey ? '' : ' · no key'}
+                    {p.model} · {p.protocol === 'openai' ? 'Chat Completions' : 'Messages'} · {p.baseUrl}
+                    {p.ready ? '' : ' · no key'}
                   </span>
                 </span>
               </label>
@@ -99,15 +106,26 @@ export function Settings({ providers, onChange, onClose }: { providers: Provider
               <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             </label>
             <label>
-              Address (speaks the Anthropic Messages protocol)
+              Protocol
+              <select value={form.protocol} onChange={(e) => setForm({ ...form, protocol: e.target.value as ProviderInput['protocol'] })}>
+                <option value="anthropic">Anthropic Messages</option>
+                <option value="openai">OpenAI Chat Completions</option>
+              </select>
+            </label>
+            <label>
+              Address{form.protocol === 'openai' ? ' (before /chat/completions)' : ''}
               <input type="text" value={form.baseUrl} onChange={(e) => setForm({ ...form, baseUrl: e.target.value })} />
             </label>
             <label>
               Model
               <input type="text" value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} />
             </label>
+            <label className="check">
+              <input type="checkbox" checked={form.images} onChange={(e) => setForm({ ...form, images: e.target.checked })} />
+              The model reads images (the agent sees its stills as pictures)
+            </label>
             <label>
-              Key{form.id ? ' (leave empty to keep the one stored)' : ''}
+              Key{form.id ? ' (leave empty to keep the one stored)' : ' (none for a server on this computer)'}
               <input
                 type="password"
                 value={form.key}

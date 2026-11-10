@@ -141,6 +141,9 @@ const field = (input: Record<string, unknown>, name: string): string => {
 /** Runs one tool call; an error the model can act on comes back as a failed outcome, not a throw. */
 export async function runTool(name: string, raw: unknown, ctx: ToolContext): Promise<ToolOutcome> {
   const input = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  if (typeof input.invalid_arguments === 'string') {
+    return text(`The arguments were not valid JSON, so ${name} did not run: ${input.invalid_arguments.slice(0, 200)}`, false);
+  }
   try {
     switch (name) {
       case 'list_files': {

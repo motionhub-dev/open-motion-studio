@@ -1,6 +1,6 @@
 # Architecture
 
-> **Status:** Plan — steps 1 and 2 built, signing waits for certificates · **Updated:** 2026-11-10
+> **Status:** Plan — steps 1 to 3 built, signing waits for certificates · **Updated:** 2026-11-10
 
 The components of the Studio and what each owns, the engine contract, the agent and its providers, what is expensive to change, and the order of work.
 
@@ -33,7 +33,8 @@ apps/desktop/
       hyperframes/     (step 5) drives the project's own HyperFrames CLI
     agent/
       loop.ts          one turn: call the model, run the tools it asks for, until it ends its turn
-      model.ts         a call to an Anthropic Messages server through the official SDK
+      model.ts         a call to the model: a Messages server through the official SDK, or Chat Completions
+      openai.ts        the Chat Completions translation, to and from the Messages shape
       tools.ts         what the agent may do to the project
       native.md        what the agent is told about making a native film in a motion
     providers.ts       the providers, and their keys sealed with safeStorage
@@ -122,15 +123,22 @@ Two protocols, every provider a preset over one of them:
 | Anthropic Messages | Anthropic, MiniMax, any compatible server |
 | OpenAI Chat Completions | OpenAI, OpenRouter, DeepSeek, Gemini (its OpenAI-compatible endpoint), Ollama and LM Studio (local), any compatible server |
 
-- Built: the Anthropic Messages protocol, through the official SDK pointed at the provider's address, with presets for
-  Anthropic (`claude-opus-5-5`) and MiniMax and a custom address (https, or http on this machine). Anthropic's own API also
-  gets server-side refusal fallbacks, `effort: high` and automatic caching of the conversation; every server gets its
-  system prompt marked for caching.
-- A provider is `{id, name, baseUrl, model}` in `settings.json` in the app's userData, with the active one. Its key is
-  sealed with Electron's `safeStorage` (the OS keychain's secret) and kept as ciphertext in `keys.json` beside it, opened
-  only for a call, and never sent to the renderer. A system with no keychain refuses to keep a key.
-- Planned with Chat Completions (step 3): the loop's messages stay in the Messages shape and the new protocol module
-  translates to and from it, streaming included; a model records whether it reads images and calls tools.
+- **Both protocols are built.** The conversation is kept in the Messages shape whatever the provider speaks. A Messages
+  server is called through the official SDK pointed at the provider's address; Anthropic's own API also gets
+  server-side refusal fallbacks, `effort: high` and automatic caching of the conversation, and every Messages server
+  gets its system prompt marked for caching. A Chat Completions server is called with `fetch` at
+  `<address>/chat/completions`, streamed (`agent/openai.ts`): each tool use becomes a tool call, each tool result a
+  `tool` message, and a still's picture follows those as a user message of its own (a `tool` message carries text only);
+  the answer's text and tool-call fragments are assembled back into a message, `finish_reason` mapped to a stop reason
+  (tool calls win over a server that says `stop`), and arguments that are not JSON reach the tool, which refuses them.
+  No `max_tokens` is sent, since servers' ceilings differ; a reply cut off at the server's is reported.
+- A provider is `{id, name, protocol, baseUrl, model, images}` in `settings.json` in the app's userData, with the active
+  one. `images` says whether the model reads pictures: without it, a still reaches the model as its caption only. The
+  presets are Anthropic, OpenRouter, OpenAI, DeepSeek, Gemini (its compatible endpoint), MiniMax, Ollama and LM Studio;
+  where a service renames its models often, the model is left for the person to name.
+- A key is sealed with Electron's `safeStorage` (the OS keychain's secret) and kept as ciphertext in `keys.json` beside
+  the settings, opened only for a call, and never sent to the renderer. A system with no keychain refuses to keep a key.
+  A server on this machine (Ollama, LM Studio) is called without one.
 
 ## The UI
 
@@ -171,7 +179,9 @@ Each step is a vertical slice that runs end to end before the next begins.
    scripted Messages server (write, check, still, reply), a 6 s film exported in about 13 s. Not yet: a turn on a real
    model, and the first frame a motion's own faces need (they fall back to the system's).
 3. **Every provider**: the Chat Completions protocol, the presets, the keychain, the model picker; the same brief made on
-   a Claude model, a DeepSeek model and a local model.
+   a Claude model, a DeepSeek model and a local model. *Built*, and a turn driven end to end in the app against a
+   scripted Chat Completions server (write, check and a still sent back as a picture). Not yet: the same brief on real
+   models, which needs their keys and a local model.
 4. **Remotion**: the adapter, its skill, motions through `@motionhub/remotion`.
 5. **HyperFrames**: the adapter, its skill, motions through `@motionhub/hyperframes`.
 6. **Pointing**: marks, the pick bridge in each engine, the read-only timeline.

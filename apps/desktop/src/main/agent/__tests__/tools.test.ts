@@ -61,6 +61,12 @@ describe('runTool', () => {
     expect(await runTool('nothing', {}, ctx)).toMatchObject({ ok: false });
   });
 
+  it('refuses to run a call whose arguments were not JSON', async () => {
+    const outcome = await runTool('write_file', { invalid_arguments: '{"path": "fi' }, ctx);
+    expect(outcome).toMatchObject({ ok: false });
+    expect(outcome.text).toContain('not valid JSON');
+  });
+
   it('lists the project without its dependencies or the Studio’s state', async () => {
     await mkdir(join(dir, 'node_modules', 'react'), { recursive: true });
     await mkdir(join(dir, '.motion-studio'), { recursive: true });

@@ -3,6 +3,17 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-10 — The agent runs on any OpenAI Chat Completions server too
+
+- **What:** A provider now names its protocol: Anthropic Messages or OpenAI Chat Completions. The Chat Completions
+  translation keeps the agent's conversation in the Messages shape, so a project's conversation can move between
+  providers. Presets for OpenRouter, OpenAI, DeepSeek, Gemini, Ollama and LM Studio join Anthropic and MiniMax; a provider
+  says whether its model reads images, and a server on this computer needs no key.
+- **Why:** Step 3 of the order of work: any model the person chooses.
+- **Breaking:** A provider saved before this has no protocol and is treated as Messages; re-save it to set one.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/tech/architecture.md` ("Providers"), ADR 0003.
+
 ## 2026-11-10 — Make a native film with an agent, a motion from motionhub, and export it
 
 - **What:** A new project is a native film: `film.tsx`, a React component drawn by `useTime()` from `@motionhub/runtime`,

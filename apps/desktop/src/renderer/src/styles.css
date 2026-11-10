@@ -470,3 +470,9 @@ button.link {
 .provider-form select {
   color: var(--ink);
 }
+
+.provider-form label.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}

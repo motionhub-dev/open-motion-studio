@@ -8,13 +8,15 @@ import { safeStorage } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { ProviderInput, ProviderView, Providers } from '../shared/api';
+import type { Protocol, ProviderInput, ProviderView, Providers } from '../shared/api';
 
 interface StoredProvider {
   id: string;
   name: string;
+  protocol: Protocol;
   baseUrl: string;
   model: string;
+  images: boolean;
 }
 
 interface Settings {
@@ -23,9 +25,12 @@ interface Settings {
 }
 
 export interface Provider extends StoredProvider {
-  /** The key, opened from its seal for this call. */
+  /** The key, opened from its seal for this call; '' for a server on this machine that needs none. */
   key: string;
 }
+
+const LOCAL = ['localhost', '127.0.0.1', '[::1]'];
+const isLocal = (url: string): boolean => LOCAL.includes(new URL(url).hostname);
 
 async function readJson<T>(file: string, empty: T): Promise<T> {
   try {
@@ -51,8 +56,7 @@ function cleanUrl(value: unknown): string {
   } catch {
     throw new Error(`Not an address: ${value}`);
   }
-  const local = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
-  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && local)) {
+  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && LOCAL.includes(url.hostname))) {
     throw new Error('A provider is reached over https (http only on this machine).');
   }
   return url.href.replace(/\/+$/, '');
@@ -85,18 +89,25 @@ export class ProviderStore {
 
   async list(): Promise<Providers> {
     const [settings, keys] = await Promise.all([this.settings(), this.keys()]);
-    const providers: ProviderView[] = settings.providers.map((p) => ({ ...p, hasKey: p.id in keys }));
+    const providers: ProviderView[] = settings.providers.map((p) => ({
+      ...p,
+      hasKey: p.id in keys,
+      ready: p.id in keys || isLocal(p.baseUrl),
+    }));
     return { providers, active: settings.active, weakKeyStorage: weakKeyStorage() };
   }
 
   /** Adds a provider (no id) or changes one; a key, when given, replaces the stored one. */
   async save(input: ProviderInput): Promise<Providers> {
     const settings = await this.settings();
+    if (input.protocol !== 'anthropic' && input.protocol !== 'openai') throw new Error('A provider speaks Messages or Chat Completions.');
     const provider: StoredProvider = {
       id: typeof input.id === 'string' && input.id ? input.id : randomUUID(),
       name: cleanText(input.name, 'a name'),
+      protocol: input.protocol,
       baseUrl: cleanUrl(input.baseUrl),
       model: cleanText(input.model, 'a model'),
+      images: input.images !== false,
     };
     const at = settings.providers.findIndex((p) => p.id === provider.id);
     if (input.id && at < 0) throw new Error('That provider no longer exists.');
@@ -140,7 +151,10 @@ export class ProviderStore {
     const provider = settings.providers.find((p) => p.id === settings.active);
     if (!provider) throw new Error('No model is set up: add a provider in Settings.');
     const sealed = keys[provider.id];
-    if (!sealed) throw new Error(`${provider.name} has no key: add one in Settings.`);
+    if (!sealed) {
+      if (isLocal(provider.baseUrl)) return { ...provider, key: '' };
+      throw new Error(`${provider.name} has no key: add one in Settings.`);
+    }
     return { ...provider, key: safeStorage.decryptString(Buffer.from(sealed, 'base64')) };
   }
 }

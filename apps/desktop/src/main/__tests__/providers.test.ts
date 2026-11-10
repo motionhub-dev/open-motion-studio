@@ -16,6 +16,7 @@ vi.mock('electron', () => ({
 const { ProviderStore } = await import('../providers');
 
 const KEY = 'sk-ant-secret-0123456789';
+const WIRE = { protocol: 'anthropic' as const, images: true };
 let dir: string;
 
 beforeEach(async () => {
@@ -29,7 +30,7 @@ afterEach(async () => {
 describe('ProviderStore', () => {
   it('keeps the key sealed, out of the settings and out of what the renderer sees', async () => {
     const store = new ProviderStore(dir);
-    const listed = await store.save({ name: 'Anthropic', baseUrl: 'https://api.anthropic.com/', model: 'claude-opus-5-5', key: KEY });
+    const listed = await store.save({ ...WIRE, name: 'Anthropic', baseUrl: 'https://api.anthropic.com/', model: 'claude-opus-5-5', key: KEY });
     expect(JSON.stringify(listed)).not.toContain(KEY);
     expect(listed.providers[0]).toMatchObject({ baseUrl: 'https://api.anthropic.com', hasKey: true });
     expect(listed.active).toBe(listed.providers[0]!.id);
@@ -40,22 +41,32 @@ describe('ProviderStore', () => {
 
   it('keeps the stored key when a change gives none', async () => {
     const store = new ProviderStore(dir);
-    const { providers } = await store.save({ name: 'A', baseUrl: 'https://a.example', model: 'm', key: KEY });
-    await store.save({ id: providers[0]!.id, name: 'A', baseUrl: 'https://a.example', model: 'm2' });
+    const { providers } = await store.save({ ...WIRE, name: 'A', baseUrl: 'https://a.example', model: 'm', key: KEY });
+    await store.save({ ...WIRE, id: providers[0]!.id, name: 'A', baseUrl: 'https://a.example', model: 'm2' });
     expect(await store.active()).toMatchObject({ model: 'm2', key: KEY });
   });
 
   it('refuses an address a key should not be sent to', async () => {
     const store = new ProviderStore(dir);
     for (const baseUrl of ['http://api.example.com', 'ftp://x', 'not a url']) {
-      await expect(store.save({ name: 'A', baseUrl, model: 'm' })).rejects.toThrow();
+      await expect(store.save({ ...WIRE, name: 'A', baseUrl, model: 'm' })).rejects.toThrow();
     }
-    await expect(store.save({ name: 'Local', baseUrl: 'http://localhost:11434', model: 'm' })).resolves.toBeTruthy();
+  });
+
+  it('calls a server on this machine without a key, and no other', async () => {
+    const store = new ProviderStore(dir);
+    const local = await store.save({ protocol: 'openai', images: false, name: 'Ollama', baseUrl: 'http://localhost:11434/v1', model: 'qwen' });
+    expect(local.providers[0]).toMatchObject({ protocol: 'openai', images: false, hasKey: false, ready: true });
+    expect(await store.active()).toMatchObject({ key: '', baseUrl: 'http://localhost:11434/v1' });
+    const remote = await store.save({ protocol: 'openai', images: true, name: 'R', baseUrl: 'https://r.example/v1', model: 'm' });
+    await store.activate(remote.providers[1]!.id);
+    await expect(store.active()).rejects.toThrow('has no key');
+    await expect(store.save({ ...WIRE, protocol: 'grpc' as never, name: 'X', baseUrl: 'https://x.example', model: 'm' })).rejects.toThrow();
   });
 
   it('forgets the key with the provider, and says when no model is set up', async () => {
     const store = new ProviderStore(dir);
-    const { providers } = await store.save({ name: 'A', baseUrl: 'https://a.example', model: 'm', key: KEY });
+    const { providers } = await store.save({ ...WIRE, name: 'A', baseUrl: 'https://a.example', model: 'm', key: KEY });
     const after = await store.remove(providers[0]!.id);
     expect(after).toMatchObject({ providers: [], active: null });
     expect(await readFile(join(dir, 'keys.json'), 'utf8')).toBe('{}\n');

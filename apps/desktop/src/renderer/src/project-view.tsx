@@ -81,7 +81,7 @@ export function ProjectView({ project, onChange, onClose }: { project: Project; 
       )}
       {project.engine ? (
         <div className="workspace">
-          <Assistant ready={!!active?.hasKey} onSettings={() => setSettings(true)} />
+          <Assistant ready={!!active?.ready} onSettings={() => setSettings(true)} />
           <Preview build={build} />
           <MotionPanel />
         </div>

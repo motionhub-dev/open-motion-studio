@@ -51,14 +51,23 @@ export interface ProjectMotion {
   fromHub: boolean;
 }
 
+/** The wire protocols a provider may speak. */
+export type Protocol = 'anthropic' | 'openai';
+
 /** A model provider as the renderer sees it: never its key. */
 export interface ProviderView {
   id: string;
   name: string;
-  /** Where it is reached: a server that speaks the Anthropic Messages protocol. */
+  /** Anthropic Messages, or OpenAI Chat Completions. */
+  protocol: Protocol;
+  /** Where it is reached: for Chat Completions, the address before /chat/completions. */
   baseUrl: string;
   model: string;
+  /** Whether the model reads images, so the agent's stills are sent to it as pictures. */
+  images: boolean;
   hasKey: boolean;
+  /** Whether the agent can call it: it has a key, or it is on this machine and needs none. */
+  ready: boolean;
 }
 
 export interface Providers {
@@ -73,8 +82,10 @@ export interface Providers {
 export interface ProviderInput {
   id?: string;
   name: string;
+  protocol: Protocol;
   baseUrl: string;
   model: string;
+  images: boolean;
   key?: string;
 }
 
