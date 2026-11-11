@@ -24,6 +24,18 @@ Every key change to Open Motion Studio, newest first, by date. What counts as ke
 - **Upgrade:** Nothing. Checkpoints start with future agent source writes; existing work is not reconstructed.
 - **Refs:** `docs/tech/creator-workflow.md`, `docs/adr/0007-local-checkpoints-track-agent-source-writes.md`, `docs/design.md`.
 
+## 2026-11-10 — Export a film as a Remotion project
+
+- **What:** The menu beside Export writes the film as a Remotion project into an empty folder: the project's files as
+  they are, and a Remotion entry whose one composition draws each scene in a `Series.Sequence` of its own, named by its
+  id, so the scenes are clips on Remotion Studio's timeline. Their lengths, and the composition's, come from `film.tsx`
+  (`@motionhub/remotion` 0.3.0's `sceneFrames` and `filmMetadata`, `@motionhub/runtime` 0.6.0's `<FilmScene>`); a
+  scene added, taken out or moved in `film.tsx` afterwards is named in Remotion's error until `src/Root.tsx` places it.
+- **Why:** So a film can go on, or be rendered, in Remotion without being rewritten.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/tech/architecture.md` ("Export"), `apps/desktop/src/main/film/remotion-export.ts`.
+
 ## 2026-11-10 — A film is scenes of layers and lines
 
 - **What:** A film draws a `<Film>` of `<Scene id duration>`s, each holding `<Layer id x y w h z>`s (boxes of the frame)

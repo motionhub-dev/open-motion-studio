@@ -17,6 +17,7 @@ import { EXAMPLES, openExample } from './examples';
 import { ASSET_EXTENSIONS, importAssets, projectAssets } from './assets';
 import { reviewBuild } from './film/review';
 import { FILM_SKILL, startFilm, watchFilm } from './film/film';
+import { writeRemotionProject } from './film/remotion-export';
 import { registerPreviewScheme, servePreview } from './film/preview';
 import { motionDetail, motionReel, projectMotions, searchMotions, useMotion } from './motions';
 import { STATE_DIR, createProject, isRecent, openProject, projectAt, recentProjects, rememberProject } from './project';
@@ -326,6 +327,39 @@ function registerHandlers(): void {
   });
 
   ipcMain.handle(CHANNELS.cancelExport, () => exporting?.abort());
+  ipcMain.handle(CHANNELS.exportRemotion, async (event) => {
+    const state = requireOpen();
+    if (working || exporting) throw new Error('Wait for the current task to finish before exporting.');
+    const { build } = state;
+    if (!state.project.film || !build?.ok) throw new Error('The film does not build: fix its errors before exporting.');
+    const controller = new AbortController();
+    exporting = controller;
+    try {
+      const path = await chooseFolder(event.sender, {
+        title: 'Choose an empty folder for the Remotion project',
+        buttonLabel: 'Export',
+        properties: ['openDirectory', 'createDirectory'],
+      });
+      if (path === null) return null;
+      if (open !== state || state.build?.version !== build.version)
+        throw new Error('The film changed before export. Review the latest version and export again.');
+      // The scenes as the film has them now, from the build the person sees.
+      const stage = await openStage(build.version);
+      let scenes: string[];
+      try {
+        scenes = stage.film.scenes.map((scene) => scene.id);
+      } finally {
+        stage.close();
+      }
+      if (state.build?.version !== build.version)
+        throw new Error('The film changed before export. Review the latest version and export again.');
+      await writeRemotionProject(state.project.path, path, state.project.name, scenes);
+      exported = path;
+      return path;
+    } finally {
+      if (exporting === controller) exporting = null;
+    }
+  });
   ipcMain.handle(CHANNELS.showExported, () => {
     if (exported) shell.showItemInFolder(exported);
   });

@@ -4,6 +4,7 @@
 // shown by ? or the keyboard button.
 
 import {
+  ChevronDown,
   Download,
   Keyboard,
   X,
@@ -109,6 +110,8 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
   const [inspected, setInspected] = useState<Mark | null>(null);
   const [side, setSide] = useState<'outline' | 'motions' | 'inspector' | 'history' | 'review' | 'assets'>('outline');
   const [shortcuts, setShortcuts] = useState(false);
+  /** Whether the menu of other ways to export is open. */
+  const [menu, setMenu] = useState(false);
   const [layout, setLayout] = useLayout();
   const [compact, setCompact] = useState(() => matchMedia('(max-width: 1100px)').matches);
   const [compactSide, setCompactSide] = useState(false);
@@ -147,6 +150,16 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
 
   useEffect(() => window.studio.onExportProgress(setProgress), []);
 
+  // The export menu closes when the person clicks anywhere else.
+  useEffect(() => {
+    if (!menu) return;
+    const close = (event: PointerEvent) => {
+      if (!(event.target instanceof Element && event.target.closest('.export'))) setMenu(false);
+    };
+    addEventListener('pointerdown', close);
+    return () => removeEventListener('pointerdown', close);
+  }, [menu]);
+
   useEffect(() => {
     if (!toast) return;
     const timer = setTimeout(() => setToast(null), toast.error ? 12000 : 8000);
@@ -156,6 +169,7 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && shortcuts) return setShortcuts(false);
+      if (event.key === 'Escape' && menu) return setMenu(false);
       if (document.querySelector('dialog[open], [role=dialog]')) return;
       if (typing(event.target) || event.metaKey || event.ctrlKey || event.altKey) return;
       if (event.key === '?') {
@@ -203,6 +217,21 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
       setToast({ text: reason(e), error: true });
     } finally {
       setProgress(null);
+    }
+  }
+
+  async function exportRemotion() {
+    if (busy || importing || checking || progress !== null) return;
+    setImporting(true);
+    setMenu(false);
+    setToast(null);
+    try {
+      const folder = await window.studio.exportRemotion();
+      if (folder) setToast({ text: `Exported a Remotion project to ${folder.split(/[/\\]/).pop()}`, error: false, file: folder });
+    } catch (e) {
+      setToast({ text: reason(e), error: true });
+    } finally {
+      setImporting(false);
     }
   }
 
@@ -320,18 +349,39 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
         </button>
         {project.film &&
           (progress === null ? (
-            <button
-              type="button"
-              className="button accent"
-              onClick={() => {
-                setExportOpen(true);
-                void checkFilm();
-              }}
-              disabled={!build?.ok || busy || importing || checking}
-            >
-              <Download size={15} />
-              Export
-            </button>
+            <span className="export">
+              <button
+                type="button"
+                className="button accent"
+                onClick={() => {
+                  setExportOpen(true);
+                  void checkFilm();
+                }}
+                disabled={!build?.ok || busy || importing || checking}
+              >
+                <Download size={15} />
+                Export
+              </button>
+              <button
+                type="button"
+                className="icon-button"
+                aria-label="Other ways to export"
+                aria-expanded={menu}
+                data-tip="Other ways to export"
+                disabled={!build?.ok || busy || importing || checking}
+                onClick={() => setMenu((open) => !open)}
+              >
+                <ChevronDown size={15} />
+              </button>
+              {menu && (
+                <span className="menu" role="menu">
+                  <button type="button" role="menuitem" onClick={() => void exportRemotion()}>
+                    <strong>Remotion project…</strong>
+                    <span>The film as a Remotion project, each scene a Series.Sequence</span>
+                  </button>
+                </span>
+              )}
+            </span>
           ) : (
             <button type="button" className="button" onClick={() => void window.studio.cancelExport()} data-tip="Cancel the export">
               <X size={14} />

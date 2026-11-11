@@ -56,8 +56,8 @@ key where it has one.
 A top bar over a grid of panels (`project-view.tsx`):
 
 - **Top bar**: the mark (it closes the project), the project's name (its path on hover) and whether its film
-  builds, then the panel controls, keyboard shortcuts and Export, which shows its progress and
-  cancels while it runs. On a Mac the window has no title bar (`hiddenInset`): its buttons sit over the top bar, which
+  builds, then the panel controls, keyboard shortcuts and Export, which shows progress and cancels while running,
+  with a menu beside it for a Remotion project. On a Mac the window has no title bar (`hiddenInset`): its buttons sit over the top bar, which
   leaves them room and moves the window; the launcher keeps a strip at its top to move it by.
 - **Assistant** down the left, the **stage** in the middle, **Outline**, **Motions**, **Assets**, **Inspector**, **History** and **Checks** behind a narrow tool rail on the right, the
   **transport and timeline** along the bottom under the stage and the right panel.
