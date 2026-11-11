@@ -1,6 +1,6 @@
 # Architecture
 
-> **Status:** Plan — steps 1 to 3 and 6 built; signing waits for certificates · **Updated:** 2026-11-10
+> **Status:** Plan — steps 1 to 3 and 6 built; signing waits for certificates · **Updated:** 2026-11-11
 
 The components of the Studio and what each owns, the film, the agent and its providers, what is expensive to change, and the order of work.
 
@@ -47,6 +47,8 @@ apps/desktop/
   src/preload/         the typed bridge the renderer calls (contextIsolation on, no Node in the renderer)
   src/shared/          what both sides agree on: StudioApi, and the preview bridge's messages
   src/renderer/        React UI
+site/                  the introduction page on GitHub Pages: static HTML and screenshots of the app, no build
+                       (.github/workflows/pages.yml publishes it on a push to main)
 ```
 
 | Component | Owns | Never does |

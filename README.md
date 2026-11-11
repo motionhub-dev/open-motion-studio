@@ -6,6 +6,8 @@ A film is React drawn by time with `@motionhub/runtime`, which the Studio plays 
 
 **Status: building.** A film can be made with an agent in a motion from motionhub, on any model that speaks the Anthropic Messages or OpenAI Chat Completions protocol, pointed at on the picture, and exported. Start with [the documentation](docs/README.md).
 
+Its page is [motionhub-dev.github.io/open-motion-studio](https://motionhub-dev.github.io/open-motion-studio/) (`site/`).
+
 Licensed under the [Apache License 2.0](LICENSE).
 
 ## Development
