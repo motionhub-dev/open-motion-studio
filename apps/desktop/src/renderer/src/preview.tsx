@@ -6,7 +6,7 @@
 
 import { Crosshair, Pause, Play, Repeat, SkipBack, SkipForward, SquareDashed, ChevronDown, ChevronUp } from 'lucide-react';
 import { type PointerEvent, type RefObject, useEffect, useRef, useState } from 'react';
-import { type BuildResult, MAX_MARKS, type Mark } from '../../shared/api';
+import { type BuildResult, MAX_MARKS, type Mark, type Reference } from '../../shared/api';
 import type { Box, FilmInfo, FromPreview, ToPreview } from '../../shared/preview';
 import { Timeline } from './timeline';
 
@@ -36,6 +36,7 @@ export interface Player {
   seek(t: number): void;
   /** Steps by frames (a negative count steps back). */
   step(frames: number): void;
+  playRange(start: number, end: number): void;
   /** Asks the page what is drawn at a point; resolves with its answer. */
   pick(x: number, y: number): Promise<Extract<FromPreview, { type: 'oms:picked' }>>;
 }
@@ -83,7 +84,11 @@ export function usePlayer(build: BuildResult | null): Player {
     return () => removeEventListener('message', onMessage);
   }, []);
 
-  useEffect(() => setError(null), [build?.version]);
+  useEffect(() => {
+    setError(null);
+    picked.current?.({ type: 'oms:picked', element: null, box: null });
+    picked.current = null;
+  }, [build?.version]);
 
   const seek = (to: number) => tell({ type: 'oms:seek', t: Math.max(0, Math.min(film?.seconds ?? 0, to)) });
   return {
@@ -102,6 +107,10 @@ export function usePlayer(build: BuildResult | null): Player {
     tell,
     toggle: () => tell(playing ? { type: 'oms:pause' } : { type: 'oms:play' }),
     seek,
+    playRange: (start, end) => {
+      setTool(null);
+      tell({ type: 'oms:play-range', start, end });
+    },
     step: (frames) => {
       if (!film) return;
       if (playing) tell({ type: 'oms:pause' });
@@ -109,7 +118,18 @@ export function usePlayer(build: BuildResult | null): Player {
     },
     pick: (x, y) =>
       new Promise((done) => {
-        picked.current = done;
+        picked.current?.({ type: 'oms:picked', element: null, box: null });
+        const timer = setTimeout(() => {
+          if (picked.current === resolve) {
+            picked.current = null;
+            done({ type: 'oms:picked', element: null, box: null });
+          }
+        }, 1500);
+        const resolve = (message: Extract<FromPreview, { type: 'oms:picked' }>) => {
+          clearTimeout(timer);
+          done(message);
+        };
+        picked.current = resolve;
         tell({ type: 'oms:pick', x, y });
       }),
   };
@@ -126,11 +146,31 @@ function frameIn(stage: { width: number; height: number }, film: FilmInfo) {
 /** The room the page leaves around the frame, so it sits on the ink with its shadow. */
 const INSET = 24;
 
-export function Stage({ player, build, marks, onMark }: { player: Player; build: BuildResult | null; marks: Mark[]; onMark(mark: Mark): void }) {
+export function Stage({
+  player,
+  build,
+  marks,
+  onMark,
+  selected,
+  disabled = false,
+  column = 2,
+}: {
+  player: Player;
+  build: BuildResult | null;
+  marks: Mark[];
+  onMark(mark: Mark): void;
+  selected: Reference | null;
+  disabled?: boolean;
+  column?: number;
+}) {
   const stage = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<{ width: number; height: number } | null>(null);
   const [drag, setDrag] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
-  const { film, t, tool } = player;
+  const { film, t } = player;
+  const tool = disabled ? null : player.tool;
+  const [lastGood, setLastGood] = useState<BuildResult | null>(null);
+  if (build?.ok && build !== lastGood) setLastGood(build);
+  const shownBuild = build?.ok ? build : lastGood;
 
   useEffect(() => {
     const element = stage.current;
@@ -145,7 +185,18 @@ export function Stage({ player, build, marks, onMark }: { player: Player; build:
 
   const inner = size && { width: Math.max(0, size.width - 2 * INSET), height: Math.max(0, size.height - 2 * INSET) };
   const box = inner && film ? frameIn(inner, film) : null;
+  const pickContext = useRef({ version: build?.version, tool });
+  pickContext.current = { version: build?.version, tool };
+  useEffect(
+    () => () => {
+      pickContext.current = { version: undefined, tool: null };
+    },
+    [],
+  );
   const full = marks.length >= MAX_MARKS;
+  const selectedScene = film?.scenes.find((s) => s.id === selected?.scene);
+  const selectedLayer = selected?.kind === 'layer' ? (selectedScene?.layers ?? film?.layers)?.find((l) => l.id === selected.layer) : null;
+  const selectionVisible = !selectedScene || (t >= selectedScene.start && t < selectedScene.start + selectedScene.duration);
 
   /** A point on the stage as fractions of the frame, or null outside it. */
   function point(event: PointerEvent) {
@@ -161,9 +212,11 @@ export function Stage({ player, build, marks, onMark }: { player: Player; build:
     if (!p || full) return;
     if (tool === 'pick') {
       const at = t;
+      const version = build?.version;
       const message = await player.pick(p.x, p.y);
+      if (pickContext.current.version !== version || pickContext.current.tool !== 'pick') return;
       // Where nothing is drawn, the point itself is marked, as a small region.
-      const fallback: Box = { x: Math.max(0, p.x - 0.02), y: Math.max(0, p.y - 0.02), w: 0.04, h: 0.04 };
+      const fallback: Box = { x: Math.min(0.96, Math.max(0, p.x - 0.02)), y: Math.min(0.96, Math.max(0, p.y - 0.02)), w: 0.04, h: 0.04 };
       onMark({ t: at, box: message.box ?? fallback, element: message.element });
     } else if (tool === 'region') {
       (event.target as Element).setPointerCapture(event.pointerId);
@@ -184,7 +237,12 @@ export function Stage({ player, build, marks, onMark }: { player: Player; build:
 
   function up() {
     if (!drag) return;
-    const region = { x: Math.min(drag.x0, drag.x1), y: Math.min(drag.y0, drag.y1), w: Math.abs(drag.x1 - drag.x0), h: Math.abs(drag.y1 - drag.y0) };
+    const region = {
+      x: Math.min(drag.x0, drag.x1),
+      y: Math.min(drag.y0, drag.y1),
+      w: Math.abs(drag.x1 - drag.x0),
+      h: Math.abs(drag.y1 - drag.y0),
+    };
     setDrag(null);
     if (region.w > 0.01 && region.h > 0.01) onMark({ t, box: region, element: null });
   }
@@ -198,15 +256,15 @@ export function Stage({ player, build, marks, onMark }: { player: Player; build:
     };
 
   return (
-    <div className="stage" ref={stage}>
+    <div className="stage" ref={stage} style={{ gridColumn: column, gridRow: 1 }}>
       {box && film && <div className="plate" style={place({ x: 0, y: 0, w: 1, h: 1 }) ?? undefined} />}
-      {build?.ok && (
+      {shownBuild?.ok && (
         <iframe
-          key={build.version}
+          key={shownBuild.version}
           ref={player.frame}
           title="Film preview"
           sandbox="allow-scripts"
-          src={`oms-preview://film/?v=${build.version}`}
+          src={`oms-preview://film/?v=${shownBuild.version}`}
           style={{ inset: INSET, width: `calc(100% - ${2 * INSET}px)`, height: `calc(100% - ${2 * INSET}px)` }}
         />
       )}
@@ -217,6 +275,21 @@ export function Stage({ player, build, marks, onMark }: { player: Player; build:
           onPointerMove={tool ? move : undefined}
           onPointerUp={tool ? up : undefined}
         >
+          {film && selectedLayer && selectionVisible && (
+            <div
+              className="selection-box"
+              style={
+                place({
+                  x: selectedLayer.x / film.width,
+                  y: selectedLayer.y / film.height,
+                  w: selectedLayer.w / film.width,
+                  h: selectedLayer.h / film.height,
+                }) ?? undefined
+              }
+            >
+              <span>{selected?.label} · declared bounds</span>
+            </div>
+          )}
           {marks.map((mark, i) =>
             Math.abs(mark.t - t) <= NEAR ? (
               <div key={i} className="mark" style={place(mark.box) ?? undefined}>
@@ -227,7 +300,14 @@ export function Stage({ player, build, marks, onMark }: { player: Player; build:
           {drag && (
             <div
               className="mark drawing"
-              style={place({ x: Math.min(drag.x0, drag.x1), y: Math.min(drag.y0, drag.y1), w: Math.abs(drag.x1 - drag.x0), h: Math.abs(drag.y1 - drag.y0) }) ?? undefined}
+              style={
+                place({
+                  x: Math.min(drag.x0, drag.x1),
+                  y: Math.min(drag.y0, drag.y1),
+                  w: Math.abs(drag.x1 - drag.x0),
+                  h: Math.abs(drag.y1 - drag.y0),
+                }) ?? undefined
+              }
             />
           )}
         </div>
@@ -240,7 +320,7 @@ export function Stage({ player, build, marks, onMark }: { player: Player; build:
           aria-label="Pick an element"
           data-tip={full ? `A message carries at most ${MAX_MARKS} marks` : 'Pick an element'}
           data-key={full ? undefined : 'C'}
-          disabled={!film || full}
+          disabled={!film || full || disabled}
           onClick={() => player.setTool(tool === 'pick' ? null : 'pick')}
         >
           <Crosshair size={16} />
@@ -252,7 +332,7 @@ export function Stage({ player, build, marks, onMark }: { player: Player; build:
           aria-label="Mark a region"
           data-tip={full ? `A message carries at most ${MAX_MARKS} marks` : 'Mark a region'}
           data-key={full ? undefined : 'C'}
-          disabled={!film || full}
+          disabled={!film || full || disabled}
           onClick={() => player.setTool(tool === 'region' ? null : 'region')}
         >
           <SquareDashed size={16} />
@@ -260,13 +340,13 @@ export function Stage({ player, build, marks, onMark }: { player: Player; build:
       </div>
       {!build && <p className="waiting">Building the film…</p>}
       {build && !build.ok && (
-        <div className="callout" role="alert">
-          <strong>The film does not build</strong>
+        <div className="callout build-error" role="alert">
+          <strong>{lastGood ? 'Showing the last successful preview' : 'The film does not build'}</strong>
           <pre>{build.errors.join('\n')}</pre>
         </div>
       )}
       {build?.ok && player.error && (
-        <div className="callout" role="alert">
+        <div className="callout build-error" role="alert">
           <strong>The film stopped drawing</strong>
           <pre>{player.error}</pre>
         </div>
@@ -280,23 +360,51 @@ export function Transport({
   marks,
   folded,
   onFold,
+  selected,
+  onSelect,
 }: {
   player: Player;
   marks: Mark[];
   folded: boolean;
   onFold(folded: boolean): void;
+  selected: Reference | null;
+  onSelect(ref: Reference): void;
 }) {
   const { film, t, playing } = player;
   return (
     <>
       <div className="transport">
-        <button type="button" className="icon-button" aria-label="Previous frame" data-tip="Previous frame" data-key="←" disabled={!film} onClick={() => player.step(-1)}>
+        <button
+          type="button"
+          className="icon-button"
+          aria-label="Previous frame"
+          data-tip="Previous frame"
+          data-key="←"
+          disabled={!film}
+          onClick={() => player.step(-1)}
+        >
           <SkipBack size={15} />
         </button>
-        <button type="button" className="play" aria-label={playing ? 'Pause' : 'Play'} data-tip={playing ? 'Pause' : 'Play'} data-key="Space" disabled={!film} onClick={player.toggle}>
+        <button
+          type="button"
+          className="play"
+          aria-label={playing ? 'Pause' : 'Play'}
+          data-tip={playing ? 'Pause' : 'Play'}
+          data-key="Space"
+          disabled={!film}
+          onClick={player.toggle}
+        >
           {playing ? <Pause size={15} fill="currentColor" /> : <Play size={15} fill="currentColor" />}
         </button>
-        <button type="button" className="icon-button" aria-label="Next frame" data-tip="Next frame" data-key="→" disabled={!film} onClick={() => player.step(1)}>
+        <button
+          type="button"
+          className="icon-button"
+          aria-label="Next frame"
+          data-tip="Next frame"
+          data-key="→"
+          disabled={!film}
+          onClick={() => player.step(1)}
+        >
           <SkipForward size={15} />
         </button>
         <span className="timecode" aria-label="Time">
@@ -330,7 +438,19 @@ export function Transport({
           {folded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
         </button>
       </div>
-      {!folded && film && <Timeline film={film} t={t} marks={marks} onSeek={player.seek} />}
+      {!folded && film && (
+        <Timeline
+          film={film}
+          t={t}
+          marks={marks}
+          onSeek={(at) => {
+            player.tell({ type: 'oms:pause' });
+            player.seek(at);
+          }}
+          selected={selected}
+          onSelect={onSelect}
+        />
+      )}
     </>
   );
 }

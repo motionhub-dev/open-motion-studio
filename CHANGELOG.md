@@ -13,6 +13,27 @@ Every key change to Open Motion Studio, newest first, by date. What counts as ke
 - **Upgrade:** Nothing; a project exported before keeps 0.3.0 until its `package.json` is changed.
 - **Refs:** `apps/desktop/src/main/film/remotion-export.ts`.
 
+## 2026-11-10 — Model selection moves into the composer
+
+- **What:** The active model and Models entry point now sit in the assistant composer, below the message and beside Send.
+  Long model names truncate with their full model/provider name on hover; the top bar keeps project-level controls.
+- **Why:** Model choice belongs to the conversation it controls.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/design.md`.
+
+## 2026-11-10 — A more recoverable creator workspace
+
+- **What:** Local source checkpoints and conflict-aware restore; a scene/layer/script outline connected to the preview,
+  scoped scene playback, structural message references, a zoomable read-only layer timeline and focus mode. Added
+  activity feedback, sampled checks and export preflight, bundled films, a prompt brief, local image/font import and
+  cached Motion reels. Compile errors keep the last compiled preview with a visible notice. New dialogs contain focus.
+- **Why:** Creators need to understand a film, point at precise changes and safely explore alternatives.
+- **Breaking:** The internal preload API now carries references and build ids when sending a message. Numbered preview
+  bundles and local checkpoint state are maintained by the app; the film format is unchanged.
+- **Upgrade:** Nothing. Checkpoints start with future agent source writes; existing work is not reconstructed.
+- **Refs:** `docs/tech/creator-workflow.md`, `docs/adr/0007-local-checkpoints-track-agent-source-writes.md`, `docs/design.md`.
+
 ## 2026-11-10 — Export a film as a Remotion project
 
 - **What:** The menu beside Export writes the film as a Remotion project into an empty folder: the project's files as

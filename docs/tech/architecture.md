@@ -16,6 +16,9 @@ product is and is not is [positioning](../prd/positioning.md).
 Goal: the smallest useful version in [positioning](../prd/positioning.md#the-smallest-useful-version), packaged for
 macOS, Windows and Linux. Non-goals are positioning's; this plan adds one: no abstraction with a single implementation.
 
+The current [creator workflow](creator-workflow.md) adds source checkpoints, structured references, bundled examples,
+local materials and sampled export checks without changing the film format.
+
 ## Components
 
 One Electron app. Packages are split out only when something is published on its own.

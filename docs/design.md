@@ -56,10 +56,10 @@ key where it has one.
 A top bar over a grid of panels (`project-view.tsx`):
 
 - **Top bar**: the mark (it closes the project), the project's name (its path on hover) and whether its film
-  builds, then the keyboard shortcuts, the model in use (which opens Models) and Export, which shows its progress and
-  cancels while it runs, with a menu beside it for other ways out (a Remotion project). On a Mac the window has no title bar (`hiddenInset`): its buttons sit over the top bar, which
+  builds, then the panel controls, keyboard shortcuts and Export, which shows progress and cancels while running,
+  with a menu beside it for a Remotion project. On a Mac the window has no title bar (`hiddenInset`): its buttons sit over the top bar, which
   leaves them room and moves the window; the launcher keeps a strip at its top to move it by.
-- **Assistant** down the left, the **stage** in the middle, **Motions** and the **Inspector** as tabs on the right, the
+- **Assistant** down the left, the **stage** in the middle, **Outline**, **Motions**, **Assets**, **Inspector**, **History** and **Checks** behind a narrow tool rail on the right, the
   **transport and timeline** along the bottom under the stage and the right panel.
 - The assistant's and the right panel's widths and the timeline's height are dragged at their edges (or set with the
   arrow keys on the handle), and the timeline folds to its transport; `layout.tsx` keeps them in the app's local storage.
@@ -82,7 +82,8 @@ recent projects with their path (`~` for the home folder), and a banner while no
 - **Assistant** (`assistant.tsx`): the person's words in a bubble, the agent's as Markdown (`markdown.tsx`: drawn as React
   elements, never as HTML), each tool call a line with its state. A still is a thumbnail; clicking it seeks the stage
   to its moment and opens it large on a dimmed ground (Esc closes). The composer grows with its text up to 180px; Enter
-  sends, Shift+Enter breaks the line.
+  sends, Shift+Enter breaks the line. The model selector sits inside the composer below the text, opposite Send;
+  it shows the current model, keeps the full model/provider name on hover, and opens Models.
 - **Motions** (`motion-panel.tsx`): the project's motions as poster cards (initials when a motion has no poster); one
   opened is its page — poster, name, line, its colour tokens as swatches, its components with their previews, and its
   MOTION.md. The catalogue search answers as cards with Use.
@@ -95,3 +96,24 @@ recent projects with their path (`~` for the home folder), and a banner while no
   the address and model are in mono, the key field says it is sealed in the keychain and never shown again. **Test
   connection** makes one call as the form stands (the typed key, else the stored one) and says whether the model
   answered and called a tool, and how fast.
+
+
+## Exploration and recovery
+
+The tool rail selects one panel, keeping the picture large as capabilities grow. Outline rows show a human-readable
+scene line before its id; their message action appears on hover and keyboard focus. A selected layer has a cobalt
+dashed declared-bounds box, distinct from solid picture marks. References are small paper cards with a cobalt edge,
+a type label and a time where applicable; clicking locates without sending. The timeline adds quiet dashed layer
+spans and fit/zoom controls. Panel visibility can be toggled in the top bar, and F enters or leaves focus mode. On compact windows the project tools start folded, can be reopened explicitly,
+and return to their saved visibility on a wider window.
+
+History uses a vertical stack of request labels, timestamps and changed paths. Restore is an ink action, followed by
+a native modal explaining its scope and inverse checkpoint. Checks distinguish blockers from structural warnings;
+no passing sample is labelled as proof of complete visual correctness. Export's native modal shows the real film
+specification, the picture-only format and check outcome before the vermilion save action.
+
+The launcher introduces three starting-point cards in the same paper/ink palette. The assistant's brief is a compact
+optional form that prepares a message. Asset cards show real local images or a font icon, with an explicit message
+action. Empty, loading, missing-media and error states use explanatory text and a next action. Motion-reel dialogs
+play locally cached MP4 footage or a sandboxed catalogue HTML player. New modal workflows contain keyboard focus and restore it to the invoking control;
+reduced-motion preferences disable decorative card movement.

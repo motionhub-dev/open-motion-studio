@@ -39,6 +39,12 @@ describe('projectPath', () => {
     }
     expect(projectPath(dir, 'motions/house/tokens.json', true)).toBe(join(dir, 'motions', 'house', 'tokens.json'));
   });
+
+  it('refuses them in any case, since macOS and Windows file systems ignore it', () => {
+    for (const path of ['.GIT/hooks/pre-commit', '.Motion-Studio/history.json', 'Node_Modules/x.js', 'Motions/@iamsuosi/plumb-line/tokens.json']) {
+      expect(() => projectPath(dir, path, true)).toThrow();
+    }
+  });
 });
 
 describe('runTool', () => {

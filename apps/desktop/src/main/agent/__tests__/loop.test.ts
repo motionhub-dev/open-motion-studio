@@ -29,7 +29,15 @@ function setup(replies: Message[]) {
     useMotion: vi.fn(),
   };
   const controller = new AbortController();
-  const turn = { messages, content: 'Make a film', call, tools, emit: (e: AgentEvent) => events.push(e), save: vi.fn(), signal: controller.signal };
+  const turn = {
+    messages,
+    content: 'Make a film',
+    call,
+    tools,
+    emit: (e: AgentEvent) => events.push(e),
+    save: vi.fn(),
+    signal: controller.signal,
+  };
   return { events, messages, call, turn, controller };
 }
 
@@ -64,14 +72,12 @@ describe('runTurn', () => {
 
   it('ends with the provider’s reason when a call fails', async () => {
     const { turn, events } = setup([]);
-    await runTurn(turn, () => 'The provider refused the key.');
+    expect(await runTurn(turn, () => 'The provider refused the key.')).toEqual({ ok: false });
     expect(events.at(-1)).toEqual({ type: 'end', notice: { text: 'The provider refused the key.', error: true } });
   });
 
   it('answers the calls it did not run when the person stops it', async () => {
-    const { messages, turn, controller } = setup([
-      reply([use('t1', 'search_motions', {}), use('t2', 'search_motions', {})], 'tool_use'),
-    ]);
+    const { messages, turn, controller } = setup([reply([use('t1', 'search_motions', {}), use('t2', 'search_motions', {})], 'tool_use')]);
     turn.tools.searchMotions = vi.fn(async () => {
       controller.abort();
       return [];

@@ -58,6 +58,7 @@ export interface PickedElement {
 export type ToPreview =
   | { type: 'oms:play' }
   | { type: 'oms:pause' }
+  | { type: 'oms:play-range'; start: number; end: number }
   | { type: 'oms:seek'; t: number }
   /** The element drawn at a point, in fractions of the frame (studio/pick.js answers). */
   | { type: 'oms:pick'; x: number; y: number };

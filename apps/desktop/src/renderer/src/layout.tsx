@@ -6,6 +6,8 @@ import { type PointerEvent, useEffect, useRef, useState } from 'react';
 
 export interface Layout {
   left: number;
+  assistant: boolean;
+  side: boolean;
   right: number;
   bottom: number;
   /** The timeline folded to its transport bar. */
@@ -13,12 +15,24 @@ export interface Layout {
 }
 
 const KEY = 'oms.layout';
-const DEFAULT: Layout = { left: 360, right: 312, bottom: 208, folded: false };
+const DEFAULT: Layout = { left: 360, right: 312, bottom: 240, folded: false, assistant: true, side: true };
 export const LIMITS = { left: [280, 560], right: [240, 480], bottom: [120, 420] } as const;
 
 function stored(): Layout {
   try {
-    return { ...DEFAULT, ...(JSON.parse(localStorage.getItem(KEY) ?? '{}') as Partial<Layout>) };
+    const raw = JSON.parse(localStorage.getItem(KEY) ?? '{}') as Partial<Layout>;
+    const size = (key: 'left' | 'right' | 'bottom') =>
+      typeof raw?.[key] === 'number' && Number.isFinite(raw[key])
+        ? Math.max(LIMITS[key][0], Math.min(LIMITS[key][1], raw[key]))
+        : DEFAULT[key];
+    return {
+      left: size('left'),
+      right: size('right'),
+      bottom: size('bottom'),
+      folded: typeof raw?.folded === 'boolean' ? raw.folded : DEFAULT.folded,
+      assistant: typeof raw?.assistant === 'boolean' ? raw.assistant : true,
+      side: typeof raw?.side === 'boolean' ? raw.side : true,
+    };
   } catch {
     return DEFAULT;
   }

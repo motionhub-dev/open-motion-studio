@@ -70,7 +70,11 @@ const positive = (value: unknown, name: string, fallback: number): number => {
 function info(module: FilmModule): FilmInfo {
   const film = module.film ?? {};
   if (typeof module.default !== 'function') throw new Error('film.tsx has no default export: export default the film component.');
-  const frame = { width: positive(film.width, 'width', 1920), height: positive(film.height, 'height', 1080), fps: positive(film.fps, 'fps', 30) };
+  const frame = {
+    width: positive(film.width, 'width', 1920),
+    height: positive(film.height, 'height', 1080),
+    fps: positive(film.fps, 'fps', 30),
+  };
   const write = 'its default export returns a <Film> of <Scene id duration>s, whose durations are its length';
   if ('seconds' in film) throw new Error(`film.tsx gives film.seconds, which a film no longer has: ${write}. Take seconds out of film.`);
   const outline = outlineOf(module.default, frame);
@@ -133,6 +137,7 @@ function Player({ Film, film }: { Film: ComponentType; film: FilmInfo }) {
   const [t, setT] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [scale, setScale] = useState(1);
+  const range = useRef<{ start: number; end: number } | null>(null);
   const tRef = useRef(0);
   tRef.current = t;
 
@@ -147,9 +152,25 @@ function Player({ Film, film }: { Film: ComponentType; film: FilmInfo }) {
     const onMessage = (event: MessageEvent<ToPreview>) => {
       if (event.source !== parent) return;
       const message = event.data;
-      if (message?.type === 'oms:play') setPlaying(true);
-      else if (message?.type === 'oms:pause') setPlaying(false);
-      else if (message?.type === 'oms:seek') setT(Math.max(0, Math.min(film.seconds, message.t)));
+      if (message?.type === 'oms:play') {
+        range.current = null;
+        setPlaying(true);
+      } else if (message?.type === 'oms:pause') setPlaying(false);
+      else if (message?.type === 'oms:seek') {
+        range.current = null;
+        setT(Math.max(0, Math.min(film.seconds, message.t)));
+      } else if (
+        message?.type === 'oms:play-range' &&
+        Number.isFinite(message.start) &&
+        Number.isFinite(message.end) &&
+        message.end > message.start
+      ) {
+        const start = Math.max(0, Math.min(film.seconds, message.start));
+        range.current = { start, end: Math.min(film.seconds, message.end) };
+        tRef.current = start;
+        setT(start);
+        setPlaying(true);
+      }
     };
     addEventListener('message', onMessage);
     return () => removeEventListener('message', onMessage);
@@ -163,8 +184,10 @@ function Player({ Film, film }: { Film: ComponentType; film: FilmInfo }) {
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
       const next = tRef.current + dt;
-      if (next >= film.seconds) {
-        setT(film.seconds);
+      const end = range.current?.end ?? film.seconds;
+      if (next >= end) {
+        setT(end);
+        range.current = null;
         setPlaying(false);
         return;
       }
@@ -217,7 +240,7 @@ async function start(): Promise<void> {
   const render = new URLSearchParams(location.search).get('render') === '1';
   const version = new URLSearchParams(location.search).get('v') ?? '';
   try {
-    await load(`build/film.js?v=${version}`);
+    await load(`build/film-${Number(version)}.js`);
     const module = (globalThis as { __omsFilm?: FilmModule }).__omsFilm;
     if (!module) throw new Error('The film did not load.');
     const film = info(module);

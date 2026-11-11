@@ -114,6 +114,18 @@ export interface Mark {
   element: PickedElement | null;
 }
 
+/** A source-aware reference, attached separately from the creator's words. */
+export interface Reference {
+  kind: 'scene' | 'layer' | 'line' | 'asset' | 'issue';
+  label: string;
+  scene?: string;
+  layer?: string;
+  line?: string;
+  time?: number;
+  path?: string;
+  detail?: string;
+}
+
 /** The most marks one message may carry. */
 export const MAX_MARKS = 5;
 
@@ -122,19 +134,64 @@ export type ProviderTest = { ok: true; ms: number; calledTool: boolean } | { ok:
 
 /** One entry of the conversation, as the assistant panel shows it. */
 export type ChatItem =
-  | { kind: 'user'; text: string; marks: number }
+  | { kind: 'user'; text: string; marks: number; refs?: Reference[]; version?: number }
   | { kind: 'assistant'; text: string }
   | { kind: 'tool'; id: string; name: string; summary: string; at?: number; result?: { ok: boolean; text: string; image?: string } }
   | { kind: 'notice'; text: string; error: boolean };
 
 /** What the agent reports while it works. */
 export type AgentEvent =
+  | { type: 'phase'; phase: 'thinking' | 'editing' | 'checking' | 'reviewing' }
   | { type: 'text'; text: string }
   | { type: 'tool'; id: string; name: string; summary: string; at?: number }
   | { type: 'tool-result'; id: string; ok: boolean; text: string; image?: string }
   | { type: 'end'; notice?: { text: string; error: boolean } };
 
+export interface Checkpoint {
+  restored?: boolean;
+  id: string;
+  label: string;
+  createdAt: string;
+  files: string[];
+}
+
+export interface FilmIssue {
+  id: string;
+  kind: 'build' | 'runtime' | 'layout' | 'export';
+  severity: 'error' | 'warning';
+  text: string;
+  time?: number;
+  scene?: string;
+}
+export interface FilmReview {
+  version: number;
+  issues: FilmIssue[];
+  checkedFrames: number;
+  film?: import('./preview').FilmInfo;
+}
+
+export interface Example {
+  id: string;
+  name: string;
+  line: string;
+  title: string;
+  seconds: number;
+}
+export interface Asset {
+  path: string;
+  name: string;
+  kind: 'image' | 'font';
+  bytes: number;
+}
+
 export interface StudioApi {
+  examples(): Promise<Example[]>;
+  openExample(id: string): Promise<Project>;
+  projectAssets(): Promise<Asset[]>;
+  importAssets(): Promise<Asset[]>;
+  reviewFilm(): Promise<FilmReview>;
+  history(): Promise<Checkpoint[]>;
+  restoreCheckpoint(id: string): Promise<void>;
   /** Recent projects, most recent first, without folders that no longer exist. */
   recentProjects(): Promise<Project[]>;
   /** Asks for a folder and opens it; null when the person cancels. */
@@ -161,6 +218,7 @@ export interface StudioApi {
   useMotion(id: string): Promise<ProjectMotion>;
   /** What a motion the open project holds says and has. */
   motionDetail(id: string): Promise<MotionDetail>;
+  motionReel(id: string): Promise<string | null>;
 
   /** The model providers and which one is active. */
   providers(): Promise<Providers>;
@@ -173,7 +231,7 @@ export interface StudioApi {
   /** The open project's conversation with the agent. */
   conversation(): Promise<ChatItem[]>;
   /** Sends a message, with the places marked on the picture, to the agent; resolves when its turn ends. */
-  sendMessage(text: string, marks: Mark[]): Promise<void>;
+  sendMessage(text: string, marks: Mark[], refs: Reference[], version: number): Promise<{ ok: boolean }>;
   /** Stops the agent's turn. */
   stopAgent(): Promise<void>;
   /** Forgets the open project's conversation. */
@@ -195,6 +253,13 @@ export interface StudioApi {
 
 /** Invoked channels, one per request method of StudioApi. */
 export const CHANNELS = {
+  examples: 'examples:list',
+  openExample: 'examples:open',
+  projectAssets: 'assets:list',
+  importAssets: 'assets:import',
+  reviewFilm: 'film:review',
+  history: 'project:history',
+  restoreCheckpoint: 'project:restore',
   recentProjects: 'project:recent',
   openProject: 'project:open',
   createProject: 'project:create',
@@ -206,6 +271,7 @@ export const CHANNELS = {
   searchMotions: 'motions:search',
   useMotion: 'motions:use',
   motionDetail: 'motions:detail',
+  motionReel: 'motions:reel',
   providers: 'providers:list',
   saveProvider: 'providers:save',
   removeProvider: 'providers:remove',

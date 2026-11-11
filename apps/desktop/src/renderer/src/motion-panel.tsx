@@ -2,9 +2,10 @@
 // components with their previews, its MOTION.md), and motionhub.dev's catalogue to take one
 // from. A project's own images are read through the preview scheme's /project/.
 
-import { ArrowLeft, Loader, Search } from 'lucide-react';
-import { type FormEvent, useEffect, useState } from 'react';
+import { ArrowLeft, Loader, Search, Play, X } from 'lucide-react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import type { CatalogueMotion, MotionDetail, ProjectMotion } from '../../shared/api';
+import { Dialog } from './dialog';
 import { Markdown } from './markdown';
 import { reason } from './reason';
 
@@ -86,13 +87,35 @@ function Page({ id, onBack }: { id: string; onBack(): void }) {
   );
 }
 
-export function MotionPanel() {
+export function MotionPanel({ disabled = false, onBusy }: { disabled?: boolean; onBusy(value: boolean): void }) {
   const [held, setHeld] = useState<ProjectMotion[]>([]);
   const [words, setWords] = useState('');
   const [found, setFound] = useState<CatalogueMotion[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
+  const [reel, setReel] = useState<{ name: string; src: string | null } | null>(null);
+  const [reelError, setReelError] = useState('');
+  const reelRequest = useRef(0);
+  useEffect(
+    () => () => {
+      reelRequest.current++;
+    },
+    [],
+  );
+  async function preview(motion: CatalogueMotion) {
+    const request = ++reelRequest.current;
+    setReel({ name: motion.name, src: null });
+    setReelError('');
+    try {
+      const src = await window.studio.motionReel(motion.id);
+      if (request !== reelRequest.current) return;
+      setReel({ name: motion.name, src });
+      if (!src) setReelError('This motion has no reel yet. Its poster and description are available in the catalogue.');
+    } catch (e) {
+      if (request === reelRequest.current) setReelError(reason(e));
+    }
+  }
 
   const refresh = () => window.studio.projectMotions().then(setHeld, (e) => setError(reason(e)));
   useEffect(() => void refresh(), []);
@@ -111,8 +134,10 @@ export function MotionPanel() {
   }
 
   async function use(id: string) {
+    if (disabled) return;
     setError(null);
     setBusy(id);
+    onBusy(true);
     try {
       await window.studio.useMotion(id);
       await refresh();
@@ -120,6 +145,7 @@ export function MotionPanel() {
       setError(reason(e));
     } finally {
       setBusy(null);
+      onBusy(false);
     }
   }
 
@@ -155,7 +181,13 @@ export function MotionPanel() {
 
           <span className="label">motionhub</span>
           <form className="search" onSubmit={search}>
-            <input type="search" value={words} placeholder="Search motions" aria-label="Search motions" onChange={(e) => setWords(e.target.value)} />
+            <input
+              type="search"
+              value={words}
+              placeholder="Search motions"
+              aria-label="Search motions"
+              onChange={(e) => setWords(e.target.value)}
+            />
             <button type="submit" className="button" aria-label="Search" disabled={busy !== null}>
               {busy === 'search' ? <Loader size={14} className="spin" /> : <Search size={14} />}
             </button>
@@ -169,18 +201,74 @@ export function MotionPanel() {
           <ul className="catalogue">
             {found?.map((m) => (
               <li key={m.id} className="motion-card" title={m.fit ? `For: ${m.fit}` : m.line}>
-                <Poster src={m.poster} label={m.name} />
+                <button className="motion-preview" aria-label={`Preview ${m.name}`} onClick={() => void preview(m)}>
+                  <Poster src={m.poster} label={m.name} />
+                  <span>
+                    <Play size={12} />
+                    Preview
+                  </span>
+                </button>
                 <span className="motion-title">
                   <strong>{m.name}</strong>
                   <span className="path mono">{m.id}</span>
                 </span>
-                <button type="button" className="button" disabled={busy !== null || holds.has(m.id)} onClick={() => use(m.id)}>
+                <button type="button" className="button" disabled={disabled || busy !== null || holds.has(m.id)} onClick={() => use(m.id)}>
                   {holds.has(m.id) ? 'In this project' : busy === m.id ? 'Taking…' : 'Use'}
                 </button>
               </li>
             ))}
           </ul>
         </div>
+      )}
+      {reel && (
+        <Dialog
+          label={`Preview ${reel.name}`}
+          onClose={() => {
+            reelRequest.current++;
+            setReel(null);
+          }}
+        >
+          <div className="panel-head">
+            <h2>{reel.name}</h2>
+            <button
+              className="icon-button"
+              aria-label="Close motion preview"
+              onClick={() => {
+                reelRequest.current++;
+                setReel(null);
+              }}
+            >
+              <X size={16} />
+            </button>
+          </div>
+          {reel.src?.startsWith('oms-preview://catalogue/') ? (
+            <iframe
+              className="reel-frame"
+              title={`${reel.name} reel`}
+              src={reel.src}
+              sandbox="allow-scripts"
+              allow="autoplay; fullscreen"
+              allowFullScreen
+            />
+          ) : reel.src ? (
+            <video
+              className="reel-player"
+              src={reel.src}
+              controls
+              autoPlay
+              muted
+              playsInline
+              onError={() => setReelError('This reel could not be played. Try another motion or retry later.')}
+            />
+          ) : (
+            !reelError && <p className="note">Loading the reel…</p>
+          )}
+          {reelError && (
+            <p className="note" role="status">
+              {reelError}
+            </p>
+          )}
+        </Dialog>
       )}
     </>
   );

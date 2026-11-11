@@ -57,6 +57,9 @@ One path, end to end, on macOS, Windows and Linux:
 5. Watch it play; mark a region or an element on the picture and ask for a change.
 6. Export an MP4.
 
-Left out of it: narration and text-to-speech, version history beyond git, a timeline that edits, more than one
+Local source checkpoints, structure navigation, read-only script lines, material import and sampled checks support this
+path; see [the creator’s workflow](../tech/creator-workflow.md).
+
+Left out of it: narration and text-to-speech, a timeline that edits, more than one
 composition per project, and auto-update. Whether narration ever belongs in the Studio is an open question in
 [the architecture](../tech/architecture.md#open-questions).
