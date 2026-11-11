@@ -3,6 +3,16 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-11 — An introduction page on GitHub Pages
+
+- **What:** `site/` is the Studio's introduction: what it is, the path from a folder to an MP4, what makes it different,
+  the film's format and how to get it, with screenshots of the app. `.github/workflows/pages.yml` publishes it to
+  `motionhub-dev.github.io/open-motion-studio` on a push to main that changes it.
+- **Why:** So the Studio has a page to point people at, beside its repository.
+- **Breaking:** None.
+- **Upgrade:** Set Settings → Pages → Source to GitHub Actions once, then run the Pages workflow or push to `site/`.
+- **Refs:** `site/index.html`, `docs/tech/architecture.md`.
+
 ## 2026-11-11 — An exported Remotion project takes @motionhub/remotion 0.4.0
 
 - **What:** A film exported as a Remotion project pins `@motionhub/remotion` 0.4.0 instead of 0.3.0. Its film's scenes

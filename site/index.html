@@ -1,0 +1,644 @@
+<!doctype html>
+<!-- Open Motion Studio's introduction, served by GitHub Pages from site/ (.github/workflows/pages.yml).
+     One static page and its screenshots, no build. Colours are docs/design.md's tokens; the screenshots are the
+     app itself, taken from the built Studio. -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Open Motion Studio</title>
+    <meta
+      name="description"
+      content="An open-source desktop app for making motion video with an agent: pick a motion, talk to the model of your choice, point at what to change, export an MP4."
+    />
+    <meta property="og:title" content="Open Motion Studio" />
+    <meta property="og:description" content="Make motion video with an agent, on your own model, on your own disk." />
+    <meta property="og:image" content="https://motionhub-dev.github.io/open-motion-studio/workspace.webp" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 20'%3E%3Ccircle cx='4' cy='16' r='2.5' fill='%23C4381F' opacity='.25'/%3E%3Ccircle cx='10' cy='11.5' r='3' fill='%23C4381F' opacity='.45'/%3E%3Ccircle cx='16' cy='8' r='3.5' fill='%23C4381F' opacity='.7'/%3E%3Ccircle cx='22' cy='5' r='4' fill='%23C4381F'/%3E%3C/svg%3E"
+    />
+    <style>
+      :root {
+        --bg: #f3eee4;
+        --sheet: #fbf8f2;
+        --s2: #eae2d4;
+        --line: #ddd3c3;
+        --text: #2a2622;
+        --text2: #4a453e;
+        --muted: #6b645a;
+        --stage: #2a2622;
+        --accent: #c4381f;
+        --annotate: #2b59c3;
+        --on-ink: #f1ebe0;
+        color-scheme: light dark;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #1a1714;
+          --sheet: #221e1a;
+          --s2: #2c2722;
+          --line: #3b342d;
+          --text: #f1ebe0;
+          --text2: #d3cabc;
+          --muted: #a89e90;
+          --stage: #0f0d0b;
+          --accent: #ff6a4d;
+          --annotate: #8fa8ff;
+          --on-ink: #f1ebe0;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text2);
+        font: 16px/1.6 Inter, system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      a {
+        color: var(--text);
+      }
+      code,
+      pre,
+      .mono {
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+      }
+      .wrap {
+        max-width: 1160px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+      h1,
+      h2,
+      h3 {
+        color: var(--text);
+        margin: 0;
+        letter-spacing: -0.02em;
+      }
+
+      /* top bar */
+      .bar {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        height: 72px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 600;
+        color: var(--text);
+        text-decoration: none;
+        font-size: 15px;
+      }
+      .bar nav {
+        margin-left: auto;
+        display: flex;
+        gap: 22px;
+        font-size: 14px;
+      }
+      .bar nav a {
+        color: var(--muted);
+        text-decoration: none;
+      }
+      .bar nav a:hover {
+        color: var(--text);
+      }
+
+      /* hero */
+      .hero {
+        padding: 72px 0 40px;
+        display: grid;
+        gap: 24px;
+        max-width: 820px;
+      }
+      .eyebrow {
+        font: 500 12px/1 'JetBrains Mono', ui-monospace, monospace;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .hero h1 {
+        font-size: clamp(40px, 6.4vw, 76px);
+        line-height: 1.02;
+        font-weight: 800;
+        letter-spacing: -0.035em;
+      }
+      .hero p {
+        font-size: clamp(17px, 2vw, 20px);
+        margin: 0;
+        max-width: 640px;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 8px;
+      }
+      .button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        height: 44px;
+        padding: 0 18px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 15px;
+        text-decoration: none;
+        border: 1px solid var(--line);
+        background: var(--sheet);
+        color: var(--text);
+      }
+      .button.primary {
+        background: var(--text);
+        border-color: var(--text);
+        color: var(--bg);
+      }
+      .button:focus-visible,
+      .bar nav a:focus-visible,
+      .brand:focus-visible {
+        outline: 2px solid var(--text);
+        outline-offset: 3px;
+      }
+
+      /* screenshots */
+      .shot {
+        margin: 0;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        background: var(--sheet);
+        box-shadow: 0 24px 60px -24px rgba(42, 38, 34, 0.35);
+      }
+      .shot img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .hero-shot {
+        margin: 16px 0 96px;
+      }
+      figcaption {
+        font-size: 13px;
+        color: var(--muted);
+        padding: 12px 16px;
+        border-top: 1px solid var(--line);
+      }
+
+      section {
+        padding: 72px 0;
+        border-top: 1px solid var(--line);
+      }
+      .section-head {
+        display: grid;
+        gap: 12px;
+        max-width: 680px;
+        margin-bottom: 40px;
+      }
+      .section-head h2 {
+        font-size: clamp(28px, 3.6vw, 40px);
+        line-height: 1.1;
+        font-weight: 700;
+      }
+      .section-head p {
+        margin: 0;
+      }
+
+      /* the path */
+      .steps {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        counter-reset: step;
+      }
+      .steps li {
+        background: var(--sheet);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 20px;
+        counter-increment: step;
+      }
+      .steps li::before {
+        content: counter(step, decimal-leading-zero);
+        display: block;
+        font: 500 12px/1 'JetBrains Mono', ui-monospace, monospace;
+        color: var(--muted);
+        margin-bottom: 14px;
+      }
+      .steps h3 {
+        font-size: 17px;
+        margin-bottom: 6px;
+      }
+      .steps p {
+        margin: 0;
+        font-size: 15px;
+      }
+      .mark {
+        color: var(--annotate);
+        font-weight: 600;
+      }
+      .export {
+        color: var(--accent);
+        font-weight: 600;
+      }
+
+      /* features */
+      .features {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1px;
+        background: var(--line);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .feature {
+        background: var(--sheet);
+        padding: 28px;
+      }
+      .feature h3 {
+        font-size: 18px;
+        margin-bottom: 8px;
+      }
+      .feature p {
+        margin: 0;
+        font-size: 15px;
+      }
+
+      /* split */
+      .split {
+        display: grid;
+        grid-template-columns: 5fr 7fr;
+        gap: 48px;
+        align-items: center;
+      }
+
+      /* instead of */
+      .instead {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 0;
+        border-top: 1px solid var(--line);
+      }
+      .instead li {
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        gap: 24px;
+        padding: 18px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .instead strong {
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      /* the film */
+      pre {
+        margin: 0;
+        background: var(--stage);
+        color: var(--on-ink);
+        border-radius: 12px;
+        padding: 24px;
+        font-size: 13.5px;
+        line-height: 1.7;
+        overflow-x: auto;
+      }
+      pre .c {
+        color: #a89e90;
+      }
+      pre .k {
+        color: #ff8a73;
+      }
+      pre .t {
+        color: #8fa8ff;
+      }
+      .note {
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      /* get it */
+      .get {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        align-items: start;
+      }
+      .get pre {
+        font-size: 13px;
+      }
+
+      footer {
+        border-top: 1px solid var(--line);
+        padding: 32px 0 48px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      footer .wrap {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 24px;
+        align-items: center;
+      }
+      footer a {
+        color: var(--muted);
+      }
+      footer .right {
+        margin-left: auto;
+      }
+
+      @media (max-width: 860px) {
+        .steps {
+          grid-template-columns: 1fr;
+        }
+        .features {
+          grid-template-columns: 1fr;
+        }
+        .split,
+        .get {
+          grid-template-columns: 1fr;
+          gap: 32px;
+        }
+        .instead li {
+          grid-template-columns: 1fr;
+          gap: 4px;
+        }
+        .bar nav a.optional {
+          display: none;
+        }
+        .hero {
+          padding-top: 40px;
+        }
+        section {
+          padding: 56px 0;
+        }
+        .hero-shot {
+          margin-bottom: 64px;
+        }
+        footer .right {
+          margin-left: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="wrap bar">
+      <a class="brand" href="./">
+        <svg width="26" height="20" viewBox="0 0 26 20" aria-hidden="true">
+          <circle cx="4" cy="16" r="2.5" fill="var(--accent)" opacity=".25" />
+          <circle cx="10" cy="11.5" r="3" fill="var(--accent)" opacity=".45" />
+          <circle cx="16" cy="8" r="3.5" fill="var(--accent)" opacity=".7" />
+          <circle cx="22" cy="5" r="4" fill="var(--accent)" />
+        </svg>
+        Open Motion Studio
+      </a>
+      <nav aria-label="Page">
+        <a class="optional" href="#how">How it works</a>
+        <a class="optional" href="#film">The film</a>
+        <a href="https://motionhub.dev">motionhub</a>
+        <a href="https://github.com/motionhub-dev/open-motion-studio">GitHub</a>
+      </nav>
+    </header>
+
+    <main>
+      <div class="wrap">
+        <div class="hero">
+          <span class="eyebrow">Open source · macOS, Windows, Linux</span>
+          <h1>Make motion video with an agent.</h1>
+          <p>
+            Open a folder, pick a motion from motionhub, and talk to an agent on the model you choose. Watch it play,
+            point at what is wrong on the picture, and export an MP4. No account, no credits, no server: your files stay
+            on your disk.
+          </p>
+          <div class="actions">
+            <a class="button primary" href="#get">Get it</a>
+            <a class="button" href="https://github.com/motionhub-dev/open-motion-studio">View the source</a>
+          </div>
+        </div>
+        <figure class="shot hero-shot">
+          <img
+            src="workspace.webp"
+            width="2880"
+            height="1746"
+            alt="The Studio's workspace: the assistant on the left, a film titled MAKE IT MOVE on the stage, its scenes and layers in the outline on the right, and the timeline below."
+          />
+          <figcaption>The workspace: the assistant, the stage, the film's outline and its scenes on the timeline.</figcaption>
+        </figure>
+      </div>
+
+      <section id="how">
+        <div class="wrap">
+          <div class="section-head">
+            <span class="eyebrow">How it works</span>
+            <h2>One path, from an empty folder to an MP4.</h2>
+          </div>
+          <ol class="steps">
+            <li>
+              <h3>Start a film</h3>
+              <p>Open a folder, start a new film, or begin from one of the starting points that play without a model.</p>
+            </li>
+            <li>
+              <h3>Pick a motion</h3>
+              <p>Search motionhub, watch a motion's reel, and use it: its look, its rules for the agent and its components.</p>
+            </li>
+            <li>
+              <h3>Bring your model</h3>
+              <p>Any server that speaks Anthropic Messages or OpenAI Chat Completions, in the cloud or on this computer.</p>
+            </li>
+            <li>
+              <h3>Ask for a video</h3>
+              <p>The agent writes the film, looks at stills of its own work, and fixes what it sees.</p>
+            </li>
+            <li>
+              <h3>Point at the picture</h3>
+              <p><span class="mark">Mark</span> a region or pick an element, and ask for the change right where it is.</p>
+            </li>
+            <li>
+              <h3>Export</h3>
+              <p><span class="export">Export</span> an MP4, or the film as a Remotion project to carry on elsewhere.</p>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section>
+        <div class="wrap">
+          <div class="section-head">
+            <span class="eyebrow">What makes it different</span>
+            <h2>The agent sees what you point at. You see what it looked at.</h2>
+          </div>
+          <div class="features">
+            <div class="feature">
+              <h3>Your model, your key</h3>
+              <p>
+                Choose the provider and pay it directly. Keys are sealed with your system's keychain, and calls go from
+                your machine to your provider, with no proxy of ours between.
+              </p>
+            </div>
+            <div class="feature">
+              <h3>Marks on the picture</h3>
+              <p>
+                Draw a box or pick an element on the stage. The agent receives where it is, which scene and layer it
+                belongs to, and a still of the moment.
+              </p>
+            </div>
+            <div class="feature">
+              <h3>Motions from motionhub</h3>
+              <p>
+                A motion is a look you can reuse: colour tokens, React components and the rules the agent follows. Use
+                one from the open catalogue, or none.
+              </p>
+            </div>
+            <div class="feature">
+              <h3>Scenes you can find</h3>
+              <p>
+                The outline and the timeline show the film's scenes, layers and lines. Play one scene, inspect a layer, or
+                bring it into the conversation.
+              </p>
+            </div>
+            <div class="feature">
+              <h3>Go back safely</h3>
+              <p>
+                Every agent turn is a checkpoint. Restore an earlier one without Git; your own edits are never silently
+                overwritten, and a restore can be undone.
+              </p>
+            </div>
+            <div class="feature">
+              <h3>Nothing else to install</h3>
+              <p>
+                The Studio builds, plays, photographs and exports the film itself, with the ffmpeg it ships. No Node, no
+                dev server, no render script.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="film">
+        <div class="wrap split">
+          <div class="section-head" style="margin: 0">
+            <span class="eyebrow">The film</span>
+            <h2>A film is a file you can read.</h2>
+            <p>
+              A film is <code>film.tsx</code>: scenes of layers, drawn by time with <code>@motionhub/runtime</code>. The
+              agent writes it, you can open it in any editor, and it lives in your folder next to its motions and media.
+            </p>
+            <p class="note">There is one engine, the Studio's own: nobody picks a renderer before making anything.</p>
+          </div>
+          <pre aria-label="An example film.tsx"><span class="k">import</span> { Film, Scene, Layer, Line } <span class="k">from</span> <span class="t">'@motionhub/runtime'</span>;
+
+<span class="k">export const</span> film = { width: 1920, height: 1080, fps: 30 };
+
+<span class="k">export default function</span> Main() {
+  <span class="k">return</span> (
+    &lt;Film&gt;
+      &lt;Scene id=<span class="t">"opening"</span> duration={4}&gt;
+        &lt;Layer id=<span class="t">"title"</span> x={120} y={360} w={1680} h={360}&gt;
+          &lt;Title text=<span class="t">"MAKE IT MOVE"</span> /&gt;
+        &lt;/Layer&gt;
+        &lt;Line id=<span class="t">"intro"</span>&gt;A few words. A little momentum.&lt;/Line&gt;
+      &lt;/Scene&gt;
+      &lt;Scene id=<span class="t">"closing"</span> duration={3}&gt;<span class="c">{/* … */}</span>&lt;/Scene&gt;
+    &lt;/Film&gt;
+  );
+}</pre>
+        </div>
+      </section>
+
+      <section>
+        <div class="wrap">
+          <div class="section-head">
+            <span class="eyebrow">What it is instead of</span>
+            <h2>The pieces you would otherwise wire together.</h2>
+          </div>
+          <ul class="instead">
+            <li>
+              <strong>A terminal agent beside a browser tab</strong>
+              <span>It works, but the agent cannot see what you point at, you cannot see what it looked at, and the model is the agent vendor's.</span>
+            </li>
+            <li>
+              <strong>A hosted AI video service</strong>
+              <span>No account, no credits and no server: the files stay on your disk and the calls go to your provider.</span>
+            </li>
+            <li>
+              <strong>A preview and render UI</strong>
+              <span>Remotion Studio and HyperFrames Studio preview and render; their agent, if any, lives outside them.</span>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section>
+        <div class="wrap split">
+          <div class="section-head" style="margin: 0">
+            <span class="eyebrow">Try it</span>
+            <h2>Start with something moving.</h2>
+            <p>
+              Three starting-point films open straight from the launcher. Play, inspect and export them before you have
+              set up a model; then ask the agent to make one yours.
+            </p>
+          </div>
+          <figure class="shot">
+            <img
+              src="launcher.webp"
+              width="2160"
+              height="1230"
+              alt="The launcher: Open folder and New film, and three starting-point films titled MAKE IT MOVE, MEET SOMETHING NEW and SMALL STEPS. BIG CHANGE."
+            />
+          </figure>
+        </div>
+      </section>
+
+      <section id="get">
+        <div class="wrap get">
+          <div class="section-head" style="margin: 0">
+            <span class="eyebrow">Get it</span>
+            <h2>Install, or build it yourself.</h2>
+            <p>
+              Installers for macOS, Windows and Linux will be published on
+              <a href="https://github.com/motionhub-dev/open-motion-studio/releases">the releases page</a>; until the
+              first release, run it from the source. You need Node (the version in <code>.nvmrc</code>) and pnpm.
+            </p>
+          </div>
+          <pre aria-label="Run from the source"><span class="c"># clone and run with hot reload</span>
+git clone https://github.com/motionhub-dev/open-motion-studio
+cd open-motion-studio
+corepack enable
+pnpm install
+pnpm dev
+
+<span class="c"># an installer for this platform</span>
+pnpm package</pre>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <span>Open Motion Studio is open source under the Apache-2.0 licence.</span>
+        <a href="https://github.com/motionhub-dev/open-motion-studio">GitHub</a>
+        <a href="https://motionhub.dev">motionhub.dev</a>
+        <a href="https://github.com/motionhub-dev/motions">The motion format</a>
+        <span class="right">Part of motionhub.</span>
+      </div>
+    </footer>
+  </body>
+</html>
