@@ -1,0 +1,10 @@
+// The introduction page, served at studio.motionhub.dev by a Worker that holds only these static files
+// (.github/workflows/site.yml deploys it). It has no code, no bindings and no other route.
+{
+  "name": "open-motion-studio-site",
+  "compatibility_date": "2026-11-06",
+  "assets": { "directory": "." },
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "studio.motionhub.dev", "custom_domain": true }]
+}
