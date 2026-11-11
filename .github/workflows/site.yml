@@ -1,0 +1,35 @@
+# The introduction page: site/ as it is (no build), deployed to studio.motionhub.dev as a static-assets Worker
+# (site/wrangler.jsonc) on a push to main that changes it. Needs the CLOUDFLARE_DEPLOY_TOKEN and
+# CLOUDFLARE_ACCOUNT_ID repository secrets of the Cloudflare account that holds motionhub.dev.
+name: Site
+
+on:
+  push:
+    branches: [main]
+    paths: ['site/**', '.github/workflows/site.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: site
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: site
+      url: https://studio.motionhub.dev/
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Deploy
+        working-directory: site
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_DEPLOY_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4.154.0 deploy

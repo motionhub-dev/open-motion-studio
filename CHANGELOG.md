@@ -3,15 +3,18 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
-## 2026-11-11 — An introduction page on GitHub Pages
+## 2026-11-11 — An introduction page at studio.motionhub.dev
 
 - **What:** `site/` is the Studio's introduction: what it is, the path from a folder to an MP4, what makes it different,
-  the film's format and how to get it, with screenshots of the app. `.github/workflows/pages.yml` publishes it to
-  `motionhub-dev.github.io/open-motion-studio` on a push to main that changes it.
-- **Why:** So the Studio has a page to point people at, beside its repository.
+  the film's format and how to get it, with screenshots of the app. A static-assets Worker serves it at
+  `studio.motionhub.dev` (`site/wrangler.jsonc`), deployed by `.github/workflows/site.yml` on a push to main that
+  changes it. It was first published on GitHub Pages, whose `motionhub-dev.github.io` address Chrome flags as a lookalike
+  of `motionhub.dev`; that workflow is gone.
+- **Why:** So the Studio has a page to point people at, under motionhub's own domain.
 - **Breaking:** None.
-- **Upgrade:** Set Settings → Pages → Source to GitHub Actions once, then run the Pages workflow or push to `site/`.
-- **Refs:** `site/index.html`, `docs/tech/architecture.md`.
+- **Upgrade:** Add the `CLOUDFLARE_DEPLOY_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository secrets (the account that holds
+  `motionhub.dev`), then run the Site workflow; turn GitHub Pages off in Settings → Pages.
+- **Refs:** `site/index.html`, `site/wrangler.jsonc`, `docs/tech/architecture.md`.
 
 ## 2026-11-11 — An exported Remotion project takes @motionhub/remotion 0.4.0
 

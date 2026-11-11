@@ -47,8 +47,8 @@ apps/desktop/
   src/preload/         the typed bridge the renderer calls (contextIsolation on, no Node in the renderer)
   src/shared/          what both sides agree on: StudioApi, and the preview bridge's messages
   src/renderer/        React UI
-site/                  the introduction page on GitHub Pages: static HTML and screenshots of the app, no build
-                       (.github/workflows/pages.yml publishes it on a push to main)
+site/                  the introduction page at studio.motionhub.dev: static HTML and screenshots of the app, no build,
+                       served by a static-assets Worker (wrangler.jsonc; .github/workflows/site.yml deploys it on a push to main)
 ```
 
 | Component | Owns | Never does |
