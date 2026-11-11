@@ -3,6 +3,16 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-11 — An exported Remotion project takes @motionhub/remotion 0.4.0
+
+- **What:** A film exported as a Remotion project pins `@motionhub/remotion` 0.4.0 instead of 0.3.0. Its film's scenes
+  play as before, and a component of a motion at `motion/0.6` can be given a composition whose props Remotion Studio
+  edits (`paramsSchema`, `paramDefaults`).
+- **Why:** 0.4.0 is the binding that reads a component's parameters (motionhub `motion/0.6`).
+- **Breaking:** None.
+- **Upgrade:** Nothing; a project exported before keeps 0.3.0 until its `package.json` is changed.
+- **Refs:** `apps/desktop/src/main/film/remotion-export.ts`.
+
 ## 2026-11-10 — Export a film as a Remotion project
 
 - **What:** The menu beside Export writes the film as a Remotion project into an empty folder: the project's files as

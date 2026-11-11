@@ -11,7 +11,7 @@ import { STATE_DIR, ignore, requireEmpty } from '../project';
 
 /** The versions an exported project starts from: Remotion 4, and the motionhub packages whose <Film> draws in its <Sequence>s. */
 export const REMOTION_DEPENDENCIES: Record<string, string> = {
-  '@motionhub/remotion': '0.3.0',
+  '@motionhub/remotion': '0.4.0',
   '@motionhub/runtime': '0.6.0',
   '@remotion/cli': '4.0.542',
   react: '19.3.1',
