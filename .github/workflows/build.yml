@@ -40,7 +40,14 @@ jobs:
           WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
       - name: Package
-        run: pnpm package
+        # An empty secret still arrives as an empty variable, and electron-builder reads an empty CSC_LINK as a path
+        # (the working directory: "not a file"), so each one that is empty is unset before packaging.
+        shell: bash
+        run: |
+          for name in CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID WIN_CSC_LINK WIN_CSC_KEY_PASSWORD; do
+            [ -n "${!name}" ] || unset "$name"
+          done
+          pnpm package
         env:
           # macOS: sign only when a certificate is configured, notarise only when Apple credentials are.
           CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' }}
