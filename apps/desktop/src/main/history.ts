@@ -145,12 +145,11 @@ export class ProjectHistory {
     const changes = new Map<string, Change>();
     for (const entry of entries.slice(index).reverse()) {
       for (const change of entry.changes) {
+        // Each file goes back to how it was before the earliest checkpoint restored. A hand edit made between two
+        // of them is not lost: the later checkpoint keeps it as its before, and this restoration can be undone.
         const existing = changes.get(change.path);
-        if (existing) {
-          if (existing.before !== change.after)
-            throw new Error(`${change.path} has edits between checkpoints. Restore a more recent checkpoint first.`);
-          existing.before = change.before;
-        } else changes.set(change.path, { ...change });
+        if (existing) existing.before = change.before;
+        else changes.set(change.path, { ...change });
       }
     }
     for (const change of changes.values()) {

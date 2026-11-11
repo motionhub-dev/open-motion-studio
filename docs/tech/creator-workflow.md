@@ -1,6 +1,6 @@
 # The creator's workflow
 
-> **Status:** Current · **Updated:** 2026-11-10
+> **Status:** Current · **Updated:** 2026-11-11
 
 How a creator explores a film, points at a change, checks the result and returns to earlier source.
 
@@ -20,7 +20,8 @@ that scoped playback. F focuses the film and restores the previous panel visibil
 
 The Motions panel can preview a catalogue reel before adding it. The main process caches same-host MP4 reels and HTML-player resources under
 `.motion-studio/reels/`, capped at 50 MB, and the renderer plays the local preview URL. HTML players use an opaque sandbox and a separate catalogue host/CSP
-that cannot fetch project files; all remote asset requests remain in the main process. A missing reel is explained.
+that cannot fetch project files; all remote asset requests remain in the main process. A film reaches only the film
+host, by fetch or by navigation, so it can never have the main process fetch a URL it wrote. A missing reel is explained.
 The Assets panel lists images and fonts under `media/`, imports through the native file picker, and attaches their
 project-relative paths to messages. Imports keep originals, avoid overwriting names, and are capped at 50 MB per file.
 A font is listed, not installed into the operating system. Audio, video playback and media generation are outside
@@ -46,8 +47,10 @@ source changes, and starts a fresh conversation. Restoration itself creates an i
 
 History does not snapshot the entire folder, installed Motion libraries or imported media. Unrelated files are never
 removed. New files created by the agent are removed only when restoring their creation, and can be brought back by
-restoring the inverse checkpoint. Every affected file is checked against recorded contents before restoration;
-external edits, intervening unrecorded edits and symlinks stop restoration rather than get overwritten. Source writes
+restoring the inverse checkpoint. Every affected file is checked against its last recorded contents before
+restoration; an external edit since then, or a symlink, stops restoration rather than get overwritten. A hand edit made
+between two restored turns leaves the file, but the later turn's checkpoint keeps it: undoing the restoration and
+restoring that turn brings it back. Source writes
 use sibling temporary files and rename. A failed multi-file restoration rolls back completed writes when their
 contents still match; recovery information is retained if another writer prevents rollback. This is not a filesystem
 transaction across a crash or concurrent external writers.

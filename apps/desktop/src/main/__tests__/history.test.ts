@@ -22,6 +22,20 @@ it('restores multiple agent turns and can undo the restoration', async () => {
   await first.restore((await first.list())[0]!.id);
   expect(await readFile(join(dir, 'film.tsx'), 'utf8')).toBe('three');
 });
+it('restores a checkpoint older than a hand edit, and keeps the hand edit recoverable', async () => {
+  await writeFile(join(dir, 'film.tsx'), 'original');
+  await new ProjectHistory(dir, 'First').write('film.tsx', 'one');
+  await writeFile(join(dir, 'film.tsx'), 'mine');
+  const second = new ProjectHistory(dir, 'Second');
+  await second.write('film.tsx', 'two');
+  const [turn2, turn1] = await second.list();
+  await second.restore(turn1!.id);
+  expect(await readFile(join(dir, 'film.tsx'), 'utf8')).toBe('original');
+  await second.restore((await second.list())[0]!.id); // undo the restoration
+  expect(await readFile(join(dir, 'film.tsx'), 'utf8')).toBe('two');
+  await second.restore(turn2!.id);
+  expect(await readFile(join(dir, 'film.tsx'), 'utf8')).toBe('mine');
+});
 it('preflights every file and never overwrites external edits or unrelated assets', async () => {
   const history = new ProjectHistory(dir, 'Title');
   await history.write('film.tsx', 'agent');

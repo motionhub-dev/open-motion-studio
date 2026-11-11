@@ -8,7 +8,7 @@ import { BrowserWindow, app, session, type NativeImage } from 'electron';
 import { spawn } from 'node:child_process';
 import { rename, rm } from 'node:fs/promises';
 import ffmpegStatic from 'ffmpeg-static';
-import { PREVIEW_URL, servePreview } from './preview';
+import { keepFilmsInPlace, PREVIEW_URL, servePreview } from './preview';
 import type { Box, FilmInfo } from '../../shared/preview';
 
 export const RENDER_PARTITION = 'oms-render';
@@ -78,6 +78,7 @@ export async function openStage(version: number): Promise<Stage> {
   });
   const contents = window.webContents;
   contents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  keepFilmsInPlace(contents);
   const failed = async (): Promise<string | null> => (await contents.executeJavaScript('window.__omsError ?? null')) as string | null;
   try {
     await timeout(contents.loadURL(`${PREVIEW_URL}?render=1&v=${version}`), 'Loading the film');

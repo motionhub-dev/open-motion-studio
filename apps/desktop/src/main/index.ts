@@ -18,7 +18,7 @@ import { ASSET_EXTENSIONS, importAssets, projectAssets } from './assets';
 import { reviewBuild } from './film/review';
 import { FILM_SKILL, startFilm, watchFilm } from './film/film';
 import { writeRemotionProject } from './film/remotion-export';
-import { registerPreviewScheme, servePreview } from './film/preview';
+import { keepFilmsInPlace, registerPreviewScheme, servePreview } from './film/preview';
 import { motionDetail, motionReel, projectMotions, searchMotions, useMotion } from './motions';
 import { STATE_DIR, createProject, isRecent, openProject, projectAt, recentProjects, rememberProject } from './project';
 import { describeReferences, readReferences } from './agent/references';
@@ -399,6 +399,7 @@ function createWindow(): void {
   window.webContents.on('will-navigate', (event, url) => {
     if (url !== window.webContents.getURL()) event.preventDefault();
   });
+  keepFilmsInPlace(window.webContents);
 
   const devServer = process.env.ELECTRON_RENDERER_URL;
   if (!app.isPackaged && devServer) void window.loadURL(devServer);

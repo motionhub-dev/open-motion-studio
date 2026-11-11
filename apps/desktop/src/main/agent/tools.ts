@@ -112,7 +112,8 @@ export function projectPath(dir: string, path: unknown, writing: boolean): strin
     throw new Error(`${path} is outside the project.`);
   }
   if (writing) {
-    const parts = inside.split(sep);
+    // lower-cased: macOS and Windows file systems ignore case, so .GIT/hooks is .git/hooks there
+    const parts = inside.toLowerCase().split(sep);
     if (inside === '' || SKIP.has(parts[0]!)) throw new Error(`${path} is not the agent's to write.`);
     if (parts[0] === 'motions' && parts[1]?.startsWith('@')) {
       throw new Error(`${path} is a motion as published on motionhub, which a project never changes: copy what you need into parts/.`);
