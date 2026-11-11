@@ -37,7 +37,10 @@ function visible(element: Element): boolean {
 
 function name(element: Element): string {
   const id = element.id ? `#${element.id}` : '';
-  const classes = [...element.classList].slice(0, 2).map((c) => `.${c}`).join('');
+  const classes = [...element.classList]
+    .slice(0, 2)
+    .map((c) => `.${c}`)
+    .join('');
   return `${element.tagName.toLowerCase()}${id}${classes}`;
 }
 
@@ -64,11 +67,13 @@ function describe(element: Element, frame: DOMRect): PickedElement & { box: Box 
       ([property, value]) => value && value !== DEFAULTS[property],
     ),
   );
+  const left = Math.max(0, Math.min(1, (r.left - frame.left) / frame.width));
+  const top = Math.max(0, Math.min(1, (r.top - frame.top) / frame.height));
   const box = {
-    x: (r.left - frame.left) / frame.width,
-    y: (r.top - frame.top) / frame.height,
-    w: r.width / frame.width,
-    h: r.height / frame.height,
+    x: left,
+    y: top,
+    w: Math.max(0, Math.min(1, (r.right - frame.left) / frame.width) - left),
+    h: Math.max(0, Math.min(1, (r.bottom - frame.top) / frame.height) - top),
   };
   // In a film of scenes, the <Scene> and <Layer> it is drawn in (the runtime marks their boxes).
   const scene = element.closest('[data-scene]')?.getAttribute('data-scene');

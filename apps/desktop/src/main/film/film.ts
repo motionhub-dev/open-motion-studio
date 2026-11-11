@@ -11,7 +11,7 @@
 
 import { type BuildContext, type Message, type Plugin, context, formatMessages } from 'esbuild';
 import { existsSync } from 'node:fs';
-import { writeFile } from 'node:fs/promises';
+import { copyFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { BuildResult } from '../../shared/api';
 import { STATE_DIR } from '../project';
@@ -28,7 +28,24 @@ export const buildDir = (dir: string): string => join(dir, STATE_DIR, 'build');
 const PROVIDED = ['react', 'react/jsx-runtime', '@motionhub/runtime'];
 
 /** The kinds of file a film may import, served beside its bundle. */
-const ASSETS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif', '.svg', '.woff', '.woff2', '.ttf', '.otf', '.mp4', '.webm', '.mp3', '.wav', '.ogg'];
+const ASSETS = [
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.gif',
+  '.webp',
+  '.avif',
+  '.svg',
+  '.woff',
+  '.woff2',
+  '.ttf',
+  '.otf',
+  '.mp4',
+  '.webm',
+  '.mp3',
+  '.wav',
+  '.ogg',
+];
 
 /** Whether a folder holds a film. */
 export const hasFilm = (dir: string): boolean => existsSync(join(dir, FILM));
@@ -81,14 +98,16 @@ export const formatted = async (messages: Message[]): Promise<string[]> =>
   messages.length ? await formatMessages(messages, { kind: 'error', color: false }) : [];
 
 /** An esbuild plugin that numbers each build and reports its errors to `onBuilt`. */
-export function reporter(onBuilt: (result: BuildResult) => void): Plugin {
+export function reporter(onBuilt: (result: BuildResult) => void, dir?: string): Plugin {
   let version = 0;
   return {
     name: 'report',
     setup(build) {
       build.onEnd(async (result) => {
         const errors = await formatted(result.errors);
-        onBuilt({ ok: errors.length === 0, version: ++version, errors });
+        version++;
+        if (!errors.length && dir) await copyFile(join(buildDir(dir), 'film.js'), join(buildDir(dir), `film-${version}.js`));
+        onBuilt({ ok: errors.length === 0, version, errors });
       });
     },
   };
@@ -117,7 +136,7 @@ export async function watchFilm(dir: string, onBuilt: (result: BuildResult) => v
     publicPath: 'build',
     sourcemap: 'inline',
     logLevel: 'silent',
-    plugins: [reporter(onBuilt)],
+    plugins: [reporter(onBuilt, dir)],
   });
   await ctx.watch();
   return ctx;

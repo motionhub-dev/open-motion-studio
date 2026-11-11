@@ -5,6 +5,7 @@
 
 import type Anthropic from '@anthropic-ai/sdk';
 import type { AgentEvent, ChatItem } from '../../shared/api';
+import { REFERENCES_TAG, transcriptReferences } from './references';
 import { MARKS_TAG } from './marks';
 import type { Call, MessageParam } from './model';
 import { type ToolContext, type ToolOutcome, runTool } from './tools';
@@ -55,7 +56,7 @@ function summary(name: string, input: unknown): string {
 }
 
 /** Runs one turn on `messages`, which it extends in place. Never throws: a failure ends the turn with a notice. */
-export async function runTurn(turn: Turn, failure: (error: unknown) => string): Promise<void> {
+export async function runTurn(turn: Turn, failure: (error: unknown) => string): Promise<{ ok: boolean }> {
   const { messages, emit, signal } = turn;
   messages.push({ role: 'user', content: turn.content });
   await turn.save(messages);
@@ -66,6 +67,7 @@ export async function runTurn(turn: Turn, failure: (error: unknown) => string): 
         notice = { text: `Stopped after ${MAX_CALLS} model calls. Send a message to let it go on.`, error: false };
         break;
       }
+      emit({ type: 'phase', phase: 'thinking' });
       const reply = await turn.call(messages, (text) => emit({ type: 'text', text }), signal);
       messages.push({ role: 'assistant', content: reply.content });
       await turn.save(messages);
@@ -94,6 +96,15 @@ export async function runTurn(turn: Turn, failure: (error: unknown) => string): 
           results.push({ id: use.id, outcome: { ok: false, content: 'Stopped by the person.', text: 'Stopped.' } });
           continue;
         }
+        emit({
+          type: 'phase',
+          phase:
+            use.name === 'check'
+              ? 'checking'
+              : use.name === 'write_file' || use.name === 'edit_file' || use.name === 'use_motion'
+                ? 'editing'
+                : 'reviewing',
+        });
         emit({ type: 'tool', id: use.id, name: use.name, summary: summary(use.name, use.input), at: moment(use.name, use.input) });
         const outcome = await runTool(use.name, use.input, turn.tools);
         emit({ type: 'tool-result', id: use.id, ok: outcome.ok, text: outcome.text, image: outcome.image });
@@ -116,6 +127,7 @@ export async function runTurn(turn: Turn, failure: (error: unknown) => string): 
   }
   if (signal.aborted && !notice) notice = { text: 'Stopped.', error: false };
   emit({ type: 'end', notice });
+  return { ok: !notice?.error && !signal.aborted };
 }
 
 /** The conversation as the assistant panel shows it: words, and the tools used between them. */
@@ -126,17 +138,31 @@ export function transcript(messages: MessageParam[]): ChatItem[] {
     const blocks = typeof message.content === 'string' ? [{ type: 'text' as const, text: message.content }] : (message.content ?? []);
     if (message.role === 'user' && !blocks.some((b) => b.type === 'tool_result')) {
       // The person's words, and how many places they marked: the rest of the message is for the agent.
-      const text = blocks.flatMap((b) => (b.type === 'text' && !b.text.startsWith(MARKS_TAG) && !/^Mark \d+:$/.test(b.text) ? [b.text] : [])).join('\n');
+      const text = blocks
+        .flatMap((b) =>
+          b.type === 'text' && !b.text.startsWith(MARKS_TAG) && !b.text.startsWith(REFERENCES_TAG) && !/^Mark \d+:$/.test(b.text)
+            ? [b.text]
+            : [],
+        )
+        .join('\n');
       const described = blocks.find((b) => b.type === 'text' && b.text.startsWith(MARKS_TAG));
       const marks = described?.type === 'text' ? described.text.split('\n').filter((line) => /^\d+\. /.test(line)).length : 0;
-      if (text.trim() || marks) items.push({ kind: 'user', text, marks });
+      const referenced = blocks.find((b) => b.type === 'text' && b.text.startsWith(REFERENCES_TAG));
+      const references = referenced?.type === 'text' ? transcriptReferences(referenced.text) : {};
+      if (text.trim() || marks || references.refs?.length) items.push({ kind: 'user', text, marks, ...references });
       continue;
     }
     for (const block of blocks) {
       if (block.type === 'text' && block.text.trim()) {
         items.push(message.role === 'user' ? { kind: 'user', text: block.text, marks: 0 } : { kind: 'assistant', text: block.text });
       } else if (block.type === 'tool_use') {
-        const item = { kind: 'tool' as const, id: block.id, name: block.name, summary: summary(block.name, block.input), at: moment(block.name, block.input) };
+        const item = {
+          kind: 'tool' as const,
+          id: block.id,
+          name: block.name,
+          summary: summary(block.name, block.input),
+          at: moment(block.name, block.input),
+        };
         tools.set(block.id, item);
         items.push(item);
       } else if (block.type === 'tool_result') {

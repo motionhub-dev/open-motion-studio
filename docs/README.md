@@ -10,6 +10,8 @@ Read [positioning](prd/positioning.md) first, then [the architecture](tech/archi
 
 - [Architecture](tech/architecture.md) — the components, the film, the agent, and the order of work.
 
+- [The creator’s workflow](tech/creator-workflow.md) — examples, structure, references, recovery, assets and checks.
+
 ## Decisions
 
 - [0001 The Studio is engine-neutral](adr/0001-the-studio-is-engine-neutral.md) — Remotion, HyperFrames or native; superseded by 0005.
@@ -18,3 +20,5 @@ Read [positioning](prd/positioning.md) first, then [the architecture](tech/archi
 - [0004 A film's code runs in a sandboxed frame on its own scheme](adr/0004-a-films-code-runs-in-a-sandboxed-frame-on-its-own-scheme.md) — how agent-written code is isolated from the app.
 - [0005 The Studio has one engine, its own](adr/0005-the-studio-has-one-engine-its-own.md) — a film is film.tsx on `@motionhub/runtime`; no adapters.
 - [0006 A film is scenes of layers and lines](adr/0006-a-film-is-scenes-of-layers-and-lines.md) — `<Film>` of scenes; no declared animation; read at run time.
+
+- [0007 Local checkpoints track agent source writes](adr/0007-local-checkpoints-track-agent-source-writes.md) — safe, local recovery without Git.

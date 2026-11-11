@@ -5,9 +5,11 @@
 // never changes a copy taken from the hub.
 
 import type { HubMotion } from '@motionhub/cli/hub';
+import { createHash, randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
-import { readFile, readdir } from 'node:fs/promises';
-import { join } from 'node:path';
+import { lstat, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import { extname, join } from 'node:path';
+import { STATE_DIR } from './project';
 import type { CatalogueMotion, MotionDetail, ProjectMotion } from '../shared/api';
 
 /** The CLI's library is ESM with top-level await, so the CommonJS main process imports it when first needed. */
@@ -28,8 +30,7 @@ async function rows(base: string): Promise<HubMotion[]> {
   return fetched;
 }
 
-const english = (text: Record<string, string> | undefined): string =>
-  text ? (text.en ?? Object.values(text)[0] ?? '') : '';
+const english = (text: Record<string, string> | undefined): string => (text ? (text.en ?? Object.values(text)[0] ?? '') : '');
 
 function row(motion: HubMotion, base: string): CatalogueMotion {
   return {
@@ -108,7 +109,9 @@ export async function motionDetail(dir: string, id: unknown): Promise<MotionDeta
   const motion = (await projectMotions(dir)).find((m) => m.id === id);
   if (!motion) throw new Error(`The project holds no motion ${String(id)}.`);
   const folder = join(dir, motion.path);
-  const tokens = (JSON.parse((await read(join(folder, 'tokens.json'))) || '{}') as { color?: Record<string, { $value?: { hex?: string } | string }> }).color ?? {};
+  const tokens =
+    (JSON.parse((await read(join(folder, 'tokens.json'))) || '{}') as { color?: Record<string, { $value?: { hex?: string } | string }> })
+      .color ?? {};
   const colors = Object.entries(tokens).flatMap(([name, token]) => {
     const value = typeof token?.$value === 'string' ? token.$value : token?.$value?.hex;
     return name.startsWith('$') || !value ? [] : [{ name, value }];
@@ -151,4 +154,109 @@ export async function projectMotions(dir: string): Promise<ProjectMotion[]> {
     } else ids.push(name);
   }
   return Promise.all(ids.sort().map((id) => described(dir, id, lock.motions[id]?.version ?? null)));
+}
+
+/** Public catalogue players run under a separate host and CSP, never the project's file surface. */
+const REEL_TYPES: Record<string, string> = {
+  '.js': 'text/javascript',
+  '.css': 'text/css',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.svg': 'image/svg+xml',
+  '.webp': 'image/webp',
+  '.mp4': 'video/mp4',
+};
+
+async function reelFolder(dir: string): Promise<string> {
+  const state = join(dir, STATE_DIR);
+  for (const folder of [state, join(state, 'reels')]) {
+    try {
+      if ((await lstat(folder)).isSymbolicLink()) throw new Error('The reel cache must not be a symbolic link.');
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+    }
+    await mkdir(folder, { recursive: true });
+  }
+  return join(state, 'reels');
+}
+
+async function readReelCache(file: string): Promise<Buffer | null> {
+  try {
+    const info = await lstat(file);
+    if (info.isSymbolicLink() || !info.isFile()) throw new Error('The reel cache file must be a regular file, not a symbolic link.');
+    return await readFile(file);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return null;
+    throw error;
+  }
+}
+
+async function downloadReel(url: URL): Promise<{ body: Buffer; type: string }> {
+  const response = await fetch(url, { signal: AbortSignal.timeout(30_000), redirect: 'error' });
+  if (!response.ok || !response.body) throw new Error(`The reel could not be loaded (${response.status}).`);
+  const type = response.headers.get('content-type')?.split(';')[0]?.trim() ?? '';
+  const chunks: Buffer[] = [];
+  let bytes = 0;
+  for await (const chunk of response.body) {
+    bytes += chunk.length;
+    if (bytes > 50 * 1024 * 1024) throw new Error('This reel resource is larger than 50 MB.');
+    chunks.push(Buffer.from(chunk));
+  }
+  return { body: Buffer.concat(chunks), type };
+}
+
+/** Only public player assets, with no query parameters, credentials or project files. */
+export async function catalogueResource(dir: string, path: string, base = HUB): Promise<{ body: Buffer; type: string }> {
+  const url = new URL(path, base);
+  if (url.origin !== new URL(base).origin || !url.pathname.startsWith('/play/') || url.search || url.hash)
+    throw new Error('Not a catalogue player resource.');
+  const extension = extname(url.pathname);
+  const type = url.pathname.endsWith('/') || extension === '.html' ? 'text/html' : REEL_TYPES[extension];
+  if (!type) throw new Error('Unsupported catalogue player resource.');
+  const folder = await reelFolder(dir);
+  const file = join(folder, `${createHash('sha256').update(url.href).digest('hex')}.resource`);
+  const cached = await readReelCache(file);
+  if (cached) return { body: cached, type };
+  const fetched = await downloadReel(url);
+  if (type !== 'text/html' && fetched.type === 'text/html') throw new Error('The catalogue returned a page instead of a player asset.');
+  if (type === 'text/html' && fetched.type !== 'text/html') throw new Error('The catalogue player page is unavailable.');
+  const temporary = `${file}.${randomUUID()}.tmp`;
+  try {
+    await writeFile(temporary, fetched.body, { flag: 'wx' });
+    await rename(temporary, file);
+  } finally {
+    await rm(temporary, { force: true });
+  }
+  return { body: fetched.body, type };
+}
+
+export async function motionReel(dir: string, id: unknown, base = HUB): Promise<string | null> {
+  const motion = (await rows(base)).find((m) => m.slug === id);
+  if (!motion) throw new Error('That motion is not in the catalogue.');
+  if (!motion.reel) return null;
+  const url = new URL(motion.reel, base);
+  if (url.origin !== new URL(base).origin) throw new Error('The motion reel must come from the catalogue host.');
+  if (url.pathname.startsWith('/play/')) {
+    await catalogueResource(dir, url.pathname, base);
+    return `oms-preview://catalogue${url.pathname}`;
+  }
+  const folder = await reelFolder(dir);
+  const name = `${createHash('sha256').update(`${motion.slug}:${motion.version}`).digest('hex')}.mp4`;
+  const file = join(folder, name);
+  const valid = (body: Buffer) => body.length >= 12 && body.subarray(4, 8).toString() === 'ftyp';
+  const cached = await readReelCache(file);
+  if (cached && valid(cached)) return `oms-preview://film/reels/${name}`;
+  const fetched = await downloadReel(url);
+  if (fetched.type === 'text/html' || !valid(fetched.body)) throw new Error('The catalogue returned a page instead of an MP4 reel.');
+  const temporary = `${file}.${randomUUID()}.tmp`;
+  try {
+    await writeFile(temporary, fetched.body, { flag: 'wx' });
+    await rename(temporary, file);
+  } finally {
+    await rm(temporary, { force: true });
+  }
+  return `oms-preview://film/reels/${name}`;
 }

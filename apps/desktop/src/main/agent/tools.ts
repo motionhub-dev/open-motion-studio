@@ -4,7 +4,7 @@
 // dependencies and git's.
 
 import type Anthropic from '@anthropic-ai/sdk';
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import type { BuildResult } from '../../shared/api';
 import type { SceneInfo } from '../../shared/preview';
@@ -17,6 +17,7 @@ type Block = Anthropic.Beta.BetaToolResultBlockParam['content'];
 /** What the tools reach in the app: the project, its build, and the catalogue. */
 export interface ToolContext {
   dir: string;
+  write?(path: string, content: string, expected?: string): Promise<void>;
   /** Builds the film now and returns the result. */
   build(): Promise<BuildResult>;
   /** Opens build `version` of the film for photographing. */
@@ -42,7 +43,8 @@ const SKIP = new Set(['node_modules', '.git', STATE_DIR]);
 export const TOOLS: Tool[] = [
   {
     name: 'list_files',
-    description: 'Lists the files under a folder of the project (the whole project by default), skipping node_modules, .git and the Studio\'s own state.',
+    description:
+      "Lists the files under a folder of the project (the whole project by default), skipping node_modules, .git and the Studio's own state.",
     input_schema: { type: 'object', properties: { path: { type: 'string', description: 'A folder, relative to the project.' } } },
   },
   {
@@ -52,7 +54,8 @@ export const TOOLS: Tool[] = [
   },
   {
     name: 'write_file',
-    description: 'Writes a whole text file of the project, creating its folders. Prefer edit_file for a small change to a file that exists.',
+    description:
+      'Writes a whole text file of the project, creating its folders. Prefer edit_file for a small change to a file that exists.',
     input_schema: {
       type: 'object',
       properties: { path: { type: 'string' }, content: { type: 'string', description: 'The whole file.' } },
@@ -70,7 +73,8 @@ export const TOOLS: Tool[] = [
   },
   {
     name: 'check',
-    description: 'Builds the film and plays it at its start, the middle of each scene and its end. Reports build errors and errors thrown while drawing, or, when it is sound, its length and size and each scene: its span, its layers\' boxes and its lines.',
+    description:
+      "Builds the film and plays it at its start, the middle of each scene and its end. Reports build errors and errors thrown while drawing, or, when it is sound, its length and size and each scene: its span, its layers' boxes and its lines.",
     input_schema: { type: 'object', properties: {} },
   },
   {
@@ -78,13 +82,14 @@ export const TOOLS: Tool[] = [
     description: 'Shows the frame of the film at a time, as a picture, so you can see what you drew.',
     input_schema: {
       type: 'object',
-      properties: { time: { type: 'number', description: 'Seconds from the film\'s start.' } },
+      properties: { time: { type: 'number', description: "Seconds from the film's start." } },
       required: ['time'],
     },
   },
   {
     name: 'search_motions',
-    description: 'Searches motionhub.dev\'s catalogue of motions (looks) by words in their names, lines, purpose and tags. No words lists them all.',
+    description:
+      "Searches motionhub.dev's catalogue of motions (looks) by words in their names, lines, purpose and tags. No words lists them all.",
     input_schema: { type: 'object', properties: { words: { type: 'string' } } },
   },
   {
@@ -92,7 +97,7 @@ export const TOOLS: Tool[] = [
     description: 'Takes a motion from motionhub.dev into the project, at motions/@<scope>/<slug>/.',
     input_schema: {
       type: 'object',
-      properties: { id: { type: 'string', description: 'The motion\'s id, @<scope>/<slug>.' } },
+      properties: { id: { type: 'string', description: "The motion's id, @<scope>/<slug>." } },
       required: ['id'],
     },
   },
@@ -114,6 +119,29 @@ export function projectPath(dir: string, path: unknown, writing: boolean): strin
     }
   }
   return full;
+}
+
+/** Refuse symlinks at every existing component, including the target itself. */
+export async function writablePath(dir: string, path: string): Promise<string> {
+  const file = projectPath(dir, path, true);
+  let at = dir;
+  for (const part of relative(dir, file).split(sep)) {
+    at = join(at, part);
+    try {
+      if ((await lstat(at)).isSymbolicLink()) throw new Error(`${path} passes through a symbolic link.`);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+    }
+  }
+  return file;
+}
+
+async function write(ctx: ToolContext, path: string, content: string, expected?: string): Promise<void> {
+  const file = await writablePath(ctx.dir, path);
+  if (ctx.write) return ctx.write(path, content, expected);
+  if (expected !== undefined && (await readFile(file, 'utf8')) !== expected) throw new Error(`${path} changed before editing.`);
+  await mkdir(dirname(file), { recursive: true });
+  await writeFile(file, content);
 }
 
 const text = (value: string, ok = true): ToolOutcome => ({ ok, content: value, text: value });
@@ -158,8 +186,7 @@ export async function runTool(name: string, raw: unknown, ctx: ToolContext): Pro
       }
       case 'write_file': {
         const file = projectPath(ctx.dir, input.path, true);
-        await mkdir(dirname(file), { recursive: true });
-        await writeFile(file, field(input, 'content'));
+        await write(ctx, relative(ctx.dir, file), field(input, 'content'));
         return text(`Wrote ${input.path}.`);
       }
       case 'edit_file': {
@@ -168,7 +195,11 @@ export async function runTool(name: string, raw: unknown, ctx: ToolContext): Pro
         const oldText = field(input, 'old_text');
         const count = oldText ? before.split(oldText).length - 1 : 0;
         if (count !== 1) return text(`old_text occurs ${count} times in ${input.path}; it must occur exactly once.`, false);
-        await writeFile(file, before.replace(oldText, () => field(input, 'new_text')));
+        await write(
+          ctx,
+          relative(ctx.dir, file),
+          before.replace(oldText, () => field(input, 'new_text')),
+        );
         return text(`Edited ${input.path}.`);
       }
       case 'check':

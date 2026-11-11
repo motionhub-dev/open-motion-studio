@@ -1,12 +1,12 @@
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { type Server, createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { motionDetail, projectMotions, searchMotions, useMotion } from '../motions';
+import { catalogueResource, motionDetail, motionReel, projectMotions, searchMotions, useMotion } from '../motions';
 
 const ID = '@someone/paper-cut';
 let root: string;
@@ -57,12 +57,17 @@ beforeAll(async () => {
         line: { en: 'Layers of cut paper.' },
         tags: ['paper', 'light'],
         poster: `/m/${ID}/poster.jpg`,
+        reel: `/m/${ID}/reel.mp4`,
         package: { url: `/m/${ID}/1.2.0.tgz`, sha256: createHash('sha256').update(tgzFile).digest('hex'), bytes: tgzFile.length },
       },
     ],
   };
   server = createServer((request, response) => {
     if (request.url === '/api/motions.json') response.end(JSON.stringify(index));
+    else if (request.url === `/m/${ID}/reel.mp4`)
+      response.writeHead(200, { 'content-type': 'video/mp4' }).end(Buffer.from('0000ftypisom0000'));
+    else if (request.url === '/play/demo/' || request.url === '/play/fallback.js')
+      response.writeHead(200, { 'content-type': 'text/html' }).end('<!doctype html><title>Demo reel</title>');
     else if (request.url === `/m/${ID}/1.2.0.tgz`) response.end(tgzFile);
     else response.writeHead(404).end();
   });
@@ -103,7 +108,8 @@ describe('useMotion', () => {
   });
 
   it('refuses anything but a motion id', async () => {
-    for (const id of ['paper-cut', '@a/../../etc', '@a/b/c', 42]) await expect(useMotion(project, id, base)).rejects.toThrow('Not a motion id');
+    for (const id of ['paper-cut', '@a/../../etc', '@a/b/c', 42])
+      await expect(useMotion(project, id, base)).rejects.toThrow('Not a motion id');
   });
 });
 
@@ -143,11 +149,42 @@ describe('motionDetail', () => {
       { name: 'ink', value: '#1B2A47' },
     ]);
     expect(detail.components).toEqual([
-      { file: 'gauge.tsx', name: 'Depth gauge', purpose: 'data', line: 'A card with a depth on it.', preview: 'motions/paper/react/previews/gauge.jpg' },
+      {
+        file: 'gauge.tsx',
+        name: 'Depth gauge',
+        purpose: 'data',
+        line: 'A card with a depth on it.',
+        preview: 'motions/paper/react/previews/gauge.jpg',
+      },
     ]);
   });
 
   it('answers only for a motion the project holds', async () => {
     await expect(motionDetail(project, '../../etc')).rejects.toThrow('holds no motion');
   });
+});
+
+it('caches a catalogue reel locally without exposing a remote media URL', async () => {
+  const url = await motionReel(project, ID, base);
+  expect(url).toMatch(/^oms-preview:\/\/film\/reels\/[a-f0-9]+\.mp4$/);
+  expect(await motionReel(project, ID, base)).toBe(url);
+  const file = join(project, '.motion-studio', 'reels', url!.split('/').pop()!);
+  expect(await readFile(file, 'utf8')).toBe('0000ftypisom0000');
+});
+
+it('serves HTML player resources separately and rejects pages disguised as assets', async () => {
+  expect((await catalogueResource(project, '/play/demo/', base)).type).toBe('text/html');
+  await expect(catalogueResource(project, '/play/fallback.js', base)).rejects.toThrow('page instead');
+  await expect(catalogueResource(project, '/project/film.tsx', base)).rejects.toThrow('Not a catalogue');
+  await expect(catalogueResource(project, 'https://elsewhere.test/play/demo/', base)).rejects.toThrow('Not a catalogue');
+});
+
+it('never follows a cached player resource symlink to an outside file', async () => {
+  const folder = join(project, '.motion-studio', 'reels');
+  await mkdir(folder, { recursive: true });
+  const outside = join(root, 'private.txt');
+  await writeFile(outside, 'private');
+  const filename = createHash('sha256').update(`${base}/play/demo/`).digest('hex') + '.resource';
+  await symlink(outside, join(folder, filename));
+  await expect(catalogueResource(project, '/play/demo/', base)).rejects.toThrow('symbolic link');
 });

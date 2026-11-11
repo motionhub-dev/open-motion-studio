@@ -2,16 +2,7 @@
 // StudioApi method. It is the only process that touches the disk; the renderer is
 // sandboxed and reaches it only through src/preload (CLAUDE.md, "Architecture rules").
 
-import {
-  BrowserWindow,
-  app,
-  dialog,
-  ipcMain,
-  session,
-  shell,
-  type OpenDialogOptions,
-  type WebContents,
-} from 'electron';
+import { BrowserWindow, app, dialog, ipcMain, session, shell, type OpenDialogOptions, type WebContents } from 'electron';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { CHANNELS, EVENTS, type AgentEvent, type BuildResult, type Project } from '../shared/api';
@@ -22,10 +13,15 @@ import { testProvider } from './agent/test-connection';
 import { TOOLS, type ToolContext } from './agent/tools';
 import type { BuildContext } from 'esbuild';
 import { exportFrames, openStage, serveRenders } from './film/capture';
+import { EXAMPLES, openExample } from './examples';
+import { ASSET_EXTENSIONS, importAssets, projectAssets } from './assets';
+import { reviewBuild } from './film/review';
 import { FILM_SKILL, startFilm, watchFilm } from './film/film';
 import { registerPreviewScheme, servePreview } from './film/preview';
-import { motionDetail, projectMotions, searchMotions, useMotion } from './motions';
+import { motionDetail, motionReel, projectMotions, searchMotions, useMotion } from './motions';
 import { STATE_DIR, createProject, isRecent, openProject, projectAt, recentProjects, rememberProject } from './project';
+import { describeReferences, readReferences } from './agent/references';
+import { ProjectHistory } from './history';
 import { ProviderStore } from './providers';
 
 const recentsFile = (): string => join(app.getPath('userData'), 'recent-projects.json');
@@ -81,6 +77,7 @@ async function closeOpen(): Promise<void> {
 
 /** Makes `project` the open one: remembers it and, for a film, starts bundling it. */
 async function use(project: Project): Promise<Project> {
+  if (working || exporting) throw new Error('Finish or stop the current task before switching projects.');
   await closeOpen();
   await rememberProject(recentsFile(), project);
   const state: NonNullable<typeof open> = { project, watcher: null, build: null, messages: null };
@@ -108,6 +105,33 @@ function requireOpen(): NonNullable<typeof open> {
 }
 
 function registerHandlers(): void {
+  ipcMain.handle(CHANNELS.examples, () => EXAMPLES);
+  ipcMain.handle(CHANNELS.openExample, async (_event, id: unknown) => {
+    if (working || exporting) throw new Error('Finish the current task before opening a starting point.');
+    return use(await openExample(app.getPath('userData'), id));
+  });
+  ipcMain.handle(CHANNELS.projectAssets, () => projectAssets(requireOpen().project.path));
+  ipcMain.handle(CHANNELS.importAssets, async (event) => {
+    const state = requireOpen();
+    if (working || exporting) throw new Error('Finish the current task before importing files.');
+    const controller = new AbortController();
+    working = controller;
+    try {
+      const window = BrowserWindow.fromWebContents(event.sender);
+      const options: OpenDialogOptions = {
+        title: 'Bring images and fonts into your film',
+        properties: ['openFile', 'multiSelections'],
+        filters: [{ name: 'Images and fonts', extensions: ASSET_EXTENSIONS }],
+      };
+      const chosen = window ? await dialog.showOpenDialog(window, options) : await dialog.showOpenDialog(options);
+      if (chosen.canceled) return projectAssets(state.project.path);
+      if (open !== state) throw new Error('The project was closed.');
+      return importAssets(state.project.path, chosen.filePaths);
+    } finally {
+      if (working === controller) working = null;
+    }
+  });
+
   ipcMain.handle(CHANNELS.recentProjects, () => recentProjects(recentsFile()));
 
   ipcMain.handle(CHANNELS.openProject, async (event) => {
@@ -141,13 +165,58 @@ function registerHandlers(): void {
     return use(projectAt(project.path));
   });
 
-  ipcMain.handle(CHANNELS.closeProject, () => closeOpen());
+  ipcMain.handle(CHANNELS.closeProject, () => {
+    if (working || exporting) throw new Error('Finish or stop the current task before closing the project.');
+    return closeOpen();
+  });
+
+  ipcMain.handle(CHANNELS.reviewFilm, async () => {
+    const state = requireOpen();
+    if (working || exporting) throw new Error('Wait for the current task to finish before checking.');
+    const controller = new AbortController();
+    working = controller;
+    try {
+      const result = await reviewBuild(state.build, openStage, controller.signal);
+      if (open !== state || state.build?.version !== result.version) throw new Error('The film changed during the check. Check it again.');
+      return result;
+    } finally {
+      if (working === controller) working = null;
+    }
+  });
+
+  ipcMain.handle(CHANNELS.history, () => new ProjectHistory(requireOpen().project.path).list());
+  ipcMain.handle(CHANNELS.restoreCheckpoint, async (_event, id: unknown) => {
+    const state = requireOpen();
+    if (typeof id !== 'string') throw new Error('Choose a checkpoint.');
+    if (working || exporting) throw new Error('Wait for the current task to finish before restoring.');
+    const controller = new AbortController();
+    working = controller;
+    try {
+      await new ProjectHistory(state.project.path).restore(id);
+      await state.watcher?.rebuild();
+      state.messages = [];
+      await saveConversation(state.project.path, []);
+    } finally {
+      if (working === controller) working = null;
+    }
+  });
 
   ipcMain.handle(CHANNELS.lastBuild, () => open?.build ?? null);
 
   ipcMain.handle(CHANNELS.projectMotions, () => projectMotions(requireOpen().project.path));
   ipcMain.handle(CHANNELS.searchMotions, (_event, words: unknown) => searchMotions(typeof words === 'string' ? words : ''));
-  ipcMain.handle(CHANNELS.useMotion, (_event, id: unknown) => useMotion(requireOpen().project.path, id));
+  ipcMain.handle(CHANNELS.useMotion, async (_event, id: unknown) => {
+    const state = requireOpen();
+    if (working || exporting) throw new Error('Finish the current task before adding a motion.');
+    const controller = new AbortController();
+    working = controller;
+    try {
+      return await useMotion(state.project.path, id);
+    } finally {
+      if (working === controller) working = null;
+    }
+  });
+  ipcMain.handle(CHANNELS.motionReel, (_event, id: unknown) => motionReel(requireOpen().project.path, id));
   ipcMain.handle(CHANNELS.motionDetail, (_event, id: unknown) => motionDetail(requireOpen().project.path, id));
 
   ipcMain.handle(CHANNELS.providers, () => providers().list());
@@ -165,40 +234,49 @@ function registerHandlers(): void {
   ipcMain.handle(CHANNELS.conversation, async () => (open ? transcript(await conversation(open)) : []));
   ipcMain.handle(CHANNELS.clearConversation, async () => {
     const state = requireOpen();
-    if (working) throw new Error('The agent is working: stop it first.');
+    if (working || exporting) throw new Error('Finish the current task before starting a new conversation.');
     state.messages = [];
     await saveConversation(state.project.path, []);
   });
   ipcMain.handle(CHANNELS.stopAgent, () => working?.abort());
-  ipcMain.handle(CHANNELS.sendMessage, async (_event, text: unknown, rawMarks: unknown) => {
+  ipcMain.handle(CHANNELS.sendMessage, async (_event, text: unknown, rawMarks: unknown, rawRefs: unknown, version: unknown) => {
     const state = requireOpen();
     const marks = readMarks(rawMarks);
-    if (typeof text !== 'string' || (!text.trim() && !marks.length)) throw new Error('Write a message first.');
+    const refs = readReferences(rawRefs);
+    if (
+      (marks.length || refs.some((r) => r.kind !== 'asset' && r.kind !== 'issue')) &&
+      (!state.build?.ok || version !== state.build.version)
+    ) {
+      throw new Error('The preview changed. Select your references again before sending.');
+    }
+    if (typeof text !== 'string' || (!text.trim() && !marks.length && !refs.length)) throw new Error('Write a message first.');
     if (!state.project.film) throw new Error('Start a film in this folder first.');
-    if (working) throw new Error('The agent is already working.');
-    const provider = await providers().active();
+    if (working || exporting) throw new Error('Wait for the current task to finish.');
     const controller = new AbortController();
     working = controller;
-    const dir = state.project.path;
-    const tools: ToolContext = {
-      dir,
-      build: async () => {
-        if (open !== state || !state.watcher) throw new Error('The project was closed.');
-        await state.watcher.rebuild();
-        return state.build!;
-      },
-      stage: (version) => openStage(version),
-      searchMotions: (words) => searchMotions(words),
-      useMotion: (id) => useMotion(dir, id),
-    };
     try {
+      const provider = await providers().active();
+      const dir = state.project.path;
+      const history = new ProjectHistory(dir, text.trim());
+      const tools: ToolContext = {
+        dir,
+        write: (path, content, expected) => history.write(path, content, expected),
+        build: async () => {
+          if (open !== state || !state.watcher) throw new Error('The project was closed.');
+          await state.watcher.rebuild();
+          return state.build!;
+        },
+        stage: (version) => openStage(version),
+        searchMotions: (words) => searchMotions(words),
+        useMotion: (id) => useMotion(dir, id),
+      };
       // A model that reads images sees each marked moment; any other reads the marks described.
       const content = await markedMessage(text.trim(), marks, provider.images !== false, async () => {
-        const result = await tools.build();
-        if (!result.ok) throw new Error('The film does not build, so its marked frames cannot be shown.');
-        return openStage(result.version);
+        if (!state.build?.ok || state.build.version !== version) throw new Error('The preview changed. Select your references again.');
+        return openStage(state.build.version);
       });
-      await runTurn(
+      if (refs.length) content.push({ type: 'text', text: describeReferences(refs, typeof version === 'number' ? version : 0) });
+      return await runTurn(
         {
           messages: await conversation(state),
           content,
@@ -213,31 +291,37 @@ function registerHandlers(): void {
         (error) => failure(error, provider.name),
       );
     } finally {
-      working = null;
+      if (working === controller) working = null;
     }
   });
 
   ipcMain.handle(CHANNELS.exportFilm, async (event) => {
     const state = requireOpen();
-    if (exporting) throw new Error('An export is already running.');
-    const { build } = state;
+    if (exporting || working) throw new Error('Wait for the current task to finish before exporting.');
+    const build = state.build;
     if (!state.project.film || !build?.ok) throw new Error('The film does not build: fix its errors before exporting.');
-    const window = BrowserWindow.fromWebContents(event.sender);
-    const options = {
-      title: 'Export the film',
-      defaultPath: join(state.project.path, `${state.project.name}.mp4`),
-      filters: [{ name: 'MP4 video', extensions: ['mp4'] }],
-    };
-    const result = window ? await dialog.showSaveDialog(window, options) : await dialog.showSaveDialog(options);
-    if (result.canceled || !result.filePath) return null;
     const controller = new AbortController();
     exporting = controller;
     try {
+      const review = await reviewBuild(build, openStage, controller.signal);
+      const errors = review.issues.filter((issue) => issue.severity === 'error');
+      if (errors.length) throw new Error(`Before exporting: ${errors.map((issue) => issue.text).join('\n')}`);
+      const window = BrowserWindow.fromWebContents(event.sender);
+      const options = {
+        title: 'Export the film',
+        defaultPath: join(state.project.path, `${state.project.name}.mp4`),
+        filters: [{ name: 'MP4 video', extensions: ['mp4'] }],
+      };
+      const result = window ? await dialog.showSaveDialog(window, options) : await dialog.showSaveDialog(options);
+      if (result.canceled || !result.filePath) return null;
+      controller.signal.throwIfAborted();
+      if (open !== state || state.build?.version !== build.version)
+        throw new Error('The film changed before export. Review the latest preview and export again.');
       await exportFrames(build.version, result.filePath, (done) => send(EVENTS.exportProgress, done), controller.signal);
       exported = result.filePath;
       return result.filePath;
     } finally {
-      exporting = null;
+      if (exporting === controller) exporting = null;
     }
   });
 

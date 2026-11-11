@@ -17,9 +17,26 @@ export const RENDER_PARTITION = 'oms-render';
 const FRAME_MS = 60_000;
 
 const VIDEO = [
-  '-vf', 'scale=out_color_matrix=bt709:out_range=tv,format=yuv420p',
-  '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv',
-  '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-profile:v', 'high', '-level:v', '4.1',
+  '-vf',
+  'scale=out_color_matrix=bt709:out_range=tv,format=yuv420p',
+  '-colorspace',
+  'bt709',
+  '-color_primaries',
+  'bt709',
+  '-color_trc',
+  'bt709',
+  '-color_range',
+  'tv',
+  '-c:v',
+  'libx264',
+  '-preset',
+  'medium',
+  '-crf',
+  '20',
+  '-profile:v',
+  'high',
+  '-level:v',
+  '4.1',
 ];
 
 /** The ffmpeg shipped with the app; inside a package it is unpacked beside the archive. */
@@ -61,8 +78,7 @@ export async function openStage(version: number): Promise<Stage> {
   });
   const contents = window.webContents;
   contents.setWindowOpenHandler(() => ({ action: 'deny' }));
-  const failed = async (): Promise<string | null> =>
-    (await contents.executeJavaScript('window.__omsError ?? null')) as string | null;
+  const failed = async (): Promise<string | null> => (await contents.executeJavaScript('window.__omsError ?? null')) as string | null;
   try {
     await timeout(contents.loadURL(`${PREVIEW_URL}?render=1&v=${version}`), 'Loading the film');
     const film = await timeout(
@@ -85,6 +101,10 @@ export async function openStage(version: number): Promise<Stage> {
       film,
       async frame(t, box) {
         await timeout(contents.executeJavaScript(`window.__oms.seek(${Number(t)})`), `The frame at ${t.toFixed(2)} s`);
+        await timeout(
+          contents.executeJavaScript('Promise.all([...document.images].map(image => image.decode())).then(() => true)'),
+          'Loading image assets',
+        );
         const error = await failed();
         if (error) throw new Error(error);
         if (box) {
@@ -94,9 +114,7 @@ export async function openStage(version: number): Promise<Stage> {
         const image = await contents.capturePage();
         if (box) await contents.executeJavaScript('window.__omsMark?.(null)');
         const size = image.getSize();
-        return size.width === film.width && size.height === film.height
-          ? image
-          : image.resize({ width: film.width, height: film.height });
+        return size.width === film.width && size.height === film.height ? image : image.resize({ width: film.width, height: film.height });
       },
       close: () => window.destroy(),
     };
@@ -117,12 +135,7 @@ const write = (stream: NodeJS.WritableStream, chunk: Buffer) =>
  * The video is written beside `file` and moved into place only when it is whole, so a failed
  * or cancelled export leaves whatever was at `file` untouched.
  */
-export async function exportFrames(
-  version: number,
-  file: string,
-  onProgress: (done: number) => void,
-  signal: AbortSignal,
-): Promise<void> {
+export async function exportFrames(version: number, file: string, onProgress: (done: number) => void, signal: AbortSignal): Promise<void> {
   const stage = await openStage(version);
   const partial = `${file}.partial.mp4`;
   try {
@@ -130,8 +143,29 @@ export async function exportFrames(
     const frames = Math.round(film.seconds * film.fps);
     const ffmpeg = spawn(
       ffmpegPath(),
-      ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(film.fps), '-c:v', 'png', '-i', '-',
-        ...VIDEO, '-g', String(film.fps * 2), '-r', String(film.fps), '-frames:v', String(frames), '-movflags', '+faststart', partial],
+      [
+        '-y',
+        '-loglevel',
+        'error',
+        '-f',
+        'image2pipe',
+        '-framerate',
+        String(film.fps),
+        '-c:v',
+        'png',
+        '-i',
+        '-',
+        ...VIDEO,
+        '-g',
+        String(film.fps * 2),
+        '-r',
+        String(film.fps),
+        '-frames:v',
+        String(frames),
+        '-movflags',
+        '+faststart',
+        partial,
+      ],
       { stdio: ['pipe', 'ignore', 'pipe'] },
     );
     let stderr = '';
@@ -141,7 +175,9 @@ export async function exportFrames(
     ffmpeg.stdin.on('error', () => {});
     const finished = new Promise<void>((done, fail) => {
       ffmpeg.on('error', fail);
-      ffmpeg.on('close', (code) => (code === 0 ? done() : fail(new Error(`ffmpeg exited ${code}: ${stderr.trim().split('\n').slice(-3).join(' / ')}`))));
+      ffmpeg.on('close', (code) =>
+        code === 0 ? done() : fail(new Error(`ffmpeg exited ${code}: ${stderr.trim().split('\n').slice(-3).join(' / ')}`)),
+      );
     });
     finished.catch(() => {});
     try {
