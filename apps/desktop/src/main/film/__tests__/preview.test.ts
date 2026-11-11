@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
@@ -34,7 +34,8 @@ it('keeps checkpoint state and external symlinks out of film code', async () => 
     expect(await safePreviewFile(project, 'inside', true)).toBeNull();
     expect(await safePreviewFile(project, 'outside', true)).toBeNull();
     await writeFile(join(project, 'logo.svg'), 'image');
-    expect(await safePreviewFile(project, 'logo.svg', true)).toBe(join(project, 'logo.svg'));
+    // the file as resolved: on macOS the temporary directory is itself behind a symlink (/var → /private/var)
+    expect(await safePreviewFile(project, 'logo.svg', true)).toBe(await realpath(join(project, 'logo.svg')));
   } finally {
     await rm(root, { recursive: true, force: true });
   }
