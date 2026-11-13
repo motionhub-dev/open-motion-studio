@@ -45,28 +45,43 @@ const NOTE_MAX_BYTES = 2 * 1024 * 1024;
 const NOTE_MAX_FILES = 5000;
 
 /**
- * The project's files an agent may write (as writablePath allows: not `.motion-studio/`, `node_modules/`, `.git/` or a
- * motion from motionhub), skipping symbolic links and files over NOTE_MAX_BYTES.
+ * A note of the project's files, skipping symbolic links and files over NOTE_MAX_BYTES: by default those an agent may
+ * write (as writablePath allows: not `.motion-studio/`, `node_modules/`, `.git/` or a motion from motionhub); with
+ * `published`, the motions from motionhub alone (`motions/@*`), which a project never changes.
  */
-export async function noteFiles(dir: string): Promise<FileNote> {
+export async function noteFiles(dir: string, published = false): Promise<FileNote> {
   const note: FileNote = new Map();
   const walk = async (folder: string): Promise<void> => {
-    for (const entry of await readdir(folder, { withFileTypes: true })) {
+    let entries;
+    try {
+      entries = await readdir(folder, { withFileTypes: true });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return;
+      throw error;
+    }
+    for (const entry of entries) {
       if (note.size >= NOTE_MAX_FILES) return;
       const full = join(folder, entry.name);
       const path = relative(dir, full).split(sep).join('/');
       const parts = path.toLowerCase().split('/');
-      if (['node_modules', '.git', STATE_DIR].includes(parts[0]!) || (parts[0] === 'motions' && parts[1]?.startsWith('@'))) continue;
+      const isPublished = parts[0] === 'motions' && !!parts[1]?.startsWith('@');
+      if (['node_modules', '.git', STATE_DIR].includes(parts[0]!) || (!published && isPublished)) continue;
+      if (published && parts.length >= 2 && !isPublished) continue;
       if (entry.isSymbolicLink()) continue;
       if (entry.isDirectory()) await walk(full);
-      else if (entry.isFile()) {
+      else if (entry.isFile() && (!published || isPublished)) {
         const bytes = await readFile(full);
         if (bytes.length <= NOTE_MAX_BYTES) note.set(path, bytes.toString('base64'));
       }
     }
   };
-  await walk(dir);
+  await walk(published ? join(dir, 'motions') : dir);
   return note;
+}
+
+/** Puts files back as a note had them (changesBetween that note and now): changed ones rewritten, new ones removed. */
+export async function putBack(dir: string, changes: Change[]): Promise<void> {
+  for (const change of changes) await replace(join(dir, ...change.path.split('/')), change.before);
 }
 
 /** What changed between two notes of the same project: each path whose bytes differ, with both, null for absent. */

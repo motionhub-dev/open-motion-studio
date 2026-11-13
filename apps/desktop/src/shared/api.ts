@@ -186,7 +186,9 @@ export type ChatItem =
       ask?: Question;
       result?: { ok: boolean; text: string; image?: string };
     }
-  | { kind: 'notice'; text: string; error: boolean };
+  | { kind: 'notice'; text: string; error: boolean }
+  /** What an outside agent asked leave to do, and what the person answered. */
+  | { kind: 'approval'; approval: Approval; answer?: ApprovalAnswer };
 
 /** What the agent reports while it works. */
 export type AgentEvent =
@@ -194,6 +196,9 @@ export type AgentEvent =
   | { type: 'text'; text: string }
   | { type: 'tool'; id: string; name: string; summary: string; at?: number; ask?: Question }
   | { type: 'tool-result'; id: string; ok: boolean; text: string; image?: string }
+  /** An outside agent asks leave to do something beyond its sandbox; the panel answers with answerApproval. */
+  | { type: 'approval'; approval: Approval }
+  | { type: 'approval-done'; id: string; answer: ApprovalAnswer }
   /** `checkpoint` is the History entry of the files the turn wrote, if it wrote any. */
   | { type: 'end'; notice?: { text: string; error: boolean }; checkpoint?: string };
 
@@ -213,10 +218,26 @@ export function applyEvent(items: ChatItem[], event: AgentEvent): ChatItem[] {
       );
     case 'end':
       return event.notice ? [...items, { kind: 'notice', ...event.notice }] : items;
+    case 'approval':
+      return [...items, { kind: 'approval', approval: event.approval }];
+    case 'approval-done':
+      return items.map((item) => (item.kind === 'approval' && item.approval.id === event.id ? { ...item, answer: event.answer } : item));
     default:
       return items;
   }
 }
+
+/** Something an outside agent (ADR 0008) asks leave to do beyond its sandbox: a command, files elsewhere, the network. */
+export interface Approval {
+  id: string;
+  title: string;
+  /** The command, the paths or the permissions, as the agent gave them. */
+  detail: string;
+  reason?: string;
+}
+
+/** The person's answer to an approval: this once, for the rest of the session, or not. */
+export type ApprovalAnswer = 'once' | 'session' | 'deny';
 
 /** A question the agent puts to the person, ending its turn: their answer is their next message. */
 export interface Question {
@@ -306,6 +327,8 @@ export interface StudioApi {
   providers(): Promise<Providers>;
   /** The open project's agent and the coding agents this machine has. */
   agents(): Promise<Agents>;
+  /** Answers what the project's outside agent asked leave to do. */
+  answerApproval(id: string, answer: ApprovalAnswer): Promise<void>;
   /** Makes the open project talk to this agent from its next message. */
   useAgent(kind: AgentKind): Promise<Agents>;
   saveProvider(input: ProviderInput): Promise<Providers>;
@@ -362,6 +385,7 @@ export const CHANNELS = {
   providers: 'providers:list',
   agents: 'agent:agents',
   useAgent: 'agent:use',
+  answerApproval: 'agent:answer-approval',
   saveProvider: 'providers:save',
   removeProvider: 'providers:remove',
   activateProvider: 'providers:activate',

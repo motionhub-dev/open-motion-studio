@@ -20,6 +20,7 @@ const api: StudioApi = {
   restoreCheckpoint: (id) => ipcRenderer.invoke(CHANNELS.restoreCheckpoint, id),
   agents: () => ipcRenderer.invoke(CHANNELS.agents),
   useAgent: (kind) => ipcRenderer.invoke(CHANNELS.useAgent, kind),
+  answerApproval: (id, answer) => ipcRenderer.invoke(CHANNELS.answerApproval, id, answer),
   undoTurn: (checkpoint) => ipcRenderer.invoke(CHANNELS.undoTurn, checkpoint),
   recentProjects: () => ipcRenderer.invoke(CHANNELS.recentProjects),
   openProject: () => ipcRenderer.invoke(CHANNELS.openProject),

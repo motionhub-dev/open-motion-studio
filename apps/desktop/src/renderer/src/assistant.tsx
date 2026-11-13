@@ -29,7 +29,8 @@ import { reason } from './reason';
 function apply(items: Row[], event: AgentEvent, before: FilmInfo | null): Row[] {
   // The turn rows stay where they are; the transcript's own items take the event as everywhere else.
   if (event.type === 'end') return [...applyEvent(items as ChatItem[], event), { kind: 'turn', before, checkpoint: event.checkpoint }];
-  if (event.type === 'tool-result') return items.map((item) => (item.kind === 'turn' ? item : applyEvent([item], event)[0]!));
+  if (event.type === 'tool-result' || event.type === 'approval-done')
+    return items.map((item) => (item.kind === 'turn' ? item : applyEvent([item], event)[0]!));
   const last = items[items.length - 1];
   if (event.type === 'text' && last?.kind === 'assistant') return [...items.slice(0, -1), ...applyEvent([last], event)];
   return [...items, ...applyEvent([], event)];
@@ -484,6 +485,38 @@ export function Assistant({
                 <Markdown source={item.text} />
               </div>
             );
+          if (item.kind === 'approval') {
+            const { approval, answer } = item;
+            const answered = answer ? { once: 'Allowed this once', session: 'Allowed for this session', deny: 'Denied' }[answer] : null;
+            return (
+              <div key={approval.id} className={`approval-card${answer === 'deny' ? ' denied' : ''}`} role="group" aria-label={approval.title}>
+                <span className="eyebrow">{approval.title}</span>
+                <pre>{approval.detail}</pre>
+                {approval.reason && <p>{approval.reason}</p>}
+                {answered || !working ? (
+                  <small>{answered ?? 'Not answered: the turn ended'}</small>
+                ) : (
+                  <div className="ask-options">
+                    {(['once', 'session', 'deny'] as const).map((choice) => (
+                      <button
+                        key={choice}
+                        type="button"
+                        className={`button${choice === 'deny' ? ' primary' : ''}`}
+                        disabled={!working}
+                        onClick={() =>
+                          window.studio
+                            .answerApproval(approval.id, choice)
+                            .catch((e) => setItems((items) => [...items, { kind: 'notice', text: reason(e), error: true }]))
+                        }
+                      >
+                        {choice === 'once' ? 'Allow once' : choice === 'session' ? 'Allow for this session' : 'Deny'}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          }
           return (
             <p key={i} className={`message ${item.kind}${item.kind === 'notice' && item.error ? ' error' : ''}`}>
                 {item.text}

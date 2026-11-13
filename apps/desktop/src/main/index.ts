@@ -11,20 +11,22 @@ import {
   type AgentEvent,
   type AgentKind,
   type Agents,
+  type Approval,
+  type ApprovalAnswer,
   type BuildResult,
   type ChatItem,
   type HarnessView,
   type Project,
   applyEvent,
 } from '../shared/api';
-import { type AppServer, codexInput, codexTurn, openThread, signedIn, startCodex } from './agent/codex';
+import { type AppServer, type Place, codexInput, codexTurn, openThread, signedIn, startCodex } from './agent/codex';
 import { type StudioMcp, startStudioMcp } from './agent/studio-mcp';
 import { findCodex } from './agent/harness';
 import { runTurn, transcript } from './agent/loop';
 import { markedMessage, readMarks } from './agent/marks';
 import { type MessageParam, caller, failure } from './agent/model';
 import { testProvider } from './agent/test-connection';
-import { TOOLS, type ToolContext } from './agent/tools';
+import { TOOLS, type ToolContext, projectPath } from './agent/tools';
 import type { BuildContext } from 'esbuild';
 import { exportFrames, openStage, serveRenders } from './film/capture';
 import { EXAMPLES, openExample } from './examples';
@@ -36,7 +38,9 @@ import { keepFilmsInPlace, registerPreviewScheme, servePreview } from './film/pr
 import { motionDetail, motionReel, projectMotions, searchMotions, useMotion } from './motions';
 import { STATE_DIR, createProject, isRecent, openProject, projectAt, recentProjects, rememberProject } from './project';
 import { describeReferences, filmSpans, readReferences } from './agent/references';
-import { ProjectHistory, changesBetween, noteFiles } from './history';
+import { ProjectHistory, changesBetween, noteFiles, putBack } from './history';
+import { randomUUID } from 'node:crypto';
+import { isAbsolute, relative, resolve } from 'node:path';
 import { ProviderStore } from './providers';
 
 const recentsFile = (): string => join(app.getPath('userData'), 'recent-projects.json');
@@ -202,6 +206,22 @@ function requireOpen(): NonNullable<typeof open> {
   return open;
 }
 
+/** What an outside agent is waiting for the person to answer, by approval id. */
+const approvals = new Map<string, (answer: ApprovalAnswer) => void>();
+
+/** Where a path Codex names is to the Studio: in the project's writable files, a protected part of it, or outside. */
+function placeIn(dir: string, path: string): Place {
+  const full = resolve(dir, path);
+  const inside = relative(dir, full);
+  if (!inside || inside.startsWith('..') || isAbsolute(inside)) return 'outside';
+  try {
+    projectPath(dir, inside, true);
+    return 'project';
+  } catch {
+    return 'protected';
+  }
+}
+
 /**
  * A turn on the person's own Codex (ADR 0008): its app-server started for the project if it is not, the project's
  * thread opened, the turn run with its events sent to the panel and kept as the panel's items, and the files that
@@ -248,8 +268,35 @@ async function outsideTurn(
     agent.thread = await openThread(state.codex, dir, FILM_SKILL, state.studioMcp.url, agent.thread);
     await saveAgent(dir, agent);
     const before = await noteFiles(dir);
-    outcome = await codexTurn(state.codex, agent.thread, codexInput(content), emit, signal);
+    const published = await noteFiles(dir, true);
+    // What Codex asks leave to do is a card in the panel; its answer comes back through answerApproval.
+    const ask = (asked: Omit<Approval, 'id'>) =>
+      new Promise<ApprovalAnswer>((done) => {
+        const id = randomUUID();
+        const answer = (choice: ApprovalAnswer) => {
+          if (!approvals.has(id)) return;
+          approvals.delete(id);
+          signal.removeEventListener('abort', deny);
+          emit({ type: 'approval-done', id, answer: choice });
+          done(choice);
+        };
+        const deny = () => answer('deny');
+        approvals.set(id, answer);
+        signal.addEventListener('abort', deny);
+        emit({ type: 'approval', approval: { id, ...asked } });
+        if (signal.aborted) deny();
+      });
+    outcome = await codexTurn(state.codex, agent.thread, codexInput(content), emit, signal, ask, (path) => placeIn(dir, path));
     checkpoint = await history.record(changesBetween(before, await noteFiles(dir)));
+    // A motion from motionhub is never changed in a project: whatever Codex changed there goes back, and is said.
+    const touched = changesBetween(published, await noteFiles(dir, true));
+    if (touched.length) {
+      await putBack(dir, touched);
+      emit({
+        type: 'text',
+        text: `\n\n*Codex changed ${touched.map((c) => c.path).join(', ')}, part of a motion from motionhub, which a project never changes. The Studio put ${touched.length === 1 ? 'it' : 'them'} back.*\n\n`,
+      });
+    }
   } catch (error) {
     outcome = { ok: false, notice: { text: error instanceof Error ? error.message : String(error), error: true } };
   }
@@ -425,6 +472,12 @@ function registerHandlers(): void {
   });
 
   ipcMain.handle(CHANNELS.agents, () => agents());
+  ipcMain.handle(CHANNELS.answerApproval, (_event, id: unknown, answer: unknown) => {
+    if (typeof id !== 'string' || (answer !== 'once' && answer !== 'session' && answer !== 'deny')) throw new Error('Not an answer.');
+    const waiting = approvals.get(id);
+    if (!waiting) throw new Error('That request was already answered, or its turn ended.');
+    waiting(answer);
+  });
   ipcMain.handle(CHANNELS.useAgent, async (_event, kind: unknown) => {
     const state = requireOpen();
     if (kind !== 'built-in' && kind !== 'codex') throw new Error('Choose an agent.');

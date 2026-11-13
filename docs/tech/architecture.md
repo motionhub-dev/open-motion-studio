@@ -191,10 +191,10 @@ Two protocols, every provider a preset over one of them:
 
 ## External agents
 
-> Under way ([ADR 0008](../adr/0008-the-persons-own-coding-agent.md)): Codex answers in the panel and works with the
-> Studio's tools (steps 7.1 and 7.2: `harness.ts` for Codex, `codex.ts`, `studio-mcp.ts`, the turn's checkpoint, the
-> agent in the composer). Not yet: approval cards (until then an approval Codex asks for outside its sandbox is
-> declined and said in the panel), protected paths put back, Claude Code.
+> Under way ([ADR 0008](../adr/0008-the-persons-own-coding-agent.md)): Codex answers in the panel, works with the
+> Studio's tools, and asks the person for what lies beyond its sandbox (steps 7.1 to 7.3: `harness.ts` for Codex,
+> `codex.ts`, `studio-mcp.ts`, the turn's checkpoint, approval cards, the agent in the composer). Not yet: Claude
+> Code, and each agent's state in Models.
 
 A project's agent is the built-in one (above) or the person's own Claude Code or Codex, each driven through its own
 headless protocol. Everything the person sees of the agent stays the same panel: their message with its marks and
@@ -235,6 +235,10 @@ src/main/agent/
   no shell or web tool. Codex's approval requests (`item/commandExecution/requestApproval`,
   `item/fileChange/requestApproval`, `item/permissions/requestApproval`) become cards in the assistant; a file change
   whose paths are all in the project's writable files is approved without one, one into a protected path is declined.
+  A card's answer (allow once, for the session, deny) goes back through `answerApproval`; Stop denies what is waiting.
+  A permission is granted only as asked, for the turn or the session. Codex's ask before each MCP tool call (an
+  elicitation) is granted for the Studio's own server and declined for any other. After the turn, the motions from
+  motionhub (`motions/@*/`) are compared with a note taken before it, and whatever changed there is put back and said.
 - **State** in `.motion-studio/agent.json`: which agent the project uses, its session or thread id, and the
   conversation as the panel showed it (the agent keeps its own record in its own form). Switching the agent starts
   the new one's conversation afresh; restoring History starts a new thread. Nothing of the person's sign-in is kept
@@ -305,7 +309,8 @@ Each step is a vertical slice that runs end to end before the next begins.
       Codex adds a session's MCP servers to the person's own, so the session switches each of theirs off by name
       (`config/read`), with apps and plugins; it asks before each MCP tool call, which the Studio grants for its own.
    3. *Its work is recoverable*: the turn's checkpoint from the files that changed, the change summary, Undo this turn,
-      protected paths declined, approval cards.
+      protected paths declined, approval cards. *Built*, the checkpoint with 7.1; driven on Codex 0.167.0: a command
+      that needed the network asked for, shown as a card, denied, and Codex told so.
    4. *Claude Code*: the same three on `claude -p` stream-json, its fixed tool set, and steering mid-turn.
    5. *Models shows each agent's state*: not installed (the vendor's install command), not signed in (Codex's sign-in
       from the Studio, Claude Code's command), too old or too new, ready; and a failed turn says which.

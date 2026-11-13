@@ -3,12 +3,13 @@
 // film's skill as its instructions and the Studio's MCP server (studio-mcp.ts) as its only one, the person's own
 // servers, apps and plugins switched off for the session, and runs a turn as the panel's events: the agent's words as
 // text, each command, file change or tool call as a tool line with its result, a Studio tool as the built-in agent's
-// would be. Codex works in its workspace sandbox; an approval it asks for is declined until the Studio can ask the
-// person (step 7.3). Nothing of the person's sign-in passes through here but whether there is one.
+// would be. Codex works in its workspace sandbox; what it asks leave to do beyond it is a card the person answers
+// (allow once, for the session, or deny), except an edit inside the project's writable files, allowed, and one into
+// a protected path, refused. Nothing of the person's sign-in passes through here but whether there is one.
 
 import { type ChildProcess, spawn } from 'node:child_process';
 import type Anthropic from '@anthropic-ai/sdk';
-import type { AgentEvent } from '../../shared/api';
+import type { AgentEvent, Approval, ApprovalAnswer } from '../../shared/api';
 import { moment, question, summary } from './loop';
 
 /** The name the Studio's MCP server has in a Codex session. */
@@ -292,6 +293,55 @@ export function turnEnd(params: Params): Notice | undefined {
   return undefined;
 }
 
+/** Where a path is to the Studio: in the project's writable files, in a protected part of it, or outside it. */
+export type Place = 'project' | 'protected' | 'outside';
+
+/**
+ * What the Studio does with a request Codex makes of it: answer it at once, or ask the person with a card and answer
+ * by what they choose. `paths` are the files of the file change it concerns (from that item's start), `place` says
+ * where a path is.
+ */
+export function approvalFor(
+  method: string,
+  params: Params,
+  paths: string[],
+  place: (path: string) => Place,
+): { answer: unknown } | { ask: Omit<Approval, 'id'>; answer(choice: ApprovalAnswer): unknown } {
+  const decision = (choice: ApprovalAnswer) => ({ decision: choice === 'once' ? 'accept' : choice === 'session' ? 'acceptForSession' : 'decline' });
+  const reason = typeof params.reason === 'string' && params.reason ? params.reason : undefined;
+  switch (method) {
+    case 'mcpServer/elicitation/request':
+      // Codex asks before each MCP tool call; the Studio's own tools need no one's leave. Any other server's is declined.
+      return { answer: { action: params.serverName === STUDIO_SERVER ? 'accept' : 'decline', content: params.serverName === STUDIO_SERVER ? {} : null, _meta: null } };
+    case 'item/commandExecution/requestApproval':
+      return {
+        ask: { title: 'Codex asks to run a command', detail: String(params.command ?? 'a command'), ...(reason ? { reason } : {}) },
+        answer: decision,
+      };
+    case 'item/fileChange/requestApproval': {
+      const where = paths.map(place);
+      if (where.includes('protected')) return { answer: { decision: 'decline' } };
+      if (where.length && where.every((w) => w === 'project')) return { answer: { decision: 'accept' } };
+      return {
+        ask: { title: 'Codex asks to change files outside the project', detail: paths.join('\n') || String(params.grantRoot ?? 'files'), ...(reason ? { reason } : {}) },
+        answer: decision,
+      };
+    }
+    case 'item/permissions/requestApproval': {
+      const wanted = (params.permissions ?? {}) as { network?: unknown; fileSystem?: unknown };
+      const granted = Object.fromEntries(Object.entries(wanted).filter(([, value]) => value !== null && value !== undefined));
+      const what = Object.keys(granted).map((k) => (k === 'network' ? 'the network' : 'more of the file system'));
+      return {
+        ask: { title: `Codex asks for ${what.join(' and ') || 'more permissions'}`, detail: JSON.stringify(granted, null, 1).slice(0, 600), ...(reason ? { reason } : {}) },
+        answer: (choice: ApprovalAnswer) =>
+          choice === 'deny' ? { permissions: {}, scope: 'turn' } : { permissions: granted, scope: choice === 'session' ? 'session' : 'turn' },
+      };
+    }
+    default:
+      throw new Error(`The Studio does not answer ${method}.`);
+  }
+}
+
 /**
  * Runs one turn on the project's thread: the person's input in, Codex's work out as the panel's events, until Codex
  * says the turn completed. Stopping interrupts the turn. Never throws: a failure ends the turn with a notice.
@@ -302,31 +352,30 @@ export async function codexTurn(
   input: Params[],
   emit: (event: AgentEvent) => void,
   signal: AbortSignal,
+  ask: (approval: Omit<Approval, 'id'>) => Promise<ApprovalAnswer>,
+  place: (path: string) => Place,
 ): Promise<{ ok: boolean; notice?: Notice }> {
   const reading: Reading = { said: false };
+  /** The files of each file change under way, by item, for the approval it may ask. */
+  const changing = new Map<string, string[]>();
   let turnId: string | undefined;
   let finished!: (notice: Notice | undefined) => void;
   const over = new Promise<Notice | undefined>((done) => (finished = done));
   const stop = server.on((method, params) => {
     if (params.threadId !== undefined && params.threadId !== thread) return;
     if (method === 'turn/started') turnId = (params.turn as { id?: string } | undefined)?.id ?? turnId;
+    const item = params.item as Item | undefined;
+    if (method === 'item/started' && item?.type === 'fileChange')
+      changing.set(item.id, ((item.changes as { path: string }[] | undefined) ?? []).map((c) => c.path));
     for (const event of translate(method, params, reading)) emit(event);
     if (method === 'turn/completed') finished(turnEnd(params));
     if (method === 'error' && params.willRetry === false) {
       finished({ text: (params.error as { message?: string } | undefined)?.message ?? 'Codex met an error.', error: true });
     }
   });
-  // Until the Studio can ask the person (step 7.3), what Codex asks leave to do outside its sandbox is declined, and said.
   server.answer = async (method, params) => {
-    // Codex asks before each MCP tool call (an elicitation of kind mcp_tool_call). A Studio tool needs no one's leave:
-    // the Studio is its server, and the call is the Studio's own.
-    if (method === 'mcpServer/elicitation/request' && params.serverName === STUDIO_SERVER) return { action: 'accept', content: {}, _meta: null };
-    if (method === 'item/commandExecution/requestApproval' || method === 'item/fileChange/requestApproval') {
-      const what = method.includes('command') ? `run ${String(params.command ?? 'a command')}` : 'change files outside the project';
-      emit({ type: 'text', text: `\n\n*Codex asked to ${what}; the Studio declined it.*\n\n` });
-      return { decision: 'decline' };
-    }
-    throw new Error(`The Studio does not answer ${method} yet.`);
+    const decided = approvalFor(method, params, changing.get(String(params.itemId)) ?? [], place);
+    return 'ask' in decided ? decided.answer(await ask(decided.ask)) : decided.answer;
   };
   const interrupt = () => {
     if (!turnId) return;

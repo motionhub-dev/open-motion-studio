@@ -69,8 +69,10 @@ The structure compared is scenes, their spans, layers' boxes and lines; what a l
 A project can talk to the person's own Codex instead of the built-in agent, from the agent picker in the composer
 (ADR 0008). Codex runs on its own sign-in and plan, in its workspace sandbox, and its work shows in the same panel:
 its words, its commands and file changes folded into lines, the turn's changes and its undo. Its turns are
-checkpointed from the files that changed, since it writes them itself; anything it asks to do outside the sandbox is
-declined for now, and the panel says so. It gets the Studio's own tools, checking the film, a still of it (shown in
+checkpointed from the files that changed, since it writes them itself. What it asks to do beyond its sandbox, a
+command, files outside the project, the network, is a card in the panel with Allow once, Allow for this session and
+Deny; an edit inside the project needs no card, one into a motion from motionhub is refused, and anything it changes
+in one anyway is put back after the turn and said. It gets the Studio's own tools, checking the film, a still of it (shown in
 the panel as the built-in agent's are), the motion catalogue and a question card, and none of the person's other
 Codex servers, apps or plugins. Each agent keeps its own conversation: switching starts the new one afresh.
 

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { STUDIO_SERVER, codexInput, sessionConfig, translate, turnEnd, type Reading } from '../codex';
+import { STUDIO_SERVER, approvalFor, codexInput, sessionConfig, translate, turnEnd, type Reading } from '../codex';
 import { atLeast, codexPlaces, versionOf } from '../harness';
 
 vi.mock('electron', () => ({}));
@@ -86,5 +86,37 @@ describe('a Codex session with the Studio’s tools', () => {
     expect(translate('item/started', { item: { type: 'mcpToolCall', id: 'q', server: STUDIO_SERVER, tool: 'ask_person', arguments: { question: 'Calm or bold?', options: ['Calm', 'Bold'] } } }, reading)[1]).toMatchObject({
       ask: { question: 'Calm or bold?', options: ['Calm', 'Bold'] },
     });
+  });
+});
+
+describe('what Codex asks leave to do', () => {
+  const place = (path: string) => (path.startsWith('motions/@') ? 'protected' : path.startsWith('../') ? 'outside' : 'project') as never;
+
+  it('grants the Studio’s own tools and declines any other server’s', () => {
+    expect(approvalFor('mcpServer/elicitation/request', { serverName: STUDIO_SERVER }, [], place)).toEqual({ answer: { action: 'accept', content: {}, _meta: null } });
+    expect(approvalFor('mcpServer/elicitation/request', { serverName: 'pencil' }, [], place)).toEqual({ answer: { action: 'decline', content: null, _meta: null } });
+  });
+
+  it('allows an edit in the project, refuses one into a protected path, and asks for one elsewhere', () => {
+    expect(approvalFor('item/fileChange/requestApproval', {}, ['film.tsx', 'parts/a.tsx'], place)).toEqual({ answer: { decision: 'accept' } });
+    expect(approvalFor('item/fileChange/requestApproval', {}, ['film.tsx', 'motions/@hub/look/tokens.json'], place)).toEqual({ answer: { decision: 'decline' } });
+    const elsewhere = approvalFor('item/fileChange/requestApproval', { reason: 'Shared styles' }, ['../shared/a.css'], place);
+    expect(elsewhere).toMatchObject({ ask: { title: 'Codex asks to change files outside the project', detail: '../shared/a.css', reason: 'Shared styles' } });
+    if (!('ask' in elsewhere)) throw new Error('should ask');
+    expect([elsewhere.answer('once'), elsewhere.answer('session'), elsewhere.answer('deny')]).toEqual([
+      { decision: 'accept' },
+      { decision: 'acceptForSession' },
+      { decision: 'decline' },
+    ]);
+  });
+
+  it('asks before a command, and grants permissions only as asked', () => {
+    expect(approvalFor('item/commandExecution/requestApproval', { command: 'npm install' }, [], place)).toMatchObject({ ask: { title: 'Codex asks to run a command', detail: 'npm install' } });
+    const network = approvalFor('item/permissions/requestApproval', { permissions: { network: { enabled: true }, fileSystem: null } }, [], place);
+    if (!('ask' in network)) throw new Error('should ask');
+    expect(network.ask.title).toBe('Codex asks for the network');
+    expect(network.answer('session')).toEqual({ permissions: { network: { enabled: true } }, scope: 'session' });
+    expect(network.answer('deny')).toEqual({ permissions: {}, scope: 'turn' });
+    expect(() => approvalFor('attestation/generate', {}, [], place)).toThrow();
   });
 });

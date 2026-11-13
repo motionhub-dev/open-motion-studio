@@ -3173,7 +3173,10 @@ kbd {
 /* The agent picker in the composer: the built-in agent on its model, or the person's own Codex (ADR 0008). */
 .agent-picker {
   position: relative;
-  min-width: 0;
+  /* It keeps its width beside Send (and Stop), cutting a long model name short only at its own limit. */
+  flex: 0 1 auto;
+  min-width: 4.5em;
+  max-width: calc(100% - 44px);
   display: inline-flex;
 }
 
@@ -3186,4 +3189,43 @@ kbd {
   bottom: calc(100% + 6px);
   right: auto;
   left: -4px;
+}
+
+/* What an outside agent asks leave to do (ADR 0008), answered in the panel. */
+.approval-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--bad);
+  border-radius: var(--r-button);
+  background: var(--sheet);
+}
+
+.approval-card pre {
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: var(--r-control);
+  background: var(--bg);
+  font: 11px/1.5 var(--font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.approval-card p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text2);
+}
+
+.approval-card small {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.approval-card.denied {
+  border-left-color: var(--line);
 }

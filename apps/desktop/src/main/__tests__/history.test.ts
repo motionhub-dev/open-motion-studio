@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promis
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ProjectHistory, changesBetween, noteFiles } from '../history';
+import { ProjectHistory, changesBetween, noteFiles, putBack } from '../history';
 vi.mock('electron', () => ({}));
 let dir: string;
 beforeEach(async () => {
@@ -101,4 +101,20 @@ describe('an outside agent’s turn', () => {
     expect(await readFile(join(dir, 'old.txt'), 'utf8')).toBe('gone soon');
     await expect(readFile(join(dir, 'new.txt'))).rejects.toThrow();
   });
+});
+
+it('notes the motions from motionhub on their own, and puts back what changed in them', async () => {
+  await mkdir(join(dir, 'motions', '@hub', 'look'), { recursive: true });
+  await mkdir(join(dir, 'motions', 'mine'), { recursive: true });
+  await writeFile(join(dir, 'motions', '@hub', 'look', 'tokens.json'), '{"a":1}');
+  await writeFile(join(dir, 'motions', 'mine', 'tokens.json'), 'own');
+  await writeFile(join(dir, 'film.tsx'), 'film');
+  const published = await noteFiles(dir, true);
+  expect([...published.keys()]).toEqual(['motions/@hub/look/tokens.json']);
+  await writeFile(join(dir, 'motions', '@hub', 'look', 'tokens.json'), '{"a":2}');
+  await writeFile(join(dir, 'motions', '@hub', 'look', 'extra.css'), 'x');
+  await putBack(dir, changesBetween(published, await noteFiles(dir, true)));
+  expect(await readFile(join(dir, 'motions', '@hub', 'look', 'tokens.json'), 'utf8')).toBe('{"a":1}');
+  await expect(readFile(join(dir, 'motions', '@hub', 'look', 'extra.css'))).rejects.toThrow();
+  expect(await readFile(join(dir, 'motions', 'mine', 'tokens.json'), 'utf8')).toBe('own');
 });

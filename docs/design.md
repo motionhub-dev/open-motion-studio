@@ -106,7 +106,9 @@ recent projects with their path (`~` for the home folder), and a banner while no
   it. Stills sit beside it as a grid of thumbnails; clicking one seeks the stage to its moment and opens it large on a
   dimmed ground (Esc closes). A turn's end is a paper card with a green (`--good`) edge listing what changed as small
   pills (a removed one struck through) and Undo this turn; a question the agent asks is a sheet card with an ink edge
-  and its answers as buttons, the recommended one primary. A message waiting for the turn sits above the composer on a
+  and its answers as buttons, the recommended one primary. What an outside agent asks leave to do is a sheet card with
+  a `--bad` edge: its title, the command or paths in mono, its reason, and Allow once, Allow for this session and Deny,
+  Deny primary; once answered, the answer in muted words. A message waiting for the turn sits above the composer on a
   dashed outline. Items the last turn changed are ringed in green in the outline and the timeline for four seconds, and
   the stage says the agent is working in a dark pill over its top left. The composer grows with its text up to 180px; Enter
   sends, Shift+Enter breaks the line. The agent picker sits inside the composer below the text, opposite Send;
