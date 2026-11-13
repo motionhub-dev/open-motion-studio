@@ -75,7 +75,7 @@ export function App() {
     <main className="launcher">
       <div className="launcher-inner">
         <div className="launcher-head">
-          <Logo size={44} />
+          <Logo size={64} />
           <div>
             <h1>Open Motion Studio</h1>
             <p className="muted">Make motion video with an agent, in a motion from motionhub.</p>

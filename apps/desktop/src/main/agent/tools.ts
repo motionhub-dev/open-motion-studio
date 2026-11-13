@@ -6,7 +6,7 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import { lstat, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { dirname, join, relative, resolve, sep } from 'node:path';
-import type { BuildResult } from '../../shared/api';
+import type { BuildResult, Question } from '../../shared/api';
 import type { SceneInfo } from '../../shared/preview';
 import type { Stage } from '../film/capture';
 import { STATE_DIR } from '../project';
@@ -93,6 +93,19 @@ export const TOOLS: Tool[] = [
     input_schema: { type: 'object', properties: { words: { type: 'string' } } },
   },
   {
+    name: 'ask_person',
+    description:
+      'Asks the person one question and ends your turn: their answer comes as their next message. Use it when a choice is theirs (a direction, a missing fact) and guessing would waste their time; offer up to four short answers, the one you recommend first.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        question: { type: 'string', description: 'One short question.' },
+        options: { type: 'array', items: { type: 'string' }, description: 'Up to four short answers, the recommended first.' },
+      },
+      required: ['question'],
+    },
+  },
+  {
     name: 'use_motion',
     description: 'Takes a motion from motionhub.dev into the project, at motions/@<scope>/<slug>/.',
     input_schema: {
@@ -168,6 +181,14 @@ const field = (input: Record<string, unknown>, name: string): string => {
   return value;
 };
 
+/** The question an ask_person call puts, checked: one question, at most four short answers. */
+export function askOf(input: unknown): Question {
+  const raw = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
+  if (typeof raw.question !== 'string' || !raw.question.trim()) throw new Error('A question is needed.');
+  const options = Array.isArray(raw.options) ? raw.options.filter((o): o is string => typeof o === 'string' && !!o.trim()) : [];
+  return { question: raw.question.trim().slice(0, 300), options: options.slice(0, 4).map((o) => o.trim().slice(0, 120)) };
+}
+
 /** Runs one tool call; an error the model can act on comes back as a failed outcome, not a throw. */
 export async function runTool(name: string, raw: unknown, ctx: ToolContext): Promise<ToolOutcome> {
   const input = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
@@ -211,6 +232,10 @@ export async function runTool(name: string, raw: unknown, ctx: ToolContext): Pro
         const found = await ctx.searchMotions(typeof input.words === 'string' ? input.words : '');
         if (!found.length) return text('No motion has all of those words.');
         return text(found.map((m) => `${m.id}: ${m.name}. ${m.line}${m.fit ? ` For: ${m.fit}` : ''}`).join('\n'));
+      }
+      case 'ask_person': {
+        askOf(input);
+        return text('The question is shown to the person. Their answer comes as their next message; end your turn now.');
       }
       case 'use_motion': {
         const used = await ctx.useMotion(field(input, 'id'));

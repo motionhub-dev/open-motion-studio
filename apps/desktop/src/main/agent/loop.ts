@@ -4,11 +4,11 @@
 // it can be sent back exactly as it was (thinking blocks included).
 
 import type Anthropic from '@anthropic-ai/sdk';
-import type { AgentEvent, ChatItem } from '../../shared/api';
+import type { AgentEvent, ChatItem, Question } from '../../shared/api';
 import { REFERENCES_TAG, transcriptReferences } from './references';
-import { MARKS_TAG } from './marks';
+import { MARKS_TAG, transcriptMarks } from './marks';
 import type { Call, MessageParam } from './model';
-import { type ToolContext, type ToolOutcome, runTool } from './tools';
+import { type ToolContext, type ToolOutcome, askOf, runTool } from './tools';
 
 /** Model calls in one turn before the agent is stopped. */
 export const MAX_CALLS = 40;
@@ -23,15 +23,27 @@ export interface Turn {
   /** Called after every step, to keep the conversation on disk. */
   save(messages: MessageParam[]): Promise<void>;
   signal: AbortSignal;
+  /** The History entry of the files the turn wrote, if it wrote any. */
+  checkpoint?(): string | undefined;
+}
+
+/** The question an ask_person call puts, or nothing for any other call or one that does not read. */
+export function question(name: string, input: unknown): Question | undefined {
+  if (name !== 'ask_person') return undefined;
+  try {
+    return askOf(input);
+  } catch {
+    return undefined;
+  }
 }
 
 /** The moment a still was taken at, so the person can go to it. */
-function moment(name: string, input: unknown): number | undefined {
+export function moment(name: string, input: unknown): number | undefined {
   const time = (input as { time?: unknown } | null)?.time;
   return name === 'still' && typeof time === 'number' ? time : undefined;
 }
 
-function summary(name: string, input: unknown): string {
+export function summary(name: string, input: unknown): string {
   const i = (input ?? {}) as Record<string, unknown>;
   switch (name) {
     case 'list_files':
@@ -50,6 +62,8 @@ function summary(name: string, input: unknown): string {
       return `Searching motionhub for "${typeof i.words === 'string' ? i.words : ''}"`;
     case 'use_motion':
       return `Taking ${String(i.id)}`;
+    case 'ask_person':
+      return 'Asking you';
     default:
       return name;
   }
@@ -105,7 +119,14 @@ export async function runTurn(turn: Turn, failure: (error: unknown) => string): 
                 ? 'editing'
                 : 'reviewing',
         });
-        emit({ type: 'tool', id: use.id, name: use.name, summary: summary(use.name, use.input), at: moment(use.name, use.input) });
+        emit({
+          type: 'tool',
+          id: use.id,
+          name: use.name,
+          summary: summary(use.name, use.input),
+          at: moment(use.name, use.input),
+          ask: question(use.name, use.input),
+        });
         const outcome = await runTool(use.name, use.input, turn.tools);
         emit({ type: 'tool-result', id: use.id, ok: outcome.ok, text: outcome.text, image: outcome.image });
         results.push({ id: use.id, outcome });
@@ -120,13 +141,14 @@ export async function runTurn(turn: Turn, failure: (error: unknown) => string): 
         })),
       });
       await turn.save(messages);
-      if (signal.aborted) break;
+      // A question ends the turn: the person's answer is their next message.
+      if (signal.aborted || results.some(({ id, outcome }) => outcome.ok && uses.find((u) => u.id === id)?.name === 'ask_person')) break;
     }
   } catch (error) {
     notice = signal.aborted ? { text: 'Stopped.', error: false } : { text: failure(error), error: true };
   }
   if (signal.aborted && !notice) notice = { text: 'Stopped.', error: false };
-  emit({ type: 'end', notice });
+  emit({ type: 'end', notice, checkpoint: turn.checkpoint?.() });
   return { ok: !notice?.error && !signal.aborted };
 }
 
@@ -145,16 +167,15 @@ export function transcript(messages: MessageParam[]): ChatItem[] {
             : [],
         )
         .join('\n');
-      const described = blocks.find((b) => b.type === 'text' && b.text.startsWith(MARKS_TAG));
-      const marks = described?.type === 'text' ? described.text.split('\n').filter((line) => /^\d+\. /.test(line)).length : 0;
+      const marks = transcriptMarks(blocks);
       const referenced = blocks.find((b) => b.type === 'text' && b.text.startsWith(REFERENCES_TAG));
       const references = referenced?.type === 'text' ? transcriptReferences(referenced.text) : {};
-      if (text.trim() || marks || references.refs?.length) items.push({ kind: 'user', text, marks, ...references });
+      if (text.trim() || marks.length || references.refs?.length) items.push({ kind: 'user', text, marks, ...references });
       continue;
     }
     for (const block of blocks) {
       if (block.type === 'text' && block.text.trim()) {
-        items.push(message.role === 'user' ? { kind: 'user', text: block.text, marks: 0 } : { kind: 'assistant', text: block.text });
+        items.push(message.role === 'user' ? { kind: 'user', text: block.text, marks: [] } : { kind: 'assistant', text: block.text });
       } else if (block.type === 'tool_use') {
         const item = {
           kind: 'tool' as const,
@@ -162,6 +183,7 @@ export function transcript(messages: MessageParam[]): ChatItem[] {
           name: block.name,
           summary: summary(block.name, block.input),
           at: moment(block.name, block.input),
+          ask: question(block.name, block.input),
         };
         tools.set(block.id, item);
         items.push(item);

@@ -4,10 +4,25 @@
 // mark the picture, looping); Stage draws the frame and the marks over it, Transport the
 // controls and the timeline. A new build reloads the frame at the same time.
 
-import { Crosshair, Pause, Play, Repeat, SkipBack, SkipForward, SquareDashed, ChevronDown, ChevronUp } from 'lucide-react';
-import { type PointerEvent, type RefObject, useEffect, useRef, useState } from 'react';
-import { type BuildResult, MAX_MARKS, type Mark, type Reference } from '../../shared/api';
-import type { Box, FilmInfo, FromPreview, ToPreview } from '../../shared/preview';
+import {
+  ChevronDown,
+  ChevronUp,
+  ChevronsDown,
+  ChevronsUp,
+  Crosshair,
+  Frame,
+  Loader,
+  Pause,
+  Play,
+  Repeat,
+  SkipBack,
+  SkipForward,
+  SquareDashed,
+  X,
+} from 'lucide-react';
+import { type PointerEvent, type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { type BuildResult, type FilmIssue, MARK_NOTE, MAX_MARKS, type Mark, type Reference } from '../../shared/api';
+import type { Box, FilmInfo, FromPreview, PickedElement, ToPreview } from '../../shared/preview';
 import { Timeline } from './timeline';
 
 export type Tool = 'pick' | 'region' | null;
@@ -36,10 +51,17 @@ export interface Player {
   seek(t: number): void;
   /** Steps by frames (a negative count steps back). */
   step(frames: number): void;
-  playRange(start: number, end: number): void;
-  /** Asks the page what is drawn at a point; resolves with its answer. */
-  pick(x: number, y: number): Promise<Extract<FromPreview, { type: 'oms:picked' }>>;
+  /** Plays from `start` to `end`, with one layer alone when `solo` names it. */
+  playRange(start: number, end: number, solo?: string): void;
+  /** The layer drawn alone, if any: playing, seeking or stepping draws them all again. */
+  solo: string | null;
+  endSolo(): void;
+  /** Asks the page what is drawn at a point, or `depth` elements out from it; resolves with its answer. */
+  pick(x: number, y: number, depth?: number): Promise<Picked>;
 }
+
+type Picked = Extract<FromPreview, { type: 'oms:picked' }>;
+const NOTHING: Picked = { type: 'oms:picked', element: null, box: null, levels: 0 };
 
 export function usePlayer(build: BuildResult | null): Player {
   const frame = useRef<HTMLIFrameElement>(null);
@@ -49,7 +71,8 @@ export function usePlayer(build: BuildResult | null): Player {
   const [error, setError] = useState<string | null>(null);
   const [tool, setTool] = useState<Tool>(null);
   const [loop, setLoop] = useState(false);
-  const picked = useRef<((message: Extract<FromPreview, { type: 'oms:picked' }>) => void) | null>(null);
+  const [solo, setSolo] = useState<string | null>(null);
+  const picked = useRef<((message: Picked) => void) | null>(null);
   const now = useRef({ t: 0, playing: false, loop: false, film: null as FilmInfo | null });
   now.current = { t, playing, loop, film };
 
@@ -86,11 +109,20 @@ export function usePlayer(build: BuildResult | null): Player {
 
   useEffect(() => {
     setError(null);
-    picked.current?.({ type: 'oms:picked', element: null, box: null });
+    setSolo(null);
+    picked.current?.(NOTHING);
     picked.current = null;
   }, [build?.version]);
 
-  const seek = (to: number) => tell({ type: 'oms:seek', t: Math.max(0, Math.min(film?.seconds ?? 0, to)) });
+  const endSolo = () => {
+    if (!solo) return;
+    setSolo(null);
+    tell({ type: 'oms:solo', layer: null });
+  };
+  const seek = (to: number) => {
+    endSolo();
+    tell({ type: 'oms:seek', t: Math.max(0, Math.min(film?.seconds ?? 0, to)) });
+  };
   return {
     frame,
     film,
@@ -105,10 +137,17 @@ export function usePlayer(build: BuildResult | null): Player {
     loop,
     setLoop,
     tell,
-    toggle: () => tell(playing ? { type: 'oms:pause' } : { type: 'oms:play' }),
+    toggle: () => {
+      if (!playing) endSolo();
+      tell(playing ? { type: 'oms:pause' } : { type: 'oms:play' });
+    },
     seek,
-    playRange: (start, end) => {
+    solo,
+    endSolo,
+    playRange: (start, end, layer) => {
       setTool(null);
+      setSolo(layer ?? null);
+      tell({ type: 'oms:solo', layer: layer ?? null });
       tell({ type: 'oms:play-range', start, end });
     },
     step: (frames) => {
@@ -116,21 +155,21 @@ export function usePlayer(build: BuildResult | null): Player {
       if (playing) tell({ type: 'oms:pause' });
       seek(Math.round(t * film.fps + frames) / film.fps);
     },
-    pick: (x, y) =>
+    pick: (x, y, depth = 0) =>
       new Promise((done) => {
-        picked.current?.({ type: 'oms:picked', element: null, box: null });
+        picked.current?.(NOTHING);
         const timer = setTimeout(() => {
           if (picked.current === resolve) {
             picked.current = null;
-            done({ type: 'oms:picked', element: null, box: null });
+            done(NOTHING);
           }
         }, 1500);
-        const resolve = (message: Extract<FromPreview, { type: 'oms:picked' }>) => {
+        const resolve = (message: Picked) => {
           clearTimeout(timer);
           done(message);
         };
         picked.current = resolve;
-        tell({ type: 'oms:pick', x, y });
+        tell({ type: 'oms:pick', x, y, depth });
       }),
   };
 }
@@ -146,26 +185,74 @@ function frameIn(stage: { width: number; height: number }, film: FilmInfo) {
 /** The room the page leaves around the frame, so it sits on the ink with its shadow. */
 const INSET = 24;
 
+/** The gap between a mark and the box that asks about it, and the least room it keeps from the stage's edge, in pixels. */
+const GAP = 8;
+
+/**
+ * Where a box of `w` × `h` goes beside a mark (all in pixels of a stage `W` × `H`): below it, else above, to its right,
+ * to its left, the first that fits; where none does, over the mark's top left, kept inside the stage.
+ */
+export function askPlace(mark: { left: number; top: number; width: number; height: number }, w: number, h: number, W: number, H: number) {
+  const clampX = (left: number) => Math.max(GAP, Math.min(left, W - w - GAP));
+  const clampY = (top: number) => Math.max(GAP, Math.min(top, H - h - GAP));
+  const bottom = mark.top + mark.height;
+  const right = mark.left + mark.width;
+  if (bottom + GAP + h <= H - GAP) return { left: clampX(mark.left), top: bottom + GAP };
+  if (mark.top - GAP - h >= GAP) return { left: clampX(mark.left), top: mark.top - GAP - h };
+  if (right + GAP + w <= W - GAP) return { left: right + GAP, top: clampY(mark.top) };
+  if (mark.left - GAP - w >= GAP) return { left: mark.left - GAP - w, top: clampY(mark.top) };
+  return { left: clampX(mark.left + GAP), top: clampY(mark.top + GAP) };
+}
+
+/**
+ * A mark being made and not yet added: its moment and box, and for a picked element how many steps out from the
+ * innermost element it is, how many there are, and the point it was picked at.
+ */
+type Draft = { t: number; box: Box; element: PickedElement | null; picked?: { depth: number; levels: number; x: number; y: number } };
+
+/** What a picked element is called: its words, else the last step of its path. */
+export const elementName = (element: PickedElement) =>
+  element.text ? `“${element.text.slice(0, 28)}”` : (element.path.split(' > ').pop() ?? element.path);
+
 export function Stage({
   player,
   build,
   marks,
+  lit,
   onMark,
   selected,
+  working,
+  onFix,
+  guides,
+  onGuides,
   disabled = false,
   column = 2,
 }: {
   player: Player;
   build: BuildResult | null;
   marks: Mark[];
+  /** The mark whose row in the composer is in hand, drawn lit at its moment. */
+  lit: number | null;
   onMark(mark: Mark): void;
   selected: Reference | null;
+  /** Whether the agent is working on the film, which the stage says over its corner. */
+  working: boolean;
+  /** Hands an error on the stage to the agent, as an issue for the next message. */
+  onFix(label: string, detail: string): void;
+  /** Whether the action-safe (90%) and title-safe (80%) guides are drawn over the frame. */
+  guides: boolean;
+  onGuides(): void;
   disabled?: boolean;
   column?: number;
 }) {
   const stage = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<{ width: number; height: number } | null>(null);
   const [drag, setDrag] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const [note, setNote] = useState('');
+  const ask = useRef<HTMLDivElement>(null);
+  const askField = useRef<HTMLTextAreaElement>(null);
+  const [askAt, setAskAt] = useState<{ left: number; top: number } | null>(null);
   const { film, t } = player;
   const tool = disabled ? null : player.tool;
   const [lastGood, setLastGood] = useState<BuildResult | null>(null);
@@ -183,6 +270,9 @@ export function Stage({
     return () => observer.disconnect();
   }, []);
 
+  // A mark half made belongs to the build and the tool it was made with.
+  useEffect(() => setDraft(null), [build?.version, tool]);
+
   const inner = size && { width: Math.max(0, size.width - 2 * INSET), height: Math.max(0, size.height - 2 * INSET) };
   const box = inner && film ? frameIn(inner, film) : null;
   const pickContext = useRef({ version: build?.version, tool });
@@ -198,6 +288,32 @@ export function Stage({
   const selectedLayer = selected?.kind === 'layer' ? (selectedScene?.layers ?? film?.layers)?.find((l) => l.id === selected.layer) : null;
   const selectionVisible = !selectedScene || (t >= selectedScene.start && t < selectedScene.start + selectedScene.duration);
 
+  const place = (b: Box) =>
+    box && {
+      left: INSET + box.left + b.x * box.width,
+      top: INSET + box.top + b.y * box.height,
+      width: b.w * box.width,
+      height: b.h * box.height,
+    };
+
+  // The box that asks sits beside the mark, measured once it is drawn.
+  useLayoutEffect(() => {
+    const mark = draft && place(draft.box);
+    if (!mark || !ask.current || !size) return setAskAt(null);
+    setAskAt(askPlace(mark, ask.current.offsetWidth, ask.current.offsetHeight, size.width, size.height));
+  }, [draft, size, box?.width]);
+  // Only once it is placed, since a box still hidden cannot take the cursor.
+  useEffect(() => {
+    if (askAt) askField.current?.focus();
+  }, [askAt, draft]);
+  // Esc lets the mark go wherever the cursor is; the workspace's own keys wait while the box is open.
+  useEffect(() => {
+    if (!draft) return;
+    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && setDraft(null);
+    addEventListener('keydown', onKey);
+    return () => removeEventListener('keydown', onKey);
+  }, [draft]);
+
   /** A point on the stage as fractions of the frame, or null outside it. */
   function point(event: PointerEvent) {
     if (!box || !stage.current) return null;
@@ -207,17 +323,27 @@ export function Stage({
     return x >= 0 && x <= 1 && y >= 0 && y <= 1 ? { x, y } : null;
   }
 
-  async function down(event: PointerEvent) {
+  /** Asks the page what is drawn at a point, `depth` steps out from the innermost element, and makes it the draft. */
+  async function pickAt(at: number, x: number, y: number, depth: number) {
+    const version = build?.version;
+    const message = await player.pick(x, y, depth);
+    if (pickContext.current.version !== version || pickContext.current.tool !== 'pick') return;
+    // Where nothing is drawn, the point itself is marked, as a small region.
+    const fallback: Box = { x: Math.min(0.96, Math.max(0, x - 0.02)), y: Math.min(0.96, Math.max(0, y - 0.02)), w: 0.04, h: 0.04 };
+    setDraft({
+      t: at,
+      box: message.box ?? fallback,
+      element: message.element,
+      picked: message.element ? { depth: Math.min(depth, message.levels - 1), levels: message.levels, x, y } : undefined,
+    });
+  }
+
+  function down(event: PointerEvent) {
     const p = point(event);
     if (!p || full) return;
     if (tool === 'pick') {
-      const at = t;
-      const version = build?.version;
-      const message = await player.pick(p.x, p.y);
-      if (pickContext.current.version !== version || pickContext.current.tool !== 'pick') return;
-      // Where nothing is drawn, the point itself is marked, as a small region.
-      const fallback: Box = { x: Math.min(0.96, Math.max(0, p.x - 0.02)), y: Math.min(0.96, Math.max(0, p.y - 0.02)), w: 0.04, h: 0.04 };
-      onMark({ t: at, box: message.box ?? fallback, element: message.element });
+      setNote('');
+      void pickAt(t, p.x, p.y, 0);
     } else if (tool === 'region') {
       (event.target as Element).setPointerCapture(event.pointerId);
       setDrag({ x0: p.x, y0: p.y, x1: p.x, y1: p.y });
@@ -244,16 +370,23 @@ export function Stage({
       h: Math.abs(drag.y1 - drag.y0),
     };
     setDrag(null);
-    if (region.w > 0.01 && region.h > 0.01) onMark({ t, box: region, element: null });
+    if (region.w > 0.01 && region.h > 0.01) {
+      setNote('');
+      setDraft({ t, box: region, element: null });
+    }
   }
 
-  const place = (b: Box) =>
-    box && {
-      left: INSET + box.left + b.x * box.width,
-      top: INSET + box.top + b.y * box.height,
-      width: b.w * box.width,
-      height: b.h * box.height,
-    };
+  function add() {
+    if (!draft || full) return;
+    onMark({ t: draft.t, box: draft.box, element: draft.element, note: note.trim().slice(0, MARK_NOTE) });
+    setDraft(null);
+    setNote('');
+  }
+
+  function step(by: 1 | -1) {
+    const picked = draft?.picked;
+    if (draft && picked) void pickAt(draft.t, picked.x, picked.y, picked.depth + by);
+  }
 
   return (
     <div className="stage" ref={stage} style={{ gridColumn: column, gridRow: 1 }}>
@@ -271,7 +404,7 @@ export function Stage({
       {film && box && (
         <div
           className={`marks${tool ? ` tool-${tool}` : ''}`}
-          onPointerDown={tool ? down : undefined}
+          onPointerDown={tool && !draft ? down : undefined}
           onPointerMove={tool ? move : undefined}
           onPointerUp={tool ? up : undefined}
         >
@@ -290,9 +423,15 @@ export function Stage({
               <span>{selected?.label} · declared bounds</span>
             </div>
           )}
+          {guides && (
+            <>
+              <div className="safe-guide" style={place({ x: 0.05, y: 0.05, w: 0.9, h: 0.9 }) ?? undefined} />
+              <div className="safe-guide title" style={place({ x: 0.1, y: 0.1, w: 0.8, h: 0.8 }) ?? undefined} />
+            </>
+          )}
           {marks.map((mark, i) =>
-            Math.abs(mark.t - t) <= NEAR ? (
-              <div key={i} className="mark" style={place(mark.box) ?? undefined}>
+            mark.end === undefined && Math.abs(mark.t - t) <= NEAR ? (
+              <div key={i} className={`mark${lit === i ? ' lit' : ''}`} style={place(mark.box) ?? undefined}>
                 <span className="number">{i + 1}</span>
               </div>
             ) : null,
@@ -310,9 +449,92 @@ export function Stage({
               }
             />
           )}
+          {draft && (
+            <div className="mark drawing" style={place(draft.box) ?? undefined}>
+              <span className="number">{marks.length + 1}</span>
+            </div>
+          )}
+        </div>
+      )}
+      {draft && (
+        <div
+          ref={ask}
+          className="mark-ask"
+          role="dialog"
+          aria-label={`Mark ${marks.length + 1}`}
+          style={askAt ?? { left: 0, top: 0, visibility: 'hidden' }}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <textarea
+            ref={askField}
+            value={note}
+            rows={2}
+            maxLength={MARK_NOTE}
+            aria-label="What should change here"
+            placeholder="What should change here? (optional)"
+            onChange={(e) => setNote(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                e.stopPropagation();
+                setDraft(null);
+              } else if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                add();
+              }
+            }}
+          />
+          <span className="found">
+            {draft.element ? `${elementName(draft.element)}${draft.element.layer ? ` · ${draft.element.layer}` : ''}` : 'A region of the frame'} ·{' '}
+            {timecode(draft.t)}
+          </span>
+          <div className="ask-actions">
+            {draft.picked && draft.picked.levels > 1 && (
+              <>
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label="The element around it"
+                  data-tip="The element around it"
+                  disabled={draft.picked.depth >= draft.picked.levels - 1}
+                  onClick={() => step(1)}
+                >
+                  <ChevronsUp size={15} />
+                </button>
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label="The element inside"
+                  data-tip="The element inside"
+                  disabled={draft.picked.depth === 0}
+                  onClick={() => step(-1)}
+                >
+                  <ChevronsDown size={15} />
+                </button>
+              </>
+            )}
+            <span className="spacer" />
+            <button type="button" className="button ghost" onClick={() => setDraft(null)}>
+              Cancel
+            </button>
+            <button type="button" className="button primary" disabled={full} onClick={add}>
+              Add mark
+            </button>
+          </div>
         </div>
       )}
       <div className="tools">
+        <button
+          type="button"
+          className="icon-button"
+          aria-pressed={guides}
+          aria-label="Safe-area guides"
+          data-tip="Safe-area guides: action 90%, titles 80%"
+          data-key="G"
+          disabled={!film}
+          onClick={onGuides}
+        >
+          <Frame size={16} />
+        </button>
         <button
           type="button"
           className="icon-button"
@@ -338,17 +560,41 @@ export function Stage({
           <SquareDashed size={16} />
         </button>
       </div>
+      {player.solo && (
+        <span className="stage-solo" role="status">
+          Solo · {player.solo}
+          <button type="button" className="icon-button" aria-label="Draw every layer again" data-tip="Draw every layer" onClick={player.endSolo}>
+            <X size={12} />
+          </button>
+        </span>
+      )}
+      {working && (
+        <span className="stage-working" role="status">
+          <Loader size={13} className="spin" />
+          The agent is working on the film
+        </span>
+      )}
       {!build && <p className="waiting">Building the film…</p>}
       {build && !build.ok && (
         <div className="callout build-error" role="alert">
           <strong>{lastGood ? 'Showing the last successful preview' : 'The film does not build'}</strong>
           <pre>{build.errors.join('\n')}</pre>
+          {!working && (
+            <button type="button" className="button" onClick={() => onFix('The film does not build', build.errors.join('\n'))}>
+              Ask the agent to fix it
+            </button>
+          )}
         </div>
       )}
       {build?.ok && player.error && (
         <div className="callout build-error" role="alert">
           <strong>The film stopped drawing</strong>
           <pre>{player.error}</pre>
+          {!working && (
+            <button type="button" className="button" onClick={() => onFix('The film stopped drawing', player.error!)}>
+              Ask the agent to fix it
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -362,6 +608,11 @@ export function Transport({
   onFold,
   selected,
   onSelect,
+  onRange,
+  lit,
+  fresh,
+  issues,
+  onIssue,
 }: {
   player: Player;
   marks: Mark[];
@@ -369,6 +620,14 @@ export function Transport({
   onFold(folded: boolean): void;
   selected: Reference | null;
   onSelect(ref: Reference): void;
+  /** Marks a stretch of the film, dragged out on the timeline. */
+  onRange(start: number, end: number): void;
+  lit: number | null;
+  /** What the agent's last turn changed, lit for a moment. */
+  fresh: Set<string>;
+  /** The last check's issues with a moment, for the build on screen. */
+  issues: FilmIssue[];
+  onIssue(issue: FilmIssue): void;
 }) {
   const { film, t, playing } = player;
   return (
@@ -443,6 +702,12 @@ export function Transport({
           film={film}
           t={t}
           marks={marks}
+          lit={lit}
+          fresh={fresh}
+          issues={issues}
+          onIssue={onIssue}
+          playing={player.playing}
+          onRange={onRange}
           onSeek={(at) => {
             player.tell({ type: 'oms:pause' });
             player.seek(at);

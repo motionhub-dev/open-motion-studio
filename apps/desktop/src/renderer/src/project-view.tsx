@@ -21,7 +21,17 @@ import {
   Maximize2,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { type BuildResult, MAX_MARKS, type Mark, type Project, type Providers, type Reference, type FilmReview } from '../../shared/api';
+import {
+  type AgentKind,
+  type Agents,
+  type BuildResult,
+  MAX_MARKS,
+  type Mark,
+  type Project,
+  type Providers,
+  type Reference,
+  type FilmReview,
+} from '../../shared/api';
 import { Assistant } from './assistant';
 import { AssetsPanel } from './assets-panel';
 import { ReviewPanel } from './review-panel';
@@ -37,17 +47,27 @@ import { reason } from './reason';
 
 type Toast = { text: string; error: boolean; file?: string };
 
-/** Every key the workspace answers, as the shortcuts dialog lists them. */
-const SHORTCUTS: [keys: string[], what: string][] = [
-  [['Space'], 'Play or pause'],
-  [['←', '→'], 'Step a frame'],
-  [['Shift', '←', '→'], 'Step a second'],
-  [['C'], 'Pick an element, then mark a region, then put the tool down'],
-  [['Esc'], 'Put the tool down, or close a dialog'],
-  [['Enter'], 'Send the message'],
-  [['Shift', 'Enter'], 'A new line in the message'],
-  [['?'], 'Show these shortcuts'],
-  [['F'], 'Focus the film or restore panels'],
+/** Every key the workspace answers, by what it is for, as the shortcuts dialog lists them. */
+const SHORTCUTS: [group: string, keys: string[], what: string][] = [
+  ['Playing', ['Space'], 'Play or pause'],
+  ['Playing', ['K'], 'Play or pause'],
+  ['Playing', ['←', '→'], 'Step a frame'],
+  ['Playing', ['Shift', '←', '→'], 'Step a second'],
+  ['Playing', ['↑', '↓'], 'The previous or the next scene'],
+  ['Playing', ['Home', 'End'], 'The start or the end'],
+  ['Pointing', ['C'], 'Pick an element, then mark a region, then put the tool down'],
+  ['Pointing', ['G'], 'Show or hide the safe-area guides'],
+  ['Pointing', ['Esc'], 'Let a mark go, then put the tool down, then clear the selection'],
+  ['Timeline', ['+', '−'], 'Zoom in or out (Ctrl and the wheel, about the pointer)'],
+  ['Timeline', ['Shift', 'Z'], 'Fit the whole film'],
+  ['Message', ['Enter'], 'Send the message, or keep it until the turn ends'],
+  ['Message', ['Ctrl', 'Enter'], 'Stop the turn and send'],
+  ['Message', ['Shift', 'Enter'], 'A new line in the message'],
+  ['Workspace', ['['], 'Show or hide the assistant'],
+  ['Workspace', [']'], 'Show or hide the project tools'],
+  ['Workspace', ['\\'], 'Fold or show the timeline'],
+  ['Workspace', ['F'], 'Focus the film or restore panels'],
+  ['Workspace', ['?'], 'Show these shortcuts'],
 ];
 
 function Shortcuts({ onClose }: { onClose(): void }) {
@@ -66,18 +86,23 @@ function Shortcuts({ onClose }: { onClose(): void }) {
             <X size={16} />
           </button>
         </div>
-        <dl>
-          {SHORTCUTS.map(([keys, what]) => (
-            <div key={what}>
-              <dt>
-                {keys.map((key) => (
-                  <kbd key={key}>{key}</kbd>
-                ))}
-              </dt>
-              <dd>{what}</dd>
-            </div>
-          ))}
-        </dl>
+        {[...new Set(SHORTCUTS.map(([group]) => group))].map((group) => (
+          <section key={group}>
+            <h3 className="eyebrow">{group}</h3>
+            <dl>
+              {SHORTCUTS.filter(([g]) => g === group).map(([, keys, what]) => (
+                <div key={keys.join('+') + what}>
+                  <dt>
+                    {keys.map((key) => (
+                      <kbd key={key}>{key}</kbd>
+                    ))}
+                  </dt>
+                  <dd>{what}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        ))}
       </div>
     </div>
   );
@@ -104,8 +129,12 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
   const [exportOpen, setExportOpen] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
-  /** The places marked on the picture for the next message. */
+  /** The places marked on the picture, and the stretches on the timeline, for the next message. */
   const [marks, setMarks] = useState<Mark[]>([]);
+  /** The mark whose row in the composer is in hand, lit on the picture and the timeline. */
+  const [lit, setLit] = useState<number | null>(null);
+  /** Asks the composer to put the cursor in a mark's note: its index, and a count that makes each ask new. */
+  const [noteRequest, setNoteRequest] = useState({ index: -1, n: 0 });
   /** The element last picked, which the inspector shows; it stays after its mark is sent. */
   const [inspected, setInspected] = useState<Mark | null>(null);
   const [side, setSide] = useState<'outline' | 'motions' | 'inspector' | 'history' | 'review' | 'assets'>('outline');
@@ -126,10 +155,26 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
   }, []);
   const showSide = layout.side && (!compact || compactSide);
   const [selected, setSelected] = useState<Reference | null>(null);
+  /** Whether the stage shows the safe-area guides. */
+  const [guides, setGuides] = useState(false);
+  /** What was last selected in a panel, which goes with the next message unless it is put aside. */
+  const [selection, setSelection] = useState<Reference | null>(null);
   const [refs, setRefs] = useState<Reference[]>([]);
   const [focusRequest, setFocusRequest] = useState(0);
   const [busy, setBusy] = useState(false);
   const [historyRevision, setHistoryRevision] = useState(0);
+  /** What the agent's last turn changed (activity.ts changeKey), lit in the outline and the timeline for a moment. */
+  const [fresh, setFresh] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!fresh.size) return;
+    const timer = setTimeout(() => setFresh(new Set()), 4000);
+    return () => clearTimeout(timer);
+  }, [fresh]);
+  function restored() {
+    setHistoryRevision((n) => n + 1);
+    setMarks([]);
+    setInspected(null);
+  }
   const focusLayout = useRef({ assistant: true, side: true });
   function toggleFocus() {
     if (layout.assistant || showSide) {
@@ -139,6 +184,36 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
   }
   const player = usePlayer(build);
   const active = providers?.providers.find((p) => p.id === providers.active);
+  /** The project's agent and the person's own coding agents (ADR 0008). */
+  const [agents, setAgents] = useState<Agents | null>(null);
+  function refreshAgents() {
+    window.studio.agents().then(setAgents, (e) => setToast({ text: reason(e), error: true }));
+  }
+  useEffect(() => {
+    let live = true;
+    window.studio.agents().then(
+      (found) => live && setAgents(found),
+      (e) => live && setToast({ text: reason(e), error: true }),
+    );
+    return () => {
+      live = false;
+    };
+  }, [project.path]);
+  // Nothing is sent until the project's agent is known: a project on Codex must not seem to be on the built-in one.
+  const ready = !agents
+    ? false
+    : agents.current !== 'built-in'
+      ? agents.harnesses.find((h) => h.kind === agents.current)?.state === 'ready'
+      : !!active?.ready;
+  async function useAgent(kind: AgentKind) {
+    try {
+      setAgents(await window.studio.useAgent(kind));
+      setRefs([]);
+      setMarks([]);
+    } catch (e) {
+      setToast({ text: reason(e), error: true });
+    }
+  }
 
   useEffect(() => {
     setBuild(null);
@@ -172,11 +247,35 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
       if (event.key === 'Escape' && menu) return setMenu(false);
       if (document.querySelector('dialog[open], [role=dialog]')) return;
       if (typing(event.target) || event.metaKey || event.ctrlKey || event.altKey) return;
+      const film = player.film;
       if (event.key === '?') {
         setShortcuts((open) => !open);
-      } else if (event.key === ' ') {
+      } else if (event.key === ' ' || event.key === 'k' || event.key === 'K') {
         event.preventDefault();
         player.toggle();
+      } else if ((event.key === 'ArrowUp' || event.key === 'ArrowDown') && film?.scenes.length) {
+        event.preventDefault();
+        // A scene back from a little way into one goes to its own start, as a player's previous does.
+        const starts = film.scenes.map((s) => s.start);
+        const to =
+          event.key === 'ArrowUp'
+            ? ([...starts].reverse().find((s) => s < player.t - 0.25) ?? 0)
+            : (starts.find((s) => s > player.t + 0.001) ?? player.t);
+        seek(to);
+      } else if (event.key === 'Home' || event.key === 'End') {
+        event.preventDefault();
+        if (film) seek(event.key === 'Home' ? 0 : Math.max(0, film.seconds - 1 / film.fps));
+      } else if (event.key === '[') {
+        setLayout({ assistant: !layout.assistant });
+      } else if (event.key === ']') {
+        if (compact) {
+          setCompactSide(!showSide);
+          if (!layout.side) setLayout({ side: true });
+        } else setLayout({ side: !layout.side });
+      } else if (event.key === '\\') {
+        setLayout({ folded: !layout.folded });
+      } else if (event.key === 'g' || event.key === 'G') {
+        setGuides((shown) => !shown);
       } else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
         event.preventDefault();
         const direction = event.key === 'ArrowLeft' ? -1 : 1;
@@ -186,8 +285,12 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
       } else if (event.key === 'c' || event.key === 'C') {
         if (marks.length < MAX_MARKS) player.setTool(player.tool === null ? 'pick' : player.tool === 'pick' ? 'region' : null);
       } else if (event.key === 'Escape') {
-        setSelected(null);
-        player.setTool(null);
+        // One thing at a time: the tool goes down first, then the selection.
+        if (player.tool) player.setTool(null);
+        else {
+          setSelected(null);
+          setSelection(null);
+        }
       }
     };
     addEventListener('keydown', onKey);
@@ -262,12 +365,23 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
     setMarks([]);
     setRefs([]);
     setSelected(null);
+    setSelection(null);
     setInspected(null);
   }, [build?.version]);
 
+  /** Selects a scene, a layer or a line in a panel: it is shown, and goes with the next message unless put aside. */
   function select(ref: Reference) {
     setSelected(ref);
+    setSelection(ref);
     if (ref.time !== undefined) seek(ref.time);
+  }
+
+  function mark(next: Mark) {
+    if (marks.length >= MAX_MARKS) return;
+    setMarks([...marks, next]);
+    setLayout({ assistant: true });
+    // A stretch of time is said in the composer, which has room for it.
+    if (next.end !== undefined) setNoteRequest((r) => ({ index: marks.length, n: r.n + 1 }));
   }
   function reference(ref: Reference) {
     if (busy || importing || checking || progress !== null) return;
@@ -353,6 +467,7 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
               <button
                 type="button"
                 className="button accent"
+                data-tip={busy ? 'Export when the agent has finished its turn' : undefined}
                 onClick={() => {
                   setExportOpen(true);
                   void checkFilm();
@@ -404,9 +519,12 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
         >
           <section className="sheet assistant" aria-label="Assistant" style={{ display: layout.assistant ? undefined : 'none' }}>
             <Assistant
-              key={`${project.path}:${historyRevision}`}
+              key={`${project.path}:${historyRevision}:${agents?.current ?? ''}`}
               active={active}
-              ready={!!active?.ready}
+              agents={agents}
+              onUseAgent={(kind) => void useAgent(kind)}
+              onRefreshAgents={refreshAgents}
+              ready={ready}
               disabled={importing || checking || progress !== null}
               onWorking={setBusy}
               refs={refs}
@@ -415,12 +533,29 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
               onRemoveRef={(i) => setRefs((items) => items.filter((_, n) => n !== i))}
               onSettings={onSettings}
               marks={marks}
-              onRemoveMark={(i) => setMarks((m) => m.filter((_, j) => j !== i))}
+              onRemoveMark={(i) => {
+                setMarks((m) => m.filter((_, j) => j !== i));
+                setLit(null);
+              }}
+              onNoteMark={(i, note) => setMarks((m) => m.map((mark, j) => (j === i ? { ...mark, note } : mark)))}
+              onLight={setLit}
+              noteRequest={noteRequest}
+              selection={selection}
+              onDropSelection={() => setSelection(null)}
               onSent={() => {
                 setMarks([]);
                 setRefs([]);
+                setSelection(null);
+                setLit(null);
               }}
               onSeek={seek}
+              onSelect={select}
+              film={player.film}
+              onFresh={(keys) => setFresh(new Set(keys))}
+              onUndone={() => {
+                setMarks([]);
+                setInspected(null);
+              }}
             />
             <Splitter
               axis="x"
@@ -436,19 +571,25 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
             column={layout.assistant ? 2 : 1}
             build={build}
             marks={marks}
+            lit={lit}
             selected={selected}
+            working={busy}
+            guides={guides}
+            onGuides={() => setGuides(!guides)}
+            onFix={(label, detail) => reference({ kind: 'issue', label, detail })}
             disabled={busy || importing || checking || !build?.ok}
-            onMark={(mark) => {
-              setMarks((m) => (m.length < MAX_MARKS ? [...m, mark] : m));
-              if (mark.element) {
+            onMark={(next) => {
+              mark(next);
+              const { element } = next;
+              if (element) {
                 setSelected({
                   kind: 'layer',
-                  label: mark.element.text || mark.element.layer || 'Selected element',
-                  scene: mark.element.scene,
-                  layer: mark.element.layer,
-                  time: mark.t,
+                  label: element.text || element.layer || 'Selected element',
+                  scene: element.scene,
+                  layer: element.layer,
+                  time: next.t,
                 });
-                setInspected(mark);
+                setInspected(next);
                 setSide('inspector');
               }
             }}
@@ -512,16 +653,21 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
                   onReference={reference}
                 />
               ) : side === 'outline' ? (
-                <Outline film={player.film} selected={selected} onSelect={select} onReference={reference} onPlay={player.playRange} />
+                <Outline
+                  film={player.film}
+                  selected={selected}
+                  fresh={fresh}
+                  t={player.t}
+                  playing={player.playing}
+                  onSelect={select}
+                  onReference={reference}
+                  onPlay={player.playRange}
+                />
               ) : side === 'history' ? (
                 <HistoryPanel
                   busy={busy || importing || checking || progress !== null}
                   revision={build?.version ?? 0}
-                  onRestored={() => {
-                    setHistoryRevision((n) => n + 1);
-                    setMarks([]);
-                    setInspected(null);
-                  }}
+                  onRestored={restored}
                 />
               ) : side === 'motions' ? (
                 <MotionPanel onBusy={setImporting} disabled={busy || importing || checking || progress !== null} />
@@ -560,6 +706,20 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
               onSelect={select}
               player={player}
               marks={marks}
+              lit={lit}
+              fresh={fresh}
+              issues={review && review.version === build?.version ? review.issues.filter((issue) => issue.time !== undefined) : []}
+              onIssue={(issue) => {
+                seek(issue.time!);
+                reference({
+                  kind: 'issue',
+                  label: issue.severity === 'warning' ? 'Review this layout' : 'Fix this issue',
+                  detail: issue.text,
+                  time: issue.time,
+                  scene: issue.scene,
+                });
+              }}
+              onRange={(start, end) => mark({ t: start, end, box: { x: 0, y: 0, w: 1, h: 1 }, element: null, note: '' })}
               folded={layout.folded}
               onFold={(folded) => setLayout({ folded })}
             />

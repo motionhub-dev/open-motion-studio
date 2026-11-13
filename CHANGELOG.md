@@ -3,6 +3,89 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-13 — A project can talk to the person's own Claude Code
+
+- **What:** The agent picker and Models also offer the person's own Claude Code, when it is installed where
+  Anthropic's installer puts it (`~/.local/bin`), new enough and signed in. The Studio drives it through `claude -p`
+  with stream-json, with the film's skill appended to its system prompt, the Studio's tools as its only MCP server,
+  none of the person's settings, hooks or other servers, and only Read, Glob, Grep, Edit and Write of its own tools;
+  its turns are checkpointed from the files that changed as Codex's are. It signs in only with `claude auth login`.
+- **Why:** So a person who already uses Claude Code makes films with it (ADR 0008). Whether it may ship on their
+  subscription waits on Anthropic's terms.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/adr/0008-the-persons-own-coding-agent.md`, `apps/desktop/src/main/agent/claude.ts`.
+
+## 2026-11-13 — A project can talk to the person's own Codex
+
+- **What:** The composer's agent picker offers the person's own Codex, when it is installed (where OpenAI's installer
+  puts it), new enough and signed in. The Studio drives it through `codex app-server` with the film's skill as its
+  instructions and the Studio's tools (check, still, the motions, a question card) as its only MCP server, the
+  person's other Codex servers, apps and plugins switched off for the session; its words, commands, file changes and
+  stills show in the panel, its turns are checkpointed from the files that changed, and Stop interrupts it. The
+  project's choice, Codex's thread and the panel's conversation are kept in `.motion-studio/agent.json`. What Codex
+  asks to do outside its sandbox (a command, files elsewhere, the network) is a card the person answers: allow once,
+  for the session, or deny. A motion from motionhub that it changes is put back after the turn. Models lists Codex
+  under Your coding agents with where it stands, links to OpenAI's page to install or update it, and signs in to it
+  through Codex itself.
+- **Why:** So a person who already uses Codex makes films with it, on their own plan and sign-in (ADR 0008).
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/adr/0008-the-persons-own-coding-agent.md`, `docs/tech/architecture.md` ("External agents"),
+  `apps/desktop/src/main/agent/codex.ts`.
+
+## 2026-11-13 — A timeline to move about in, keys for the workspace, and aids for looking
+
+- **What:** The timeline zooms about the pointer (Ctrl and the wheel, + and −, Shift+Z fits), follows the playhead
+  while the film plays, brings back a playhead out of view, names the moment and scene under the pointer, and shows the
+  last check's issues on its ruler, each one click from the assistant. New keys: K plays, ↑ ↓ go between scenes, Home
+  and End to the ends, `[` `]` `\` show or hide the panels, G the safe-area guides; Esc does one thing at a time; the
+  shortcuts dialog groups them. The outline follows the scene that plays, and a scene's layer can play alone.
+- **Why:** So a longer film can be read and moved about in, and looked at closely, without the mouse.
+- **Breaking:** Esc no longer puts the tool down and clears the selection at once: it does the first, then the second.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/design.md`, `docs/tech/creator-workflow.md`, `apps/desktop/src/renderer/src/timeline.tsx`.
+
+## 2026-11-13 — The agent's work reads as it happens, and a turn can be taken back
+
+- **What:** Each run of the agent's tool calls reads as one line of plain words with its stills beside it, and the
+  progress card warns when the same tool keeps failing. A turn's end says what it changed in the film and lights those
+  scenes, layers and lines in the outline and the timeline; the last turn can be undone, files and conversation, with
+  its message back in the composer. The agent can ask a question with answers to click (`ask_person`). While it works,
+  a message waits for the turn or, with Ctrl+Enter, stops it; the stage says it is working, and Export waits. An error
+  on the stage can go to the agent as an issue, and a turn that ends while the window is behind others notifies.
+- **Why:** So the person can follow, steer and take back the agent's work without reading every tool call.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/tech/creator-workflow.md`, `docs/tech/architecture.md` ("The agent"), `apps/desktop/src/renderer/src/activity.ts`.
+
+## 2026-11-13 — The app has motionhub's icon and mark, and no menu bar in its window
+
+- **What:** The window, the taskbar and the installers show motionhub's app icon instead of Electron's
+  (`apps/desktop/resources/icon.png` and, for Windows, `icon.ico`, set in `electron-builder.yml` and on the window).
+  The mark in the app and on the introduction page, and the page's favicon, are the brand's current ones, the mark
+  in its own colour (`--mark`).
+  The window has no File, Edit, View, Window menu bar on Windows and Linux; a Mac's menu bar keeps only the app's
+  menu, Edit and Window.
+- **Why:** The Studio was not recognisable in the taskbar, the dock or a window's title bar, and the default menu
+  offered nothing the Studio's own controls do not, but reload and developer tools.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/design.md` ("Identity").
+
+## 2026-11-13 — Marks say what should change, and point at time and source
+
+- **What:** Picking an element or dragging a region on the picture opens a box beside it that asks what should change
+  there, and a pick can step out to the element around it and back in. Dragging along the timeline's Marks lane marks
+  a stretch of the film. Marks wait above the composer with their notes, lit on the picture and the timeline while in
+  hand; a sent message shows each with the frame the model saw. What was last selected in the outline or timeline goes
+  with the next message unless put aside, and every marked or referenced scene, layer and line tells the agent where
+  film.tsx writes it.
+- **Why:** Several precise changes in one message, each said where it applies, are what pointing at the film is for.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/tech/creator-workflow.md`, `docs/tech/architecture.md` ("The agent"), `apps/desktop/src/main/agent/marks.ts`.
+
 ## 2026-11-11 — An introduction page at studio.motionhub.dev
 
 - **What:** `site/` is the Studio's introduction: what it is, the path from a folder to an MP4, what makes it different,

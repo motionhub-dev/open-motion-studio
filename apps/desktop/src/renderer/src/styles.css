@@ -15,6 +15,7 @@
   --muted: #6b645a;
   --stage: #2a2622;
   --accent: #c4381f;
+  --mark: #e2442b;
   --on-accent: #fbf8f2;
   --annotate: #2b59c3;
   --on-annotate: #fbf8f2;
@@ -49,6 +50,7 @@
     --muted: #a89e90;
     --stage: #0f0d0b;
     --accent: #ff6a4d;
+    --mark: #ff6a4d;
     --on-accent: #1a1714;
     --annotate: #8fa8ff;
     --on-annotate: #1a1714;
@@ -483,7 +485,8 @@ input[type='radio'] {
   box-shadow: var(--float-shadow);
 }
 
-.menu [role='menuitem'] {
+.menu [role='menuitem'],
+.menu [role='menuitemradio'] {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -496,11 +499,21 @@ input[type='radio'] {
   text-align: left;
 }
 
-.menu [role='menuitem']:hover {
+.menu [role='menuitem']:hover,
+.menu [role='menuitemradio']:hover:not(:disabled) {
   background: var(--s2);
 }
 
-.menu [role='menuitem'] span {
+.menu [role='menuitemradio'][aria-checked='true'] {
+  background: var(--s2);
+}
+
+.menu [role='menuitemradio']:disabled {
+  opacity: 0.6;
+}
+
+.menu [role='menuitem'] span,
+.menu [role='menuitemradio'] span {
   font-size: 12px;
   color: var(--muted);
 }
@@ -724,6 +737,51 @@ input[type='radio'] {
   left: -10px;
 }
 
+.mark.lit {
+  border-width: 3px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--annotate) 30%, transparent);
+}
+
+/* The box beside a mark being made, which asks what should change there. */
+.mark-ask {
+  position: absolute;
+  z-index: 3;
+  width: 288px;
+  max-width: calc(100% - 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: var(--r-panel);
+  border: 1px solid var(--line);
+  background: var(--sheet);
+  box-shadow: var(--float-shadow);
+}
+
+.mark-ask textarea {
+  resize: none;
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--bg);
+  color: var(--text);
+  padding: 6px 8px;
+  font: 12px/1.4 var(--font-ui);
+}
+
+.mark-ask .found {
+  font-size: 11px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ask-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 /* The transport and the timeline. */
 
 .transport-sheet {
@@ -861,6 +919,45 @@ input[type='radio'] {
   border: 0;
 }
 
+.timeline .flag.lit {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--annotate) 30%, transparent);
+}
+
+/* Dragging along the marks lane marks a stretch of the film. */
+.marks-lane {
+  cursor: text;
+}
+
+.marks-lane.full {
+  cursor: not-allowed;
+}
+
+.mark-range {
+  position: absolute;
+  top: 6px;
+  height: 18px;
+  min-width: 2px;
+  padding: 0;
+  border: 1px solid var(--annotate);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--annotate) 18%, transparent);
+  display: flex;
+  align-items: center;
+}
+
+.mark-range.drawing {
+  border-style: dashed;
+  pointer-events: none;
+}
+
+.mark-range.lit {
+  background: color-mix(in srgb, var(--annotate) 34%, transparent);
+}
+
+.mark-range .number {
+  margin-left: -1px;
+}
+
 .playhead {
   position: absolute;
   top: 0;
@@ -919,13 +1016,6 @@ input[type='radio'] {
   color: var(--bad);
 }
 
-.message .marked {
-  display: block;
-  margin-top: 4px;
-  font-size: 11px;
-  color: var(--muted);
-}
-
 .tool {
   font-size: 12px;
   color: var(--muted);
@@ -964,28 +1054,6 @@ input[type='radio'] {
   overflow: auto;
 }
 
-.chips {
-  list-style: none;
-  margin: 0;
-  padding: 10px 10px 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  border-top: 1px solid var(--line);
-}
-
-.chips li {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 26px;
-  padding: 0 2px 0 4px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  font-size: 12px;
-  color: var(--text2);
-}
-
 .composer {
   flex: none;
   margin: 10px;
@@ -997,10 +1065,6 @@ input[type='radio'] {
   border-radius: 10px;
   border: 1px solid var(--line);
   background: var(--bg);
-}
-
-.chips + .composer {
-  margin-top: 8px;
 }
 
 .composer textarea {
@@ -2644,11 +2708,6 @@ kbd {
   overflow-y: auto;
   flex-shrink: 0;
 }
-.chips {
-  max-height: 80px;
-  overflow-y: auto;
-  flex-shrink: 0;
-}
 .latest-messages {
   align-self: center;
   padding: 6px 12px;
@@ -2701,4 +2760,530 @@ kbd {
 }
 .composer-model svg {
   flex: none;
+}
+
+/* The marks for the next message: each by number, what and when, and what should change there. */
+.mark-tray {
+  list-style: none;
+  margin: 0;
+  padding: 10px 10px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: min(30vh, 240px);
+  overflow-y: auto;
+  flex-shrink: 0;
+  border-top: 1px solid var(--line);
+}
+
+.mark-tray li {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr) auto;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 4px 4px 6px;
+  border-radius: var(--r-button);
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--annotate);
+  background: var(--bg);
+}
+
+.mark-locate {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 2px;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+
+.mark-what {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mark-what strong {
+  font-size: 12px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mark-what small {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.mark-tray input {
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--sheet);
+  color: var(--text);
+  font: 12px var(--font-ui);
+}
+
+.reference-cards > li.selection {
+  border-style: dashed;
+  border-left-style: solid;
+}
+
+/* The marks a sent message carried: the frame the model saw, its number, when and what was asked. */
+.sent-marks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.sent-mark {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-button);
+  background: var(--bg);
+  text-align: left;
+  color: var(--text2);
+  font-size: 12px;
+}
+
+.sent-mark img {
+  width: 72px;
+  flex: none;
+  border-radius: 4px;
+}
+
+.sent-mark-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.sent-mark-text small {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+/* A run of the agent's tool calls: one line of what it did (or is doing), its steps folded under it, its stills beside. */
+.work {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.work-steps {
+  list-style: none;
+  margin: 4px 0 0 20px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.work-steps li.failed summary {
+  color: var(--bad);
+}
+
+.work-stills {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 6px;
+}
+
+.work-stills .still {
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: none;
+  overflow: hidden;
+  cursor: zoom-in;
+}
+
+.work-stills .still img {
+  display: block;
+  width: 100%;
+}
+
+.agent-progress .warning {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  color: var(--bad);
+}
+
+/* Where the last turn ended: what it changed in the film, and a way to undo it. */
+.turn-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--good);
+  border-radius: var(--r-button);
+  background: var(--bg);
+}
+
+.turn-changes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.turn-changes .change {
+  max-width: 100%;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--sheet);
+  color: var(--text2);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.turn-changes .change.removed {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+/* A question the agent asked, whose answers send themselves. */
+.ask-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--text);
+  border-radius: var(--r-button);
+  background: var(--sheet);
+}
+
+.ask-card p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.ask-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ask-card small {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* A message waiting for the agent's turn to end. */
+.queued {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 10px 10px 0;
+  padding: 8px 6px 8px 10px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-button);
+  font-size: 12px;
+  color: var(--text2);
+}
+
+.queued > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.queued strong {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* While the agent works, the stage says so over its top left. */
+.stage-working {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--overlay);
+  color: rgb(255 255 255 / 0.85);
+  font-size: 11px;
+}
+
+.stage .build-error .button {
+  margin-top: 8px;
+}
+
+/* What the agent's last turn changed, lit for a moment in the outline and the timeline. */
+.outline-row.fresh,
+.timeline .scene.fresh,
+.timeline .layer-span.fresh {
+  box-shadow: 0 0 0 2px var(--good);
+  transition: box-shadow 0.6s;
+}
+
+/* The check's issues on the ruler, at their moments. */
+.issue-marker {
+  position: absolute;
+  top: 2px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  margin-left: -8px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: var(--bad);
+  color: var(--bad-ground);
+}
+
+.issue-marker.warning {
+  background: var(--muted);
+  color: var(--bg);
+}
+
+/* The moment under the pointer on the ruler, with its scene. */
+.ruler-hover {
+  position: absolute;
+  top: 2px;
+  z-index: 2;
+  transform: translateX(-50%);
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--text);
+  color: var(--bg);
+  font: 10px var(--font-mono);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.timeline-scroll {
+  position: relative;
+}
+
+/* A playhead out of view, at the edge it went past. */
+.playhead-chip {
+  position: absolute;
+  bottom: 8px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--sheet);
+  color: var(--text);
+  font-size: 10px;
+  box-shadow: var(--float-shadow);
+}
+
+.playhead-chip.left {
+  left: 100px;
+}
+
+.playhead-chip.right {
+  right: 8px;
+}
+
+/* The safe areas over the frame: action at 90%, titles at 80%. */
+.safe-guide {
+  position: absolute;
+  border: 1px dashed rgb(255 255 255 / 0.55);
+  outline: 1px dashed rgb(0 0 0 / 0.35);
+  outline-offset: 1px;
+  pointer-events: none;
+}
+
+.safe-guide.title {
+  border-style: dotted;
+}
+
+/* One layer drawn alone: said over the stage's top left, with a way back. */
+.stage-solo {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px 3px 10px;
+  border-radius: 999px;
+  background: var(--overlay);
+  color: rgb(255 255 255 / 0.85);
+  font: 11px var(--font-mono);
+}
+
+.stage-solo .icon-button {
+  width: 22px;
+  height: 22px;
+  color: inherit;
+}
+
+/* The scene under the playhead in the outline. */
+.outline-scene.current .outline-scene-head .eyebrow {
+  color: var(--text);
+}
+
+.outline-scene.current .outline-scene-head .eyebrow::before {
+  content: '▶ ';
+}
+
+.shortcuts section + section {
+  margin-top: 16px;
+}
+
+.shortcuts h3 {
+  margin: 0 0 8px;
+}
+
+.dialog.shortcuts {
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+}
+
+/* The agent picker in the composer: the built-in agent on its model, or the person's own Codex (ADR 0008). */
+.agent-picker {
+  position: relative;
+  margin-left: -4px;
+  /* It keeps its width beside Send (and Stop), cutting a long model name short only at its own limit. */
+  flex: 0 1 auto;
+  min-width: 4.5em;
+  max-width: calc(100% - 44px);
+  display: inline-flex;
+}
+
+.agent-picker .composer-model {
+  max-width: 100%;
+  /* The pull to the left is the picker's, not the button's: a negative margin inside a flex item shrinks its text. */
+  margin-left: 0;
+}
+
+.agent-menu {
+  top: auto;
+  bottom: calc(100% + 6px);
+  right: auto;
+  left: -4px;
+}
+
+/* What an outside agent asks leave to do (ADR 0008), answered in the panel. */
+.approval-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--bad);
+  border-radius: var(--r-button);
+  background: var(--sheet);
+}
+
+.approval-card pre {
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: var(--r-control);
+  background: var(--bg);
+  font: 11px/1.5 var(--font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.approval-card p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text2);
+}
+
+.approval-card small {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.approval-card.denied {
+  border-left-color: var(--line);
+}
+
+/* The person's own coding agents in Models (ADR 0008): each with its state, and a pane saying what to do. */
+.agents-label {
+  margin: 18px 0 2px;
+}
+
+.state-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-radius: 50%;
+  border: 1px solid var(--muted);
+}
+
+.state-dot.ready {
+  border-color: var(--good);
+  background: var(--good);
+}
+
+.state-dot.signed-out,
+.state-dot.old {
+  border-color: var(--bad);
+  background: var(--bad);
+}
+
+.agent-pane .agent-state {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 4px 0 8px;
+  font-size: 14px;
+}
+
+.agent-pane .agent-state.ready strong {
+  color: var(--good);
+}
+
+.agent-pane .agent-state.signed-out strong,
+.agent-pane .agent-state.old strong {
+  color: var(--bad);
+}
+
+.agent-pane .agent-state .mono {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.agent-pane .note {
+  line-height: 1.6;
+}
+
+.agent-pane a.button {
+  text-decoration: none;
 }

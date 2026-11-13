@@ -1,8 +1,10 @@
 // Local checkpoints contain only files written through the agent. Restoring checks every
 // affected file before touching any of them; external edits are never silently replaced.
+// An outside agent writes with its own tools (ADR 0008), so its turn is recorded afterwards
+// from a note of the project's writable files taken before it (noteFiles, record).
 import { randomUUID } from 'node:crypto';
-import { lstat, mkdir, readFile, rename, rm, unlink, writeFile } from 'node:fs/promises';
-import { dirname, join, relative } from 'node:path';
+import { lstat, mkdir, readFile, readdir, rename, rm, unlink, writeFile } from 'node:fs/promises';
+import { dirname, join, relative, sep } from 'node:path';
 import type { Checkpoint } from '../shared/api';
 import { writablePath } from './agent/tools';
 import { STATE_DIR } from './project';
@@ -34,12 +36,73 @@ async function replace(file: string, value: string | null): Promise<void> {
   }
 }
 
+/** A note of the project's writable files, by project-relative path, with their bytes in base64. */
+export type FileNote = Map<string, string>;
+
+/** Files larger than this are media, not source, and are left out of a note. */
+const NOTE_MAX_BYTES = 2 * 1024 * 1024;
+/** A project with more files than this is noted no further. */
+const NOTE_MAX_FILES = 5000;
+
+/**
+ * A note of the project's files, skipping symbolic links and files over NOTE_MAX_BYTES: by default those an agent may
+ * write (as writablePath allows: not `.motion-studio/`, `node_modules/`, `.git/` or a motion from motionhub); with
+ * `published`, the motions from motionhub alone (`motions/@*`), which a project never changes.
+ */
+export async function noteFiles(dir: string, published = false): Promise<FileNote> {
+  const note: FileNote = new Map();
+  const walk = async (folder: string): Promise<void> => {
+    let entries;
+    try {
+      entries = await readdir(folder, { withFileTypes: true });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return;
+      throw error;
+    }
+    for (const entry of entries) {
+      if (note.size >= NOTE_MAX_FILES) return;
+      const full = join(folder, entry.name);
+      const path = relative(dir, full).split(sep).join('/');
+      const parts = path.toLowerCase().split('/');
+      const isPublished = parts[0] === 'motions' && !!parts[1]?.startsWith('@');
+      if (['node_modules', '.git', STATE_DIR].includes(parts[0]!) || (!published && isPublished)) continue;
+      if (published && parts.length >= 2 && !isPublished) continue;
+      if (entry.isSymbolicLink()) continue;
+      if (entry.isDirectory()) await walk(full);
+      else if (entry.isFile() && (!published || isPublished)) {
+        const bytes = await readFile(full);
+        if (bytes.length <= NOTE_MAX_BYTES) note.set(path, bytes.toString('base64'));
+      }
+    }
+  };
+  await walk(published ? join(dir, 'motions') : dir);
+  return note;
+}
+
+/** Puts files back as a note had them (changesBetween that note and now): changed ones rewritten, new ones removed. */
+export async function putBack(dir: string, changes: Change[]): Promise<void> {
+  for (const change of changes) await replace(join(dir, ...change.path.split('/')), change.before);
+}
+
+/** What changed between two notes of the same project: each path whose bytes differ, with both, null for absent. */
+export function changesBetween(before: FileNote, after: FileNote): Change[] {
+  const changes: Change[] = [];
+  for (const [path, now] of after) if (before.get(path) !== now) changes.push({ path, before: before.get(path) ?? null, after: now });
+  for (const [path, was] of before) if (!after.has(path)) changes.push({ path, before: was, after: null });
+  return changes.sort((a, b) => a.path.localeCompare(b.path));
+}
+
 export class ProjectHistory {
   private entry: Entry | null = null;
   constructor(
     private dir: string,
     private label = '',
   ) {}
+
+  /** The entry this history's writes went into, if it has written anything. */
+  get checkpoint(): string | undefined {
+    return this.entry?.id;
+  }
 
   private async file(): Promise<string> {
     const folder = join(this.dir, STATE_DIR);
@@ -136,6 +199,24 @@ export class ProjectHistory {
       await this.save(entries);
       throw error;
     }
+  }
+
+  /**
+   * Records changes an outside agent already made (changesBetween two notes) as one checkpoint, whose id it returns;
+   * nothing is recorded, and nothing returned, when nothing changed.
+   */
+  async record(changes: Change[]): Promise<string | undefined> {
+    if (!changes.length) return undefined;
+    const entries = await this.read();
+    const entry: Entry = {
+      id: randomUUID(),
+      label: this.label.slice(0, 160) || 'Agent changes',
+      createdAt: new Date().toISOString(),
+      changes: changes.map((c) => ({ path: c.path.split('/').join(sep), before: c.before, after: c.after })),
+    };
+    await this.save([...entries, entry]);
+    this.entry = entry;
+    return entry.id;
   }
 
   async restore(id: string): Promise<void> {

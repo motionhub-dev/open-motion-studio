@@ -60,11 +60,14 @@ export type ToPreview =
   | { type: 'oms:pause' }
   | { type: 'oms:play-range'; start: number; end: number }
   | { type: 'oms:seek'; t: number }
-  /** The element drawn at a point, in fractions of the frame (studio/pick.js answers). */
-  | { type: 'oms:pick'; x: number; y: number };
+  /** The element drawn at a point, in fractions of the frame, or the one `depth` elements around it (studio/pick.js answers). */
+  | { type: 'oms:pick'; x: number; y: number; depth?: number }
+  /** Draws one layer alone, every other <Layer> hidden; null draws them all again (studio/pick.js). */
+  | { type: 'oms:solo'; layer: string | null };
 
 export type FromPreview =
   | { type: 'oms:ready'; film: FilmInfo }
   | { type: 'oms:time'; t: number; playing: boolean }
   | { type: 'oms:error'; message: string }
-  | { type: 'oms:picked'; element: PickedElement | null; box: Box | null };
+  /** `levels` is how many elements, the innermost first, a pick at that point can step out through. */
+  | { type: 'oms:picked'; element: PickedElement | null; box: Box | null; levels: number };

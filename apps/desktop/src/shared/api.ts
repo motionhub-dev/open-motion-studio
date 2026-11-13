@@ -68,6 +68,30 @@ export interface MotionDetail {
 export type Protocol = 'anthropic' | 'openai';
 
 /** A model provider as the renderer sees it: never its key. */
+/** Which agent a project talks to: the built-in one on the active provider, or the person's own Codex or Claude Code (ADR 0008). */
+export type AgentKind = 'built-in' | 'codex' | 'claude';
+
+/** Where a person's own coding agent stands: not installed, too old, installed but not signed in, or ready. */
+export type HarnessState = 'missing' | 'old' | 'signed-out' | 'ready';
+
+/** A person's own coding agent as the composer and Models show it. */
+export interface HarnessView {
+  kind: Exclude<AgentKind, 'built-in'>;
+  name: string;
+  state: HarnessState;
+  version?: string;
+  /** What to do about a state that is not ready, in a few words. */
+  hint?: string;
+  /** The vendor's own page for installing or updating it, for a state that needs one. */
+  link?: string;
+}
+
+/** The project's agent and the coding agents on this machine. */
+export interface Agents {
+  current: AgentKind;
+  harnesses: HarnessView[];
+}
+
 export interface ProviderView {
   id: string;
   name: string;
@@ -104,14 +128,30 @@ export interface ProviderInput {
 
 import type { Box, PickedElement } from './preview';
 
-/** A place the person marked on the picture, sent with their next message. */
+/** A place the person marked on the picture, or a stretch of the timeline, sent with their next message. */
 export interface Mark {
   /** Seconds into the film. */
   t: number;
+  /** Where a stretch marked on the timeline ends; such a mark's box is the whole frame. */
+  end?: number;
   /** The marked box, in fractions of the frame. */
   box: Box;
-  /** The element picked there, or null for a region dragged out. */
+  /** The element picked there, or null for a region dragged out or a stretch of time. */
   element: PickedElement | null;
+  /** What the person says should change there; may be empty. */
+  note: string;
+}
+
+/** The longest note a mark carries. */
+export const MARK_NOTE = 300;
+
+/** A mark as the conversation shows it once sent: its moment, its note and, for a model that reads images, the frame it saw. */
+export interface SentMark {
+  t: number;
+  end?: number;
+  note: string;
+  /** The frame the model was sent, as a data: URL. */
+  image?: string;
 }
 
 /** A source-aware reference, attached separately from the creator's words. */
@@ -124,6 +164,8 @@ export interface Reference {
   time?: number;
   path?: string;
   detail?: string;
+  /** Where film.tsx writes it, `film.tsx:12-18`, added when the message is sent. */
+  source?: string;
 }
 
 /** The most marks one message may carry. */
@@ -134,18 +176,76 @@ export type ProviderTest = { ok: true; ms: number; calledTool: boolean } | { ok:
 
 /** One entry of the conversation, as the assistant panel shows it. */
 export type ChatItem =
-  | { kind: 'user'; text: string; marks: number; refs?: Reference[]; version?: number }
+  | { kind: 'user'; text: string; marks: SentMark[]; refs?: Reference[]; version?: number }
   | { kind: 'assistant'; text: string }
-  | { kind: 'tool'; id: string; name: string; summary: string; at?: number; result?: { ok: boolean; text: string; image?: string } }
-  | { kind: 'notice'; text: string; error: boolean };
+  | {
+      kind: 'tool';
+      id: string;
+      name: string;
+      summary: string;
+      at?: number;
+      /** For ask_person: the question the agent put to the person, and the answers it offers. */
+      ask?: Question;
+      result?: { ok: boolean; text: string; image?: string };
+    }
+  | { kind: 'notice'; text: string; error: boolean }
+  /** What an outside agent asked leave to do, and what the person answered. */
+  | { kind: 'approval'; approval: Approval; answer?: ApprovalAnswer };
 
 /** What the agent reports while it works. */
 export type AgentEvent =
   | { type: 'phase'; phase: 'thinking' | 'editing' | 'checking' | 'reviewing' }
   | { type: 'text'; text: string }
-  | { type: 'tool'; id: string; name: string; summary: string; at?: number }
+  | { type: 'tool'; id: string; name: string; summary: string; at?: number; ask?: Question }
   | { type: 'tool-result'; id: string; ok: boolean; text: string; image?: string }
-  | { type: 'end'; notice?: { text: string; error: boolean } };
+  /** An outside agent asks leave to do something beyond its sandbox; the panel answers with answerApproval. */
+  | { type: 'approval'; approval: Approval }
+  | { type: 'approval-done'; id: string; answer: ApprovalAnswer }
+  /** `checkpoint` is the History entry of the files the turn wrote, if it wrote any. */
+  | { type: 'end'; notice?: { text: string; error: boolean }; checkpoint?: string };
+
+/** The conversation with one more of the agent's events in it: its words joined, each tool call and then its result. */
+export function applyEvent(items: ChatItem[], event: AgentEvent): ChatItem[] {
+  switch (event.type) {
+    case 'text': {
+      const last = items[items.length - 1];
+      if (last?.kind === 'assistant') return [...items.slice(0, -1), { ...last, text: last.text + event.text }];
+      return [...items, { kind: 'assistant', text: event.text }];
+    }
+    case 'tool':
+      return [...items, { kind: 'tool', id: event.id, name: event.name, summary: event.summary, at: event.at, ask: event.ask }];
+    case 'tool-result':
+      return items.map((item) =>
+        item.kind === 'tool' && item.id === event.id ? { ...item, result: { ok: event.ok, text: event.text, image: event.image } } : item,
+      );
+    case 'end':
+      return event.notice ? [...items, { kind: 'notice', ...event.notice }] : items;
+    case 'approval':
+      return [...items, { kind: 'approval', approval: event.approval }];
+    case 'approval-done':
+      return items.map((item) => (item.kind === 'approval' && item.approval.id === event.id ? { ...item, answer: event.answer } : item));
+    default:
+      return items;
+  }
+}
+
+/** Something an outside agent (ADR 0008) asks leave to do beyond its sandbox: a command, files elsewhere, the network. */
+export interface Approval {
+  id: string;
+  title: string;
+  /** The command, the paths or the permissions, as the agent gave them. */
+  detail: string;
+  reason?: string;
+}
+
+/** The person's answer to an approval: this once, for the rest of the session, or not. */
+export type ApprovalAnswer = 'once' | 'session' | 'deny';
+
+/** A question the agent puts to the person, ending its turn: their answer is their next message. */
+export interface Question {
+  question: string;
+  options: string[];
+}
 
 export interface Checkpoint {
   restored?: boolean;
@@ -192,6 +292,11 @@ export interface StudioApi {
   reviewFilm(): Promise<FilmReview>;
   history(): Promise<Checkpoint[]>;
   restoreCheckpoint(id: string): Promise<void>;
+  /**
+   * Takes back the agent's last turn: its files as they were before it (its History entry, which must be the latest)
+   * and the conversation as it was before the person's message, whose words come back to put in the composer.
+   */
+  undoTurn(checkpoint: string): Promise<{ text: string }>;
   /** Recent projects, most recent first, without folders that no longer exist. */
   recentProjects(): Promise<Project[]>;
   /** Asks for a folder and opens it; null when the person cancels. */
@@ -222,6 +327,17 @@ export interface StudioApi {
 
   /** The model providers and which one is active. */
   providers(): Promise<Providers>;
+  /** The open project's agent and the coding agents this machine has. */
+  agents(): Promise<Agents>;
+  /** Answers what the project's outside agent asked leave to do. */
+  answerApproval(id: string, answer: ApprovalAnswer): Promise<void>;
+  /**
+   * Signs the person in to their own coding agent, through the agent itself: their browser opens the vendor's sign-in,
+   * and the promise settles when the agent says it is done. The Studio sees no credential.
+   */
+  signInAgent(kind: Exclude<AgentKind, 'built-in'>): Promise<Agents>;
+  /** Makes the open project talk to this agent from its next message. */
+  useAgent(kind: AgentKind): Promise<Agents>;
   saveProvider(input: ProviderInput): Promise<Providers>;
   removeProvider(id: string): Promise<Providers>;
   activateProvider(id: string): Promise<Providers>;
@@ -260,6 +376,7 @@ export const CHANNELS = {
   reviewFilm: 'film:review',
   history: 'project:history',
   restoreCheckpoint: 'project:restore',
+  undoTurn: 'agent:undo-turn',
   recentProjects: 'project:recent',
   openProject: 'project:open',
   createProject: 'project:create',
@@ -273,6 +390,10 @@ export const CHANNELS = {
   motionDetail: 'motions:detail',
   motionReel: 'motions:reel',
   providers: 'providers:list',
+  agents: 'agent:agents',
+  useAgent: 'agent:use',
+  answerApproval: 'agent:answer-approval',
+  signInAgent: 'agent:sign-in',
   saveProvider: 'providers:save',
   removeProvider: 'providers:remove',
   activateProvider: 'providers:activate',

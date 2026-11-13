@@ -1,10 +1,16 @@
 # The creator's workflow
 
-> **Status:** Current · **Updated:** 2026-11-11
+> **Status:** Current · **Updated:** 2026-11-13
 
 How a creator explores a film, points at a change, checks the result and returns to earlier source.
 
 ## Start and explore
+
+The outline marks the scene under the playhead and, while the film plays, keeps it in view unless the person moved
+the list in the last few seconds. A scene's layer can play alone over its scene, every other layer hidden, until the
+person plays, seeks or steps. The stage's guides show the action-safe (90%) and title-safe (80%) areas. The timeline
+zooms about the pointer with Ctrl and the wheel, turns a page as the playhead nears its edge while the film plays (the
+person scrolling it takes it over), and shows the last check's issues on its ruler, each one click from the assistant.
 
 The launcher offers three bundled starting points. Each opens an ordinary local project under the app's userData
 `Examples/` folder; reopening keeps changes. No provider is needed to play, inspect, check or export one. A new film
@@ -29,15 +35,48 @@ this slice; exported films remain picture-only.
 
 ## Make a precise request
 
-A message carries up to five picture marks and eight structural references. References name a scene, layer, script
-line, local asset or check finding; they remain separate from the creator's words in the composer and transcript.
+A message carries up to five marks and eight structural references. A mark is an element picked or a region dragged
+on the picture, or a stretch dragged along the timeline's Marks lane. A pick or region asks what should change there
+in a box beside it (Enter adds the mark, Esc lets it go); a pick steps out to the element around it and back in. The
+marks wait in the composer, each with its number, what and when it is, and its note, which can still be changed;
+hovering one lights it on the picture and the timeline. Once sent, the conversation shows each with the frame the
+model saw. References name a scene, layer, script line, local asset or check finding; they remain separate from the
+creator's words in the composer and transcript. What was last selected in the outline or the timeline goes with the
+next message as a reference, marked Selected, unless it is put aside. A scene, layer or line, marked or referenced,
+tells the agent where film.tsx writes it.
 Structural references and marks belong to the current build. A changed preview clears pending references with a
 notice when the agent is not working, and the main process refuses stale picture references. The inspector still
 shows actual computed styles of a picked element. The composer keeps its words and marks when a request is rejected.
 
 The assistant reports thinking, editing, checking and reviewing from actual model/tool events, with elapsed time and
 a stop action. These phases are activities, not a claim of percentage completion or that the model checked every frame.
-Stopping keeps completed source edits and their checkpoints.
+Stopping keeps completed source edits and their checkpoints. Each run of tool calls reads as one line (`Edited
+film.tsx · Checked ×2 · Looked`, or `Now: Checking the film…` while it runs), its steps folded under it and the stills
+it took beside it; when the same tool fails three times in a row, the progress card says so. The stage says the agent
+is working, and Export waits for the turn.
+
+While the agent works, Enter keeps a message until the turn ends and then sends it; Ctrl+Enter stops the turn and sends
+it at once. Marks and references wait for the turn, since the preview they belong to is changing. When the agent needs
+a choice only the person can make, it asks with a card of up to four answers; clicking one sends it, or the person
+writes their own. When the film does not build or stops drawing, the stage's error offers to hand it to the agent as
+an issue reference.
+
+Where a turn ends, a card says what it changed in the film's structure (`+1 scene · ~2 layers`), each item clickable to
+select and find it, and the outline and the timeline light those items for a moment. The last turn's card can undo it:
+its files go back, the turn leaves the conversation, and the message returns to the composer to change and send again.
+The structure compared is scenes, their spans, layers' boxes and lines; what a layer draws inside its box is not.
+
+A project can talk to the person's own Codex or Claude Code instead of the built-in agent, from the agent picker in
+the composer (ADR 0008). Claude Code works with the project's files and the Studio's tools only, with no shell or
+web, and signs in on its own with `claude auth login` in a terminal. Models shows whether Codex is installed, new enough and signed in, links to OpenAI's page to install or
+update it, and signs in through Codex itself, in the person's browser. Codex runs on its own sign-in and plan, in its workspace sandbox, and its work shows in the same panel:
+its words, its commands and file changes folded into lines, the turn's changes and its undo. Its turns are
+checkpointed from the files that changed, since it writes them itself. What it asks to do beyond its sandbox, a
+command, files outside the project, the network, is a card in the panel with Allow once, Allow for this session and
+Deny; an edit inside the project needs no card, one into a motion from motionhub is refused, and anything it changes
+in one anyway is put back after the turn and said. It gets the Studio's own tools, checking the film, a still of it (shown in
+the panel as the built-in agent's are), the motion catalogue and a question card, and none of the person's other
+Codex servers, apps or plugins. Each agent keeps its own conversation: switching starts the new one afresh.
 
 ## Return to earlier source
 
