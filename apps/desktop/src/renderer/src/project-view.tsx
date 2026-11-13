@@ -202,8 +202,8 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
   // Nothing is sent until the project's agent is known: a project on Codex must not seem to be on the built-in one.
   const ready = !agents
     ? false
-    : agents.current === 'codex'
-      ? agents.harnesses.find((h) => h.kind === 'codex')?.state === 'ready'
+    : agents.current !== 'built-in'
+      ? agents.harnesses.find((h) => h.kind === agents.current)?.state === 'ready'
       : !!active?.ready;
   async function useAgent(kind: AgentKind) {
     try {

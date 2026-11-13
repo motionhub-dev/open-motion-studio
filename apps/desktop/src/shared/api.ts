@@ -68,8 +68,8 @@ export interface MotionDetail {
 export type Protocol = 'anthropic' | 'openai';
 
 /** A model provider as the renderer sees it: never its key. */
-/** Which agent a project talks to: the built-in one on the active provider, or the person's own Codex (ADR 0008). */
-export type AgentKind = 'built-in' | 'codex';
+/** Which agent a project talks to: the built-in one on the active provider, or the person's own Codex or Claude Code (ADR 0008). */
+export type AgentKind = 'built-in' | 'codex' | 'claude';
 
 /** Where a person's own coding agent stands: not installed, too old, installed but not signed in, or ready. */
 export type HarnessState = 'missing' | 'old' | 'signed-out' | 'ready';

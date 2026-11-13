@@ -70,7 +70,9 @@ function AgentPane({ harness, onAgents, onClose }: { harness: HarnessView; onAge
         {harness.state === 'ready'
           ? `Your own ${harness.name}, on its own sign-in and plan. Pick it in the composer for a project; the Studio gives it the film's tools and asks you before it goes beyond its sandbox.`
           : harness.state === 'signed-out'
-            ? `${harness.name} is installed. Sign in through it: your browser opens its sign-in, and the Studio never sees your account's credentials.`
+            ? harness.kind === 'codex'
+              ? `${harness.name} is installed. Sign in through it: your browser opens its sign-in, and the Studio never sees your account's credentials.`
+              : `${harness.name} is installed. ${harness.hint ?? ''}: it signs in on its own, and the Studio never sees your account's credentials.`
             : `${harness.hint ?? ''}. The Studio looks for it where its installer puts it, never in a project.`}
       </p>
       {busy === 'signing-in' && <p className="note">Finish signing in in your browser; this waits for it.</p>}
@@ -91,7 +93,7 @@ function AgentPane({ harness, onAgents, onClose }: { harness: HarnessView; onAge
             {harness.state === 'old' ? 'Update' : 'Install'} {harness.name}
           </a>
         )}
-        {harness.state === 'signed-out' && (
+        {harness.state === 'signed-out' && harness.kind === 'codex' && (
           <button type="button" className="button primary" disabled={busy !== null} onClick={() => void act('signing-in')}>
             {busy === 'signing-in' && <Loader size={14} className="spin" />}
             Sign in

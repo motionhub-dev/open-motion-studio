@@ -3,6 +3,19 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-13 — A project can talk to the person's own Claude Code
+
+- **What:** The agent picker and Models also offer the person's own Claude Code, when it is installed where
+  Anthropic's installer puts it (`~/.local/bin`), new enough and signed in. The Studio drives it through `claude -p`
+  with stream-json, with the film's skill appended to its system prompt, the Studio's tools as its only MCP server,
+  none of the person's settings, hooks or other servers, and only Read, Glob, Grep, Edit and Write of its own tools;
+  its turns are checkpointed from the files that changed as Codex's are. It signs in only with `claude auth login`.
+- **Why:** So a person who already uses Claude Code makes films with it (ADR 0008). Whether it may ship on their
+  subscription waits on Anthropic's terms.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/adr/0008-the-persons-own-coding-agent.md`, `apps/desktop/src/main/agent/claude.ts`.
+
 ## 2026-11-13 — A project can talk to the person's own Codex
 
 - **What:** The composer's agent picker offers the person's own Codex, when it is installed (where OpenAI's installer

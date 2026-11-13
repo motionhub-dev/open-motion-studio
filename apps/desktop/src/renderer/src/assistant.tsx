@@ -170,7 +170,8 @@ export function Assistant({
 }: Props) {
   const [items, setItems] = useState<Row[]>([]);
   const current: AgentKind = agents?.current ?? 'built-in';
-  const codex = agents?.harnesses.find((h) => h.kind === 'codex');
+  /** The person's own agent the project talks to, if it is not the built-in one. */
+  const outside = agents?.harnesses.find((h) => h.kind === current);
   /** Whether the menu of agents is open. */
   const [picking, setPicking] = useState(false);
   useEffect(() => {
@@ -708,17 +709,17 @@ export function Assistant({
             <button
               type="button"
               className="composer-model"
-              aria-label={`Choose the agent, current: ${current === 'codex' ? 'Codex' : active ? `${active.model} by ${active.name}` : 'none set up'}`}
+              aria-label={`Choose the agent, current: ${outside ? outside.name : active ? `${active.model} by ${active.name}` : 'none set up'}`}
               aria-haspopup="menu"
               aria-expanded={picking}
-              title={current === 'codex' ? `Codex${codex?.version ? ` ${codex.version}` : ''}` : active ? `${active.model} · ${active.name}` : 'Set up a model'}
+              title={outside ? `${outside.name}${outside.version ? ` ${outside.version}` : ''}` : active ? `${active.model} · ${active.name}` : 'Set up a model'}
               disabled={working || !agents}
               onClick={() => {
                 if (!picking) onRefreshAgents();
                 setPicking(!picking);
               }}
             >
-              <span>{!agents ? 'Finding the agent…' : current === 'codex' ? 'Codex' : active ? active.model : 'Set up a model'}</span>
+              <span>{!agents ? 'Finding the agent…' : outside ? outside.name : active ? active.model : 'Set up a model'}</span>
               <ChevronDown size={12} />
             </button>
             {picking && (
@@ -736,21 +737,24 @@ export function Assistant({
                   <strong>{active ? active.model : 'Built-in agent'}</strong>
                   <span>{active ? `Built-in agent · ${active.name}` : 'Built-in agent · set up a model in Models'}</span>
                 </button>
-                {codex && (
+                {agents?.harnesses.map((harness) => (
                   <button
+                    key={harness.kind}
                     type="button"
                     role="menuitemradio"
-                    aria-checked={current === 'codex'}
-                    disabled={codex.state !== 'ready'}
+                    aria-checked={current === harness.kind}
+                    disabled={harness.state !== 'ready'}
                     onClick={() => {
                       setPicking(false);
-                      if (current !== 'codex') onUseAgent('codex');
+                      if (current !== harness.kind) onUseAgent(harness.kind);
                     }}
                   >
-                    <strong>Codex</strong>
-                    <span>{codex.state === 'ready' ? `Your Codex${codex.version ? ` ${codex.version}` : ''} · its own sign-in` : codex.hint}</span>
+                    <strong>{harness.name}</strong>
+                    <span>
+                      {harness.state === 'ready' ? `Your ${harness.name}${harness.version ? ` ${harness.version}` : ''} · its own sign-in` : harness.hint}
+                    </span>
                   </button>
-                )}
+                ))}
                 <button
                   type="button"
                   role="menuitem"

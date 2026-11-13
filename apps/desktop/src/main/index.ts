@@ -21,7 +21,8 @@ import {
 } from '../shared/api';
 import { type AppServer, type Place, codexInput, codexTurn, openThread, signInCodex, signedIn, startCodex } from './agent/codex';
 import { type StudioMcp, startStudioMcp } from './agent/studio-mcp';
-import { CODEX_INSTALL, findCodex } from './agent/harness';
+import { CLAUDE_INSTALL, CODEX_INSTALL, findClaude, findCodex } from './agent/harness';
+import { ClaudeSession, claudeArgs, newClaudeSession } from './agent/claude';
 import { runTurn, transcript } from './agent/loop';
 import { markedMessage, readMarks } from './agent/marks';
 import { type MessageParam, caller, failure } from './agent/model';
@@ -62,7 +63,9 @@ let open: {
   agent?: AgentState;
   /** The person's own Codex, started for this project on its first message to it. */
   codex?: AppServer;
-  /** The Studio's tools for that Codex session (studio-mcp.ts), ended with it. */
+  /** The person's own Claude Code, started for this project on its first message to it, ended by Stop. */
+  claude?: ClaudeSession;
+  /** The Studio's tools for the outside agent's session (studio-mcp.ts), ended with it. */
   studioMcp?: StudioMcp;
 } | null = null;
 
@@ -108,7 +111,7 @@ async function agentOf(state: NonNullable<typeof open>): Promise<AgentState> {
   try {
     const saved = JSON.parse(await readFile(agentFile(state.project.path), 'utf8')) as Partial<AgentState>;
     state.agent = {
-      kind: saved.kind === 'codex' ? 'codex' : 'built-in',
+      kind: saved.kind === 'codex' || saved.kind === 'claude' ? saved.kind : 'built-in',
       ...(typeof saved.thread === 'string' ? { thread: saved.thread } : {}),
       items: Array.isArray(saved.items) ? saved.items : [],
     };
@@ -154,8 +157,20 @@ async function harnesses(): Promise<HarnessView[]> {
   ];
 }
 
+/** The person's own Claude Code and where it stands; it signs in only in a terminal, with its own `claude auth login`. */
+async function claudeHarness(): Promise<HarnessView> {
+  const found = await findClaude();
+  const claude: HarnessView = { kind: 'claude', name: 'Claude Code', state: 'missing', hint: 'Install Claude Code from Anthropic, then check again', link: CLAUDE_INSTALL };
+  if (found.state !== 'found')
+    return found.state === 'old' ? { ...claude, state: 'old', version: found.version, hint: 'Update Claude Code to use it here' } : claude;
+  return found.signedIn
+    ? { kind: 'claude', name: 'Claude Code', state: 'ready', version: found.version }
+    : { kind: 'claude', name: 'Claude Code', state: 'signed-out', version: found.version, hint: 'Run `claude auth login` in a terminal to sign in' };
+}
+
 async function agents(): Promise<Agents> {
-  return { current: open ? (await agentOf(open)).kind : 'built-in', harnesses: await harnesses() };
+  const [codex, claude] = await Promise.all([harnesses(), claudeHarness()]);
+  return { current: open ? (await agentOf(open)).kind : 'built-in', harnesses: [...codex, claude] };
 }
 
 /** The folder whose film the preview scheme serves, while one is open. */
@@ -176,6 +191,7 @@ async function closeOpen(): Promise<void> {
   exporting?.abort();
   working?.abort();
   open?.codex?.close();
+  open?.claude?.close();
   open?.studioMcp?.close();
   const watcher = open?.watcher;
   open = null;
@@ -252,9 +268,25 @@ async function outsideTurn(
   state.lastTurn = undefined;
   let outcome: { ok: boolean; notice?: { text: string; error: boolean } };
   let checkpoint: string | undefined;
+  const name = agent.kind === 'claude' ? 'Claude Code' : 'Codex';
+  // What Codex asks leave to do is a card in the panel; its answer comes back through answerApproval.
+  const ask = (asked: Omit<Approval, 'id'>) =>
+    new Promise<ApprovalAnswer>((done) => {
+      const id = randomUUID();
+      const answer = (choice: ApprovalAnswer) => {
+        if (!approvals.has(id)) return;
+        approvals.delete(id);
+        signal.removeEventListener('abort', deny);
+        emit({ type: 'approval-done', id, answer: choice });
+        done(choice);
+      };
+      const deny = () => answer('deny');
+      approvals.set(id, answer);
+      signal.addEventListener('abort', deny);
+      emit({ type: 'approval', approval: { id, ...asked } });
+      if (signal.aborted) deny();
+    });
   try {
-    const found = await findCodex();
-    if (found.state !== 'found') throw new Error(found.state === 'old' ? 'Codex is too old for the Studio. Update it to go on.' : 'Codex is not installed on this computer.');
     state.studioMcp ??= await startStudioMcp(
       {
         dir,
@@ -269,37 +301,45 @@ async function outsideTurn(
       },
       app.getVersion(),
     );
-    state.codex ??= await startCodex(found.bin, dir, app.getVersion());
-    agent.thread = await openThread(state.codex, dir, FILM_SKILL, state.studioMcp.url, agent.thread);
+    const studioUrl = state.studioMcp.url;
+    // The agent, started for the project if it is not: its session, and how a turn of it runs.
+    let run: (signal: AbortSignal) => Promise<{ ok: boolean; notice?: { text: string; error: boolean } }>;
+    if (agent.kind === 'claude') {
+      const found = await findClaude();
+      if (found.state !== 'found') throw new Error(found.state === 'old' ? 'Claude Code is too old for the Studio. Update it to go on.' : 'Claude Code is not installed on this computer.');
+      if (!found.signedIn) throw new Error('Claude Code is not signed in. Run `claude auth login` in a terminal, then send again.');
+      if (!state.claude) {
+        const resume = !!agent.thread;
+        agent.thread ??= newClaudeSession();
+        const session = new ClaudeSession(found.bin, dir, claudeArgs(FILM_SKILL, studioUrl, { id: agent.thread, resume }));
+        state.claude = session;
+        // A session that ends (Stop, or Claude Code's own exit) is started again, resumed, for the next message.
+        void session.ended.then(() => {
+          if (state.claude === session) delete state.claude;
+        });
+      }
+      const session = state.claude;
+      run = (signal) => session.turn(content, emit, signal);
+    } else {
+      const found = await findCodex();
+      if (found.state !== 'found') throw new Error(found.state === 'old' ? 'Codex is too old for the Studio. Update it to go on.' : 'Codex is not installed on this computer.');
+      state.codex ??= await startCodex(found.bin, dir, app.getVersion());
+      const thread = (agent.thread = await openThread(state.codex, dir, FILM_SKILL, studioUrl, agent.thread));
+      const codex = state.codex;
+      run = (signal) => codexTurn(codex, thread, codexInput(content), emit, signal, ask, (path) => placeIn(dir, path));
+    }
     await saveAgent(dir, agent);
     const before = await noteFiles(dir);
     const published = await noteFiles(dir, true);
-    // What Codex asks leave to do is a card in the panel; its answer comes back through answerApproval.
-    const ask = (asked: Omit<Approval, 'id'>) =>
-      new Promise<ApprovalAnswer>((done) => {
-        const id = randomUUID();
-        const answer = (choice: ApprovalAnswer) => {
-          if (!approvals.has(id)) return;
-          approvals.delete(id);
-          signal.removeEventListener('abort', deny);
-          emit({ type: 'approval-done', id, answer: choice });
-          done(choice);
-        };
-        const deny = () => answer('deny');
-        approvals.set(id, answer);
-        signal.addEventListener('abort', deny);
-        emit({ type: 'approval', approval: { id, ...asked } });
-        if (signal.aborted) deny();
-      });
-    outcome = await codexTurn(state.codex, agent.thread, codexInput(content), emit, signal, ask, (path) => placeIn(dir, path));
+    outcome = await run(signal);
     checkpoint = await history.record(changesBetween(before, await noteFiles(dir)));
-    // A motion from motionhub is never changed in a project: whatever Codex changed there goes back, and is said.
+    // A motion from motionhub is never changed in a project: whatever the agent changed there goes back, and is said.
     const touched = changesBetween(published, await noteFiles(dir, true));
     if (touched.length) {
       await putBack(dir, touched);
       emit({
         type: 'text',
-        text: `\n\n*Codex changed ${touched.map((c) => c.path).join(', ')}, part of a motion from motionhub, which a project never changes. The Studio put ${touched.length === 1 ? 'it' : 'them'} back.*\n\n`,
+        text: `\n\n*${name} changed ${touched.map((c) => c.path).join(', ')}, part of a motion from motionhub, which a project never changes. The Studio put ${touched.length === 1 ? 'it' : 'them'} back.*\n\n`,
       });
     }
   } catch (error) {
@@ -416,7 +456,11 @@ function registerHandlers(): void {
         // The files go back; an outside agent's own record of the turn stays, and the panel says so.
         agent.items = [
           ...agent.items.slice(0, turn.start),
-          { kind: 'notice', text: 'The files are back as they were. Codex still remembers the turn you undid.', error: false },
+          {
+            kind: 'notice',
+            text: `The files are back as they were. ${agent.kind === 'claude' ? 'Claude Code' : 'Codex'} still remembers the turn you undid.`,
+            error: false,
+          },
         ];
         await saveAgent(state.project.path, agent);
       }
@@ -499,18 +543,20 @@ function registerHandlers(): void {
   });
   ipcMain.handle(CHANNELS.useAgent, async (_event, kind: unknown) => {
     const state = requireOpen();
-    if (kind !== 'built-in' && kind !== 'codex') throw new Error('Choose an agent.');
+    if (kind !== 'built-in' && kind !== 'codex' && kind !== 'claude') throw new Error('Choose an agent.');
     if (working || exporting) throw new Error('Finish the current task before changing the agent.');
-    if (kind === 'codex' && (await harnesses()).find((h) => h.kind === 'codex')?.state !== 'ready')
-      throw new Error('Codex is not ready on this computer. Models says what it needs.');
+    const outside = kind === 'built-in' ? undefined : (await agents()).harnesses.find((h) => h.kind === kind);
+    if (outside && outside.state !== 'ready') throw new Error(`${outside.name} is not ready on this computer. Models says what it needs.`);
     const agent = await agentOf(state);
     if (agent.kind !== kind) {
       // Each agent has its own conversation; switching starts the new one's afresh.
       state.agent = { kind, items: [] };
       state.lastTurn = undefined;
       state.codex?.close();
+      state.claude?.close();
       state.studioMcp?.close();
       delete state.codex;
+      delete state.claude;
       delete state.studioMcp;
       await saveAgent(state.project.path, state.agent);
     }

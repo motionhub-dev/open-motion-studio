@@ -194,7 +194,8 @@ Two protocols, every provider a preset over one of them:
 > Under way ([ADR 0008](../adr/0008-the-persons-own-coding-agent.md)): Codex answers in the panel, works with the
 > Studio's tools, and asks the person for what lies beyond its sandbox (steps 7.1 to 7.3: `harness.ts` for Codex,
 > `codex.ts`, `studio-mcp.ts`, the turn's checkpoint, approval cards, the agent in the composer) and shows where it
-> stands in Models, with Codex's sign-in started from there (7.5). Not yet: Claude Code (7.4).
+> stands in Models, with Codex's sign-in started from there (7.5). Claude Code is built (7.4) but not yet driven on
+> a signed-in Claude Code, and whether its way in may ship waits on Anthropic's terms (Open questions).
 
 A project's agent is the built-in one (above) or the person's own Claude Code or Codex, each driven through its own
 headless protocol. Everything the person sees of the agent stays the same panel: their message with its marks and
@@ -204,7 +205,8 @@ changes is who runs the loop.
 ```
 src/main/agent/
   claude.ts          Claude Code: `claude -p` with stream-json in and out, one process per open project, its
-                     events translated into AgentEvent
+                     events translated into AgentEvent; it runs without the CLAUDECODE and CLAUDE_CODE_* variables a
+                     Claude Code session the Studio was started from would pass on, which `claude` refuses
   codex.ts           Codex: `codex app-server`, JSON-RPC over stdio, its threads, turns, items and approvals
                      translated into AgentEvent and permission cards
   harness.ts         finding each CLI where its vendor installs it, its version against the range the Studio speaks,
@@ -311,7 +313,13 @@ Each step is a vertical slice that runs end to end before the next begins.
    3. *Its work is recoverable*: the turn's checkpoint from the files that changed, the change summary, Undo this turn,
       protected paths declined, approval cards. *Built*, the checkpoint with 7.1; driven on Codex 0.167.0: a command
       that needed the network asked for, shown as a card, denied, and Codex told so.
-   4. *Claude Code*: the same three on `claude -p` stream-json, its fixed tool set, and steering mid-turn.
+   4. *Claude Code*: the same three on `claude -p` stream-json, its fixed tool set, and steering mid-turn. *Built*,
+      but for steering (a message sent during a turn waits for it, as for the other agents): found in
+      `~/.local/bin`, its sign-in read from `claude auth status` (signed in only with `claude auth login` in a
+      terminal), one process per project with Read, Glob, Grep, Edit and Write, edits accepted, the Studio's MCP
+      server allowed, and no setting sources; Stop ends the process and the next message resumes the session. Its
+      events are pinned by a test against a stand-in process. Not yet driven on a signed-in Claude Code: on the
+      developer's machine it was signed out, which Models and the agent picker showed.
    5. *Models shows each agent's state*: not installed (the vendor's install command), not signed in (Codex's sign-in
       from the Studio, Claude Code's command), too old or too new, ready; and a failed turn says which. *Built* for
       Codex: not installed and too old link to OpenAI's own page, not signed in starts Codex's sign-in
