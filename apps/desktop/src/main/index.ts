@@ -18,6 +18,7 @@ import {
   applyEvent,
 } from '../shared/api';
 import { type AppServer, codexInput, codexTurn, openThread, signedIn, startCodex } from './agent/codex';
+import { type StudioMcp, startStudioMcp } from './agent/studio-mcp';
 import { findCodex } from './agent/harness';
 import { runTurn, transcript } from './agent/loop';
 import { markedMessage, readMarks } from './agent/marks';
@@ -57,6 +58,8 @@ let open: {
   agent?: AgentState;
   /** The person's own Codex, started for this project on its first message to it. */
   codex?: AppServer;
+  /** The Studio's tools for that Codex session (studio-mcp.ts), ended with it. */
+  studioMcp?: StudioMcp;
 } | null = null;
 
 /**
@@ -164,6 +167,7 @@ async function closeOpen(): Promise<void> {
   exporting?.abort();
   working?.abort();
   open?.codex?.close();
+  open?.studioMcp?.close();
   const watcher = open?.watcher;
   open = null;
   await watcher?.dispose();
@@ -226,8 +230,22 @@ async function outsideTurn(
   try {
     const found = await findCodex();
     if (found.state !== 'found') throw new Error(found.state === 'old' ? 'Codex is too old for the Studio. Update it to go on.' : 'Codex is not installed on this computer.');
+    state.studioMcp ??= await startStudioMcp(
+      {
+        dir,
+        build: async () => {
+          if (open !== state || !state.watcher) throw new Error('The project was closed.');
+          await state.watcher.rebuild();
+          return state.build!;
+        },
+        stage: (version) => openStage(version),
+        searchMotions: (words) => searchMotions(words),
+        useMotion: (id) => useMotion(dir, id),
+      },
+      app.getVersion(),
+    );
     state.codex ??= await startCodex(found.bin, dir, app.getVersion());
-    agent.thread = await openThread(state.codex, dir, FILM_SKILL, agent.thread);
+    agent.thread = await openThread(state.codex, dir, FILM_SKILL, state.studioMcp.url, agent.thread);
     await saveAgent(dir, agent);
     const before = await noteFiles(dir);
     outcome = await codexTurn(state.codex, agent.thread, codexInput(content), emit, signal);
@@ -419,7 +437,9 @@ function registerHandlers(): void {
       state.agent = { kind, items: [] };
       state.lastTurn = undefined;
       state.codex?.close();
+      state.studioMcp?.close();
       delete state.codex;
+      delete state.studioMcp;
       await saveAgent(state.project.path, state.agent);
     }
     return agents();

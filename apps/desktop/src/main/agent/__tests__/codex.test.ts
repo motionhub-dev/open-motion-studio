@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { codexInput, translate, turnEnd, type Reading } from '../codex';
+import { STUDIO_SERVER, codexInput, sessionConfig, translate, turnEnd, type Reading } from '../codex';
 import { atLeast, codexPlaces, versionOf } from '../harness';
 
 vi.mock('electron', () => ({}));
@@ -63,5 +63,28 @@ describe('finding Codex', () => {
     expect(atLeast([0, 167, 0], '0.167.0')).toBe(true);
     expect(atLeast([0, 168, 1], '0.167.0')).toBe(true);
     expect(atLeast([0, 99, 9], '0.167.0')).toBe(false);
+  });
+});
+
+describe('a Codex session with the Studio’s tools', () => {
+  it('switches off the person’s own servers, apps and plugins, and adds the Studio’s', () => {
+    expect(sessionConfig(['pencil', 'node_repl'], 'http://127.0.0.1:5/mcp/x')).toEqual({
+      mcp_servers: { pencil: { enabled: false }, node_repl: { enabled: false }, [STUDIO_SERVER]: { url: 'http://127.0.0.1:5/mcp/x' } },
+      features: { apps: false, plugins: false },
+    });
+  });
+
+  it('shows a Studio tool as the built-in agent’s, with a still’s picture and a question’s card', () => {
+    const reading: Reading = { said: false };
+    expect(translate('item/started', { item: { type: 'mcpToolCall', id: 's', server: STUDIO_SERVER, tool: 'still', arguments: { time: 1.5 } } }, reading)).toEqual([
+      { type: 'phase', phase: 'reviewing' },
+      { type: 'tool', id: 's', name: 'still', summary: 'Looking at 1.5 s', at: 1.5 },
+    ]);
+    expect(
+      translate('item/completed', { item: { type: 'mcpToolCall', id: 's', status: 'completed', result: { content: [{ type: 'text', text: 'At 1.5 s' }, { type: 'image', data: 'AAAA', mimeType: 'image/jpeg' }] } } }, reading),
+    ).toEqual([{ type: 'tool-result', id: 's', ok: true, text: 'At 1.5 s', image: 'data:image/jpeg;base64,AAAA' }]);
+    expect(translate('item/started', { item: { type: 'mcpToolCall', id: 'q', server: STUDIO_SERVER, tool: 'ask_person', arguments: { question: 'Calm or bold?', options: ['Calm', 'Bold'] } } }, reading)[1]).toMatchObject({
+      ask: { question: 'Calm or bold?', options: ['Calm', 'Bold'] },
+    });
   });
 });

@@ -7,9 +7,11 @@ Every key change to Open Motion Studio, newest first, by date. What counts as ke
 
 - **What:** The composer's agent picker offers the person's own Codex, when it is installed (where OpenAI's installer
   puts it), new enough and signed in. The Studio drives it through `codex app-server` with the film's skill as its
-  instructions; its words, commands and file changes show in the panel, its turns are checkpointed from the files that
-  changed, and Stop interrupts it. The project's choice, Codex's thread and the panel's conversation are kept in
-  `.motion-studio/agent.json`. What Codex asks to do outside its sandbox is declined for now.
+  instructions and the Studio's tools (check, still, the motions, a question card) as its only MCP server, the
+  person's other Codex servers, apps and plugins switched off for the session; its words, commands, file changes and
+  stills show in the panel, its turns are checkpointed from the files that changed, and Stop interrupts it. The
+  project's choice, Codex's thread and the panel's conversation are kept in `.motion-studio/agent.json`. What Codex
+  asks to do outside its sandbox is declined for now.
 - **Why:** So a person who already uses Codex makes films with it, on their own plan and sign-in (ADR 0008).
 - **Breaking:** None.
 - **Upgrade:** Nothing.

@@ -191,10 +191,10 @@ Two protocols, every provider a preset over one of them:
 
 ## External agents
 
-> Under way ([ADR 0008](../adr/0008-the-persons-own-coding-agent.md)): Codex answers in the panel (step 7.1:
-> `harness.ts` for Codex, `codex.ts`, the turn's checkpoint, the agent in the composer). Not yet: the Studio's MCP
-> server, approval cards, Claude Code, and keeping the person's own Codex settings and MCP servers out of the
-> session; until then an approval Codex asks for is declined and said in the panel.
+> Under way ([ADR 0008](../adr/0008-the-persons-own-coding-agent.md)): Codex answers in the panel and works with the
+> Studio's tools (steps 7.1 and 7.2: `harness.ts` for Codex, `codex.ts`, `studio-mcp.ts`, the turn's checkpoint, the
+> agent in the composer). Not yet: approval cards (until then an approval Codex asks for outside its sandbox is
+> declined and said in the panel), protected paths put back, Claude Code.
 
 A project's agent is the built-in one (above) or the person's own Claude Code or Codex, each driven through its own
 headless protocol. Everything the person sees of the agent stays the same panel: their message with its marks and
@@ -210,7 +210,8 @@ src/main/agent/
   harness.ts         finding each CLI where its vendor installs it, its version against the range the Studio speaks,
                      whether it is signed in, and the one action for each state
   studio-mcp.ts      the MCP server one session reaches: check, still, search_motions, use_motion, ask_person,
-                     on 127.0.0.1 behind a secret path, gone when the session ends
+                     over streamable HTTP (JSON answers, no event stream) on 127.0.0.1 at a random port behind a
+                     secret path, refusing any request with an Origin, gone when the session ends
 ```
 
 - **Starting**: the CLI is a child of the main process, its working folder the project, its environment the person's
@@ -299,7 +300,10 @@ Each step is a vertical slice that runs end to end before the next begins.
       and driven in the app on a signed-in Codex 0.167.0: a title changed in `film.tsx`, its checkpoint restored from
       History, a turn stopped; the turn's checkpoint, change summary and Undo this turn came with it.
    2. *It sees the film*: the Studio's MCP server (`check`, `still`, the motions, `ask_person`), the skill as its
-      instructions, marks and references in the message with their frames.
+      instructions, marks and references in the message with their frames. *Built*, and driven on Codex 0.167.0: a
+      turn that checked the film and looked at a still through the Studio's tools, the still shown in the panel.
+      Codex adds a session's MCP servers to the person's own, so the session switches each of theirs off by name
+      (`config/read`), with apps and plugins; it asks before each MCP tool call, which the Studio grants for its own.
    3. *Its work is recoverable*: the turn's checkpoint from the files that changed, the change summary, Undo this turn,
       protected paths declined, approval cards.
    4. *Claude Code*: the same three on `claude -p` stream-json, its fixed tool set, and steering mid-turn.

@@ -70,7 +70,9 @@ A project can talk to the person's own Codex instead of the built-in agent, from
 (ADR 0008). Codex runs on its own sign-in and plan, in its workspace sandbox, and its work shows in the same panel:
 its words, its commands and file changes folded into lines, the turn's changes and its undo. Its turns are
 checkpointed from the files that changed, since it writes them itself; anything it asks to do outside the sandbox is
-declined for now, and the panel says so. Each agent keeps its own conversation: switching starts the new one afresh.
+declined for now, and the panel says so. It gets the Studio's own tools, checking the film, a still of it (shown in
+the panel as the built-in agent's are), the motion catalogue and a question card, and none of the person's other
+Codex servers, apps or plugins. Each agent keeps its own conversation: switching starts the new one afresh.
 
 ## Return to earlier source
 

@@ -28,7 +28,7 @@ export interface Turn {
 }
 
 /** The question an ask_person call puts, or nothing for any other call or one that does not read. */
-function question(name: string, input: unknown): Question | undefined {
+export function question(name: string, input: unknown): Question | undefined {
   if (name !== 'ask_person') return undefined;
   try {
     return askOf(input);
@@ -38,12 +38,12 @@ function question(name: string, input: unknown): Question | undefined {
 }
 
 /** The moment a still was taken at, so the person can go to it. */
-function moment(name: string, input: unknown): number | undefined {
+export function moment(name: string, input: unknown): number | undefined {
   const time = (input as { time?: unknown } | null)?.time;
   return name === 'still' && typeof time === 'number' ? time : undefined;
 }
 
-function summary(name: string, input: unknown): string {
+export function summary(name: string, input: unknown): string {
   const i = (input ?? {}) as Record<string, unknown>;
   switch (name) {
     case 'list_files':

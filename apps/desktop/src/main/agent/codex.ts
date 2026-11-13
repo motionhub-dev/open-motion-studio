@@ -1,13 +1,18 @@
 // The person's own Codex, through `codex app-server` (ADR 0008): JSON-RPC, one message a line, over the stdio of a
 // child started in the project folder. The Studio initializes it, opens (or resumes) the project's thread with the
-// film's skill as its instructions, and runs a turn as the panel's events: the agent's words as text, each command,
-// file change or tool call as a tool line with its result. Codex works in its workspace sandbox; an approval it asks
-// for is declined until the Studio can ask the person (step 7.3). Nothing of the person's sign-in passes through here
-// but whether there is one.
+// film's skill as its instructions and the Studio's MCP server (studio-mcp.ts) as its only one, the person's own
+// servers, apps and plugins switched off for the session, and runs a turn as the panel's events: the agent's words as
+// text, each command, file change or tool call as a tool line with its result, a Studio tool as the built-in agent's
+// would be. Codex works in its workspace sandbox; an approval it asks for is declined until the Studio can ask the
+// person (step 7.3). Nothing of the person's sign-in passes through here but whether there is one.
 
 import { type ChildProcess, spawn } from 'node:child_process';
 import type Anthropic from '@anthropic-ai/sdk';
 import type { AgentEvent } from '../../shared/api';
+import { moment, question, summary } from './loop';
+
+/** The name the Studio's MCP server has in a Codex session. */
+export const STUDIO_SERVER = 'open_motion_studio';
 
 type Params = Record<string, unknown>;
 type Notice = { text: string; error: boolean };
@@ -134,11 +139,34 @@ export async function signedIn(server: AppServer): Promise<boolean> {
   return read.account !== null || !read.requiresOpenaiAuth;
 }
 
-/** The project's thread: the one it had, resumed, else a new one with the film's skill as its developer instructions. */
-export async function openThread(server: AppServer, dir: string, instructions: string, thread?: string): Promise<string> {
+/**
+ * The configuration a session runs with: the Studio's MCP server as the only one, each of the person's own switched
+ * off by name (Codex adds a session's servers to theirs rather than replacing them), and no apps or plugins.
+ */
+export function sessionConfig(own: string[], studioUrl: string): Record<string, unknown> {
+  return {
+    mcp_servers: {
+      ...Object.fromEntries(own.filter((name) => name !== STUDIO_SERVER).map((name) => [name, { enabled: false }])),
+      [STUDIO_SERVER]: { url: studioUrl },
+    },
+    features: { apps: false, plugins: false },
+  };
+}
+
+/**
+ * The project's thread: the one it had, resumed, else a new one; either way with the film's skill as its developer
+ * instructions and the session's configuration (sessionConfig), since the Studio's server has a new address each run.
+ */
+export async function openThread(server: AppServer, dir: string, instructions: string, studioUrl: string, thread?: string): Promise<string> {
+  const read = await server.request<{ config: { mcp_servers?: Record<string, unknown> } }>('config/read', { cwd: dir });
+  const config = sessionConfig(Object.keys(read.config.mcp_servers ?? {}), studioUrl);
   if (thread) {
     try {
-      const resumed = await server.request<{ thread: { id: string } }>('thread/resume', { threadId: thread });
+      const resumed = await server.request<{ thread: { id: string } }>('thread/resume', {
+        threadId: thread,
+        developerInstructions: instructions,
+        config,
+      });
       return resumed.thread.id;
     } catch {
       // A thread Codex no longer has starts again; the panel keeps what was said.
@@ -149,6 +177,7 @@ export async function openThread(server: AppServer, dir: string, instructions: s
     sandbox: 'workspace-write',
     approvalPolicy: 'on-request',
     developerInstructions: instructions,
+    config,
   });
   return started.thread.id;
 }
@@ -200,8 +229,18 @@ export function translate(method: string, params: Params, reading: Reading): Age
           { type: 'tool', id: item.id, name: 'edit_file', summary: `Editing ${first}${paths.length > 1 ? ` and ${paths.length - 1} more` : ''}` },
         ];
       }
-      case 'mcpToolCall':
-        return [{ type: 'tool', id: item.id, name: String(item.tool), summary: `${String(item.server)}: ${String(item.tool)}` }];
+      case 'mcpToolCall': {
+        const tool = String(item.tool);
+        // A Studio tool reads as the built-in agent's: its words, a still's moment, a question's card.
+        if (item.server === STUDIO_SERVER) {
+          const ask = question(tool, item.arguments);
+          return [
+            { type: 'phase', phase: tool === 'check' ? 'checking' : 'reviewing' },
+            { type: 'tool', id: item.id, name: tool, summary: summary(tool, item.arguments), at: moment(tool, item.arguments), ...(ask ? { ask } : {}) },
+          ];
+        }
+        return [{ type: 'tool', id: item.id, name: tool, summary: `${String(item.server)}: ${tool}` }];
+      }
       case 'webSearch':
         return [{ type: 'tool', id: item.id, name: 'web_search', summary: 'Searching the web' }];
       default:
@@ -223,9 +262,18 @@ export function translate(method: string, params: Params, reading: Reading): Age
       }
       case 'mcpToolCall': {
         const error = (item.error as { message?: string } | null)?.message;
-        const result = item.result as { content?: { type: string; text?: string }[] } | null;
+        const result = item.result as { content?: { type: string; text?: string; data?: string; mimeType?: string }[]; isError?: boolean } | null;
         const text = error ?? (result?.content ?? []).flatMap((c) => (c.type === 'text' && c.text ? [c.text] : [])).join('\n');
-        return [{ type: 'tool-result', id: item.id, ok: item.status === 'completed', text: text.slice(0, OUTPUT) }];
+        const picture = result?.content?.find((c) => c.type === 'image' && c.data);
+        return [
+          {
+            type: 'tool-result',
+            id: item.id,
+            ok: item.status === 'completed' && !result?.isError,
+            text: text.slice(0, OUTPUT),
+            ...(picture ? { image: `data:${picture.mimeType ?? 'image/jpeg'};base64,${picture.data}` } : {}),
+          },
+        ];
       }
       case 'webSearch':
         return [{ type: 'tool-result', id: item.id, ok: true, text: '' }];
@@ -270,6 +318,9 @@ export async function codexTurn(
   });
   // Until the Studio can ask the person (step 7.3), what Codex asks leave to do outside its sandbox is declined, and said.
   server.answer = async (method, params) => {
+    // Codex asks before each MCP tool call (an elicitation of kind mcp_tool_call). A Studio tool needs no one's leave:
+    // the Studio is its server, and the call is the Studio's own.
+    if (method === 'mcpServer/elicitation/request' && params.serverName === STUDIO_SERVER) return { action: 'accept', content: {}, _meta: null };
     if (method === 'item/commandExecution/requestApproval' || method === 'item/fileChange/requestApproval') {
       const what = method.includes('command') ? `run ${String(params.command ?? 'a command')}` : 'change files outside the project';
       emit({ type: 'text', text: `\n\n*Codex asked to ${what}; the Studio declined it.*\n\n` });
