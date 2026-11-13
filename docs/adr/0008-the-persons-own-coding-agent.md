@@ -81,8 +81,9 @@ The Studio's rules stand in the way as written: it "runs no program the person i
   and says when it is too old or too new; two translations into the panel's events, besides the built-in agent's. The
   agent's own tools can write a file before the Studio sees it, so recovery is per turn, not per write. Claude Code has
   no shell in the Studio until a permission route for it is settled. Quality, limits and cost are the vendor's.
-- Open: whether driving the person's own Claude Code on their subscription sits within Anthropic's terms. The Studio
-  ships its Claude Code way in only once that is settled, and Codex's first.
+- Settled (2026-11-13): the Studio ships its Claude Code way in beside Codex's. It drives the `claude` the person
+  installed and signed in to themselves, through the headless mode Anthropic documents for programs; it neither
+  builds on the Agent SDK nor offers a claude.ai login of its own.
 - Rules out: nothing of ADR 0003. A session is one project's, started in its folder; the Studio is not an editor for
   the agent's other work.
 
