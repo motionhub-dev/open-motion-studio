@@ -3,6 +3,18 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-13 — A timeline to move about in, keys for the workspace, and aids for looking
+
+- **What:** The timeline zooms about the pointer (Ctrl and the wheel, + and −, Shift+Z fits), follows the playhead
+  while the film plays, brings back a playhead out of view, names the moment and scene under the pointer, and shows the
+  last check's issues on its ruler, each one click from the assistant. New keys: K plays, ↑ ↓ go between scenes, Home
+  and End to the ends, `[` `]` `\` show or hide the panels, G the safe-area guides; Esc does one thing at a time; the
+  shortcuts dialog groups them. The outline follows the scene that plays, and a scene's layer can play alone.
+- **Why:** So a longer film can be read and moved about in, and looked at closely, without the mouse.
+- **Breaking:** Esc no longer puts the tool down and clears the selection at once: it does the first, then the second.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/design.md`, `docs/tech/creator-workflow.md`, `apps/desktop/src/renderer/src/timeline.tsx`.
+
 ## 2026-11-13 — The agent's work reads as it happens, and a turn can be taken back
 
 - **What:** Each run of the agent's tool calls reads as one line of plain words with its stills beside it, and the

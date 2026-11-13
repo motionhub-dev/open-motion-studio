@@ -6,6 +6,12 @@ How a creator explores a film, points at a change, checks the result and returns
 
 ## Start and explore
 
+The outline marks the scene under the playhead and, while the film plays, keeps it in view unless the person moved
+the list in the last few seconds. A scene's layer can play alone over its scene, every other layer hidden, until the
+person plays, seeks or steps. The stage's guides show the action-safe (90%) and title-safe (80%) areas. The timeline
+zooms about the pointer with Ctrl and the wheel, turns a page as the playhead nears its edge while the film plays (the
+person scrolling it takes it over), and shows the last check's issues on its ruler, each one click from the assistant.
+
 The launcher offers three bundled starting points. Each opens an ordinary local project under the app's userData
 `Examples/` folder; reopening keeps changes. No provider is needed to play, inspect, check or export one. A new film
 can instead start in a folder the person chooses. The assistant's brief prepares a message with the subject, audience,

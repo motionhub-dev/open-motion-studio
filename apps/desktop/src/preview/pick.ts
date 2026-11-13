@@ -5,6 +5,7 @@
 //
 //   oms:pick {x, y, depth}  -> oms:picked {element, box, levels}: the visible element drawn there,
 //                              or the one `depth` steps out from it, described
+//   oms:solo {layer}  -> every <Layer> but that one hidden, until oms:solo {layer: null}
 //   window.__omsMark(box | null)  outlines a box (fractions of the frame) for a still of a mark
 
 import type { FilmInfo, FromPreview, PickedElement, ToPreview } from '../shared/preview';
@@ -81,6 +82,18 @@ function describe(element: Element, frame: DOMRect): PickedElement & { box: Box 
   const layer = element.closest('[data-layer]')?.getAttribute('data-layer');
   return { path: path.join(' > '), text, attributes, styles, ...(scene ? { scene } : {}), ...(layer ? { layer } : {}), box };
 }
+
+let solo: HTMLStyleElement | null = null;
+addEventListener('message', (event: MessageEvent<ToPreview>) => {
+  if (event.source !== parent || event.data?.type !== 'oms:solo') return;
+  solo?.remove();
+  solo = null;
+  const layer = event.data.layer;
+  if (typeof layer !== 'string') return;
+  solo = document.createElement('style');
+  solo.textContent = `[data-layer]:not([data-layer="${CSS.escape(layer)}"]) { visibility: hidden !important; }`;
+  document.head.appendChild(solo);
+});
 
 addEventListener('message', (event: MessageEvent<ToPreview>) => {
   if (event.source !== parent || event.data?.type !== 'oms:pick') return;

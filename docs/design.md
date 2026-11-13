@@ -75,14 +75,22 @@ A top bar over a grid of panels (`project-view.tsx`):
   arrow keys on the handle), and the timeline folds to its transport; `layout.tsx` keeps them in the app's local storage.
 - The timeline (`timeline.tsx`) is a ruler, a Scenes lane for a film of scenes (each scene a block named by its id, the
   one under the playhead inked, its lines on hover), the Marks lane (a flag for each mark, a cobalt band for a stretch,
-  dragged out along the lane) and the playhead through them.
+  dragged out along the lane) and the playhead through them. The check's issues are small triangles on the ruler
+  (`--bad` for an error, muted for a warning), and the moment under the pointer is an ink label on it
+  with its scene. Ctrl and the wheel zoom about the pointer (1× to 32×); a playhead out of view is a chip at the edge
+  it went past.
 - A mark being made is a dashed cobalt box with its number, and beside it a floating sheet that asks what should change
   there: below the mark, else above, right or left, kept inside the stage. A mark in hand in the composer is drawn lit
   (thicker, with a soft cobalt halo) on the picture and the timeline.
 - The stage draws the film's frame contained and centred with room around it, on ink with a shadow; the marking tools
   float over its top right corner.
-- Keys: Space plays, ← → step a frame (Shift, a second), C cycles Pick, Region and off, Esc puts a tool down, ? lists
-  them all in a dialog (`SHORTCUTS` in `project-view.tsx`).
+- Keys, grouped in one table (`SHORTCUTS` in `project-view.tsx`) that ? lists in a dialog: Space or K plays, ← → step
+  a frame (Shift, a second), ↑ ↓ go to the previous or next scene, Home and End to the start and end; C cycles Pick,
+  Region and off, G shows the safe-area guides, Esc lets a mark go, then puts the tool down, then clears the selection;
+  + − zoom the timeline and Shift+Z fits it; [ and ] show or hide the assistant and the project tools, `\` folds the
+  timeline, F focuses the film. No key acts while the person types or a dialog is open.
+- The safe-area guides are two dashed frames over the picture, action at 90% and titles at 80%. A layer played alone
+  is said in a dark pill over the stage's top, with a way back to every layer.
 - A control's tip is its `data-tip`, with its key in `data-key`: one layer over everything (`tooltip.tsx`) shows it
   after a short rest, below the control or above where there is no room. Native `title` is kept for text that is cut
   short (a path, a mark's moment).

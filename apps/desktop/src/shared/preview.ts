@@ -61,7 +61,9 @@ export type ToPreview =
   | { type: 'oms:play-range'; start: number; end: number }
   | { type: 'oms:seek'; t: number }
   /** The element drawn at a point, in fractions of the frame, or the one `depth` elements around it (studio/pick.js answers). */
-  | { type: 'oms:pick'; x: number; y: number; depth?: number };
+  | { type: 'oms:pick'; x: number; y: number; depth?: number }
+  /** Draws one layer alone, every other <Layer> hidden; null draws them all again (studio/pick.js). */
+  | { type: 'oms:solo'; layer: string | null };
 
 export type FromPreview =
   | { type: 'oms:ready'; film: FilmInfo }

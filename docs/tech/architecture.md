@@ -85,8 +85,8 @@ One engine, the Studio's own ([ADR 0005](../adr/0005-the-studio-has-one-engine-i
   `<Film>` reports (`onFilm`), and sends it with the film (`FilmInfo.scenes`, `FilmInfo.layers`). esbuild bundles it into
   `.motion-studio/build/film.js` on every change of a file it imports, leaving React and the runtime to the preview core,
   which provides them to the bundle as `require`.
-- **The preview speaks one message protocol** (`src/shared/preview.ts`): the Studio sends `play`, `pause`, `seek` and
-  `pick(x, y)`, the page answers `ready` (the film's length, size, frame rate and scenes), `time`, `error` and `picked`. The core
+- **The preview speaks one message protocol** (`src/shared/preview.ts`): the Studio sends `play`, `pause`, `seek`,
+  `play-range`, `pick(x, y, depth)` and `solo(layer)` (every other `<Layer>` hidden, for a layer played alone), the page answers `ready` (the film's length, size, frame rate and scenes), `time`, `error` and `picked`. The core
   answers the first three and sets `window.__omsFrame` (the film's size); `studio/pick.js` answers `pick` with the
   visible element drawn there, described by its path among its ancestors, its words, its `data-*` attributes, its
   computed look and the scene and layer it is drawn in, and its box. The page draws its frame whole and centred, so a point given as fractions of the frame is
@@ -201,7 +201,7 @@ panels, built and planned, each a projection of the project:
 | **Motion** | The project's motions as poster cards; one opened shows its colours, its components with their previews and its MOTION.md (`motionDetail`); the catalogue search with Use (built). Reels are planned | Through `useMotion` |
 | **Inspector** | The element last picked: its path, moment, scene and layer, box in the film's pixels, words, computed look (`PickedElement.styles`, which the agent also reads) and attributes (built) | Nothing |
 | **Files** | The tree and a read-only CodeMirror view; open in the person's own editor | Nothing |
-| **Timeline** | Read-only: a ruler to seek on, the film's scenes (a scene clicked seeks to its start; its lines on hover), the marks (a drag along their lane marks a stretch) and the playhead (built) | Nothing |
+| **Timeline** | Read-only: a ruler to seek on (the moment under the pointer named with its scene), the film's scenes (a scene clicked seeks to its start), the marks (a drag along their lane marks a stretch), the check's issues at their moments (clicked, to the assistant) and the playhead; zoom about the pointer, a view that follows the playhead while it plays, and a chip that brings back a playhead out of view (built) | Nothing |
 | **Export** | Queue, progress, open the file | Nothing |
 | **Settings** | Providers and keys in two panes, with a connection test (`testProvider`: one call as the form stands, asking for a tool call, with the typed key or the stored one; the reply carries no key) (built); permissions are planned | App settings |
 

@@ -10,6 +10,7 @@ import {
   ChevronsDown,
   ChevronsUp,
   Crosshair,
+  Frame,
   Loader,
   Pause,
   Play,
@@ -17,9 +18,10 @@ import {
   SkipBack,
   SkipForward,
   SquareDashed,
+  X,
 } from 'lucide-react';
 import { type PointerEvent, type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { type BuildResult, MARK_NOTE, MAX_MARKS, type Mark, type Reference } from '../../shared/api';
+import { type BuildResult, type FilmIssue, MARK_NOTE, MAX_MARKS, type Mark, type Reference } from '../../shared/api';
 import type { Box, FilmInfo, FromPreview, PickedElement, ToPreview } from '../../shared/preview';
 import { Timeline } from './timeline';
 
@@ -49,7 +51,11 @@ export interface Player {
   seek(t: number): void;
   /** Steps by frames (a negative count steps back). */
   step(frames: number): void;
-  playRange(start: number, end: number): void;
+  /** Plays from `start` to `end`, with one layer alone when `solo` names it. */
+  playRange(start: number, end: number, solo?: string): void;
+  /** The layer drawn alone, if any: playing, seeking or stepping draws them all again. */
+  solo: string | null;
+  endSolo(): void;
   /** Asks the page what is drawn at a point, or `depth` elements out from it; resolves with its answer. */
   pick(x: number, y: number, depth?: number): Promise<Picked>;
 }
@@ -65,6 +71,7 @@ export function usePlayer(build: BuildResult | null): Player {
   const [error, setError] = useState<string | null>(null);
   const [tool, setTool] = useState<Tool>(null);
   const [loop, setLoop] = useState(false);
+  const [solo, setSolo] = useState<string | null>(null);
   const picked = useRef<((message: Picked) => void) | null>(null);
   const now = useRef({ t: 0, playing: false, loop: false, film: null as FilmInfo | null });
   now.current = { t, playing, loop, film };
@@ -102,11 +109,20 @@ export function usePlayer(build: BuildResult | null): Player {
 
   useEffect(() => {
     setError(null);
+    setSolo(null);
     picked.current?.(NOTHING);
     picked.current = null;
   }, [build?.version]);
 
-  const seek = (to: number) => tell({ type: 'oms:seek', t: Math.max(0, Math.min(film?.seconds ?? 0, to)) });
+  const endSolo = () => {
+    if (!solo) return;
+    setSolo(null);
+    tell({ type: 'oms:solo', layer: null });
+  };
+  const seek = (to: number) => {
+    endSolo();
+    tell({ type: 'oms:seek', t: Math.max(0, Math.min(film?.seconds ?? 0, to)) });
+  };
   return {
     frame,
     film,
@@ -121,10 +137,17 @@ export function usePlayer(build: BuildResult | null): Player {
     loop,
     setLoop,
     tell,
-    toggle: () => tell(playing ? { type: 'oms:pause' } : { type: 'oms:play' }),
+    toggle: () => {
+      if (!playing) endSolo();
+      tell(playing ? { type: 'oms:pause' } : { type: 'oms:play' });
+    },
     seek,
-    playRange: (start, end) => {
+    solo,
+    endSolo,
+    playRange: (start, end, layer) => {
       setTool(null);
+      setSolo(layer ?? null);
+      tell({ type: 'oms:solo', layer: layer ?? null });
       tell({ type: 'oms:play-range', start, end });
     },
     step: (frames) => {
@@ -200,6 +223,8 @@ export function Stage({
   selected,
   working,
   onFix,
+  guides,
+  onGuides,
   disabled = false,
   column = 2,
 }: {
@@ -214,6 +239,9 @@ export function Stage({
   working: boolean;
   /** Hands an error on the stage to the agent, as an issue for the next message. */
   onFix(label: string, detail: string): void;
+  /** Whether the action-safe (90%) and title-safe (80%) guides are drawn over the frame. */
+  guides: boolean;
+  onGuides(): void;
   disabled?: boolean;
   column?: number;
 }) {
@@ -395,6 +423,12 @@ export function Stage({
               <span>{selected?.label} · declared bounds</span>
             </div>
           )}
+          {guides && (
+            <>
+              <div className="safe-guide" style={place({ x: 0.05, y: 0.05, w: 0.9, h: 0.9 }) ?? undefined} />
+              <div className="safe-guide title" style={place({ x: 0.1, y: 0.1, w: 0.8, h: 0.8 }) ?? undefined} />
+            </>
+          )}
           {marks.map((mark, i) =>
             mark.end === undefined && Math.abs(mark.t - t) <= NEAR ? (
               <div key={i} className={`mark${lit === i ? ' lit' : ''}`} style={place(mark.box) ?? undefined}>
@@ -492,6 +526,18 @@ export function Stage({
         <button
           type="button"
           className="icon-button"
+          aria-pressed={guides}
+          aria-label="Safe-area guides"
+          data-tip="Safe-area guides: action 90%, titles 80%"
+          data-key="G"
+          disabled={!film}
+          onClick={onGuides}
+        >
+          <Frame size={16} />
+        </button>
+        <button
+          type="button"
+          className="icon-button"
           aria-pressed={tool === 'pick'}
           aria-label="Pick an element"
           data-tip={full ? `A message carries at most ${MAX_MARKS} marks` : 'Pick an element'}
@@ -514,6 +560,14 @@ export function Stage({
           <SquareDashed size={16} />
         </button>
       </div>
+      {player.solo && (
+        <span className="stage-solo" role="status">
+          Solo · {player.solo}
+          <button type="button" className="icon-button" aria-label="Draw every layer again" data-tip="Draw every layer" onClick={player.endSolo}>
+            <X size={12} />
+          </button>
+        </span>
+      )}
       {working && (
         <span className="stage-working" role="status">
           <Loader size={13} className="spin" />
@@ -557,6 +611,8 @@ export function Transport({
   onRange,
   lit,
   fresh,
+  issues,
+  onIssue,
 }: {
   player: Player;
   marks: Mark[];
@@ -569,6 +625,9 @@ export function Transport({
   lit: number | null;
   /** What the agent's last turn changed, lit for a moment. */
   fresh: Set<string>;
+  /** The last check's issues with a moment, for the build on screen. */
+  issues: FilmIssue[];
+  onIssue(issue: FilmIssue): void;
 }) {
   const { film, t, playing } = player;
   return (
@@ -645,6 +704,9 @@ export function Transport({
           marks={marks}
           lit={lit}
           fresh={fresh}
+          issues={issues}
+          onIssue={onIssue}
+          playing={player.playing}
           onRange={onRange}
           onSeek={(at) => {
             player.tell({ type: 'oms:pause' });
