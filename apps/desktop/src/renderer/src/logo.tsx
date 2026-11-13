@@ -1,13 +1,14 @@
-// motionhub's mark: a ball in flight with its in-betweens, rising up and to the right.
-// It always leans that way, and is never recoloured beyond the theme's accent.
+// motionhub's mark (brand/logo/mark.svg in motionhub-dev/motions): a ball in flight with its in-betweens, flat
+// discs stepping up in size and strength, rising up and to the right. It is drawn in `--mark` alone, and is
+// changed in the brand first.
 
-export function Logo({ size = 26 }: { size?: number }) {
+export function Logo({ size = 30 }: { size?: number }) {
   return (
-    <svg width={size} height={(size * 20) / 26} viewBox="0 0 26 20" role="img" aria-label="motionhub">
-      <circle cx="4" cy="16" r="2.5" fill="var(--accent)" opacity=".25" />
-      <circle cx="10" cy="11.5" r="3" fill="var(--accent)" opacity=".45" />
-      <circle cx="16" cy="8" r="3.5" fill="var(--accent)" opacity=".7" />
-      <circle cx="22" cy="5" r="4" fill="var(--accent)" />
+    <svg width={size} height={(size * 56) / 96} viewBox="0 0 96 56" role="img" aria-label="motionhub">
+      <circle cx="10" cy="40" r="5" fill="var(--mark)" fillOpacity=".2" />
+      <circle cx="27" cy="31" r="7" fill="var(--mark)" fillOpacity=".38" />
+      <circle cx="47" cy="24" r="9" fill="var(--mark)" fillOpacity=".62" />
+      <circle cx="72" cy="21" r="14" fill="var(--mark)" />
     </svg>
   );
 }

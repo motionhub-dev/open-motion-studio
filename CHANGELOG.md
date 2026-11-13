@@ -3,6 +3,20 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-13 — The app has motionhub's icon and mark, and no menu bar in its window
+
+- **What:** The window, the taskbar and the installers show motionhub's app icon instead of Electron's
+  (`apps/desktop/resources/icon.png` and, for Windows, `icon.ico`, set in `electron-builder.yml` and on the window).
+  The mark in the app and on the introduction page, and the page's favicon, are the brand's current ones, the mark
+  in its own colour (`--mark`).
+  The window has no File, Edit, View, Window menu bar on Windows and Linux; a Mac's menu bar keeps only the app's
+  menu, Edit and Window.
+- **Why:** The Studio was not recognisable in the taskbar, the dock or a window's title bar, and the default menu
+  offered nothing the Studio's own controls do not, but reload and developer tools.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/design.md` ("Identity").
+
 ## 2026-11-13 — Marks say what should change, and point at time and source
 
 - **What:** Picking an element or dragging a region on the picture opens a box beside it that asks what should change

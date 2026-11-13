@@ -2,7 +2,7 @@
 // StudioApi method. It is the only process that touches the disk; the renderer is
 // sandboxed and reaches it only through src/preload (CLAUDE.md, "Architecture rules").
 
-import { BrowserWindow, app, dialog, ipcMain, session, shell, type OpenDialogOptions, type WebContents } from 'electron';
+import { BrowserWindow, Menu, app, dialog, ipcMain, session, shell, type OpenDialogOptions, type WebContents } from 'electron';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { CHANNELS, EVENTS, type AgentEvent, type BuildResult, type Project } from '../shared/api';
@@ -381,6 +381,8 @@ function createWindow(): void {
     minHeight: 600,
     show: false,
     title: 'Open Motion Studio',
+    // The window's and the taskbar's icon on Windows and Linux; a Mac takes the bundle's (electron-builder.yml).
+    icon: join(app.getAppPath(), 'resources', process.platform === 'win32' ? 'icon.ico' : 'icon.png'),
     // On a Mac the top bar is the title bar: the window's buttons sit over it (styles.css leaves them room).
     ...(process.platform === 'darwin' ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 18, y: 18 } } : {}),
     webPreferences: {
@@ -420,6 +422,11 @@ void app.whenReady().then(() => {
   servePreview(session.defaultSession, previewSource);
   serveRenders(previewSource);
   registerHandlers();
+  // No menu bar in the window on Windows and Linux: the Studio's controls are its own. A Mac's menu bar is the
+  // system's and stays, with only what its keys need: the app's menu (Quit), Edit (copy and paste in text) and Window.
+  Menu.setApplicationMenu(
+    process.platform === 'darwin' ? Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }, { role: 'windowMenu' }]) : null,
+  );
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

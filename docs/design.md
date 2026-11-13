@@ -7,14 +7,23 @@ The Studio's visual system: its identity, colour, type, shape, icons, the worksp
 ## Identity
 
 The Studio is motionhub's workbench, so it wears motionhub's brand (`brand/BRAND.md` in `motionhub-dev/motions`):
-paper and ink, one ordinary type family, and the mark, a ball in flight rising up and to the right (`logo.tsx`). The
-interface stays quiet so the film is loud: no colour on screen but the film's, the film sits on ink, and two colours
-have one job each.
+paper and ink, one ordinary type family, and the mark, a ball in flight rising up and to the right (`logo.tsx`, the
+brand's `logo/mark.svg`). The interface stays quiet so the film is loud: no colour on screen but the film's, the film
+sits on ink, and each colour has one job.
 
 - **Vermilion (`--accent`)** is Export, and nothing else: the one action a screen asks for.
+- **The mark's vermilion (`--mark`)** is the mark, and nothing else, as the brand's `mark` token.
 - **Cobalt (`--annotate`)** is what the person marks on the picture (a box, its number, its flag on the timeline, its
   chip by the message). It is not vermilion, which is the brand's.
 - Buttons, links, focus and the playhead are ink (`--text`), never a colour.
+
+The mark and the app's icon are motionhub's (`brand/logo/` in `motionhub-dev/motions`) and change there first. The
+icon is two vermilion balls on an ink tile: `apps/desktop/resources/icon.png` is `icon.svg` at 1024 px, from which
+electron-builder makes the Mac's and Linux's icons; `icon.ico` is Windows', its 16 px the one-ball `icon-16.svg` and
+its larger sizes `icon.svg`. The window takes the same files on Windows and Linux.
+
+The window has no menu bar on Windows and Linux; on a Mac the system's menu bar keeps the app's menu, Edit and
+Window, for their keys (Quit, copy and paste in text, minimise).
 
 ## Colour
 
@@ -32,6 +41,7 @@ choice); nothing else in the stylesheet or a component names a colour.
 | `--muted` | `#6B645A` | `#A89E90` | labels, times, counts |
 | `--stage` | `#2A2622` | `#0F0D0B` | the ink under the film |
 | `--accent` | `#C4381F` | `#FF6A4D` | Export |
+| `--mark` | `#E2442B` | `#FF6A4D` | the mark (`logo.tsx`), and nothing else: the brand's `mark` |
 | `--annotate` | `#2B59C3` | `#8FA8FF` | marks on the picture |
 | `--good` | `#2E7D4F` | `#6CC08B` | built, done |
 | `--bad` | `#A1301B` | `#FF8A73` | does not build, failed |

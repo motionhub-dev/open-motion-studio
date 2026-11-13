@@ -15,6 +15,7 @@
   --muted: #6b645a;
   --stage: #2a2622;
   --accent: #c4381f;
+  --mark: #e2442b;
   --on-accent: #fbf8f2;
   --annotate: #2b59c3;
   --on-annotate: #fbf8f2;
@@ -49,6 +50,7 @@
     --muted: #a89e90;
     --stage: #0f0d0b;
     --accent: #ff6a4d;
+    --mark: #ff6a4d;
     --on-accent: #1a1714;
     --annotate: #8fa8ff;
     --on-annotate: #1a1714;
