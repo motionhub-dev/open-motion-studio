@@ -87,8 +87,11 @@ The shape is [`docs/tech/architecture.md`](docs/tech/architecture.md). What ever
 - **A key is sealed with `safeStorage`** (the OS keychain's secret) and kept only as ciphertext in `keys.json` in
   userData, opened at the moment of a call. Never in plain text in a file, a log, an IPC reply, an error message or a
   project.
-- **The Studio runs no program the person installed**: it bundles, plays and exports a film itself (`src/main/film/`,
-  with the ffmpeg it ships), and starts no npm, Node or project CLI.
+- **The Studio runs no program the person installed but the coding agent they connect**: it bundles, plays and exports
+  a film itself (`src/main/film/`, with the ffmpeg it ships), and starts no npm, Node or project CLI. The one exception
+  is the person's own Claude Code or Codex, driven through an ACP adapter the Studio fetches pinned by checksum, never
+  from a project or PATH, and never with their credentials in its hands
+  ([ADR 0008](docs/adr/0008-the-persons-own-coding-agent-through-acp.md), planned).
 - **The motion format is motionhub's**, specified in `github.com/motionhub-dev/motions`; a change to it lands there
   first. A project keeps its motions as `@motionhub/cli` does (`motions/@<scope>/<slug>/` and `motions.lock.json`), and
   the Studio never changes a copy taken from the hub.

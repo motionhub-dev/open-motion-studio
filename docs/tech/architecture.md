@@ -1,14 +1,15 @@
 # Architecture
 
-> **Status:** Plan — steps 1 to 3 and 6 built; signing waits for certificates · **Updated:** 2026-11-13
+> **Status:** Plan — steps 1 to 3 and 6 built, 7 planned; signing waits for certificates · **Updated:** 2026-11-13
 
 The components of the Studio and what each owns, the film, the agent and its providers, what is expensive to change, and the order of work.
 
 The decisions behind it are [ADR 0005](../adr/0005-the-studio-has-one-engine-its-own.md) (one engine, the Studio's own,
 superseding [ADR 0001](../adr/0001-the-studio-is-engine-neutral.md)'s three),
 [ADR 0002](../adr/0002-the-studio-is-an-electron-desktop-app.md) (an Electron desktop app),
-[ADR 0003](../adr/0003-a-built-in-agent-on-the-persons-own-model.md) (a built-in agent on the person's own model) and
-[ADR 0004](../adr/0004-a-films-code-runs-in-a-sandboxed-frame-on-its-own-scheme.md) (where a film's code runs). What the
+[ADR 0003](../adr/0003-a-built-in-agent-on-the-persons-own-model.md) (a built-in agent on the person's own model),
+[ADR 0004](../adr/0004-a-films-code-runs-in-a-sandboxed-frame-on-its-own-scheme.md) (where a film's code runs) and
+[ADR 0008](../adr/0008-the-persons-own-coding-agent-through-acp.md) (the person's own coding agent, as a second way in). What the
 product is and is not is [positioning](../prd/positioning.md).
 
 ## Goal and non-goals
@@ -188,6 +189,43 @@ Two protocols, every provider a preset over one of them:
   fixed secret, and Models says so.
   A server on this machine (Ollama, LM Studio) is called without one.
 
+## External agents
+
+> Planned ([ADR 0008](../adr/0008-the-persons-own-coding-agent-through-acp.md)); nothing of it is built.
+
+A project's agent is the built-in one (above) or the person's own Claude Code or Codex, driven through ACP. Everything
+the person sees of the agent stays the same panel: their message with its marks and references, the agent's words, its
+tool calls folded into lines, the turn's changes and its undo, its questions; what changes is who runs the loop.
+
+```
+src/main/agent/
+  acp.ts             the ACP client: start an adapter in the project folder, initialize, session/new or load,
+                     session/prompt, and the session's updates translated into AgentEvent
+  adapters.ts        the agents the Studio knows: each one's adapter (pinned version, per-platform URL, SHA-256),
+                     how its CLI is found and whether it is signed in, and fetching the adapter into userData
+  studio-mcp.ts      the MCP server one session reaches: check, still, search_motions, use_motion, ask_person,
+                     on 127.0.0.1 behind a secret path, gone when the session ends
+```
+
+- **Starting**: the adapter is a child of the main process, its working folder the project, its environment the
+  person's own minus anything of the Studio's (no key of a provider reaches it); for Claude Code,
+  `CLAUDE_CODE_EXECUTABLE` names the `claude` the person installed. `initialize` declares no file-system or terminal
+  capability of the client, so the agent uses its own tools, and asks the Studio only for permission.
+- **A turn**: the Studio notes the project's writable source files (as `ProjectHistory` would write them), sends
+  `session/prompt` with the person's words, the `<marks>` and `<references>` text and each marked frame as an image, and
+  turns each update into the panel's events: message chunks into `text`, tool calls into `tool` and `tool-result` (a
+  still from the Studio's MCP server keeps its picture), plans into the progress card. When the prompt returns, every
+  file that changed becomes the turn's checkpoint, and the turn ends with it as the built-in agent's does (a protected
+  file that changed anyway is put back from the note and reported); `undoTurn`
+  restores the files and, since the conversation is the agent's, starts its session again from the turn before only
+  where the adapter can fork or load it, else says the agent keeps the turn in its memory.
+- **Permissions**: `session/request_permission` becomes a card in the assistant with the adapter's own options. An edit
+  whose locations are all in the project's writable files is allowed without a card; one that touches
+  `.motion-studio/`, `motions/@*/`, `node_modules/` or `.git/` is refused; anything else waits for the person.
+- **Stopping**: Stop sends `session/cancel`; closing the project or the app ends the adapter's process.
+- **State** in `.motion-studio/agent.json`: which agent the project uses and its session id. In userData: the fetched
+  adapters by version, and nothing of the person's sign-in.
+
 ## The UI
 
 Built: the launcher, a top bar, and the assistant, the stage, the motion panel and the transport with the timeline as
@@ -207,6 +245,8 @@ panels, built and planned, each a projection of the project:
 
 ## What is expensive to change
 
+- **What the Studio runs**: an external agent's adapter, fetched and pinned per platform (ADR 0008), is a promise to
+  the people who connect one, and to the security of their machine.
 - **The film's format** (`film.tsx` and its `film` export) and **the project layout and `.motion-studio/`**: people's
   folders hold them.
 - **Where a motion's files go**, since people's projects will hold motions installed that way.
@@ -238,9 +278,31 @@ Each step is a vertical slice that runs end to end before the next begins.
    and a region dragged out, sent with a message, the agent given both described and each frame outlined. *Timeline
    built*: a ruler, the film's scenes, the marks and the playhead.
 
-What gates what: 2 gates everything; 3 gates nothing else.
+7. **External agents** ([ADR 0008](../adr/0008-the-persons-own-coding-agent-through-acp.md)), each slice driven end to
+   end against a real signed-in agent before the next:
+   1. *Claude Code answers*: find `claude`, fetch and check the pinned adapter, start it, and a message's reply and
+      tool calls in the panel; Stop cancels. The agent choice in the composer, kept per project.
+   2. *It sees the film*: the Studio's MCP server (`check`, `still`, the motions, `ask_person`), the skill as the
+      appended system prompt, marks and references in the prompt with their frames.
+   3. *Its work is recoverable*: the turn's checkpoint from the files that changed, the change summary, Undo this turn,
+      protected paths refused, permission cards.
+   4. *Codex*: the same three on `codex-acp`, and whatever differs in its updates and permissions.
+   5. *Models shows each agent's state*: not installed (the vendor's install command), not signed in (how to), adapter
+      to fetch, ready; and a failed turn says which.
+
+What gates what: 2 gates everything; 3 gates nothing else; 7 needs nothing after 3.
 
 ## Open questions
+
+- **External agents** (ADR 0008), to settle in step 7's first slices:
+  - whether `codex-acp` drives the Codex the person installed, as `claude-agent-acp` can, or brings its own; and its
+    licence, which GitHub does not name, before the Studio fetches it;
+  - whether an adapter takes the skill as a system prompt everywhere, or the first message has to carry it;
+  - whether the agent's own sandbox keeps its shell inside the project on Windows, and what the Studio says when it
+    does not;
+  - how much of the session's history `session/load` replays, and so whether the panel can redraw a reopened
+    conversation from it or must keep its own copy;
+  - how a pinned adapter is updated: with a Studio release, or fetched anew when the agent's CLI outgrows it.
 
 - **Narration**: whether text-to-speech and voices ever belong in the Studio, and through which providers. Out of the
   first version.

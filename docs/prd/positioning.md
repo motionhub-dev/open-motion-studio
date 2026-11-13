@@ -1,6 +1,6 @@
 # Positioning
 
-> **Status:** Plan · **Updated:** 2026-11-10
+> **Status:** Plan · **Updated:** 2026-11-13
 
 What Open Motion Studio is, who it is for, what it is instead of, what it will not do, and the smallest version worth shipping.
 
@@ -51,7 +51,9 @@ One path, end to end, on macOS, Windows and Linux:
 
 1. Install the desktop app, and start a film in a new folder or open one.
 2. Search motionhub, watch a motion's reel, and use it in the project.
-3. Add a provider and a key (any server that speaks the Anthropic Messages or the OpenAI Chat Completions protocol).
+3. Add a provider and a key (any server that speaks the Anthropic Messages or the OpenAI Chat Completions protocol),
+   or, later, connect the Claude Code or Codex the person already uses
+   ([ADR 0008](../adr/0008-the-persons-own-coding-agent-through-acp.md)).
 4. Ask the agent for a video. It writes the composition with the motion's components, looks at stills of its own work,
    and fixes what it sees.
 5. Watch it play; mark a region or an element on the picture and ask for a change.
