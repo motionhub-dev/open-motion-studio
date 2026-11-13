@@ -1,6 +1,6 @@
 # Architecture
 
-> **Status:** Plan — steps 1 to 3 and 6 built; signing waits for certificates · **Updated:** 2026-11-11
+> **Status:** Plan — steps 1 to 3 and 6 built; signing waits for certificates · **Updated:** 2026-11-12
 
 The components of the Studio and what each owns, the film, the agent and its providers, what is expensive to change, and the order of work.
 
@@ -28,18 +28,28 @@ apps/desktop/
   src/main/            Node: the only process that touches the disk, the network and child processes
     index.ts           the window, the open project, and a handler for every StudioApi method
     project.ts         open / create a folder, whether it holds a film, the recent list
+    history.ts         local checkpoints of the agent's source writes in .motion-studio/history.json, and restoring
+                       one only when no file it touches was changed since (ADR 0007)
+    examples.ts        the bundled starting films, each made once as an ordinary project in userData's Examples/
+    assets.ts          images and fonts the person picks, copied into the project's media/ without overwriting, and
+                       the list of what media/ holds
     film/
       film.ts          film.tsx: start one, bundle it with esbuild on every change; film.md is the agent's skill
       preview.ts       the oms-preview: scheme the film's page, the Studio's preview scripts, the film's bundle and
                        the project's own files are served on
       capture.ts       an offscreen window that photographs the film: stills, and export through ffmpeg
       remotion-export.ts  the film written as a Remotion project
+      review.ts        the sampled check before an export: build errors, a size MP4 refuses, layers past the frame,
+                       and a draw of the start, each scene's middle and the end
     agent/
       loop.ts          one turn: call the model, run the tools it asks for, until it ends its turn
       model.ts         a call to the model: a Messages server through the official SDK, or Chat Completions
       openai.ts        the Chat Completions translation, to and from the Messages shape
       tools.ts         what the agent may do to the project
       marks.ts         the places a person marked on the picture, as the agent receives them
+      references.ts    the scenes, layers, lines, assets and issues a message refers to, checked and sent as a
+                       <references> block with the build they were taken from
+      test-connection.ts  a provider's connection test: one call asking for a tool call, its time, never its key
     providers.ts       the providers, and their keys sealed with safeStorage
     motions.ts         the catalogue and a project's motions, through @motionhub/cli's library
   src/preview/         the Studio's preview scripts: core.tsx (React, @motionhub/runtime and the film's player)
@@ -53,7 +63,7 @@ site/                  the introduction page at studio.motionhub.dev: static HTM
 
 | Component | Owns | Never does |
 | --- | --- | --- |
-| `project` | The folder is the truth: files on disk, git if the person uses it. The Studio's own state for a project is `.motion-studio/` (the film's bundle in `build/`, the conversation in `session.json`), which a new project's `.gitignore` leaves out | Keep a copy of the project elsewhere |
+| `project` | The folder is the truth: files on disk, git if the person uses it. The Studio's own state for a project is `.motion-studio/` (the film's bundle in `build/`, the conversation in `session.json`, the checkpoints in `history.json`), which a new project's `.gitignore` leaves out | Keep a copy of the project elsewhere |
 | `film/*` | Turning `film.tsx` into a playable preview, a still at a time, and an MP4 | Know about the agent or the UI |
 | `agent` | The conversation, the tools, what the agent may do | Hold a key longer than a turn, or write the Studio's state, a motion from motionhub, dependencies or git |
 | `providers` | The providers in `settings.json` (userData); each key sealed with `safeStorage` in `keys.json`, opened for a call | Put a key in a reply to the renderer, a log, an error or a project |
