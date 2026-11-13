@@ -10,8 +10,7 @@ Every key change to Open Motion Studio, newest first, by date. What counts as ke
   with stream-json, with the film's skill appended to its system prompt, the Studio's tools as its only MCP server,
   none of the person's settings, hooks or other servers, and only Read, Glob, Grep, Edit and Write of its own tools;
   its turns are checkpointed from the files that changed as Codex's are. It signs in only with `claude auth login`.
-- **Why:** So a person who already uses Claude Code makes films with it (ADR 0008). Whether it may ship on their
-  subscription waits on Anthropic's terms.
+- **Why:** So a person who already uses Claude Code makes films with it, on their own sign-in (ADR 0008).
 - **Breaking:** None.
 - **Upgrade:** Nothing.
 - **Refs:** `docs/adr/0008-the-persons-own-coding-agent.md`, `apps/desktop/src/main/agent/claude.ts`.

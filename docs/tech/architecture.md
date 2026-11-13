@@ -194,8 +194,8 @@ Two protocols, every provider a preset over one of them:
 > Under way ([ADR 0008](../adr/0008-the-persons-own-coding-agent.md)): Codex answers in the panel, works with the
 > Studio's tools, and asks the person for what lies beyond its sandbox (steps 7.1 to 7.3: `harness.ts` for Codex,
 > `codex.ts`, `studio-mcp.ts`, the turn's checkpoint, approval cards, the agent in the composer) and shows where it
-> stands in Models, with Codex's sign-in started from there (7.5). Claude Code is built (7.4) but not yet driven on
-> a signed-in Claude Code, and whether its way in may ship waits on Anthropic's terms (Open questions).
+> stands in Models, with Codex's sign-in started from there (7.5). Claude Code answers in the panel the same way,
+> with the Studio's tools and a fixed set of its own (7.4).
 
 A project's agent is the built-in one (above) or the person's own Claude Code or Codex, each driven through its own
 headless protocol. Everything the person sees of the agent stays the same panel: their message with its marks and
@@ -299,8 +299,7 @@ Each step is a vertical slice that runs end to end before the next begins.
    built*: a ruler, the film's scenes, the marks and the playhead.
 
 7. **External agents** ([ADR 0008](../adr/0008-the-persons-own-coding-agent.md)), each slice driven end to
-   end against a real signed-in agent before the next. Codex first; Claude Code's way in ships once its terms are
-   settled (ADR 0008, "Open"), though it can be built beside.
+   end against a real signed-in agent before the next. Codex first, then Claude Code.
    1. *Codex answers*: find `codex` and check its version, start `app-server`, a thread for the project, a message's
       reply and tool calls in the panel; Stop interrupts. The agent choice in the composer, kept per project. *Built*,
       and driven in the app on a signed-in Codex 0.167.0: a title changed in `film.tsx`, its checkpoint restored from
@@ -318,8 +317,8 @@ Each step is a vertical slice that runs end to end before the next begins.
       `~/.local/bin`, its sign-in read from `claude auth status` (signed in only with `claude auth login` in a
       terminal), one process per project with Read, Glob, Grep, Edit and Write, edits accepted, the Studio's MCP
       server allowed, and no setting sources; Stop ends the process and the next message resumes the session. Its
-      events are pinned by a test against a stand-in process. Not yet driven on a signed-in Claude Code: on the
-      developer's machine it was signed out, which Models and the agent picker showed.
+      events are pinned by a test against a stand-in process, and the developer drove it on a signed-in Claude Code;
+      signed out, Models and the agent picker say so.
    5. *Models shows each agent's state*: not installed (the vendor's install command), not signed in (Codex's sign-in
       from the Studio, Claude Code's command), too old or too new, ready; and a failed turn says which. *Built* for
       Codex: not installed and too old link to OpenAI's own page, not signed in starts Codex's sign-in
@@ -332,8 +331,6 @@ What gates what: 2 gates everything; 3 gates nothing else; 7 needs nothing after
 ## Open questions
 
 - **External agents** (ADR 0008), to settle in step 7's first slices:
-  - whether driving the person's own Claude Code on their subscription is within Anthropic's terms, which gates
-    shipping its way in;
   - which versions of `codex app-server`, still marked experimental, the Studio speaks, and how it hears that a newer
     one changed a message it relies on (its `generate-json-schema` output, checked against the Studio's in a test);
   - whether Codex's workspace sandbox keeps its commands inside the project on Windows, and what the Studio says when
