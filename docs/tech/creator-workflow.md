@@ -67,7 +67,8 @@ its files go back, the turn leaves the conversation, and the message returns to 
 The structure compared is scenes, their spans, layers' boxes and lines; what a layer draws inside its box is not.
 
 A project can talk to the person's own Codex instead of the built-in agent, from the agent picker in the composer
-(ADR 0008). Codex runs on its own sign-in and plan, in its workspace sandbox, and its work shows in the same panel:
+(ADR 0008). Models shows whether Codex is installed, new enough and signed in, links to OpenAI's page to install or
+update it, and signs in through Codex itself, in the person's browser. Codex runs on its own sign-in and plan, in its workspace sandbox, and its work shows in the same panel:
 its words, its commands and file changes folded into lines, the turn's changes and its undo. Its turns are
 checkpointed from the files that changed, since it writes them itself. What it asks to do beyond its sandbox, a
 command, files outside the project, the network, is a card in the panel with Allow once, Allow for this session and

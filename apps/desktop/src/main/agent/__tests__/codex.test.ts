@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { STUDIO_SERVER, approvalFor, codexInput, sessionConfig, translate, turnEnd, type Reading } from '../codex';
+import { STUDIO_SERVER, approvalFor, codexInput, sessionConfig, signInCodex, translate, turnEnd, type Reading } from '../codex';
 import { atLeast, codexPlaces, versionOf } from '../harness';
 
 vi.mock('electron', () => ({}));
@@ -118,5 +118,34 @@ describe('what Codex asks leave to do', () => {
     expect(network.answer('session')).toEqual({ permissions: { network: { enabled: true } }, scope: 'session' });
     expect(network.answer('deny')).toEqual({ permissions: {}, scope: 'turn' });
     expect(() => approvalFor('attestation/generate', {}, [], place)).toThrow();
+  });
+});
+
+describe('signing in to Codex', () => {
+  const fake = (authUrl: string, completed: Record<string, unknown> | null) => {
+    let listener: (method: string, params: Record<string, unknown>) => void = () => {};
+    return {
+      server: {
+        on: (l: typeof listener) => ((listener = l), () => undefined),
+        request: async () => ({ type: 'chatgpt', loginId: 'l', authUrl }),
+        ended: new Promise<void>(() => undefined),
+        lastWords: () => '',
+      } as never,
+      open: vi.fn(() => completed && setTimeout(() => listener('account/login/completed', completed))),
+    };
+  };
+
+  it('opens Codex’s own sign-in page and settles when Codex says it completed', async () => {
+    const { server, open } = fake('https://auth.openai.com/oauth?x=1', { success: true, error: null });
+    await signInCodex(server, open);
+    expect(open).toHaveBeenCalledWith('https://auth.openai.com/oauth?x=1');
+  });
+
+  it('says why a sign-in failed, and opens nothing that is not https', async () => {
+    const failed = fake('https://auth.openai.com/oauth', { success: false, error: 'Cancelled' });
+    await expect(signInCodex(failed.server, failed.open)).rejects.toThrow('Cancelled');
+    const odd = fake('file:///etc/passwd', null);
+    await expect(signInCodex(odd.server, odd.open)).rejects.toThrow('sign-in page');
+    expect(odd.open).not.toHaveBeenCalled();
   });
 });

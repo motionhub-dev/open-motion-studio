@@ -12,7 +12,9 @@ Every key change to Open Motion Studio, newest first, by date. What counts as ke
   stills show in the panel, its turns are checkpointed from the files that changed, and Stop interrupts it. The
   project's choice, Codex's thread and the panel's conversation are kept in `.motion-studio/agent.json`. What Codex
   asks to do outside its sandbox (a command, files elsewhere, the network) is a card the person answers: allow once,
-  for the session, or deny. A motion from motionhub that it changes is put back after the turn.
+  for the session, or deny. A motion from motionhub that it changes is put back after the turn. Models lists Codex
+  under Your coding agents with where it stands, links to OpenAI's page to install or update it, and signs in to it
+  through Codex itself.
 - **Why:** So a person who already uses Codex makes films with it, on their own plan and sign-in (ADR 0008).
 - **Breaking:** None.
 - **Upgrade:** Nothing.

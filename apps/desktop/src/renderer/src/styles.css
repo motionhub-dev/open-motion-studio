@@ -3173,6 +3173,7 @@ kbd {
 /* The agent picker in the composer: the built-in agent on its model, or the person's own Codex (ADR 0008). */
 .agent-picker {
   position: relative;
+  margin-left: -4px;
   /* It keeps its width beside Send (and Stop), cutting a long model name short only at its own limit. */
   flex: 0 1 auto;
   min-width: 4.5em;
@@ -3182,6 +3183,8 @@ kbd {
 
 .agent-picker .composer-model {
   max-width: 100%;
+  /* The pull to the left is the picker's, not the button's: a negative margin inside a flex item shrinks its text. */
+  margin-left: 0;
 }
 
 .agent-menu {
@@ -3228,4 +3231,59 @@ kbd {
 
 .approval-card.denied {
   border-left-color: var(--line);
+}
+
+/* The person's own coding agents in Models (ADR 0008): each with its state, and a pane saying what to do. */
+.agents-label {
+  margin: 18px 0 2px;
+}
+
+.state-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-radius: 50%;
+  border: 1px solid var(--muted);
+}
+
+.state-dot.ready {
+  border-color: var(--good);
+  background: var(--good);
+}
+
+.state-dot.signed-out,
+.state-dot.old {
+  border-color: var(--bad);
+  background: var(--bad);
+}
+
+.agent-pane .agent-state {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 4px 0 8px;
+  font-size: 14px;
+}
+
+.agent-pane .agent-state.ready strong {
+  color: var(--good);
+}
+
+.agent-pane .agent-state.signed-out strong,
+.agent-pane .agent-state.old strong {
+  color: var(--bad);
+}
+
+.agent-pane .agent-state .mono {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.agent-pane .note {
+  line-height: 1.6;
+}
+
+.agent-pane a.button {
+  text-decoration: none;
 }

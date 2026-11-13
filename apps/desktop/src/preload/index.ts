@@ -21,6 +21,7 @@ const api: StudioApi = {
   agents: () => ipcRenderer.invoke(CHANNELS.agents),
   useAgent: (kind) => ipcRenderer.invoke(CHANNELS.useAgent, kind),
   answerApproval: (id, answer) => ipcRenderer.invoke(CHANNELS.answerApproval, id, answer),
+  signInAgent: (kind) => ipcRenderer.invoke(CHANNELS.signInAgent, kind),
   undoTurn: (checkpoint) => ipcRenderer.invoke(CHANNELS.undoTurn, checkpoint),
   recentProjects: () => ipcRenderer.invoke(CHANNELS.recentProjects),
   openProject: () => ipcRenderer.invoke(CHANNELS.openProject),

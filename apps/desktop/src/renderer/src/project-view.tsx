@@ -186,6 +186,9 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
   const active = providers?.providers.find((p) => p.id === providers.active);
   /** The project's agent and the person's own coding agents (ADR 0008). */
   const [agents, setAgents] = useState<Agents | null>(null);
+  function refreshAgents() {
+    window.studio.agents().then(setAgents, (e) => setToast({ text: reason(e), error: true }));
+  }
   useEffect(() => {
     let live = true;
     window.studio.agents().then(
@@ -520,6 +523,7 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
               active={active}
               agents={agents}
               onUseAgent={(kind) => void useAgent(kind)}
+              onRefreshAgents={refreshAgents}
               ready={ready}
               disabled={importing || checking || progress !== null}
               onWorking={setBusy}

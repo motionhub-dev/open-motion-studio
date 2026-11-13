@@ -82,6 +82,8 @@ export interface HarnessView {
   version?: string;
   /** What to do about a state that is not ready, in a few words. */
   hint?: string;
+  /** The vendor's own page for installing or updating it, for a state that needs one. */
+  link?: string;
 }
 
 /** The project's agent and the coding agents on this machine. */
@@ -329,6 +331,11 @@ export interface StudioApi {
   agents(): Promise<Agents>;
   /** Answers what the project's outside agent asked leave to do. */
   answerApproval(id: string, answer: ApprovalAnswer): Promise<void>;
+  /**
+   * Signs the person in to their own coding agent, through the agent itself: their browser opens the vendor's sign-in,
+   * and the promise settles when the agent says it is done. The Studio sees no credential.
+   */
+  signInAgent(kind: Exclude<AgentKind, 'built-in'>): Promise<Agents>;
   /** Makes the open project talk to this agent from its next message. */
   useAgent(kind: AgentKind): Promise<Agents>;
   saveProvider(input: ProviderInput): Promise<Providers>;
@@ -386,6 +393,7 @@ export const CHANNELS = {
   agents: 'agent:agents',
   useAgent: 'agent:use',
   answerApproval: 'agent:answer-approval',
+  signInAgent: 'agent:sign-in',
   saveProvider: 'providers:save',
   removeProvider: 'providers:remove',
   activateProvider: 'providers:activate',

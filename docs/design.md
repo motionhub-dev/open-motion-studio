@@ -126,7 +126,10 @@ recent projects with their path (`~` for the home folder), and a banner while no
   selected one, or a new one, as a form on the right. A new one starts from a service card (each with its protocol);
   the address and model are in mono, the key field says it is sealed in the keychain and never shown again. **Test
   connection** makes one call as the form stands (the typed key, else the stored one) and says whether the model
-  answered and called a tool, and how fast.
+  answered and called a tool, and how fast. Under the providers, **Your coding agents** lists the person's own (ADR
+  0008), each with its state in words and a dot (green ready, `--bad` not signed in or too old, hollow not installed);
+  one opened says what it is and offers the one action that fixes its state (Install or Update, a link to the
+  vendor's page; Sign in, through the agent itself) beside Check again.
 
 
 ## Exploration and recovery

@@ -55,5 +55,5 @@ export async function findCodex(): Promise<{ state: Extract<HarnessState, 'missi
   return { state: 'missing' };
 }
 
-/** Where the person installs Codex, shown when it is not installed: OpenAI's own page, not a command of ours. */
+/** Where the person installs or updates Codex: OpenAI's own page, not a command of ours. */
 export const CODEX_INSTALL = 'https://developers.openai.com/codex';

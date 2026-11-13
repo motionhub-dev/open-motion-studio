@@ -140,6 +140,39 @@ export async function signedIn(server: AppServer): Promise<boolean> {
   return read.account !== null || !read.requiresOpenaiAuth;
 }
 
+/** How long a sign-in in the person's browser may take before the Studio stops waiting for it. */
+const SIGN_IN_MS = 10 * 60_000;
+
+/**
+ * Signs the person in to Codex with their ChatGPT account, through Codex itself: it starts its own sign-in, `open`
+ * shows its page in the person's browser, and this settles when Codex says the sign-in completed, or throws its reason.
+ * The server must stay up until then, since the sign-in's callback is Codex's.
+ */
+export async function signInCodex(server: AppServer, open: (url: string) => void): Promise<void> {
+  let stop = () => {};
+  const done = new Promise<void>((resolve, reject) => {
+    stop = server.on((method, params) => {
+      if (method !== 'account/login/completed') return;
+      if (params.success) resolve();
+      else reject(new Error(typeof params.error === 'string' && params.error ? params.error : 'The sign-in did not complete.'));
+    });
+  });
+  try {
+    const started = await server.request<{ type: string; authUrl?: string }>('account/login/start', { type: 'chatgpt' });
+    if (!started.authUrl || !/^https:\/\//.test(started.authUrl)) throw new Error('Codex did not give a sign-in page to open.');
+    open(started.authUrl);
+    await Promise.race([
+      done,
+      server.ended.then(() => {
+        throw new Error(`Codex stopped during the sign-in. ${server.lastWords()}`.trim());
+      }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('The sign-in took too long. Try again from Models.')), SIGN_IN_MS)),
+    ]);
+  } finally {
+    stop();
+  }
+}
+
 /**
  * The configuration a session runs with: the Studio's MCP server as the only one, each of the person's own switched
  * off by name (Codex adds a session's servers to theirs rather than replacing them), and no apps or plugins.

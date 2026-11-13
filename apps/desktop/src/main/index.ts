@@ -19,9 +19,9 @@ import {
   type Project,
   applyEvent,
 } from '../shared/api';
-import { type AppServer, type Place, codexInput, codexTurn, openThread, signedIn, startCodex } from './agent/codex';
+import { type AppServer, type Place, codexInput, codexTurn, openThread, signInCodex, signedIn, startCodex } from './agent/codex';
 import { type StudioMcp, startStudioMcp } from './agent/studio-mcp';
-import { findCodex } from './agent/harness';
+import { CODEX_INSTALL, findCodex } from './agent/harness';
 import { runTurn, transcript } from './agent/loop';
 import { markedMessage, readMarks } from './agent/marks';
 import { type MessageParam, caller, failure } from './agent/model';
@@ -125,27 +125,32 @@ async function saveAgent(dir: string, agent: AgentState): Promise<void> {
 }
 
 /** Whether Codex is signed in, as its app-server last said, so Models need not start it on every look. */
-let codexSignedIn: { at: number; yes: boolean } | null = null;
+/** When Codex last said it is signed in; a sign-out is asked again every time, so a new sign-in shows at once. */
+let codexSignedInAt = 0;
 
-/** The person's own coding agents and where each stands. */
+/** The person's own coding agents and where each stands, with the one thing to do about it. */
 async function harnesses(): Promise<HarnessView[]> {
   const found = await findCodex();
-  const codex: HarnessView = { kind: 'codex', name: 'Codex', state: 'missing', hint: 'Install Codex, then come back' };
+  const codex: HarnessView = { kind: 'codex', name: 'Codex', state: 'missing', hint: 'Install Codex from OpenAI, then check again', link: CODEX_INSTALL };
   if (found.state !== 'found')
-    return [found.state === 'old' ? { ...codex, state: 'old', version: found.version, hint: 'Update Codex to use it here' } : codex];
-  if (!codexSignedIn || Date.now() - codexSignedIn.at > 60_000) {
+    return [
+      found.state === 'old'
+        ? { ...codex, state: 'old', version: found.version, hint: 'Update Codex from OpenAI to use it here', link: CODEX_INSTALL }
+        : codex,
+    ];
+  if (Date.now() - codexSignedInAt > 60_000) {
     // A short-lived app-server, in the home folder, asked only whether there is a sign-in.
     const server = open?.codex ?? (await startCodex(found.bin, app.getPath('home'), app.getVersion()));
     try {
-      codexSignedIn = { at: Date.now(), yes: await signedIn(server) };
+      if (await signedIn(server)) codexSignedInAt = Date.now();
     } finally {
       if (server !== open?.codex) server.close();
     }
   }
   return [
-    codexSignedIn.yes
-      ? { ...codex, state: 'ready', version: found.version, hint: undefined }
-      : { ...codex, state: 'signed-out', version: found.version, hint: 'Sign in to Codex with `codex login`' },
+    Date.now() - codexSignedInAt <= 60_000
+      ? { kind: 'codex', name: 'Codex', state: 'ready', version: found.version }
+      : { kind: 'codex', name: 'Codex', state: 'signed-out', version: found.version, hint: 'Sign in with your ChatGPT account' },
   ];
 }
 
@@ -472,6 +477,20 @@ function registerHandlers(): void {
   });
 
   ipcMain.handle(CHANNELS.agents, () => agents());
+  ipcMain.handle(CHANNELS.signInAgent, async (_event, kind: unknown) => {
+    if (kind !== 'codex') throw new Error('Choose an agent to sign in to.');
+    const found = await findCodex();
+    if (found.state !== 'found') throw new Error('Codex is not ready to sign in: Models says what it needs first.');
+    // Codex's own sign-in, in the person's browser; its server stays up until Codex says it is done.
+    const server = open?.codex ?? (await startCodex(found.bin, app.getPath('home'), app.getVersion()));
+    try {
+      await signInCodex(server, (url) => void shell.openExternal(url));
+      codexSignedInAt = 0;
+    } finally {
+      if (server !== open?.codex) server.close();
+    }
+    return agents();
+  });
   ipcMain.handle(CHANNELS.answerApproval, (_event, id: unknown, answer: unknown) => {
     if (typeof id !== 'string' || (answer !== 'once' && answer !== 'session' && answer !== 'deny')) throw new Error('Not an answer.');
     const waiting = approvals.get(id);

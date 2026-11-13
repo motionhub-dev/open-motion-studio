@@ -105,6 +105,8 @@ interface Props {
   /** The project's agent and the person's own coding agents (ADR 0008). */
   agents: Agents | null;
   onUseAgent(kind: AgentKind): void;
+  /** Asks again where the person's own agents stand, as the agent menu opens. */
+  onRefreshAgents(): void;
   ready: boolean;
   disabled: boolean;
   onSettings(): void;
@@ -143,6 +145,7 @@ export function Assistant({
   active,
   agents,
   onUseAgent,
+  onRefreshAgents,
   ready,
   disabled,
   onSettings,
@@ -710,7 +713,10 @@ export function Assistant({
               aria-expanded={picking}
               title={current === 'codex' ? `Codex${codex?.version ? ` ${codex.version}` : ''}` : active ? `${active.model} · ${active.name}` : 'Set up a model'}
               disabled={working || !agents}
-              onClick={() => setPicking(!picking)}
+              onClick={() => {
+                if (!picking) onRefreshAgents();
+                setPicking(!picking);
+              }}
             >
               <span>{!agents ? 'Finding the agent…' : current === 'codex' ? 'Codex' : active ? active.model : 'Set up a model'}</span>
               <ChevronDown size={12} />

@@ -193,8 +193,8 @@ Two protocols, every provider a preset over one of them:
 
 > Under way ([ADR 0008](../adr/0008-the-persons-own-coding-agent.md)): Codex answers in the panel, works with the
 > Studio's tools, and asks the person for what lies beyond its sandbox (steps 7.1 to 7.3: `harness.ts` for Codex,
-> `codex.ts`, `studio-mcp.ts`, the turn's checkpoint, approval cards, the agent in the composer). Not yet: Claude
-> Code, and each agent's state in Models.
+> `codex.ts`, `studio-mcp.ts`, the turn's checkpoint, approval cards, the agent in the composer) and shows where it
+> stands in Models, with Codex's sign-in started from there (7.5). Not yet: Claude Code (7.4).
 
 A project's agent is the built-in one (above) or the person's own Claude Code or Codex, each driven through its own
 headless protocol. Everything the person sees of the agent stays the same panel: their message with its marks and
@@ -259,7 +259,7 @@ panels, built and planned, each a projection of the project:
 | **Files** | The tree and a read-only CodeMirror view; open in the person's own editor | Nothing |
 | **Timeline** | Read-only: a ruler to seek on (the moment under the pointer named with its scene), the film's scenes (a scene clicked seeks to its start), the marks (a drag along their lane marks a stretch), the check's issues at their moments (clicked, to the assistant) and the playhead; zoom about the pointer, a view that follows the playhead while it plays, and a chip that brings back a playhead out of view (built) | Nothing |
 | **Export** | Queue, progress, open the file | Nothing |
-| **Settings** | Providers and keys in two panes, with a connection test (`testProvider`: one call as the form stands, asking for a tool call, with the typed key or the stored one; the reply carries no key) (built); permissions are planned | App settings |
+| **Settings** | Providers and keys in two panes, with a connection test (`testProvider`: one call as the form stands, asking for a tool call, with the typed key or the stored one; the reply carries no key), and the person's own coding agents with where each stands and the one action that fixes it (built); permissions are planned | App settings |
 
 ## What is expensive to change
 
@@ -313,7 +313,11 @@ Each step is a vertical slice that runs end to end before the next begins.
       that needed the network asked for, shown as a card, denied, and Codex told so.
    4. *Claude Code*: the same three on `claude -p` stream-json, its fixed tool set, and steering mid-turn.
    5. *Models shows each agent's state*: not installed (the vendor's install command), not signed in (Codex's sign-in
-      from the Studio, Claude Code's command), too old or too new, ready; and a failed turn says which.
+      from the Studio, Claude Code's command), too old or too new, ready; and a failed turn says which. *Built* for
+      Codex: not installed and too old link to OpenAI's own page, not signed in starts Codex's sign-in
+      (`account/login/start`, its page opened in the person's browser, settled by `account/login/completed`), and Check
+      again asks anew; a sign-in is remembered for a minute, a sign-out never. Driven in the app with Codex ready; the
+      other states are covered by tests only, since signing the person out to see them was not wanted.
 
 What gates what: 2 gates everything; 3 gates nothing else; 7 needs nothing after 3.
 

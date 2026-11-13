@@ -1,11 +1,13 @@
 // The models dialog, in two panes: the providers down the left (the active one badged), and the
 // one selected, or a new one, as a form on the right: a service to start from, its address and
 // model, a key, whether the model reads images, a connection test, and save. A key goes to the
-// main process and is never shown again; a test uses the one typed, or the one stored.
+// main process and is never shown again; a test uses the one typed, or the one stored. Below the
+// providers, the person's own coding agents (ADR 0008), each with where it stands and the one
+// thing to do about it: install or update it from its vendor's page, or sign in through it.
 
-import { Check, KeyRound, Loader, Plus, X } from 'lucide-react';
-import { type FormEvent, useState } from 'react';
-import type { ProviderInput, ProviderTest, Providers, ProviderView } from '../../shared/api';
+import { Check, ExternalLink, KeyRound, Loader, Plus, RefreshCw, X } from 'lucide-react';
+import { type FormEvent, useEffect, useState } from 'react';
+import type { Agents, HarnessState, HarnessView, ProviderInput, ProviderTest, Providers, ProviderView } from '../../shared/api';
 import { reason } from './reason';
 
 type Preset = Omit<ProviderInput, 'key'> & { note: string };
@@ -34,7 +36,87 @@ const initials = (name: string) =>
     .slice(0, 2)
     .toUpperCase();
 
+/** What each state of a coding agent is called. */
+const STATES: Record<HarnessState, string> = { missing: 'Not installed', old: 'Needs an update', 'signed-out': 'Not signed in', ready: 'Ready' };
+
+/** One of the person's own coding agents: where it stands, and the one thing to do about it. */
+function AgentPane({ harness, onAgents, onClose }: { harness: HarnessView; onAgents(agents: Agents): void; onClose(): void }) {
+  const [busy, setBusy] = useState<'checking' | 'signing-in' | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  async function act(kind: 'checking' | 'signing-in') {
+    setBusy(kind);
+    setError(null);
+    try {
+      onAgents(kind === 'signing-in' ? await window.studio.signInAgent(harness.kind) : await window.studio.agents());
+    } catch (e) {
+      setError(reason(e));
+    } finally {
+      setBusy(null);
+    }
+  }
+  return (
+    <div className="provider-form agent-pane">
+      <div className="panel-head">
+        <h2>{harness.name}</h2>
+        <button type="button" className="icon-button" aria-label="Close" onClick={onClose}>
+          <X size={16} />
+        </button>
+      </div>
+      <p className={`agent-state ${harness.state}`}>
+        <strong>{STATES[harness.state]}</strong>
+        {harness.version && <span className="mono">{harness.version}</span>}
+      </p>
+      <p className="note">
+        {harness.state === 'ready'
+          ? `Your own ${harness.name}, on its own sign-in and plan. Pick it in the composer for a project; the Studio gives it the film's tools and asks you before it goes beyond its sandbox.`
+          : harness.state === 'signed-out'
+            ? `${harness.name} is installed. Sign in through it: your browser opens its sign-in, and the Studio never sees your account's credentials.`
+            : `${harness.hint ?? ''}. The Studio looks for it where its installer puts it, never in a project.`}
+      </p>
+      {busy === 'signing-in' && <p className="note">Finish signing in in your browser; this waits for it.</p>}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="actions">
+        <span className="spacer" />
+        <button type="button" className="button" disabled={busy !== null} onClick={() => void act('checking')}>
+          {busy === 'checking' ? <Loader size={14} className="spin" /> : <RefreshCw size={14} />}
+          Check again
+        </button>
+        {harness.link && (harness.state === 'missing' || harness.state === 'old') && (
+          <a className="button primary" href={harness.link} target="_blank" rel="noreferrer">
+            <ExternalLink size={14} />
+            {harness.state === 'old' ? 'Update' : 'Install'} {harness.name}
+          </a>
+        )}
+        {harness.state === 'signed-out' && (
+          <button type="button" className="button primary" disabled={busy !== null} onClick={() => void act('signing-in')}>
+            {busy === 'signing-in' && <Loader size={14} className="spin" />}
+            Sign in
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function Settings({ providers, onChange, onClose }: { providers: Providers; onChange(p: Providers): void; onClose(): void }) {
+  /** The person's own coding agents, and which one is open in the right pane, if any. */
+  const [agents, setAgents] = useState<Agents | null>(null);
+  const [shown, setShown] = useState<HarnessView['kind'] | null>(null);
+  useEffect(() => {
+    let live = true;
+    window.studio.agents().then(
+      (found) => live && setAgents(found),
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, []);
+  const harness = agents?.harnesses.find((h) => h.kind === shown);
   const first = providers.providers.find((p) => p.id === providers.active) ?? providers.providers[0];
   const [form, setForm] = useState<ProviderInput>(first ? fromView(first) : fromPreset(PRESETS[0]!));
   const [preset, setPreset] = useState(0);
@@ -42,6 +124,7 @@ export function Settings({ providers, onChange, onClose }: { providers: Provider
   const [test, setTest] = useState<ProviderTest | 'testing' | null>(null);
 
   function select(next: ProviderInput) {
+    setShown(null);
     setForm(next);
     setError(null);
     setTest(null);
@@ -102,7 +185,7 @@ export function Settings({ providers, onChange, onClose }: { providers: Provider
           <ul>
             {providers.providers.map((p) => (
               <li key={p.id}>
-                <button type="button" className={`provider-row${p.id === form.id ? ' selected' : ''}`} onClick={() => select(fromView(p))}>
+                <button type="button" className={`provider-row${p.id === form.id && !shown ? ' selected' : ''}`} onClick={() => select(fromView(p))}>
                   <span className="avatar" aria-hidden="true">
                     {initials(p.name)}
                   </span>
@@ -117,7 +200,7 @@ export function Settings({ providers, onChange, onClose }: { providers: Provider
           </ul>
           <button
             type="button"
-            className={`provider-row add${form.id ? '' : ' selected'}`}
+            className={`provider-row add${form.id || shown ? '' : ' selected'}`}
             onClick={() => {
               setPreset(0);
               select(fromPreset(PRESETS[0]!));
@@ -125,8 +208,35 @@ export function Settings({ providers, onChange, onClose }: { providers: Provider
           >
             <Plus size={14} /> Add a provider
           </button>
+          <h3 className="label agents-label">Your coding agents</h3>
+          <p className="note">An agent you already use, on its own sign-in and plan.</p>
+          {!agents ? (
+            <p className="note">
+              <Loader size={12} className="spin" /> Looking for them…
+            </p>
+          ) : (
+            <ul>
+              {agents.harnesses.map((h) => (
+                <li key={h.kind}>
+                  <button type="button" className={`provider-row${shown === h.kind ? ' selected' : ''}`} onClick={() => setShown(h.kind)}>
+                    <span className="avatar" aria-hidden="true">
+                      {initials(h.name)}
+                    </span>
+                    <span className="who">
+                      <strong>{h.name}</strong>
+                      <span className="mono">{h.version ? `${STATES[h.state]} · ${h.version}` : STATES[h.state]}</span>
+                    </span>
+                    <span className={`state-dot ${h.state}`} aria-hidden="true" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
+        {harness ? (
+          <AgentPane harness={harness} onAgents={setAgents} onClose={onClose} />
+        ) : (
         <form className="provider-form" onSubmit={save}>
           <div className="panel-head">
             <h2>{stored ? stored.name : 'Add a provider'}</h2>
@@ -232,6 +342,7 @@ export function Settings({ providers, onChange, onClose }: { providers: Provider
             </button>
           </div>
         </form>
+        )}
       </div>
     </div>
   );
