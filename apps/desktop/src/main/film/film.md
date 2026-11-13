@@ -63,8 +63,10 @@ Never invent a figure, date or name the person did not give you: leave a visible
 # References and local material
 
 A message can include `<references>` containing structured creator context: scene, layer, line, asset or check issue,
-with ids, a time, a path or a diagnostic. Keep the request scoped to those targets. Read the relevant film source
-before editing; do not treat labels as proof of what is currently rendered. A layout warning may be intentional.
+with ids, a time, a path or a diagnostic, and `<marks>`: places on the picture or stretches of the film, each by number
+with what the person asks there. Keep the request scoped to those targets. Where a reference or a mark says where
+film.tsx writes it (`film.tsx:12-18`), read those lines first; do not treat labels as proof of what is currently
+rendered. A layout warning may be intentional.
 Images and fonts imported by the person live under `media/`; use the exact project-relative path supplied and import
 the asset so it is bundled with the film. Never delete the person's media. Source edits are checkpointed by the Studio;
 there is no need to implement your own backups. Motion libraries and imported assets are kept when source is restored.

@@ -6,7 +6,7 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import type { AgentEvent, ChatItem } from '../../shared/api';
 import { REFERENCES_TAG, transcriptReferences } from './references';
-import { MARKS_TAG } from './marks';
+import { MARKS_TAG, transcriptMarks } from './marks';
 import type { Call, MessageParam } from './model';
 import { type ToolContext, type ToolOutcome, runTool } from './tools';
 
@@ -145,16 +145,15 @@ export function transcript(messages: MessageParam[]): ChatItem[] {
             : [],
         )
         .join('\n');
-      const described = blocks.find((b) => b.type === 'text' && b.text.startsWith(MARKS_TAG));
-      const marks = described?.type === 'text' ? described.text.split('\n').filter((line) => /^\d+\. /.test(line)).length : 0;
+      const marks = transcriptMarks(blocks);
       const referenced = blocks.find((b) => b.type === 'text' && b.text.startsWith(REFERENCES_TAG));
       const references = referenced?.type === 'text' ? transcriptReferences(referenced.text) : {};
-      if (text.trim() || marks || references.refs?.length) items.push({ kind: 'user', text, marks, ...references });
+      if (text.trim() || marks.length || references.refs?.length) items.push({ kind: 'user', text, marks, ...references });
       continue;
     }
     for (const block of blocks) {
       if (block.type === 'text' && block.text.trim()) {
-        items.push(message.role === 'user' ? { kind: 'user', text: block.text, marks: 0 } : { kind: 'assistant', text: block.text });
+        items.push(message.role === 'user' ? { kind: 'user', text: block.text, marks: [] } : { kind: 'assistant', text: block.text });
       } else if (block.type === 'tool_use') {
         const item = {
           kind: 'tool' as const,

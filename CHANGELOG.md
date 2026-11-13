@@ -3,6 +3,19 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-13 — Marks say what should change, and point at time and source
+
+- **What:** Picking an element or dragging a region on the picture opens a box beside it that asks what should change
+  there, and a pick can step out to the element around it and back in. Dragging along the timeline's Marks lane marks
+  a stretch of the film. Marks wait above the composer with their notes, lit on the picture and the timeline while in
+  hand; a sent message shows each with the frame the model saw. What was last selected in the outline or timeline goes
+  with the next message unless put aside, and every marked or referenced scene, layer and line tells the agent where
+  film.tsx writes it.
+- **Why:** Several precise changes in one message, each said where it applies, are what pointing at the film is for.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/tech/creator-workflow.md`, `docs/tech/architecture.md` ("The agent"), `apps/desktop/src/main/agent/marks.ts`.
+
 ## 2026-11-11 — An introduction page at studio.motionhub.dev
 
 - **What:** `site/` is the Studio's introduction: what it is, the path from a folder to an MP4, what makes it different,

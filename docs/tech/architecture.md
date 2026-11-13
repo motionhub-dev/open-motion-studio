@@ -1,6 +1,6 @@
 # Architecture
 
-> **Status:** Plan — steps 1 to 3 and 6 built; signing waits for certificates · **Updated:** 2026-11-12
+> **Status:** Plan — steps 1 to 3 and 6 built; signing waits for certificates · **Updated:** 2026-11-13
 
 The components of the Studio and what each owns, the film, the agent and its providers, what is expensive to change, and the order of work.
 
@@ -48,7 +48,7 @@ apps/desktop/
       tools.ts         what the agent may do to the project
       marks.ts         the places a person marked on the picture, as the agent receives them
       references.ts    the scenes, layers, lines, assets and issues a message refers to, checked and sent as a
-                       <references> block with the build they were taken from
+                       <references> block with the build they were taken from, and where film.tsx writes each
       test-connection.ts  a provider's connection test: one call asking for a tool call, its time, never its key
     providers.ts       the providers, and their keys sealed with safeStorage
     motions.ts         the catalogue and a project's motions, through @motionhub/cli's library
@@ -132,12 +132,18 @@ conversation and the tools, tool calls are executed in `main`, their results app
 - **Context** (built): the skill (`film/film.md`: the film's format, how to draw in a motion, how to work) as the system
   prompt. The agent finds the project's files and
   motions with its tools.
-- **Marks** (built): the person picks an element on the picture or drags out a region, at most five for a message
-  (`MAX_MARKS`). Each mark is the moment, the box in fractions of the frame and the element picked, if any; they go with
-  the next message (`agent/marks.ts`) as a `<marks>` text describing each by number and, for a model that reads images,
-  the frame at each moment photographed with its box outlined in red (`window.__omsMark` draws it on the render page).
-  The conversation keeps them in the person's message; the assistant panel shows only their words and how many marks
-  went with them.
+- **Marks** (built): the person picks an element on the picture, drags out a region, or drags along the timeline's
+  Marks lane for a stretch of time, at most five for a message (`MAX_MARKS`). A pick or a region opens a box beside it
+  that asks what should change there; a pick can step out to the element around it and back in (`oms:pick`'s `depth`,
+  answered with how many `levels` there are). Each mark is the moment (and a stretch's end), the box in fractions of
+  the frame, the element picked, if any, and the person's note; they go with the next message (`agent/marks.ts`) as a
+  `<marks>` text describing each by number, with where film.tsx writes its layer or scene, and, for a model that reads
+  images, the frame at each moment photographed with its box outlined in red (`window.__omsMark` draws it on the
+  render page; a stretch is shown by its middle). The conversation keeps them in the person's message; the assistant
+  panel shows the person's words and each mark with its moment, its note and the frame the model saw.
+- **References** (built): a scene, layer, line, asset or check issue sent with a message (`agent/references.ts`), at
+  most eight. What was last selected in a panel goes with the next message unless put aside. A scene, layer or line
+  carries where film.tsx writes it (`filmSpans`, by its literal id), so the agent reads those lines first.
 - **Tools** (built): `list_files`, `read_file`, `write_file`, `edit_file`; `check` (builds the film and draws its start,
   the middle of each scene and its end, reporting any error, or each scene with its span, its layers' boxes and its
   lines); `still(time)` (the frame as a picture); `search_motions`, `use_motion`. A tool's
@@ -186,11 +192,11 @@ panels, built and planned, each a projection of the project:
 | Panel | What it does | Writes |
 | --- | --- | --- |
 | **Assistant** | The conversation, the agent's words as Markdown, tool calls folded, stills the agent took inline (one clicked seeks to its moment and opens large); the turn's spend is planned | Through the agent |
-| **Preview** | The film's preview with transport; the mark tools (pick an element, drag a region) attach to the next message, flagged on the scrubber (built) | Nothing |
+| **Preview** | The film's preview with transport; the mark tools (pick an element, drag a region) ask what should change there and attach it to the next message, flagged on the timeline (built) | Nothing |
 | **Motion** | The project's motions as poster cards; one opened shows its colours, its components with their previews and its MOTION.md (`motionDetail`); the catalogue search with Use (built). Reels are planned | Through `useMotion` |
 | **Inspector** | The element last picked: its path, moment, scene and layer, box in the film's pixels, words, computed look (`PickedElement.styles`, which the agent also reads) and attributes (built) | Nothing |
 | **Files** | The tree and a read-only CodeMirror view; open in the person's own editor | Nothing |
-| **Timeline** | Read-only: a ruler to seek on, the film's scenes (a scene clicked seeks to its start; its lines on hover), the marks and the playhead (built) | Nothing |
+| **Timeline** | Read-only: a ruler to seek on, the film's scenes (a scene clicked seeks to its start; its lines on hover), the marks (a drag along their lane marks a stretch) and the playhead (built) | Nothing |
 | **Export** | Queue, progress, open the file | Nothing |
 | **Settings** | Providers and keys in two panes, with a connection test (`testProvider`: one call as the form stands, asking for a tool call, with the typed key or the stored one; the reply carries no key) (built); permissions are planned | App settings |
 

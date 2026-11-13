@@ -1,6 +1,6 @@
 # The creator's workflow
 
-> **Status:** Current · **Updated:** 2026-11-11
+> **Status:** Current · **Updated:** 2026-11-13
 
 How a creator explores a film, points at a change, checks the result and returns to earlier source.
 
@@ -29,8 +29,15 @@ this slice; exported films remain picture-only.
 
 ## Make a precise request
 
-A message carries up to five picture marks and eight structural references. References name a scene, layer, script
-line, local asset or check finding; they remain separate from the creator's words in the composer and transcript.
+A message carries up to five marks and eight structural references. A mark is an element picked or a region dragged
+on the picture, or a stretch dragged along the timeline's Marks lane. A pick or region asks what should change there
+in a box beside it (Enter adds the mark, Esc lets it go); a pick steps out to the element around it and back in. The
+marks wait in the composer, each with its number, what and when it is, and its note, which can still be changed;
+hovering one lights it on the picture and the timeline. Once sent, the conversation shows each with the frame the
+model saw. References name a scene, layer, script line, local asset or check finding; they remain separate from the
+creator's words in the composer and transcript. What was last selected in the outline or the timeline goes with the
+next message as a reference, marked Selected, unless it is put aside. A scene, layer or line, marked or referenced,
+tells the agent where film.tsx writes it.
 Structural references and marks belong to the current build. A changed preview clears pending references with a
 notice when the agent is not working, and the main process refuses stale picture references. The inspector still
 shows actual computed styles of a picked element. The composer keeps its words and marks when a request is rejected.

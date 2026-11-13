@@ -104,14 +104,30 @@ export interface ProviderInput {
 
 import type { Box, PickedElement } from './preview';
 
-/** A place the person marked on the picture, sent with their next message. */
+/** A place the person marked on the picture, or a stretch of the timeline, sent with their next message. */
 export interface Mark {
   /** Seconds into the film. */
   t: number;
+  /** Where a stretch marked on the timeline ends; such a mark's box is the whole frame. */
+  end?: number;
   /** The marked box, in fractions of the frame. */
   box: Box;
-  /** The element picked there, or null for a region dragged out. */
+  /** The element picked there, or null for a region dragged out or a stretch of time. */
   element: PickedElement | null;
+  /** What the person says should change there; may be empty. */
+  note: string;
+}
+
+/** The longest note a mark carries. */
+export const MARK_NOTE = 300;
+
+/** A mark as the conversation shows it once sent: its moment, its note and, for a model that reads images, the frame it saw. */
+export interface SentMark {
+  t: number;
+  end?: number;
+  note: string;
+  /** The frame the model was sent, as a data: URL. */
+  image?: string;
 }
 
 /** A source-aware reference, attached separately from the creator's words. */
@@ -124,6 +140,8 @@ export interface Reference {
   time?: number;
   path?: string;
   detail?: string;
+  /** Where film.tsx writes it, `film.tsx:12-18`, added when the message is sent. */
+  source?: string;
 }
 
 /** The most marks one message may carry. */
@@ -134,7 +152,7 @@ export type ProviderTest = { ok: true; ms: number; calledTool: boolean } | { ok:
 
 /** One entry of the conversation, as the assistant panel shows it. */
 export type ChatItem =
-  | { kind: 'user'; text: string; marks: number; refs?: Reference[]; version?: number }
+  | { kind: 'user'; text: string; marks: SentMark[]; refs?: Reference[]; version?: number }
   | { kind: 'assistant'; text: string }
   | { kind: 'tool'; id: string; name: string; summary: string; at?: number; result?: { ok: boolean; text: string; image?: string } }
   | { kind: 'notice'; text: string; error: boolean };

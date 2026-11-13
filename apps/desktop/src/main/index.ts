@@ -16,12 +16,12 @@ import { exportFrames, openStage, serveRenders } from './film/capture';
 import { EXAMPLES, openExample } from './examples';
 import { ASSET_EXTENSIONS, importAssets, projectAssets } from './assets';
 import { reviewBuild } from './film/review';
-import { FILM_SKILL, startFilm, watchFilm } from './film/film';
+import { FILM, FILM_SKILL, startFilm, watchFilm } from './film/film';
 import { writeRemotionProject } from './film/remotion-export';
 import { keepFilmsInPlace, registerPreviewScheme, servePreview } from './film/preview';
 import { motionDetail, motionReel, projectMotions, searchMotions, useMotion } from './motions';
 import { STATE_DIR, createProject, isRecent, openProject, projectAt, recentProjects, rememberProject } from './project';
-import { describeReferences, readReferences } from './agent/references';
+import { describeReferences, filmSpans, readReferences } from './agent/references';
 import { ProjectHistory } from './history';
 import { ProviderStore } from './providers';
 
@@ -271,12 +271,20 @@ function registerHandlers(): void {
         searchMotions: (words) => searchMotions(words),
         useMotion: (id) => useMotion(dir, id),
       };
+      // Where film.tsx writes each marked or referenced scene, layer and line, for the agent to read first.
+      const locate = filmSpans(await readFile(join(dir, FILM), 'utf8'));
       // A model that reads images sees each marked moment; any other reads the marks described.
-      const content = await markedMessage(text.trim(), marks, provider.images !== false, async () => {
-        if (!state.build?.ok || state.build.version !== version) throw new Error('The preview changed. Select your references again.');
-        return openStage(state.build.version);
-      });
-      if (refs.length) content.push({ type: 'text', text: describeReferences(refs, typeof version === 'number' ? version : 0) });
+      const content = await markedMessage(
+        text.trim(),
+        marks,
+        provider.images !== false,
+        async () => {
+          if (!state.build?.ok || state.build.version !== version) throw new Error('The preview changed. Select your references again.');
+          return openStage(state.build.version);
+        },
+        locate,
+      );
+      if (refs.length) content.push({ type: 'text', text: describeReferences(refs, typeof version === 'number' ? version : 0, locate) });
       return await runTurn(
         {
           messages: await conversation(state),

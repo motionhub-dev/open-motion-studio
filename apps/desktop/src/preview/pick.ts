@@ -3,7 +3,8 @@
 // the Studio's preview, at its own size in a render), so a point given as fractions of the
 // frame is found on the page the same way in both.
 //
-//   oms:pick {x, y}  -> oms:picked {element, box}: the visible element drawn there, described
+//   oms:pick {x, y, depth}  -> oms:picked {element, box, levels}: the visible element drawn there,
+//                              or the one `depth` steps out from it, described
 //   window.__omsMark(box | null)  outlines a box (fractions of the frame) for a still of a mark
 
 import type { FilmInfo, FromPreview, PickedElement, ToPreview } from '../shared/preview';
@@ -86,15 +87,20 @@ addEventListener('message', (event: MessageEvent<ToPreview>) => {
   const frame = frameRect();
   const x = frame.left + event.data.x * frame.width;
   const y = frame.top + event.data.y * frame.height;
-  const element = document
+  const innermost = document
     .elementsFromPoint(x, y)
     .find((e) => e !== document.body && e !== document.documentElement && !e.hasAttribute('data-oms-mark') && visible(e));
+  // The innermost element and those around it, up to the film's own root, which a pick can step out through.
+  const chain: Element[] = [];
+  for (let e: Element | null = innermost ?? null; e && e !== document.body && e.id !== 'root'; e = e.parentElement)
+    if (visible(e)) chain.push(e);
+  const element = chain[Math.max(0, Math.min(chain.length - 1, Math.floor(event.data.depth ?? 0)))];
   let message: FromPreview;
   if (element) {
     const { box, ...picked } = describe(element, frame);
-    message = { type: 'oms:picked', element: picked, box };
+    message = { type: 'oms:picked', element: picked, box, levels: chain.length };
   } else {
-    message = { type: 'oms:picked', element: null, box: null };
+    message = { type: 'oms:picked', element: null, box: null, levels: 0 };
   }
   parent.postMessage(message, '*');
 });

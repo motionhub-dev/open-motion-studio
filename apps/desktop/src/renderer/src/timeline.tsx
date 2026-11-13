@@ -1,7 +1,8 @@
 // Read-only scene and layer timing. The declared spans explain structure, not pixel visibility.
-import { useState, type MouseEvent } from 'react';
+// The marks lane shows the marks for the next message; dragging along it marks a stretch of the film.
+import { useState, type MouseEvent, type PointerEvent } from 'react';
 import { Minus, Plus, Scan } from 'lucide-react';
-import type { Mark, Reference } from '../../shared/api';
+import { MAX_MARKS, type Mark, type Reference } from '../../shared/api';
 import type { FilmInfo, LayerBox } from '../../shared/preview';
 import { timecode } from './preview';
 import { sceneTitle } from './outline';
@@ -13,6 +14,8 @@ export function Timeline({
   film,
   t,
   marks,
+  lit,
+  onRange,
   onSeek,
   selected,
   onSelect,
@@ -20,11 +23,15 @@ export function Timeline({
   film: FilmInfo;
   t: number;
   marks: Mark[];
+  lit: number | null;
+  onRange(start: number, end: number): void;
   onSeek(t: number): void;
   selected: Reference | null;
   onSelect(ref: Reference): void;
 }) {
   const [zoom, setZoom] = useState(1);
+  /** A stretch being dragged out on the marks lane, in seconds. */
+  const [range, setRange] = useState<{ from: number; to: number } | null>(null);
   const seconds = film.seconds || 1;
   const at = (s: number) => `${Math.min(100, Math.max(0, (s / seconds) * 100))}%`;
   const step = stepFor(seconds / zoom);
@@ -40,6 +47,19 @@ export function Timeline({
   const seekAt = (event: MouseEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     onSeek(Math.max(0, Math.min(seconds, ((event.clientX - rect.left) / rect.width) * seconds)));
+  };
+  const timeAt = (event: PointerEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    return Math.max(0, Math.min(seconds, ((event.clientX - rect.left) / rect.width) * seconds));
+  };
+  const full = marks.length >= MAX_MARKS;
+  const endRange = () => {
+    if (!range) return;
+    const [start, end] = range.from < range.to ? [range.from, range.to] : [range.to, range.from];
+    setRange(null);
+    // Shorter than a few frames is a click: it seeks.
+    if (end - start >= 3 / film.fps) onRange(start, end);
+    else onSeek(range.from);
   };
   return (
     <div className="timeline-wrap">
@@ -71,7 +91,9 @@ export function Timeline({
         <div className="timeline-scroll">
           <div className="names" aria-hidden="true">
             <span>Scenes</span>
-            <span>Marks</span>
+            <span title={full ? `A message carries at most ${MAX_MARKS} marks` : 'Drag along this lane to mark a stretch of the film'}>
+              Marks
+            </span>
             {[...rows].map(([id, row]) => (
               <span key={id} title={row.label}>
                 {row.label}
@@ -111,18 +133,47 @@ export function Timeline({
                   </button>
                 ))}
               </div>
-              <div className="lane">
-                {marks.map((mark, i) => (
-                  <button
-                    key={i}
-                    className="number flag"
-                    style={{ left: at(mark.t) }}
-                    aria-label={`Mark ${i + 1} at ${timecode(mark.t)}`}
-                    onClick={() => onSeek(mark.t)}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
+              <div
+                className={`lane marks-lane${full ? ' full' : ''}`}
+                onPointerDown={(event) => {
+                  if (full || event.button !== 0 || event.target !== event.currentTarget) return;
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                  const at = timeAt(event);
+                  setRange({ from: at, to: at });
+                }}
+                onPointerMove={(event) => range && setRange({ ...range, to: timeAt(event) })}
+                onPointerUp={endRange}
+                onPointerCancel={() => setRange(null)}
+              >
+                {marks.map((mark, i) =>
+                  mark.end !== undefined ? (
+                    <button
+                      key={i}
+                      className={`mark-range${lit === i ? ' lit' : ''}`}
+                      style={{ left: at(mark.t), width: at(mark.end - mark.t) }}
+                      aria-label={`Mark ${i + 1}, ${timecode(mark.t)} to ${timecode(mark.end)}`}
+                      onClick={() => onSeek(mark.t)}
+                    >
+                      <span className="number">{i + 1}</span>
+                    </button>
+                  ) : (
+                    <button
+                      key={i}
+                      className={`number flag${lit === i ? ' lit' : ''}`}
+                      style={{ left: at(mark.t) }}
+                      aria-label={`Mark ${i + 1} at ${timecode(mark.t)}`}
+                      onClick={() => onSeek(mark.t)}
+                    >
+                      {i + 1}
+                    </button>
+                  ),
+                )}
+                {range && (
+                  <span
+                    className="mark-range drawing"
+                    style={{ left: at(Math.min(range.from, range.to)), width: at(Math.abs(range.to - range.from)) }}
+                  />
+                )}
               </div>
               {[...rows].map(([id, row]) => (
                 <div key={id} className="lane layer-lane">

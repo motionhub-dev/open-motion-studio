@@ -1,6 +1,6 @@
 # Design
 
-> **Status:** Current · **Updated:** 2026-11-10
+> **Status:** Current · **Updated:** 2026-11-13
 
 The Studio's visual system: its identity, colour, type, shape, icons, the workspace's layout and the rules components follow.
 
@@ -64,7 +64,11 @@ A top bar over a grid of panels (`project-view.tsx`):
 - The assistant's and the right panel's widths and the timeline's height are dragged at their edges (or set with the
   arrow keys on the handle), and the timeline folds to its transport; `layout.tsx` keeps them in the app's local storage.
 - The timeline (`timeline.tsx`) is a ruler, a Scenes lane for a film of scenes (each scene a block named by its id, the
-  one under the playhead inked, its lines on hover), the Marks lane and the playhead through them.
+  one under the playhead inked, its lines on hover), the Marks lane (a flag for each mark, a cobalt band for a stretch,
+  dragged out along the lane) and the playhead through them.
+- A mark being made is a dashed cobalt box with its number, and beside it a floating sheet that asks what should change
+  there: below the mark, else above, right or left, kept inside the stage. A mark in hand in the composer is drawn lit
+  (thicker, with a soft cobalt halo) on the picture and the timeline.
 - The stage draws the film's frame contained and centred with room around it, on ink with a shadow; the marking tools
   float over its top right corner.
 - Keys: Space plays, ← → step a frame (Shift, a second), C cycles Pick, Region and off, Esc puts a tool down, ? lists
@@ -103,7 +107,9 @@ recent projects with their path (`~` for the home folder), and a banner while no
 The tool rail selects one panel, keeping the picture large as capabilities grow. Outline rows show a human-readable
 scene line before its id; their message action appears on hover and keyboard focus. A selected layer has a cobalt
 dashed declared-bounds box, distinct from solid picture marks. References are small paper cards with a cobalt edge,
-a type label and a time where applicable; clicking locates without sending. The timeline adds quiet dashed layer
+a type label and a time where applicable; clicking locates without sending. The selection's card is dashed and labelled
+Selected. Marks wait above the composer as the same cards, each with its number, what and when, and a field for its
+note; a sent message shows each mark with a thumbnail of the frame the model saw. The timeline adds quiet dashed layer
 spans and fit/zoom controls. Panel visibility can be toggled in the top bar, and F enters or leaves focus mode. On compact windows the project tools start folded, can be reopened explicitly,
 and return to their saved visibility on a wider window.
 

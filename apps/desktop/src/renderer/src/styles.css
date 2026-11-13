@@ -724,6 +724,51 @@ input[type='radio'] {
   left: -10px;
 }
 
+.mark.lit {
+  border-width: 3px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--annotate) 30%, transparent);
+}
+
+/* The box beside a mark being made, which asks what should change there. */
+.mark-ask {
+  position: absolute;
+  z-index: 3;
+  width: 288px;
+  max-width: calc(100% - 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: var(--r-panel);
+  border: 1px solid var(--line);
+  background: var(--sheet);
+  box-shadow: var(--float-shadow);
+}
+
+.mark-ask textarea {
+  resize: none;
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--bg);
+  color: var(--text);
+  padding: 6px 8px;
+  font: 12px/1.4 var(--font-ui);
+}
+
+.mark-ask .found {
+  font-size: 11px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ask-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 /* The transport and the timeline. */
 
 .transport-sheet {
@@ -861,6 +906,45 @@ input[type='radio'] {
   border: 0;
 }
 
+.timeline .flag.lit {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--annotate) 30%, transparent);
+}
+
+/* Dragging along the marks lane marks a stretch of the film. */
+.marks-lane {
+  cursor: text;
+}
+
+.marks-lane.full {
+  cursor: not-allowed;
+}
+
+.mark-range {
+  position: absolute;
+  top: 6px;
+  height: 18px;
+  min-width: 2px;
+  padding: 0;
+  border: 1px solid var(--annotate);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--annotate) 18%, transparent);
+  display: flex;
+  align-items: center;
+}
+
+.mark-range.drawing {
+  border-style: dashed;
+  pointer-events: none;
+}
+
+.mark-range.lit {
+  background: color-mix(in srgb, var(--annotate) 34%, transparent);
+}
+
+.mark-range .number {
+  margin-left: -1px;
+}
+
 .playhead {
   position: absolute;
   top: 0;
@@ -919,13 +1003,6 @@ input[type='radio'] {
   color: var(--bad);
 }
 
-.message .marked {
-  display: block;
-  margin-top: 4px;
-  font-size: 11px;
-  color: var(--muted);
-}
-
 .tool {
   font-size: 12px;
   color: var(--muted);
@@ -964,28 +1041,6 @@ input[type='radio'] {
   overflow: auto;
 }
 
-.chips {
-  list-style: none;
-  margin: 0;
-  padding: 10px 10px 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  border-top: 1px solid var(--line);
-}
-
-.chips li {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 26px;
-  padding: 0 2px 0 4px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  font-size: 12px;
-  color: var(--text2);
-}
-
 .composer {
   flex: none;
   margin: 10px;
@@ -997,10 +1052,6 @@ input[type='radio'] {
   border-radius: 10px;
   border: 1px solid var(--line);
   background: var(--bg);
-}
-
-.chips + .composer {
-  margin-top: 8px;
 }
 
 .composer textarea {
@@ -2644,11 +2695,6 @@ kbd {
   overflow-y: auto;
   flex-shrink: 0;
 }
-.chips {
-  max-height: 80px;
-  overflow-y: auto;
-  flex-shrink: 0;
-}
 .latest-messages {
   align-self: center;
   padding: 6px 12px;
@@ -2701,4 +2747,116 @@ kbd {
 }
 .composer-model svg {
   flex: none;
+}
+
+/* The marks for the next message: each by number, what and when, and what should change there. */
+.mark-tray {
+  list-style: none;
+  margin: 0;
+  padding: 10px 10px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: min(30vh, 240px);
+  overflow-y: auto;
+  flex-shrink: 0;
+  border-top: 1px solid var(--line);
+}
+
+.mark-tray li {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr) auto;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 4px 4px 6px;
+  border-radius: var(--r-button);
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--annotate);
+  background: var(--bg);
+}
+
+.mark-locate {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 2px;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+
+.mark-what {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mark-what strong {
+  font-size: 12px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mark-what small {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.mark-tray input {
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--sheet);
+  color: var(--text);
+  font: 12px var(--font-ui);
+}
+
+.reference-cards > li.selection {
+  border-style: dashed;
+  border-left-style: solid;
+}
+
+/* The marks a sent message carried: the frame the model saw, its number, when and what was asked. */
+.sent-marks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.sent-mark {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-button);
+  background: var(--bg);
+  text-align: left;
+  color: var(--text2);
+  font-size: 12px;
+}
+
+.sent-mark img {
+  width: 72px;
+  flex: none;
+  border-radius: 4px;
+}
+
+.sent-mark-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.sent-mark-text small {
+  font-size: 10px;
+  color: var(--muted);
 }

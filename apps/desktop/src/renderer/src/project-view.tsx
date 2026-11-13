@@ -104,8 +104,12 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
   const [exportOpen, setExportOpen] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
-  /** The places marked on the picture for the next message. */
+  /** The places marked on the picture, and the stretches on the timeline, for the next message. */
   const [marks, setMarks] = useState<Mark[]>([]);
+  /** The mark whose row in the composer is in hand, lit on the picture and the timeline. */
+  const [lit, setLit] = useState<number | null>(null);
+  /** Asks the composer to put the cursor in a mark's note: its index, and a count that makes each ask new. */
+  const [noteRequest, setNoteRequest] = useState({ index: -1, n: 0 });
   /** The element last picked, which the inspector shows; it stays after its mark is sent. */
   const [inspected, setInspected] = useState<Mark | null>(null);
   const [side, setSide] = useState<'outline' | 'motions' | 'inspector' | 'history' | 'review' | 'assets'>('outline');
@@ -126,6 +130,8 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
   }, []);
   const showSide = layout.side && (!compact || compactSide);
   const [selected, setSelected] = useState<Reference | null>(null);
+  /** What was last selected in a panel, which goes with the next message unless it is put aside. */
+  const [selection, setSelection] = useState<Reference | null>(null);
   const [refs, setRefs] = useState<Reference[]>([]);
   const [focusRequest, setFocusRequest] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -187,6 +193,7 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
         if (marks.length < MAX_MARKS) player.setTool(player.tool === null ? 'pick' : player.tool === 'pick' ? 'region' : null);
       } else if (event.key === 'Escape') {
         setSelected(null);
+        setSelection(null);
         player.setTool(null);
       }
     };
@@ -262,12 +269,23 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
     setMarks([]);
     setRefs([]);
     setSelected(null);
+    setSelection(null);
     setInspected(null);
   }, [build?.version]);
 
+  /** Selects a scene, a layer or a line in a panel: it is shown, and goes with the next message unless put aside. */
   function select(ref: Reference) {
     setSelected(ref);
+    setSelection(ref);
     if (ref.time !== undefined) seek(ref.time);
+  }
+
+  function mark(next: Mark) {
+    if (marks.length >= MAX_MARKS) return;
+    setMarks([...marks, next]);
+    setLayout({ assistant: true });
+    // A stretch of time is said in the composer, which has room for it.
+    if (next.end !== undefined) setNoteRequest((r) => ({ index: marks.length, n: r.n + 1 }));
   }
   function reference(ref: Reference) {
     if (busy || importing || checking || progress !== null) return;
@@ -415,10 +433,20 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
               onRemoveRef={(i) => setRefs((items) => items.filter((_, n) => n !== i))}
               onSettings={onSettings}
               marks={marks}
-              onRemoveMark={(i) => setMarks((m) => m.filter((_, j) => j !== i))}
+              onRemoveMark={(i) => {
+                setMarks((m) => m.filter((_, j) => j !== i));
+                setLit(null);
+              }}
+              onNoteMark={(i, note) => setMarks((m) => m.map((mark, j) => (j === i ? { ...mark, note } : mark)))}
+              onLight={setLit}
+              noteRequest={noteRequest}
+              selection={selection}
+              onDropSelection={() => setSelection(null)}
               onSent={() => {
                 setMarks([]);
                 setRefs([]);
+                setSelection(null);
+                setLit(null);
               }}
               onSeek={seek}
             />
@@ -436,19 +464,21 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
             column={layout.assistant ? 2 : 1}
             build={build}
             marks={marks}
+            lit={lit}
             selected={selected}
             disabled={busy || importing || checking || !build?.ok}
-            onMark={(mark) => {
-              setMarks((m) => (m.length < MAX_MARKS ? [...m, mark] : m));
-              if (mark.element) {
+            onMark={(next) => {
+              mark(next);
+              const { element } = next;
+              if (element) {
                 setSelected({
                   kind: 'layer',
-                  label: mark.element.text || mark.element.layer || 'Selected element',
-                  scene: mark.element.scene,
-                  layer: mark.element.layer,
-                  time: mark.t,
+                  label: element.text || element.layer || 'Selected element',
+                  scene: element.scene,
+                  layer: element.layer,
+                  time: next.t,
                 });
-                setInspected(mark);
+                setInspected(next);
                 setSide('inspector');
               }
             }}
@@ -560,6 +590,8 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
               onSelect={select}
               player={player}
               marks={marks}
+              lit={lit}
+              onRange={(start, end) => mark({ t: start, end, box: { x: 0, y: 0, w: 1, h: 1 }, element: null, note: '' })}
               folded={layout.folded}
               onFold={(folded) => setLayout({ folded })}
             />
