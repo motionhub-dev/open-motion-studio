@@ -3,6 +3,19 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-13 — A project can talk to the person's own Codex
+
+- **What:** The composer's agent picker offers the person's own Codex, when it is installed (where OpenAI's installer
+  puts it), new enough and signed in. The Studio drives it through `codex app-server` with the film's skill as its
+  instructions; its words, commands and file changes show in the panel, its turns are checkpointed from the files that
+  changed, and Stop interrupts it. The project's choice, Codex's thread and the panel's conversation are kept in
+  `.motion-studio/agent.json`. What Codex asks to do outside its sandbox is declined for now.
+- **Why:** So a person who already uses Codex makes films with it, on their own plan and sign-in (ADR 0008).
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/adr/0008-the-persons-own-coding-agent.md`, `docs/tech/architecture.md` ("External agents"),
+  `apps/desktop/src/main/agent/codex.ts`.
+
 ## 2026-11-13 — A timeline to move about in, keys for the workspace, and aids for looking
 
 - **What:** The timeline zooms about the pointer (Ctrl and the wheel, + and −, Shift+Z fits), follows the playhead

@@ -1,6 +1,6 @@
 # Architecture
 
-> **Status:** Plan — steps 1 to 3 and 6 built, 7 planned; signing waits for certificates · **Updated:** 2026-11-13
+> **Status:** Plan — steps 1 to 3 and 6 built, 7 under way; signing waits for certificates · **Updated:** 2026-11-13
 
 The components of the Studio and what each owns, the film, the agent and its providers, what is expensive to change, and the order of work.
 
@@ -191,7 +191,10 @@ Two protocols, every provider a preset over one of them:
 
 ## External agents
 
-> Planned ([ADR 0008](../adr/0008-the-persons-own-coding-agent.md)); nothing of it is built.
+> Under way ([ADR 0008](../adr/0008-the-persons-own-coding-agent.md)): Codex answers in the panel (step 7.1:
+> `harness.ts` for Codex, `codex.ts`, the turn's checkpoint, the agent in the composer). Not yet: the Studio's MCP
+> server, approval cards, Claude Code, and keeping the person's own Codex settings and MCP servers out of the
+> session; until then an approval Codex asks for is declined and said in the panel.
 
 A project's agent is the built-in one (above) or the person's own Claude Code or Codex, each driven through its own
 headless protocol. Everything the person sees of the agent stays the same panel: their message with its marks and
@@ -231,8 +234,10 @@ src/main/agent/
   no shell or web tool. Codex's approval requests (`item/commandExecution/requestApproval`,
   `item/fileChange/requestApproval`, `item/permissions/requestApproval`) become cards in the assistant; a file change
   whose paths are all in the project's writable files is approved without one, one into a protected path is declined.
-- **State** in `.motion-studio/agent.json`: which agent the project uses and its session or thread id. Nothing of the
-  person's sign-in is kept by the Studio anywhere.
+- **State** in `.motion-studio/agent.json`: which agent the project uses, its session or thread id, and the
+  conversation as the panel showed it (the agent keeps its own record in its own form). Switching the agent starts
+  the new one's conversation afresh; restoring History starts a new thread. Nothing of the person's sign-in is kept
+  by the Studio anywhere: Codex says whether there is one through `account/read`.
 
 ## The UI
 
@@ -290,7 +295,9 @@ Each step is a vertical slice that runs end to end before the next begins.
    end against a real signed-in agent before the next. Codex first; Claude Code's way in ships once its terms are
    settled (ADR 0008, "Open"), though it can be built beside.
    1. *Codex answers*: find `codex` and check its version, start `app-server`, a thread for the project, a message's
-      reply and tool calls in the panel; Stop interrupts. The agent choice in the composer, kept per project.
+      reply and tool calls in the panel; Stop interrupts. The agent choice in the composer, kept per project. *Built*,
+      and driven in the app on a signed-in Codex 0.167.0: a title changed in `film.tsx`, its checkpoint restored from
+      History, a turn stopped; the turn's checkpoint, change summary and Undo this turn came with it.
    2. *It sees the film*: the Studio's MCP server (`check`, `still`, the motions, `ask_person`), the skill as its
       instructions, marks and references in the message with their frames.
    3. *Its work is recoverable*: the turn's checkpoint from the files that changed, the change summary, Undo this turn,

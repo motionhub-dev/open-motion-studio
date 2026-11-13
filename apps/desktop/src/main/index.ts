@@ -5,7 +5,20 @@
 import { BrowserWindow, Menu, Notification, app, dialog, ipcMain, session, shell, type OpenDialogOptions, type WebContents } from 'electron';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { CHANNELS, EVENTS, type AgentEvent, type BuildResult, type Project } from '../shared/api';
+import {
+  CHANNELS,
+  EVENTS,
+  type AgentEvent,
+  type AgentKind,
+  type Agents,
+  type BuildResult,
+  type ChatItem,
+  type HarnessView,
+  type Project,
+  applyEvent,
+} from '../shared/api';
+import { type AppServer, codexInput, codexTurn, openThread, signedIn, startCodex } from './agent/codex';
+import { findCodex } from './agent/harness';
 import { runTurn, transcript } from './agent/loop';
 import { markedMessage, readMarks } from './agent/marks';
 import { type MessageParam, caller, failure } from './agent/model';
@@ -22,7 +35,7 @@ import { keepFilmsInPlace, registerPreviewScheme, servePreview } from './film/pr
 import { motionDetail, motionReel, projectMotions, searchMotions, useMotion } from './motions';
 import { STATE_DIR, createProject, isRecent, openProject, projectAt, recentProjects, rememberProject } from './project';
 import { describeReferences, filmSpans, readReferences } from './agent/references';
-import { ProjectHistory } from './history';
+import { ProjectHistory, changesBetween, noteFiles } from './history';
 import { ProviderStore } from './providers';
 
 const recentsFile = (): string => join(app.getPath('userData'), 'recent-projects.json');
@@ -35,9 +48,26 @@ let open: {
   watcher: BuildContext | null;
   build: BuildResult | null;
   messages: MessageParam[] | null;
-  /** The last turn, while it can be taken back: the History entry of what it wrote, and where it starts in `messages`. */
+  /**
+   * The last turn, while it can be taken back: the History entry of what it wrote, and where it starts in `messages`
+   * (or, for an outside agent, in its panel items).
+   */
   lastTurn?: { checkpoint: string; start: number };
+  /** The project's agent, read from `.motion-studio/agent.json` the first time it is asked for. */
+  agent?: AgentState;
+  /** The person's own Codex, started for this project on its first message to it. */
+  codex?: AppServer;
 } | null = null;
+
+/**
+ * Which agent a project talks to and, for an outside agent (ADR 0008), its thread and the conversation as the panel
+ * showed it, since the agent keeps its own record in its own form.
+ */
+interface AgentState {
+  kind: AgentKind;
+  thread?: string;
+  items: ChatItem[];
+}
 let mainWindow: BrowserWindow | null = null;
 let exporting: AbortController | null = null;
 /** The file the last export wrote: the one path the renderer may ask to be shown, without naming it. */
@@ -63,6 +93,59 @@ async function saveConversation(dir: string, messages: MessageParam[]): Promise<
   await writeFile(sessionFile(dir), JSON.stringify(messages));
 }
 
+const agentFile = (dir: string): string => join(dir, STATE_DIR, 'agent.json');
+
+/** The open project's agent: the built-in one unless the project chose another. */
+async function agentOf(state: NonNullable<typeof open>): Promise<AgentState> {
+  if (state.agent) return state.agent;
+  try {
+    const saved = JSON.parse(await readFile(agentFile(state.project.path), 'utf8')) as Partial<AgentState>;
+    state.agent = {
+      kind: saved.kind === 'codex' ? 'codex' : 'built-in',
+      ...(typeof saved.thread === 'string' ? { thread: saved.thread } : {}),
+      items: Array.isArray(saved.items) ? saved.items : [],
+    };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+    state.agent = { kind: 'built-in', items: [] };
+  }
+  return state.agent;
+}
+
+async function saveAgent(dir: string, agent: AgentState): Promise<void> {
+  await mkdir(join(dir, STATE_DIR), { recursive: true });
+  await writeFile(agentFile(dir), JSON.stringify(agent));
+}
+
+/** Whether Codex is signed in, as its app-server last said, so Models need not start it on every look. */
+let codexSignedIn: { at: number; yes: boolean } | null = null;
+
+/** The person's own coding agents and where each stands. */
+async function harnesses(): Promise<HarnessView[]> {
+  const found = await findCodex();
+  const codex: HarnessView = { kind: 'codex', name: 'Codex', state: 'missing', hint: 'Install Codex, then come back' };
+  if (found.state !== 'found')
+    return [found.state === 'old' ? { ...codex, state: 'old', version: found.version, hint: 'Update Codex to use it here' } : codex];
+  if (!codexSignedIn || Date.now() - codexSignedIn.at > 60_000) {
+    // A short-lived app-server, in the home folder, asked only whether there is a sign-in.
+    const server = open?.codex ?? (await startCodex(found.bin, app.getPath('home'), app.getVersion()));
+    try {
+      codexSignedIn = { at: Date.now(), yes: await signedIn(server) };
+    } finally {
+      if (server !== open?.codex) server.close();
+    }
+  }
+  return [
+    codexSignedIn.yes
+      ? { ...codex, state: 'ready', version: found.version, hint: undefined }
+      : { ...codex, state: 'signed-out', version: found.version, hint: 'Sign in to Codex with `codex login`' },
+  ];
+}
+
+async function agents(): Promise<Agents> {
+  return { current: open ? (await agentOf(open)).kind : 'built-in', harnesses: await harnesses() };
+}
+
 /** The folder whose film the preview scheme serves, while one is open. */
 const previewSource = (): string | null => (open?.project.film ? open.project.path : null);
 
@@ -80,6 +163,7 @@ function send(channel: string, value: unknown): void {
 async function closeOpen(): Promise<void> {
   exporting?.abort();
   working?.abort();
+  open?.codex?.close();
   const watcher = open?.watcher;
   open = null;
   await watcher?.dispose();
@@ -112,6 +196,49 @@ async function chooseFolder(sender: WebContents, options: OpenDialogOptions): Pr
 function requireOpen(): NonNullable<typeof open> {
   if (!open) throw new Error('No project is open.');
   return open;
+}
+
+/**
+ * A turn on the person's own Codex (ADR 0008): its app-server started for the project if it is not, the project's
+ * thread opened, the turn run with its events sent to the panel and kept as the panel's items, and the files that
+ * changed recorded as the turn's checkpoint, since Codex writes them itself.
+ */
+async function outsideTurn(
+  state: NonNullable<typeof open>,
+  agent: AgentState,
+  history: ProjectHistory,
+  content: Parameters<typeof codexInput>[0],
+  text: string,
+  marks: ReturnType<typeof readMarks>,
+  refs: ReturnType<typeof readReferences>,
+  signal: AbortSignal,
+): Promise<{ ok: boolean }> {
+  const dir = state.project.path;
+  const emit = (event: AgentEvent) => {
+    agent.items = applyEvent(agent.items, event);
+    if (open === state) send(EVENTS.agent, event);
+  };
+  const start = agent.items.length;
+  agent.items = [...agent.items, { kind: 'user', text, marks: marks.map(({ t, end, note }) => ({ t, ...(end !== undefined ? { end } : {}), note })), refs }];
+  state.lastTurn = undefined;
+  let outcome: { ok: boolean; notice?: { text: string; error: boolean } };
+  let checkpoint: string | undefined;
+  try {
+    const found = await findCodex();
+    if (found.state !== 'found') throw new Error(found.state === 'old' ? 'Codex is too old for the Studio. Update it to go on.' : 'Codex is not installed on this computer.');
+    state.codex ??= await startCodex(found.bin, dir, app.getVersion());
+    agent.thread = await openThread(state.codex, dir, FILM_SKILL, agent.thread);
+    await saveAgent(dir, agent);
+    const before = await noteFiles(dir);
+    outcome = await codexTurn(state.codex, agent.thread, codexInput(content), emit, signal);
+    checkpoint = await history.record(changesBetween(before, await noteFiles(dir)));
+  } catch (error) {
+    outcome = { ok: false, notice: { text: error instanceof Error ? error.message : String(error), error: true } };
+  }
+  emit({ type: 'end', notice: outcome.notice, checkpoint });
+  if (checkpoint) state.lastTurn = { checkpoint, start };
+  await saveAgent(dir, agent);
+  return { ok: outcome.ok };
 }
 
 function registerHandlers(): void {
@@ -203,16 +330,26 @@ function registerHandlers(): void {
     const turn = state.lastTurn;
     if (turn?.checkpoint !== checkpoint || (await history.list())[0]?.id !== checkpoint)
       throw new Error('Only the last turn can be undone here, before anything else changes. Use History for earlier changes.');
+    const agent = await agentOf(state);
     const messages = await conversation(state);
-    const said = transcript(messages.slice(turn.start, turn.start + 1))[0];
+    const said = agent.kind === 'built-in' ? transcript(messages.slice(turn.start, turn.start + 1))[0] : agent.items[turn.start];
     const controller = new AbortController();
     working = controller;
     try {
       await history.restore(checkpoint);
       await state.watcher?.rebuild();
-      state.messages = messages.slice(0, turn.start);
       state.lastTurn = undefined;
-      await saveConversation(state.project.path, state.messages);
+      if (agent.kind === 'built-in') {
+        state.messages = messages.slice(0, turn.start);
+        await saveConversation(state.project.path, state.messages);
+      } else {
+        // The files go back; an outside agent's own record of the turn stays, and the panel says so.
+        agent.items = [
+          ...agent.items.slice(0, turn.start),
+          { kind: 'notice', text: 'The files are back as they were. Codex still remembers the turn you undid.', error: false },
+        ];
+        await saveAgent(state.project.path, agent);
+      }
       return { text: said?.kind === 'user' ? said.text : '' };
     } finally {
       if (working === controller) working = null;
@@ -230,6 +367,10 @@ function registerHandlers(): void {
       state.messages = [];
       state.lastTurn = undefined;
       await saveConversation(state.project.path, []);
+      // A restored project starts a fresh conversation with an outside agent too, on a new thread.
+      const agent = await agentOf(state);
+      if (agent.kind !== 'built-in') await saveAgent(state.project.path, { kind: agent.kind, items: (agent.items = []) });
+      delete agent.thread;
     } finally {
       if (working === controller) working = null;
     }
@@ -265,13 +406,40 @@ function registerHandlers(): void {
     return testProvider(await providers().draft(input as Parameters<ProviderStore['draft']>[0]));
   });
 
-  ipcMain.handle(CHANNELS.conversation, async () => (open ? transcript(await conversation(open)) : []));
+  ipcMain.handle(CHANNELS.agents, () => agents());
+  ipcMain.handle(CHANNELS.useAgent, async (_event, kind: unknown) => {
+    const state = requireOpen();
+    if (kind !== 'built-in' && kind !== 'codex') throw new Error('Choose an agent.');
+    if (working || exporting) throw new Error('Finish the current task before changing the agent.');
+    if (kind === 'codex' && (await harnesses()).find((h) => h.kind === 'codex')?.state !== 'ready')
+      throw new Error('Codex is not ready on this computer. Models says what it needs.');
+    const agent = await agentOf(state);
+    if (agent.kind !== kind) {
+      // Each agent has its own conversation; switching starts the new one's afresh.
+      state.agent = { kind, items: [] };
+      state.lastTurn = undefined;
+      state.codex?.close();
+      delete state.codex;
+      await saveAgent(state.project.path, state.agent);
+    }
+    return agents();
+  });
+  ipcMain.handle(CHANNELS.conversation, async () => {
+    if (!open) return [];
+    const agent = await agentOf(open);
+    return agent.kind === 'built-in' ? transcript(await conversation(open)) : agent.items;
+  });
   ipcMain.handle(CHANNELS.clearConversation, async () => {
     const state = requireOpen();
     if (working || exporting) throw new Error('Finish the current task before starting a new conversation.');
     state.messages = [];
     state.lastTurn = undefined;
     await saveConversation(state.project.path, []);
+    const agent = await agentOf(state);
+    if (agent.kind !== 'built-in') {
+      state.agent = { kind: agent.kind, items: [] };
+      await saveAgent(state.project.path, state.agent);
+    }
   });
   ipcMain.handle(CHANNELS.stopAgent, () => working?.abort());
   ipcMain.handle(CHANNELS.sendMessage, async (_event, text: unknown, rawMarks: unknown, rawRefs: unknown, version: unknown) => {
@@ -290,7 +458,8 @@ function registerHandlers(): void {
     const controller = new AbortController();
     working = controller;
     try {
-      const provider = await providers().active();
+      const agent = await agentOf(state);
+      const provider = agent.kind === 'built-in' ? await providers().active() : null;
       const dir = state.project.path;
       const history = new ProjectHistory(dir, text.trim());
       const tools: ToolContext = {
@@ -311,7 +480,7 @@ function registerHandlers(): void {
       const content = await markedMessage(
         text.trim(),
         marks,
-        provider.images !== false,
+        provider ? provider.images !== false : true,
         async () => {
           if (!state.build?.ok || state.build.version !== version) throw new Error('The preview changed. Select your references again.');
           return openStage(state.build.version);
@@ -319,6 +488,11 @@ function registerHandlers(): void {
         locate,
       );
       if (refs.length) content.push({ type: 'text', text: describeReferences(refs, typeof version === 'number' ? version : 0, locate) });
+      if (!provider) {
+        const outcome = await outsideTurn(state, agent, history, content, text.trim(), marks, refs, controller.signal);
+        tellWhenAway(outcome.ok ? 'Codex finished its turn.' : 'Codex stopped. See the conversation.');
+        return outcome;
+      }
       const messages = await conversation(state);
       const start = messages.length;
       state.lastTurn = undefined;

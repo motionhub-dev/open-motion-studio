@@ -485,7 +485,8 @@ input[type='radio'] {
   box-shadow: var(--float-shadow);
 }
 
-.menu [role='menuitem'] {
+.menu [role='menuitem'],
+.menu [role='menuitemradio'] {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -498,11 +499,21 @@ input[type='radio'] {
   text-align: left;
 }
 
-.menu [role='menuitem']:hover {
+.menu [role='menuitem']:hover,
+.menu [role='menuitemradio']:hover:not(:disabled) {
   background: var(--s2);
 }
 
-.menu [role='menuitem'] span {
+.menu [role='menuitemradio'][aria-checked='true'] {
+  background: var(--s2);
+}
+
+.menu [role='menuitemradio']:disabled {
+  opacity: 0.6;
+}
+
+.menu [role='menuitem'] span,
+.menu [role='menuitemradio'] span {
   font-size: 12px;
   color: var(--muted);
 }
@@ -3157,4 +3168,22 @@ kbd {
 .dialog.shortcuts {
   max-height: calc(100vh - 80px);
   overflow-y: auto;
+}
+
+/* The agent picker in the composer: the built-in agent on its model, or the person's own Codex (ADR 0008). */
+.agent-picker {
+  position: relative;
+  min-width: 0;
+  display: inline-flex;
+}
+
+.agent-picker .composer-model {
+  max-width: 100%;
+}
+
+.agent-menu {
+  top: auto;
+  bottom: calc(100% + 6px);
+  right: auto;
+  left: -4px;
 }

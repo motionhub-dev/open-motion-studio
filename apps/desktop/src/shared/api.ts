@@ -68,6 +68,28 @@ export interface MotionDetail {
 export type Protocol = 'anthropic' | 'openai';
 
 /** A model provider as the renderer sees it: never its key. */
+/** Which agent a project talks to: the built-in one on the active provider, or the person's own Codex (ADR 0008). */
+export type AgentKind = 'built-in' | 'codex';
+
+/** Where a person's own coding agent stands: not installed, too old, installed but not signed in, or ready. */
+export type HarnessState = 'missing' | 'old' | 'signed-out' | 'ready';
+
+/** A person's own coding agent as the composer and Models show it. */
+export interface HarnessView {
+  kind: Exclude<AgentKind, 'built-in'>;
+  name: string;
+  state: HarnessState;
+  version?: string;
+  /** What to do about a state that is not ready, in a few words. */
+  hint?: string;
+}
+
+/** The project's agent and the coding agents on this machine. */
+export interface Agents {
+  current: AgentKind;
+  harnesses: HarnessView[];
+}
+
 export interface ProviderView {
   id: string;
   name: string;
@@ -175,6 +197,27 @@ export type AgentEvent =
   /** `checkpoint` is the History entry of the files the turn wrote, if it wrote any. */
   | { type: 'end'; notice?: { text: string; error: boolean }; checkpoint?: string };
 
+/** The conversation with one more of the agent's events in it: its words joined, each tool call and then its result. */
+export function applyEvent(items: ChatItem[], event: AgentEvent): ChatItem[] {
+  switch (event.type) {
+    case 'text': {
+      const last = items[items.length - 1];
+      if (last?.kind === 'assistant') return [...items.slice(0, -1), { ...last, text: last.text + event.text }];
+      return [...items, { kind: 'assistant', text: event.text }];
+    }
+    case 'tool':
+      return [...items, { kind: 'tool', id: event.id, name: event.name, summary: event.summary, at: event.at, ask: event.ask }];
+    case 'tool-result':
+      return items.map((item) =>
+        item.kind === 'tool' && item.id === event.id ? { ...item, result: { ok: event.ok, text: event.text, image: event.image } } : item,
+      );
+    case 'end':
+      return event.notice ? [...items, { kind: 'notice', ...event.notice }] : items;
+    default:
+      return items;
+  }
+}
+
 /** A question the agent puts to the person, ending its turn: their answer is their next message. */
 export interface Question {
   question: string;
@@ -261,6 +304,10 @@ export interface StudioApi {
 
   /** The model providers and which one is active. */
   providers(): Promise<Providers>;
+  /** The open project's agent and the coding agents this machine has. */
+  agents(): Promise<Agents>;
+  /** Makes the open project talk to this agent from its next message. */
+  useAgent(kind: AgentKind): Promise<Agents>;
   saveProvider(input: ProviderInput): Promise<Providers>;
   removeProvider(id: string): Promise<Providers>;
   activateProvider(id: string): Promise<Providers>;
@@ -313,6 +360,8 @@ export const CHANNELS = {
   motionDetail: 'motions:detail',
   motionReel: 'motions:reel',
   providers: 'providers:list',
+  agents: 'agent:agents',
+  useAgent: 'agent:use',
   saveProvider: 'providers:save',
   removeProvider: 'providers:remove',
   activateProvider: 'providers:activate',

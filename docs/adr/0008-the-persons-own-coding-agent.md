@@ -54,7 +54,8 @@ The Studio's rules stand in the way as written: it "runs no program the person i
 - **The Studio's tools reach the agent as an MCP server** that the main process serves to that session alone on
   127.0.0.1, behind a secret path: `check`, `still`, `search_motions`, `use_motion` and `ask_person`. Marks and
   references go in the person's message as they do today, with each marked frame as an image. The skill (`film.md`)
-  is the appended system prompt for Claude Code and the base instructions for Codex.
+  is the appended system prompt for Claude Code and the developer instructions for Codex, which keep each agent's
+  own base prompt.
 - **The agent writes with its own tools; the Studio keeps History by the turn.** Before a turn, the Studio notes the
   project's files the built-in agent may write (everything but `.motion-studio/`, `motions/@*/`, `node_modules/` and
   `.git/`); after it, every file that changed becomes that turn's checkpoint, so History, the change summary and Undo

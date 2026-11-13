@@ -1,8 +1,8 @@
-import { mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { ProjectHistory } from '../history';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ProjectHistory, changesBetween, noteFiles } from '../history';
 vi.mock('electron', () => ({}));
 let dir: string;
 beforeEach(async () => {
@@ -74,4 +74,31 @@ it('refuses a stale exact edit without recording or overwriting the external ver
   await expect(history.write('film.tsx', 'agent edit', 'old version')).rejects.toThrow('changed while');
   expect(await readFile(join(dir, 'film.tsx'), 'utf8')).toBe('external version');
   expect(await history.list()).toEqual([]);
+});
+
+describe('an outside agent’s turn', () => {
+  it('records the files that changed between two notes as one checkpoint that restores', async () => {
+    await writeFile(join(dir, 'film.tsx'), 'one');
+    await writeFile(join(dir, 'old.txt'), 'gone soon');
+    await mkdir(join(dir, 'motions', '@hub', 'look'), { recursive: true });
+    await writeFile(join(dir, 'motions', '@hub', 'look', 'MOTION.md'), 'hub');
+    const before = await noteFiles(dir);
+    expect([...before.keys()].sort()).toEqual(['film.tsx', 'old.txt']);
+    await writeFile(join(dir, 'film.tsx'), 'two');
+    await writeFile(join(dir, 'new.txt'), 'new');
+    await rm(join(dir, 'old.txt'));
+    const changes = changesBetween(before, await noteFiles(dir));
+    expect(changes.map((c) => [c.path, c.before !== null, c.after !== null])).toEqual([
+      ['film.tsx', true, true],
+      ['new.txt', false, true],
+      ['old.txt', true, false],
+    ]);
+    const history = new ProjectHistory(dir, 'Make it two');
+    const id = await history.record(changes);
+    expect(await history.record([])).toBeUndefined();
+    await history.restore(id!);
+    expect(await readFile(join(dir, 'film.tsx'), 'utf8')).toBe('one');
+    expect(await readFile(join(dir, 'old.txt'), 'utf8')).toBe('gone soon');
+    await expect(readFile(join(dir, 'new.txt'))).rejects.toThrow();
+  });
 });

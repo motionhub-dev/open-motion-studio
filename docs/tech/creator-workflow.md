@@ -66,6 +66,12 @@ select and find it, and the outline and the timeline light those items for a mom
 its files go back, the turn leaves the conversation, and the message returns to the composer to change and send again.
 The structure compared is scenes, their spans, layers' boxes and lines; what a layer draws inside its box is not.
 
+A project can talk to the person's own Codex instead of the built-in agent, from the agent picker in the composer
+(ADR 0008). Codex runs on its own sign-in and plan, in its workspace sandbox, and its work shows in the same panel:
+its words, its commands and file changes folded into lines, the turn's changes and its undo. Its turns are
+checkpointed from the files that changed, since it writes them itself; anything it asks to do outside the sandbox is
+declined for now, and the panel says so. Each agent keeps its own conversation: switching starts the new one afresh.
+
 ## Return to earlier source
 
 History records the original and resulting bytes of files written by `write_file` and `edit_file`, grouped by agent

@@ -64,7 +64,11 @@ export function workLine(tools: Tool[]): string {
               ? 'Searched motionhub'
               : tool.name === 'use_motion'
                 ? 'Took a motion'
-                : tool.name;
+                : tool.name === 'shell'
+                  ? 'Ran a command'
+                  : tool.name === 'web_search'
+                    ? 'Searched the web'
+                    : tool.name;
     counts.set(verb, (counts.get(verb) ?? 0) + 1);
   }
   const parts = [

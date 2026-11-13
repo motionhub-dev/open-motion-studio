@@ -7,7 +7,18 @@
 
 import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { AlertTriangle, ArrowUp, Check, ChevronDown, Clock, Loader, RotateCcw, Square, X } from 'lucide-react';
-import { type AgentEvent, MARK_NOTE, type Mark, type Reference, type ProviderView, type SentMark } from '../../shared/api';
+import {
+  type AgentEvent,
+  type AgentKind,
+  type Agents,
+  type ChatItem,
+  MARK_NOTE,
+  type Mark,
+  type Reference,
+  type ProviderView,
+  type SentMark,
+  applyEvent,
+} from '../../shared/api';
 import type { FilmInfo } from '../../shared/preview';
 import { type Row, blocks, changeKey, changeLine, failingRun, filmChanges, running, workLine } from './activity';
 import { Brief } from './brief';
@@ -16,23 +27,12 @@ import { elementName, timecode } from './preview';
 import { reason } from './reason';
 
 function apply(items: Row[], event: AgentEvent, before: FilmInfo | null): Row[] {
-  switch (event.type) {
-    case 'phase':
-      return items;
-    case 'text': {
-      const last = items[items.length - 1];
-      if (last?.kind === 'assistant') return [...items.slice(0, -1), { ...last, text: last.text + event.text }];
-      return [...items, { kind: 'assistant', text: event.text }];
-    }
-    case 'tool':
-      return [...items, { kind: 'tool', id: event.id, name: event.name, summary: event.summary, at: event.at, ask: event.ask }];
-    case 'tool-result':
-      return items.map((item) =>
-        item.kind === 'tool' && item.id === event.id ? { ...item, result: { ok: event.ok, text: event.text, image: event.image } } : item,
-      );
-    case 'end':
-      return [...items, ...(event.notice ? [{ kind: 'notice' as const, ...event.notice }] : []), { kind: 'turn', before, checkpoint: event.checkpoint }];
-  }
+  // The turn rows stay where they are; the transcript's own items take the event as everywhere else.
+  if (event.type === 'end') return [...applyEvent(items as ChatItem[], event), { kind: 'turn', before, checkpoint: event.checkpoint }];
+  if (event.type === 'tool-result') return items.map((item) => (item.kind === 'turn' ? item : applyEvent([item], event)[0]!));
+  const last = items[items.length - 1];
+  if (event.type === 'text' && last?.kind === 'assistant') return [...items.slice(0, -1), ...applyEvent([last], event)];
+  return [...items, ...applyEvent([], event)];
 }
 
 /** When a mark is: its moment, or the stretch it spans. */
@@ -101,6 +101,9 @@ const STARTS = [
 
 interface Props {
   active: ProviderView | undefined;
+  /** The project's agent and the person's own coding agents (ADR 0008). */
+  agents: Agents | null;
+  onUseAgent(kind: AgentKind): void;
   ready: boolean;
   disabled: boolean;
   onSettings(): void;
@@ -137,6 +140,8 @@ const COMPOSER_MAX = 180;
 
 export function Assistant({
   active,
+  agents,
+  onUseAgent,
   ready,
   disabled,
   onSettings,
@@ -160,6 +165,18 @@ export function Assistant({
   focusRequest,
 }: Props) {
   const [items, setItems] = useState<Row[]>([]);
+  const current: AgentKind = agents?.current ?? 'built-in';
+  const codex = agents?.harnesses.find((h) => h.kind === 'codex');
+  /** Whether the menu of agents is open. */
+  const [picking, setPicking] = useState(false);
+  useEffect(() => {
+    if (!picking) return;
+    const close = (event: PointerEvent) => {
+      if (!(event.target instanceof Element && event.target.closest('.agent-picker'))) setPicking(false);
+    };
+    addEventListener('pointerdown', close);
+    return () => removeEventListener('pointerdown', close);
+  }, [picking]);
   /** A message waiting for the turn to end; `steer` stopped the turn for it. */
   const [queued, setQueued] = useState<{ text: string; steer: boolean } | null>(null);
   const [undoing, setUndoing] = useState(false);
@@ -651,17 +668,64 @@ export function Assistant({
           onKeyDown={onKey}
         />
         <div className="composer-actions">
-          <button
-            type="button"
-            className="composer-model"
-            aria-label={active ? `Choose model, current: ${active.model} by ${active.name}` : 'Set up a model'}
-            aria-haspopup="dialog"
-            title={active ? `${active.model} · ${active.name}` : 'Set up a model'}
-            onClick={onSettings}
-          >
-            <span>{active ? active.model : 'Set up a model'}</span>
-            <ChevronDown size={12} />
-          </button>
+          <span className="agent-picker">
+            <button
+              type="button"
+              className="composer-model"
+              aria-label={`Choose the agent, current: ${current === 'codex' ? 'Codex' : active ? `${active.model} by ${active.name}` : 'none set up'}`}
+              aria-haspopup="menu"
+              aria-expanded={picking}
+              title={current === 'codex' ? `Codex${codex?.version ? ` ${codex.version}` : ''}` : active ? `${active.model} · ${active.name}` : 'Set up a model'}
+              disabled={working || !agents}
+              onClick={() => setPicking(!picking)}
+            >
+              <span>{!agents ? 'Finding the agent…' : current === 'codex' ? 'Codex' : active ? active.model : 'Set up a model'}</span>
+              <ChevronDown size={12} />
+            </button>
+            {picking && (
+              <span className="menu agent-menu" role="menu">
+                <button
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={current === 'built-in'}
+                  onClick={() => {
+                    setPicking(false);
+                    if (current !== 'built-in') onUseAgent('built-in');
+                    else onSettings();
+                  }}
+                >
+                  <strong>{active ? active.model : 'Built-in agent'}</strong>
+                  <span>{active ? `Built-in agent · ${active.name}` : 'Built-in agent · set up a model in Models'}</span>
+                </button>
+                {codex && (
+                  <button
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={current === 'codex'}
+                    disabled={codex.state !== 'ready'}
+                    onClick={() => {
+                      setPicking(false);
+                      if (current !== 'codex') onUseAgent('codex');
+                    }}
+                  >
+                    <strong>Codex</strong>
+                    <span>{codex.state === 'ready' ? `Your Codex${codex.version ? ` ${codex.version}` : ''} · its own sign-in` : codex.hint}</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setPicking(false);
+                    onSettings();
+                  }}
+                >
+                  <strong>Models…</strong>
+                  <span>Providers and keys for the built-in agent</span>
+                </button>
+              </span>
+            )}
+          </span>
           {working ? (
             <button
               type="button"

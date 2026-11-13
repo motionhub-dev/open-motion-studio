@@ -21,7 +21,17 @@ import {
   Maximize2,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { type BuildResult, MAX_MARKS, type Mark, type Project, type Providers, type Reference, type FilmReview } from '../../shared/api';
+import {
+  type AgentKind,
+  type Agents,
+  type BuildResult,
+  MAX_MARKS,
+  type Mark,
+  type Project,
+  type Providers,
+  type Reference,
+  type FilmReview,
+} from '../../shared/api';
 import { Assistant } from './assistant';
 import { AssetsPanel } from './assets-panel';
 import { ReviewPanel } from './review-panel';
@@ -174,6 +184,33 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
   }
   const player = usePlayer(build);
   const active = providers?.providers.find((p) => p.id === providers.active);
+  /** The project's agent and the person's own coding agents (ADR 0008). */
+  const [agents, setAgents] = useState<Agents | null>(null);
+  useEffect(() => {
+    let live = true;
+    window.studio.agents().then(
+      (found) => live && setAgents(found),
+      (e) => live && setToast({ text: reason(e), error: true }),
+    );
+    return () => {
+      live = false;
+    };
+  }, [project.path]);
+  // Nothing is sent until the project's agent is known: a project on Codex must not seem to be on the built-in one.
+  const ready = !agents
+    ? false
+    : agents.current === 'codex'
+      ? agents.harnesses.find((h) => h.kind === 'codex')?.state === 'ready'
+      : !!active?.ready;
+  async function useAgent(kind: AgentKind) {
+    try {
+      setAgents(await window.studio.useAgent(kind));
+      setRefs([]);
+      setMarks([]);
+    } catch (e) {
+      setToast({ text: reason(e), error: true });
+    }
+  }
 
   useEffect(() => {
     setBuild(null);
@@ -479,9 +516,11 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
         >
           <section className="sheet assistant" aria-label="Assistant" style={{ display: layout.assistant ? undefined : 'none' }}>
             <Assistant
-              key={`${project.path}:${historyRevision}`}
+              key={`${project.path}:${historyRevision}:${agents?.current ?? ''}`}
               active={active}
-              ready={!!active?.ready}
+              agents={agents}
+              onUseAgent={(kind) => void useAgent(kind)}
+              ready={ready}
               disabled={importing || checking || progress !== null}
               onWorking={setBusy}
               refs={refs}

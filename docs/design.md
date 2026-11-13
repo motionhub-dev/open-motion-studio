@@ -109,8 +109,10 @@ recent projects with their path (`~` for the home folder), and a banner while no
   and its answers as buttons, the recommended one primary. A message waiting for the turn sits above the composer on a
   dashed outline. Items the last turn changed are ringed in green in the outline and the timeline for four seconds, and
   the stage says the agent is working in a dark pill over its top left. The composer grows with its text up to 180px; Enter
-  sends, Shift+Enter breaks the line. The model selector sits inside the composer below the text, opposite Send;
-  it shows the current model, keeps the full model/provider name on hover, and opens Models.
+  sends, Shift+Enter breaks the line. The agent picker sits inside the composer below the text, opposite Send;
+  it shows the built-in agent's model, or Codex when the project talks to the person's own (ADR 0008), keeps the full
+  name on hover, and opens a menu upward: the built-in agent on its provider, Codex with its version or what it needs
+  (installing, updating, signing in), and Models. Until the project's agent is known it says so, and nothing sends.
 - **Motions** (`motion-panel.tsx`): the project's motions as poster cards (initials when a motion has no poster); one
   opened is its page — poster, name, line, its colour tokens as swatches, its components with their previews, and its
   MOTION.md. The catalogue search answers as cards with Use.
