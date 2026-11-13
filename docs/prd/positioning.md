@@ -53,7 +53,7 @@ One path, end to end, on macOS, Windows and Linux:
 2. Search motionhub, watch a motion's reel, and use it in the project.
 3. Add a provider and a key (any server that speaks the Anthropic Messages or the OpenAI Chat Completions protocol),
    or, later, connect the Claude Code or Codex the person already uses
-   ([ADR 0008](../adr/0008-the-persons-own-coding-agent-through-acp.md)).
+   ([ADR 0008](../adr/0008-the-persons-own-coding-agent.md)).
 4. Ask the agent for a video. It writes the composition with the motion's components, looks at stills of its own work,
    and fixes what it sees.
 5. Watch it play; mark a region or an element on the picture and ask for a change.

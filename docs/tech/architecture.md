@@ -9,7 +9,7 @@ superseding [ADR 0001](../adr/0001-the-studio-is-engine-neutral.md)'s three),
 [ADR 0002](../adr/0002-the-studio-is-an-electron-desktop-app.md) (an Electron desktop app),
 [ADR 0003](../adr/0003-a-built-in-agent-on-the-persons-own-model.md) (a built-in agent on the person's own model),
 [ADR 0004](../adr/0004-a-films-code-runs-in-a-sandboxed-frame-on-its-own-scheme.md) (where a film's code runs) and
-[ADR 0008](../adr/0008-the-persons-own-coding-agent-through-acp.md) (the person's own coding agent, as a second way in). What the
+[ADR 0008](../adr/0008-the-persons-own-coding-agent.md) (the person's own coding agent, as a second way in). What the
 product is and is not is [positioning](../prd/positioning.md).
 
 ## Goal and non-goals
@@ -191,40 +191,48 @@ Two protocols, every provider a preset over one of them:
 
 ## External agents
 
-> Planned ([ADR 0008](../adr/0008-the-persons-own-coding-agent-through-acp.md)); nothing of it is built.
+> Planned ([ADR 0008](../adr/0008-the-persons-own-coding-agent.md)); nothing of it is built.
 
-A project's agent is the built-in one (above) or the person's own Claude Code or Codex, driven through ACP. Everything
-the person sees of the agent stays the same panel: their message with its marks and references, the agent's words, its
-tool calls folded into lines, the turn's changes and its undo, its questions; what changes is who runs the loop.
+A project's agent is the built-in one (above) or the person's own Claude Code or Codex, each driven through its own
+headless protocol. Everything the person sees of the agent stays the same panel: their message with its marks and
+references, the agent's words, its tool calls folded into lines, the turn's changes and its undo, its questions; what
+changes is who runs the loop.
 
 ```
 src/main/agent/
-  acp.ts             the ACP client: start an adapter in the project folder, initialize, session/new or load,
-                     session/prompt, and the session's updates translated into AgentEvent
-  adapters.ts        the agents the Studio knows: each one's adapter (pinned version, per-platform URL, SHA-256),
-                     how its CLI is found and whether it is signed in, and fetching the adapter into userData
+  claude.ts          Claude Code: `claude -p` with stream-json in and out, one process per open project, its
+                     events translated into AgentEvent
+  codex.ts           Codex: `codex app-server`, JSON-RPC over stdio, its threads, turns, items and approvals
+                     translated into AgentEvent and permission cards
+  harness.ts         finding each CLI where its vendor installs it, its version against the range the Studio speaks,
+                     whether it is signed in, and the one action for each state
   studio-mcp.ts      the MCP server one session reaches: check, still, search_motions, use_motion, ask_person,
                      on 127.0.0.1 behind a secret path, gone when the session ends
 ```
 
-- **Starting**: the adapter is a child of the main process, its working folder the project, its environment the
-  person's own minus anything of the Studio's (no key of a provider reaches it); for Claude Code,
-  `CLAUDE_CODE_EXECUTABLE` names the `claude` the person installed. `initialize` declares no file-system or terminal
-  capability of the client, so the agent uses its own tools, and asks the Studio only for permission.
-- **A turn**: the Studio notes the project's writable source files (as `ProjectHistory` would write them), sends
-  `session/prompt` with the person's words, the `<marks>` and `<references>` text and each marked frame as an image, and
-  turns each update into the panel's events: message chunks into `text`, tool calls into `tool` and `tool-result` (a
-  still from the Studio's MCP server keeps its picture), plans into the progress card. When the prompt returns, every
-  file that changed becomes the turn's checkpoint, and the turn ends with it as the built-in agent's does (a protected
-  file that changed anyway is put back from the note and reported); `undoTurn`
-  restores the files and, since the conversation is the agent's, starts its session again from the turn before only
-  where the adapter can fork or load it, else says the agent keeps the turn in its memory.
-- **Permissions**: `session/request_permission` becomes a card in the assistant with the adapter's own options. An edit
-  whose locations are all in the project's writable files is allowed without a card; one that touches
-  `.motion-studio/`, `motions/@*/`, `node_modules/` or `.git/` is refused; anything else waits for the person.
-- **Stopping**: Stop sends `session/cancel`; closing the project or the app ends the adapter's process.
-- **State** in `.motion-studio/agent.json`: which agent the project uses and its session id. In userData: the fetched
-  adapters by version, and nothing of the person's sign-in.
+- **Starting**: the CLI is a child of the main process, its working folder the project, its environment the person's
+  own minus anything of the Studio's (no key of a provider reaches it). Claude Code starts with `-p`, stream-json in
+  and out, `--strict-mcp-config` and `--mcp-config` naming only the Studio's server, `--setting-sources ""`, the skill
+  as `--append-system-prompt`, its allowed and disallowed tools, and `--session-id` or `--resume`. Codex starts
+  `app-server`, and the Studio sends `initialize`, then `thread/start` or `thread/resume` with the skill as its
+  instructions, its workspace sandbox and the Studio's MCP server in `-c` overrides.
+- **A turn**: the Studio notes the project's writable files (as `ProjectHistory` would write them), sends the person's
+  words, the `<marks>` and `<references>` text and each marked frame as an image (a user line on Claude Code's stdin,
+  `turn/start` on Codex), and turns the events into the panel's: text deltas into `text`, tool calls and their results
+  into `tool` and `tool-result` (a still from the Studio's MCP server keeps its picture). When the turn ends (Claude's
+  `result`, Codex's `turn/completed`), every file that changed becomes the turn's checkpoint, and the turn ends with it
+  as the built-in agent's does; a protected file that changed anyway is put back from the note and reported.
+  `undoTurn` restores the files; the agent's memory of the turn stays, and the panel says so.
+- **While it works**: a message sent during a turn goes into it (a further user line for Claude Code, which takes it
+  mid-turn; for Codex, it waits for the turn as for the built-in agent). Stop interrupts (`turn/interrupt`; Claude Code's
+  process is ended and resumed from its session for the next message).
+- **Permissions**: Claude Code's tools are fixed at start, reading, searching, editing and writing in the project
+  and the Studio's MCP tools, with edits to `.motion-studio/`, `motions/@*/`, `node_modules/` and `.git/` disallowed and
+  no shell or web tool. Codex's approval requests (`item/commandExecution/requestApproval`,
+  `item/fileChange/requestApproval`, `item/permissions/requestApproval`) become cards in the assistant; a file change
+  whose paths are all in the project's writable files is approved without one, one into a protected path is declined.
+- **State** in `.motion-studio/agent.json`: which agent the project uses and its session or thread id. Nothing of the
+  person's sign-in is kept by the Studio anywhere.
 
 ## The UI
 
@@ -245,8 +253,8 @@ panels, built and planned, each a projection of the project:
 
 ## What is expensive to change
 
-- **What the Studio runs**: an external agent's adapter, fetched and pinned per platform (ADR 0008), is a promise to
-  the people who connect one, and to the security of their machine.
+- **What the Studio runs**: the person's own coding agent, with the tools and permissions the Studio gives it
+  (ADR 0008), is a promise to the people who connect one, and to the security of their machine.
 - **The film's format** (`film.tsx` and its `film` export) and **the project layout and `.motion-studio/`**: people's
   folders hold them.
 - **Where a motion's files go**, since people's projects will hold motions installed that way.
@@ -278,31 +286,33 @@ Each step is a vertical slice that runs end to end before the next begins.
    and a region dragged out, sent with a message, the agent given both described and each frame outlined. *Timeline
    built*: a ruler, the film's scenes, the marks and the playhead.
 
-7. **External agents** ([ADR 0008](../adr/0008-the-persons-own-coding-agent-through-acp.md)), each slice driven end to
-   end against a real signed-in agent before the next:
-   1. *Claude Code answers*: find `claude`, fetch and check the pinned adapter, start it, and a message's reply and
-      tool calls in the panel; Stop cancels. The agent choice in the composer, kept per project.
-   2. *It sees the film*: the Studio's MCP server (`check`, `still`, the motions, `ask_person`), the skill as the
-      appended system prompt, marks and references in the prompt with their frames.
+7. **External agents** ([ADR 0008](../adr/0008-the-persons-own-coding-agent.md)), each slice driven end to
+   end against a real signed-in agent before the next. Codex first; Claude Code's way in ships once its terms are
+   settled (ADR 0008, "Open"), though it can be built beside.
+   1. *Codex answers*: find `codex` and check its version, start `app-server`, a thread for the project, a message's
+      reply and tool calls in the panel; Stop interrupts. The agent choice in the composer, kept per project.
+   2. *It sees the film*: the Studio's MCP server (`check`, `still`, the motions, `ask_person`), the skill as its
+      instructions, marks and references in the message with their frames.
    3. *Its work is recoverable*: the turn's checkpoint from the files that changed, the change summary, Undo this turn,
-      protected paths refused, permission cards.
-   4. *Codex*: the same three on `codex-acp`, and whatever differs in its updates and permissions.
-   5. *Models shows each agent's state*: not installed (the vendor's install command), not signed in (how to), adapter
-      to fetch, ready; and a failed turn says which.
+      protected paths declined, approval cards.
+   4. *Claude Code*: the same three on `claude -p` stream-json, its fixed tool set, and steering mid-turn.
+   5. *Models shows each agent's state*: not installed (the vendor's install command), not signed in (Codex's sign-in
+      from the Studio, Claude Code's command), too old or too new, ready; and a failed turn says which.
 
 What gates what: 2 gates everything; 3 gates nothing else; 7 needs nothing after 3.
 
 ## Open questions
 
 - **External agents** (ADR 0008), to settle in step 7's first slices:
-  - whether `codex-acp` drives the Codex the person installed, as `claude-agent-acp` can, or brings its own; and its
-    licence, which GitHub does not name, before the Studio fetches it;
-  - whether an adapter takes the skill as a system prompt everywhere, or the first message has to carry it;
-  - whether the agent's own sandbox keeps its shell inside the project on Windows, and what the Studio says when it
-    does not;
-  - how much of the session's history `session/load` replays, and so whether the panel can redraw a reopened
-    conversation from it or must keep its own copy;
-  - how a pinned adapter is updated: with a Studio release, or fetched anew when the agent's CLI outgrows it.
+  - whether driving the person's own Claude Code on their subscription is within Anthropic's terms, which gates
+    shipping its way in;
+  - which versions of `codex app-server`, still marked experimental, the Studio speaks, and how it hears that a newer
+    one changed a message it relies on (its `generate-json-schema` output, checked against the Studio's in a test);
+  - whether Codex's workspace sandbox keeps its commands inside the project on Windows, and what the Studio says when
+    it does not;
+  - how Claude Code may ask for a shell or the web through the Studio, so a headless turn can stop for the person;
+  - how much of a reopened session the CLI gives back, and so whether the panel redraws a reopened conversation from
+    it or keeps its own copy.
 
 - **Narration**: whether text-to-speech and voices ever belong in the Studio, and through which providers. Out of the
   first version.

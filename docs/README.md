@@ -21,4 +21,4 @@ Read [positioning](prd/positioning.md) first, then [the architecture](tech/archi
 - [0005 The Studio has one engine, its own](adr/0005-the-studio-has-one-engine-its-own.md) — a film is film.tsx on `@motionhub/runtime`; no adapters.
 - [0006 A film is scenes of layers and lines](adr/0006-a-film-is-scenes-of-layers-and-lines.md) — `<Film>` of scenes; no declared animation; read at run time.
 - [0007 Local checkpoints track agent source writes](adr/0007-local-checkpoints-track-agent-source-writes.md) — safe, local recovery without Git.
-- [0008 The person's own coding agent, through ACP](adr/0008-the-persons-own-coding-agent-through-acp.md) — Claude Code or Codex as a second way in, with the person's sign-in.
+- [0008 The person's own coding agent, through its own headless protocol](adr/0008-the-persons-own-coding-agent.md) — Claude Code or Codex as a second way in, with the person's sign-in.
