@@ -2,7 +2,7 @@
 // StudioApi method. It is the only process that touches the disk; the renderer is
 // sandboxed and reaches it only through src/preload (CLAUDE.md, "Architecture rules").
 
-import { BrowserWindow, Menu, app, dialog, ipcMain, session, shell, type OpenDialogOptions, type WebContents } from 'electron';
+import { BrowserWindow, Menu, Notification, app, dialog, ipcMain, session, shell, type OpenDialogOptions, type WebContents } from 'electron';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { CHANNELS, EVENTS, type AgentEvent, type BuildResult, type Project } from '../shared/api';
@@ -35,6 +35,8 @@ let open: {
   watcher: BuildContext | null;
   build: BuildResult | null;
   messages: MessageParam[] | null;
+  /** The last turn, while it can be taken back: the History entry of what it wrote, and where it starts in `messages`. */
+  lastTurn?: { checkpoint: string; start: number };
 } | null = null;
 let mainWindow: BrowserWindow | null = null;
 let exporting: AbortController | null = null;
@@ -63,6 +65,13 @@ async function saveConversation(dir: string, messages: MessageParam[]): Promise<
 
 /** The folder whose film the preview scheme serves, while one is open. */
 const previewSource = (): string | null => (open?.project.film ? open.project.path : null);
+
+/** When the window is not in front, says so in a notification and flashes it in the taskbar. */
+function tellWhenAway(body: string): void {
+  if (!mainWindow || mainWindow.isDestroyed() || mainWindow.isFocused()) return;
+  if (Notification.isSupported()) new Notification({ title: 'Open Motion Studio', body }).show();
+  mainWindow.flashFrame(true);
+}
 
 function send(channel: string, value: unknown): void {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, value);
@@ -186,6 +195,29 @@ function registerHandlers(): void {
   });
 
   ipcMain.handle(CHANNELS.history, () => new ProjectHistory(requireOpen().project.path).list());
+  ipcMain.handle(CHANNELS.undoTurn, async (_event, checkpoint: unknown) => {
+    const state = requireOpen();
+    if (typeof checkpoint !== 'string') throw new Error('Choose a turn to undo.');
+    if (working || exporting) throw new Error('Wait for the current task to finish before undoing.');
+    const history = new ProjectHistory(state.project.path);
+    const turn = state.lastTurn;
+    if (turn?.checkpoint !== checkpoint || (await history.list())[0]?.id !== checkpoint)
+      throw new Error('Only the last turn can be undone here, before anything else changes. Use History for earlier changes.');
+    const messages = await conversation(state);
+    const said = transcript(messages.slice(turn.start, turn.start + 1))[0];
+    const controller = new AbortController();
+    working = controller;
+    try {
+      await history.restore(checkpoint);
+      await state.watcher?.rebuild();
+      state.messages = messages.slice(0, turn.start);
+      state.lastTurn = undefined;
+      await saveConversation(state.project.path, state.messages);
+      return { text: said?.kind === 'user' ? said.text : '' };
+    } finally {
+      if (working === controller) working = null;
+    }
+  });
   ipcMain.handle(CHANNELS.restoreCheckpoint, async (_event, id: unknown) => {
     const state = requireOpen();
     if (typeof id !== 'string') throw new Error('Choose a checkpoint.');
@@ -196,6 +228,7 @@ function registerHandlers(): void {
       await new ProjectHistory(state.project.path).restore(id);
       await state.watcher?.rebuild();
       state.messages = [];
+      state.lastTurn = undefined;
       await saveConversation(state.project.path, []);
     } finally {
       if (working === controller) working = null;
@@ -237,6 +270,7 @@ function registerHandlers(): void {
     const state = requireOpen();
     if (working || exporting) throw new Error('Finish the current task before starting a new conversation.');
     state.messages = [];
+    state.lastTurn = undefined;
     await saveConversation(state.project.path, []);
   });
   ipcMain.handle(CHANNELS.stopAgent, () => working?.abort());
@@ -285,9 +319,12 @@ function registerHandlers(): void {
         locate,
       );
       if (refs.length) content.push({ type: 'text', text: describeReferences(refs, typeof version === 'number' ? version : 0, locate) });
-      return await runTurn(
+      const messages = await conversation(state);
+      const start = messages.length;
+      state.lastTurn = undefined;
+      const outcome = await runTurn(
         {
-          messages: await conversation(state),
+          messages,
           content,
           call: caller(provider, FILM_SKILL, TOOLS),
           tools,
@@ -296,9 +333,14 @@ function registerHandlers(): void {
           },
           save: (messages) => saveConversation(dir, messages),
           signal: controller.signal,
+          checkpoint: () => history.checkpoint,
         },
         (error) => failure(error, provider.name),
       );
+      const checkpoint = history.checkpoint;
+      if (checkpoint) state.lastTurn = { checkpoint, start };
+      tellWhenAway(outcome.ok ? 'The agent finished its turn.' : 'The agent stopped. See the conversation.');
+      return outcome;
     } finally {
       if (working === controller) working = null;
     }

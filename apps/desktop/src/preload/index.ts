@@ -18,6 +18,7 @@ const api: StudioApi = {
   reviewFilm: () => ipcRenderer.invoke(CHANNELS.reviewFilm),
   history: () => ipcRenderer.invoke(CHANNELS.history),
   restoreCheckpoint: (id) => ipcRenderer.invoke(CHANNELS.restoreCheckpoint, id),
+  undoTurn: (checkpoint) => ipcRenderer.invoke(CHANNELS.undoTurn, checkpoint),
   recentProjects: () => ipcRenderer.invoke(CHANNELS.recentProjects),
   openProject: () => ipcRenderer.invoke(CHANNELS.openProject),
   createProject: () => ipcRenderer.invoke(CHANNELS.createProject),

@@ -3,6 +3,19 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-13 — The agent's work reads as it happens, and a turn can be taken back
+
+- **What:** Each run of the agent's tool calls reads as one line of plain words with its stills beside it, and the
+  progress card warns when the same tool keeps failing. A turn's end says what it changed in the film and lights those
+  scenes, layers and lines in the outline and the timeline; the last turn can be undone, files and conversation, with
+  its message back in the composer. The agent can ask a question with answers to click (`ask_person`). While it works,
+  a message waits for the turn or, with Ctrl+Enter, stops it; the stage says it is working, and Export waits. An error
+  on the stage can go to the agent as an issue, and a turn that ends while the window is behind others notifies.
+- **Why:** So the person can follow, steer and take back the agent's work without reading every tool call.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/tech/creator-workflow.md`, `docs/tech/architecture.md` ("The agent"), `apps/desktop/src/renderer/src/activity.ts`.
+
 ## 2026-11-13 — The app has motionhub's icon and mark, and no menu bar in its window
 
 - **What:** The window, the taskbar and the installers show motionhub's app icon instead of Electron's

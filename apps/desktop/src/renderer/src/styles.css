@@ -2862,3 +2862,175 @@ kbd {
   font-size: 10px;
   color: var(--muted);
 }
+
+/* A run of the agent's tool calls: one line of what it did (or is doing), its steps folded under it, its stills beside. */
+.work {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.work-steps {
+  list-style: none;
+  margin: 4px 0 0 20px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.work-steps li.failed summary {
+  color: var(--bad);
+}
+
+.work-stills {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 6px;
+}
+
+.work-stills .still {
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: none;
+  overflow: hidden;
+  cursor: zoom-in;
+}
+
+.work-stills .still img {
+  display: block;
+  width: 100%;
+}
+
+.agent-progress .warning {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  color: var(--bad);
+}
+
+/* Where the last turn ended: what it changed in the film, and a way to undo it. */
+.turn-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--good);
+  border-radius: var(--r-button);
+  background: var(--bg);
+}
+
+.turn-changes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.turn-changes .change {
+  max-width: 100%;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--sheet);
+  color: var(--text2);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.turn-changes .change.removed {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+/* A question the agent asked, whose answers send themselves. */
+.ask-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--text);
+  border-radius: var(--r-button);
+  background: var(--sheet);
+}
+
+.ask-card p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.ask-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ask-card small {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* A message waiting for the agent's turn to end. */
+.queued {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 10px 10px 0;
+  padding: 8px 6px 8px 10px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-button);
+  font-size: 12px;
+  color: var(--text2);
+}
+
+.queued > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.queued strong {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* While the agent works, the stage says so over its top left. */
+.stage-working {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--overlay);
+  color: rgb(255 255 255 / 0.85);
+  font-size: 11px;
+}
+
+.stage .build-error .button {
+  margin-top: 8px;
+}
+
+/* What the agent's last turn changed, lit for a moment in the outline and the timeline. */
+.outline-row.fresh,
+.timeline .scene.fresh,
+.timeline .layer-span.fresh {
+  box-shadow: 0 0 0 2px var(--good);
+  transition: box-shadow 0.6s;
+}

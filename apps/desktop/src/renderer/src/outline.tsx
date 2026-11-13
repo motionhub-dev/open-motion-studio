@@ -2,6 +2,7 @@ import { Layers, MessageSquare, Play, ScrollText } from 'lucide-react';
 import type { Reference } from '../../shared/api';
 import type { FilmInfo, SceneInfo } from '../../shared/preview';
 import { timecode } from './preview';
+import { changeKey } from './activity';
 
 export const sceneTitle = (scene: SceneInfo): string => scene.lines[0]?.text || scene.id.replace(/[-_]/g, ' ');
 export const sameSelection = (a: Reference | null, b: Reference): boolean =>
@@ -9,12 +10,15 @@ export const sameSelection = (a: Reference | null, b: Reference): boolean =>
 export function Outline({
   film,
   selected,
+  fresh,
   onSelect,
   onReference,
   onPlay,
 }: {
   film: FilmInfo | null;
   selected: Reference | null;
+  /** What the agent's last turn changed (changeKey), lit for a moment. */
+  fresh: Set<string>;
   onSelect(ref: Reference): void;
   onReference(ref: Reference): void;
   onPlay(start: number, end: number): void;
@@ -26,7 +30,7 @@ export function Outline({
       </div>
     );
   const row = (ref: Reference, secondary: string, icon: React.ReactNode) => (
-    <div className={`outline-row${sameSelection(selected, ref) ? ' selected' : ''}`}>
+    <div className={`outline-row${sameSelection(selected, ref) ? ' selected' : ''}${fresh.has(changeKey(ref)) ? ' fresh' : ''}`}>
       <button className="outline-pick" aria-pressed={sameSelection(selected, ref)} onClick={() => onSelect(ref)}>
         {icon}
         <span>

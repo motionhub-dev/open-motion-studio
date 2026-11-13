@@ -41,6 +41,11 @@ export class ProjectHistory {
     private label = '',
   ) {}
 
+  /** The entry this history's writes went into, if it has written anything. */
+  get checkpoint(): string | undefined {
+    return this.entry?.id;
+  }
+
   private async file(): Promise<string> {
     const folder = join(this.dir, STATE_DIR);
     try {

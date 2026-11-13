@@ -6,6 +6,7 @@ import { MAX_MARKS, type Mark, type Reference } from '../../shared/api';
 import type { FilmInfo, LayerBox } from '../../shared/preview';
 import { timecode } from './preview';
 import { sceneTitle } from './outline';
+import { changeKey } from './activity';
 
 function stepFor(seconds: number): number {
   return [0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600].find((step) => seconds / step <= 10) ?? Math.ceil(seconds / 10);
@@ -15,6 +16,7 @@ export function Timeline({
   t,
   marks,
   lit,
+  fresh,
   onRange,
   onSeek,
   selected,
@@ -24,6 +26,8 @@ export function Timeline({
   t: number;
   marks: Mark[];
   lit: number | null;
+  /** What the agent's last turn changed (changeKey), lit for a moment. */
+  fresh: Set<string>;
   onRange(start: number, end: number): void;
   onSeek(t: number): void;
   selected: Reference | null;
@@ -123,7 +127,7 @@ export function Timeline({
                 {film.scenes.map((scene) => (
                   <button
                     key={scene.id}
-                    className={`scene${t >= scene.start && t < scene.start + scene.duration ? ' current' : ''}${selected?.scene === scene.id ? ' selected' : ''}`}
+                    className={`scene${t >= scene.start && t < scene.start + scene.duration ? ' current' : ''}${selected?.scene === scene.id ? ' selected' : ''}${fresh.has(changeKey({ kind: 'scene', scene: scene.id })) ? ' fresh' : ''}`}
                     aria-pressed={selected?.kind === 'scene' && selected.scene === scene.id}
                     style={{ left: at(scene.start), width: at(scene.duration) }}
                     title={`${sceneTitle(scene)} · ${timecode(scene.start)}–${timecode(scene.start + scene.duration)}`}
@@ -180,7 +184,7 @@ export function Timeline({
                   {row.spans.map((span, i) => (
                     <button
                       key={i}
-                      className={`layer-span${selected?.kind === 'layer' && selected.layer === span.layer.id && selected.scene === span.scene ? ' selected' : ''}`}
+                      className={`layer-span${selected?.kind === 'layer' && selected.layer === span.layer.id && selected.scene === span.scene ? ' selected' : ''}${fresh.has(changeKey({ kind: 'layer', scene: span.scene, layer: span.layer.id })) ? ' fresh' : ''}`}
                       aria-label={`${span.layer.id}${span.scene ? ` in ${span.scene}` : ', global layer'}`}
                       title="Declared scene span; content may animate within it"
                       style={{ left: at(span.start), width: at(span.duration) }}

@@ -136,6 +136,18 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
   const [focusRequest, setFocusRequest] = useState(0);
   const [busy, setBusy] = useState(false);
   const [historyRevision, setHistoryRevision] = useState(0);
+  /** What the agent's last turn changed (activity.ts changeKey), lit in the outline and the timeline for a moment. */
+  const [fresh, setFresh] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!fresh.size) return;
+    const timer = setTimeout(() => setFresh(new Set()), 4000);
+    return () => clearTimeout(timer);
+  }, [fresh]);
+  function restored() {
+    setHistoryRevision((n) => n + 1);
+    setMarks([]);
+    setInspected(null);
+  }
   const focusLayout = useRef({ assistant: true, side: true });
   function toggleFocus() {
     if (layout.assistant || showSide) {
@@ -371,6 +383,7 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
               <button
                 type="button"
                 className="button accent"
+                data-tip={busy ? 'Export when the agent has finished its turn' : undefined}
                 onClick={() => {
                   setExportOpen(true);
                   void checkFilm();
@@ -449,6 +462,13 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
                 setLit(null);
               }}
               onSeek={seek}
+              onSelect={select}
+              film={player.film}
+              onFresh={(keys) => setFresh(new Set(keys))}
+              onUndone={() => {
+                setMarks([]);
+                setInspected(null);
+              }}
             />
             <Splitter
               axis="x"
@@ -466,6 +486,8 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
             marks={marks}
             lit={lit}
             selected={selected}
+            working={busy}
+            onFix={(label, detail) => reference({ kind: 'issue', label, detail })}
             disabled={busy || importing || checking || !build?.ok}
             onMark={(next) => {
               mark(next);
@@ -542,16 +564,19 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
                   onReference={reference}
                 />
               ) : side === 'outline' ? (
-                <Outline film={player.film} selected={selected} onSelect={select} onReference={reference} onPlay={player.playRange} />
+                <Outline
+                  film={player.film}
+                  selected={selected}
+                  fresh={fresh}
+                  onSelect={select}
+                  onReference={reference}
+                  onPlay={player.playRange}
+                />
               ) : side === 'history' ? (
                 <HistoryPanel
                   busy={busy || importing || checking || progress !== null}
                   revision={build?.version ?? 0}
-                  onRestored={() => {
-                    setHistoryRevision((n) => n + 1);
-                    setMarks([]);
-                    setInspected(null);
-                  }}
+                  onRestored={restored}
                 />
               ) : side === 'motions' ? (
                 <MotionPanel onBusy={setImporting} disabled={busy || importing || checking || progress !== null} />
@@ -591,6 +616,7 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
               player={player}
               marks={marks}
               lit={lit}
+              fresh={fresh}
               onRange={(start, end) => mark({ t: start, end, box: { x: 0, y: 0, w: 1, h: 1 }, element: null, note: '' })}
               folded={layout.folded}
               onFold={(folded) => setLayout({ folded })}

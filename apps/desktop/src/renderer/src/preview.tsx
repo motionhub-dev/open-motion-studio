@@ -4,7 +4,20 @@
 // mark the picture, looping); Stage draws the frame and the marks over it, Transport the
 // controls and the timeline. A new build reloads the frame at the same time.
 
-import { ChevronDown, ChevronUp, ChevronsDown, ChevronsUp, Crosshair, Pause, Play, Repeat, SkipBack, SkipForward, SquareDashed } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronUp,
+  ChevronsDown,
+  ChevronsUp,
+  Crosshair,
+  Loader,
+  Pause,
+  Play,
+  Repeat,
+  SkipBack,
+  SkipForward,
+  SquareDashed,
+} from 'lucide-react';
 import { type PointerEvent, type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { type BuildResult, MARK_NOTE, MAX_MARKS, type Mark, type Reference } from '../../shared/api';
 import type { Box, FilmInfo, FromPreview, PickedElement, ToPreview } from '../../shared/preview';
@@ -185,6 +198,8 @@ export function Stage({
   lit,
   onMark,
   selected,
+  working,
+  onFix,
   disabled = false,
   column = 2,
 }: {
@@ -195,6 +210,10 @@ export function Stage({
   lit: number | null;
   onMark(mark: Mark): void;
   selected: Reference | null;
+  /** Whether the agent is working on the film, which the stage says over its corner. */
+  working: boolean;
+  /** Hands an error on the stage to the agent, as an issue for the next message. */
+  onFix(label: string, detail: string): void;
   disabled?: boolean;
   column?: number;
 }) {
@@ -495,17 +514,33 @@ export function Stage({
           <SquareDashed size={16} />
         </button>
       </div>
+      {working && (
+        <span className="stage-working" role="status">
+          <Loader size={13} className="spin" />
+          The agent is working on the film
+        </span>
+      )}
       {!build && <p className="waiting">Building the film…</p>}
       {build && !build.ok && (
         <div className="callout build-error" role="alert">
           <strong>{lastGood ? 'Showing the last successful preview' : 'The film does not build'}</strong>
           <pre>{build.errors.join('\n')}</pre>
+          {!working && (
+            <button type="button" className="button" onClick={() => onFix('The film does not build', build.errors.join('\n'))}>
+              Ask the agent to fix it
+            </button>
+          )}
         </div>
       )}
       {build?.ok && player.error && (
         <div className="callout build-error" role="alert">
           <strong>The film stopped drawing</strong>
           <pre>{player.error}</pre>
+          {!working && (
+            <button type="button" className="button" onClick={() => onFix('The film stopped drawing', player.error!)}>
+              Ask the agent to fix it
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -521,6 +556,7 @@ export function Transport({
   onSelect,
   onRange,
   lit,
+  fresh,
 }: {
   player: Player;
   marks: Mark[];
@@ -531,6 +567,8 @@ export function Transport({
   /** Marks a stretch of the film, dragged out on the timeline. */
   onRange(start: number, end: number): void;
   lit: number | null;
+  /** What the agent's last turn changed, lit for a moment. */
+  fresh: Set<string>;
 }) {
   const { film, t, playing } = player;
   return (
@@ -606,6 +644,7 @@ export function Transport({
           t={t}
           marks={marks}
           lit={lit}
+          fresh={fresh}
           onRange={onRange}
           onSeek={(at) => {
             player.tell({ type: 'oms:pause' });

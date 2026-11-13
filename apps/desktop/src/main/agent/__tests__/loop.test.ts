@@ -90,3 +90,30 @@ describe('runTurn', () => {
     ]);
   });
 });
+
+describe('ask_person', () => {
+  it('shows the question with its answers and ends the turn without calling the model again', async () => {
+    const { events, messages, call, turn } = setup([
+      reply([use('q1', 'ask_person', { question: 'Which look?', options: ['Calm', 'Bold', 'Playful', 'Dark', 'Fifth'] })], 'tool_use'),
+      reply([say('Never reached.')]),
+    ]);
+    await runTurn(turn, String);
+    expect(call).toHaveBeenCalledTimes(1);
+    expect(events).toContainEqual(
+      expect.objectContaining({ type: 'tool', name: 'ask_person', ask: { question: 'Which look?', options: ['Calm', 'Bold', 'Playful', 'Dark'] } }),
+    );
+    expect(transcript(messages).at(-1)).toMatchObject({ kind: 'tool', ask: { question: 'Which look?' }, result: { ok: true } });
+  });
+
+  it('goes on when the question does not read, so the model can ask again', async () => {
+    const { call, turn } = setup([reply([use('q1', 'ask_person', { options: ['A'] })], 'tool_use'), reply([say('Sorry.')])]);
+    await runTurn(turn, String);
+    expect(call).toHaveBeenCalledTimes(2);
+  });
+});
+
+it('ends a turn with the History entry of what it wrote', async () => {
+  const { events, turn } = setup([reply([say('Done.')])]);
+  await runTurn({ ...turn, checkpoint: () => 'entry-1' }, String);
+  expect(events.at(-1)).toEqual({ type: 'end', notice: undefined, checkpoint: 'entry-1' });
+});

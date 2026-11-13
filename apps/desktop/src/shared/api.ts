@@ -154,16 +154,32 @@ export type ProviderTest = { ok: true; ms: number; calledTool: boolean } | { ok:
 export type ChatItem =
   | { kind: 'user'; text: string; marks: SentMark[]; refs?: Reference[]; version?: number }
   | { kind: 'assistant'; text: string }
-  | { kind: 'tool'; id: string; name: string; summary: string; at?: number; result?: { ok: boolean; text: string; image?: string } }
+  | {
+      kind: 'tool';
+      id: string;
+      name: string;
+      summary: string;
+      at?: number;
+      /** For ask_person: the question the agent put to the person, and the answers it offers. */
+      ask?: Question;
+      result?: { ok: boolean; text: string; image?: string };
+    }
   | { kind: 'notice'; text: string; error: boolean };
 
 /** What the agent reports while it works. */
 export type AgentEvent =
   | { type: 'phase'; phase: 'thinking' | 'editing' | 'checking' | 'reviewing' }
   | { type: 'text'; text: string }
-  | { type: 'tool'; id: string; name: string; summary: string; at?: number }
+  | { type: 'tool'; id: string; name: string; summary: string; at?: number; ask?: Question }
   | { type: 'tool-result'; id: string; ok: boolean; text: string; image?: string }
-  | { type: 'end'; notice?: { text: string; error: boolean } };
+  /** `checkpoint` is the History entry of the files the turn wrote, if it wrote any. */
+  | { type: 'end'; notice?: { text: string; error: boolean }; checkpoint?: string };
+
+/** A question the agent puts to the person, ending its turn: their answer is their next message. */
+export interface Question {
+  question: string;
+  options: string[];
+}
 
 export interface Checkpoint {
   restored?: boolean;
@@ -210,6 +226,11 @@ export interface StudioApi {
   reviewFilm(): Promise<FilmReview>;
   history(): Promise<Checkpoint[]>;
   restoreCheckpoint(id: string): Promise<void>;
+  /**
+   * Takes back the agent's last turn: its files as they were before it (its History entry, which must be the latest)
+   * and the conversation as it was before the person's message, whose words come back to put in the composer.
+   */
+  undoTurn(checkpoint: string): Promise<{ text: string }>;
   /** Recent projects, most recent first, without folders that no longer exist. */
   recentProjects(): Promise<Project[]>;
   /** Asks for a folder and opens it; null when the person cancels. */
@@ -278,6 +299,7 @@ export const CHANNELS = {
   reviewFilm: 'film:review',
   history: 'project:history',
   restoreCheckpoint: 'project:restore',
+  undoTurn: 'agent:undo-turn',
   recentProjects: 'project:recent',
   openProject: 'project:open',
   createProject: 'project:create',

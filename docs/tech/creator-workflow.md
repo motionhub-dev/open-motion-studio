@@ -44,7 +44,21 @@ shows actual computed styles of a picked element. The composer keeps its words a
 
 The assistant reports thinking, editing, checking and reviewing from actual model/tool events, with elapsed time and
 a stop action. These phases are activities, not a claim of percentage completion or that the model checked every frame.
-Stopping keeps completed source edits and their checkpoints.
+Stopping keeps completed source edits and their checkpoints. Each run of tool calls reads as one line (`Edited
+film.tsx · Checked ×2 · Looked`, or `Now: Checking the film…` while it runs), its steps folded under it and the stills
+it took beside it; when the same tool fails three times in a row, the progress card says so. The stage says the agent
+is working, and Export waits for the turn.
+
+While the agent works, Enter keeps a message until the turn ends and then sends it; Ctrl+Enter stops the turn and sends
+it at once. Marks and references wait for the turn, since the preview they belong to is changing. When the agent needs
+a choice only the person can make, it asks with a card of up to four answers; clicking one sends it, or the person
+writes their own. When the film does not build or stops drawing, the stage's error offers to hand it to the agent as
+an issue reference.
+
+Where a turn ends, a card says what it changed in the film's structure (`+1 scene · ~2 layers`), each item clickable to
+select and find it, and the outline and the timeline light those items for a moment. The last turn's card can undo it:
+its files go back, the turn leaves the conversation, and the message returns to the composer to change and send again.
+The structure compared is scenes, their spans, layers' boxes and lines; what a layer draws inside its box is not.
 
 ## Return to earlier source
 

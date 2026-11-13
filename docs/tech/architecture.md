@@ -146,7 +146,8 @@ conversation and the tools, tool calls are executed in `main`, their results app
   carries where film.tsx writes it (`filmSpans`, by its literal id), so the agent reads those lines first.
 - **Tools** (built): `list_files`, `read_file`, `write_file`, `edit_file`; `check` (builds the film and draws its start,
   the middle of each scene and its end, reporting any error, or each scene with its span, its layers' boxes and its
-  lines); `still(time)` (the frame as a picture); `search_motions`, `use_motion`. A tool's
+  lines); `still(time)` (the frame as a picture); `search_motions`, `use_motion`; `ask_person` (one question with up
+  to four answers, which ends the turn: the person's answer is their next message). A tool's
   mistake goes back to the model as a failed result, never as a thrown error. Planned: `shell`, which asks first, and
   `still` as measured layout in text for a model that does not read images.
 - **Permissions**: the agent reads anything in the project and writes anything but `.motion-studio/`, `motions/@*/`,
@@ -154,6 +155,10 @@ conversation and the tools, tool calls are executed in `main`, their results app
 - **The conversation** is kept in `.motion-studio/session.json` as the protocol's own messages (thinking blocks
   included), so it reopens with its project and is sent back exactly as it was. A tool call that was cut off or stopped
   is answered as not run, so the conversation stays valid.
+- **A turn ends** with the History entry of what it wrote, if anything. While nothing else has changed, that turn can
+  be taken back (`undoTurn`): its files restored and the conversation cut back to before the person's message, whose
+  words come back to the composer. When a turn ends while the window is not in front, a notification says so and the
+  window flashes.
 - **A turn has a limit** of 40 model calls; a token budget the person sets is not built.
 
 ## Providers
@@ -191,7 +196,7 @@ panels, built and planned, each a projection of the project:
 
 | Panel | What it does | Writes |
 | --- | --- | --- |
-| **Assistant** | The conversation, the agent's words as Markdown, tool calls folded, stills the agent took inline (one clicked seeks to its moment and opens large); the turn's spend is planned | Through the agent |
+| **Assistant** | The conversation, the agent's words as Markdown, each run of tool calls one line of plain words with its stills beside it (one clicked seeks to its moment and opens large), what each turn changed in the film, the agent's questions as cards, a message waiting for the turn or steering it (built); the turn's spend is planned | Through the agent |
 | **Preview** | The film's preview with transport; the mark tools (pick an element, drag a region) ask what should change there and attach it to the next message, flagged on the timeline (built) | Nothing |
 | **Motion** | The project's motions as poster cards; one opened shows its colours, its components with their previews and its MOTION.md (`motionDetail`); the catalogue search with Use (built). Reels are planned | Through `useMotion` |
 | **Inspector** | The element last picked: its path, moment, scene and layer, box in the film's pixels, words, computed look (`PickedElement.styles`, which the agent also reads) and attributes (built) | Nothing |
