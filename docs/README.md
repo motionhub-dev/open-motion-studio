@@ -11,6 +11,7 @@ Read [positioning](prd/positioning.md) first, then [the architecture](tech/archi
 - [Architecture](tech/architecture.md) — the components, the film, the agent, and the order of work.
 
 - [The creator’s workflow](tech/creator-workflow.md) — examples, structure, references, recovery, assets and checks.
+- [Sound, narration and captions](tech/sound-and-captions.md) — plan: music and effects in and out, captions from lines, a narration per line that times them.
 - [The assistant panel](tech/assistant-panel.md) — how it was rebuilt in five slices: turns' tokens and time, turns as blocks, the coding agents' settings, the composer, questions and errors.
 
 ## Decisions
@@ -24,3 +25,5 @@ Read [positioning](prd/positioning.md) first, then [the architecture](tech/archi
 - [0007 Local checkpoints track agent source writes](adr/0007-local-checkpoints-track-agent-source-writes.md) — safe, local recovery without Git.
 - [0008 The person's own coding agent, through its own headless protocol](adr/0008-the-persons-own-coding-agent.md) — Claude Code or Codex as a second way in, with the person's sign-in.
 - [0009 Each turn is logged with its tokens and time](adr/0009-each-turn-is-logged-with-its-tokens-and-time.md) — one line a turn in `.motion-studio/usage.jsonl`, tokens on one footing.
+- [0010 A film's sound is `<Sound>` elements, mixed on export](adr/0010-a-films-sound-is-sound-elements-mixed-on-export.md) — dB and seconds in the scene tree; one ffmpeg filter graph, AAC.
+- [0011 Narration is synthesized per line, and times the captions](adr/0011-narration-is-synthesized-per-line-and-times-the-captions.md) — Edge by default, voices in Models, speech in `voice/`, captions from word times; amends 0006.

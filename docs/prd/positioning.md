@@ -1,6 +1,6 @@
 # Positioning
 
-> **Status:** Plan · **Updated:** 2026-11-13
+> **Status:** Plan · **Updated:** 2026-11-14
 
 What Open Motion Studio is, who it is for, what it is instead of, what it will not do, and the smallest version worth shipping.
 
@@ -36,7 +36,8 @@ a render script together by hand, and who want to choose (and pay for) their own
 - **No hosting**: no accounts, no billing, no cloud render, no sharing links, no collaboration.
 - **No hand editing of a component**: no keyframe editor, no property sliders on a component's internals. What a component
   draws is code, changed by asking the agent.
-- **No image, video or music generation** in the first versions. Media the person brings is used as it is.
+- **No image, video or music generation** in the first versions. Media the person brings is used as it is. Speech is
+  the one thing the Studio makes: a film's lines, spoken by a voice the person picks ([ADR 0011](../adr/0011-narration-is-synthesized-per-line-and-times-the-captions.md)).
 - **No NLE work**: no colour grading, masks or multi-track audio editing. Export and finish elsewhere.
 - **No other engine.** A Remotion or HyperFrames project is not opened or converted; the Studio's films are its own
   (ADR 0005).
@@ -62,6 +63,5 @@ One path, end to end, on macOS, Windows and Linux:
 Local source checkpoints, structure navigation, read-only script lines, material import and sampled checks support this
 path; see [the creator’s workflow](../tech/creator-workflow.md).
 
-Left out of it: narration and text-to-speech, a timeline that edits, more than one
-composition per project, and auto-update. Whether narration ever belongs in the Studio is an open question in
-[the architecture](../tech/architecture.md#open-questions).
+Left out of it: a timeline that edits, more than one composition per project, and auto-update. Sound, narration and
+captions come after it, in [their own plan](../tech/sound-and-captions.md).
