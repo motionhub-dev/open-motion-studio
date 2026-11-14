@@ -6,12 +6,14 @@
 // stops it and goes in its place.
 
 import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react';
-import { AlertTriangle, ArrowUp, Check, ChevronDown, Clock, Copy, History, Loader, PanelLeftClose, RotateCcw, Square, X } from 'lucide-react';
+import { AlertTriangle, ArrowUp, Check, ChevronDown, Clock, Copy, History, Loader, PanelLeftClose, RotateCcw, Square, SquarePen, X } from 'lucide-react';
 import {
   type AgentEvent,
   type AgentKind,
+  type AgentSettings,
   type Agents,
   type ChatItem,
+  type HarnessState,
   MARK_NOTE,
   type Mark,
   type Reference,
@@ -42,6 +44,7 @@ import { Brief } from './brief';
 import { Markdown } from './markdown';
 import { elementName, timecode } from './preview';
 import { reason } from './reason';
+import { ModelEffort, useAgentModels } from './settings';
 
 function apply(items: Row[], event: AgentEvent, before: FilmInfo | null): Row[] {
   // The turn rows stay where they are; the transcript's own items take the event as everywhere else.
@@ -213,6 +216,132 @@ const STARTS = [
   'Find a motion for a data story and show me three',
 ];
 
+/**
+ * The project's agent at the top of the assistant: its name and model, a dot for whether it can take a message, and a
+ * menu to change the agent and, for the person's own, its model and effort.
+ */
+function AgentChip({
+  active,
+  agents,
+  disabled,
+  onUseAgent,
+  onRefreshAgents,
+  onAgentSettings,
+  onSettings,
+}: Pick<Props, 'active' | 'agents' | 'onUseAgent' | 'onRefreshAgents' | 'onAgentSettings' | 'onSettings'> & { disabled: boolean }) {
+  const [picking, setPicking] = useState(false);
+  useEffect(() => {
+    if (!picking) return;
+    const close = (event: PointerEvent) => {
+      if (!(event.target instanceof Element && event.target.closest('.agent-picker'))) setPicking(false);
+    };
+    const escape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Escape') setPicking(false);
+    };
+    addEventListener('pointerdown', close);
+    addEventListener('keydown', escape);
+    return () => {
+      removeEventListener('pointerdown', close);
+      removeEventListener('keydown', escape);
+    };
+  }, [picking]);
+  const current: AgentKind = agents?.current ?? 'built-in';
+  const outside = agents?.harnesses.find((h) => h.kind === current);
+  const own = outside?.state === 'ready' ? outside.kind : null;
+  const { models } = useAgentModels(picking ? own : null);
+  const chosen = own && agents ? agents.settings[own] : null;
+  const state: HarnessState = outside ? outside.state : active?.ready ? 'ready' : active ? 'signed-out' : 'missing';
+  const label = !agents
+    ? 'Finding the agent…'
+    : outside
+      ? `${outside.name}${chosen?.model ? ` · ${chosen.model}` : ''}`
+      : (active?.model ?? 'Set up a model');
+  const title = outside
+    ? `${outside.name}${outside.version ? ` ${outside.version}` : ''}: ${STATE_WORDS[state]}${chosen ? ` · model ${chosen.model || 'default'}, effort ${chosen.effort || 'default'}` : ''}`
+    : active
+      ? `${active.model} · ${active.name}${active.ready ? '' : ': no key'}`
+      : 'Set up a model in Models';
+  return (
+    <span className="agent-picker">
+      <button
+        type="button"
+        className="agent-chip"
+        aria-label={`Choose the agent, current: ${label}`}
+        aria-haspopup="menu"
+        aria-expanded={picking}
+        title={title}
+        disabled={disabled || !agents}
+        onClick={() => {
+          if (!picking) onRefreshAgents();
+          setPicking(!picking);
+        }}
+      >
+        <span className={`state-dot ${state}`} aria-hidden="true" />
+        <span className="agent-chip-name">{label}</span>
+        <ChevronDown size={12} />
+      </button>
+      {picking && (
+        <span className="menu agent-menu" role="menu">
+          <button
+            type="button"
+            role="menuitemradio"
+            aria-checked={current === 'built-in'}
+            onClick={() => {
+              setPicking(false);
+              if (current !== 'built-in') onUseAgent('built-in');
+              else onSettings();
+            }}
+          >
+            <strong>{active ? active.model : 'Built-in agent'}</strong>
+            <span>{active ? `Built-in agent · ${active.name}` : 'Built-in agent · set up a model in Models'}</span>
+          </button>
+          {agents?.harnesses.map((harness) => (
+            <button
+              key={harness.kind}
+              type="button"
+              role="menuitemradio"
+              aria-checked={current === harness.kind}
+              disabled={harness.state !== 'ready'}
+              onClick={() => {
+                setPicking(false);
+                if (current !== harness.kind) onUseAgent(harness.kind);
+              }}
+            >
+              <strong>{harness.name}</strong>
+              <span>{harness.state === 'ready' ? `Your ${harness.name}${harness.version ? ` ${harness.version}` : ''} · its own sign-in` : harness.hint}</span>
+            </button>
+          ))}
+          {own && chosen && (
+            <span className="agent-menu-settings">
+              {models ? (
+                <ModelEffort kind={own} models={models} value={chosen} onChange={(change) => onAgentSettings(own, { ...chosen, ...change })} />
+              ) : (
+                <span className="note">
+                  <Loader size={12} className="spin" /> Asking {outside!.name} for its models…
+                </span>
+              )}
+            </span>
+          )}
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setPicking(false);
+              onSettings(own ?? undefined);
+            }}
+          >
+            <strong>Models…</strong>
+            <span>{own ? `Everything about how ${outside!.name} runs` : 'Providers and keys for the built-in agent'}</span>
+          </button>
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** What the dot beside the agent says. */
+const STATE_WORDS: Record<HarnessState, string> = { ready: 'ready', 'signed-out': 'not signed in', old: 'needs an update', missing: 'not installed' };
+
 interface Props {
   active: ProviderView | undefined;
   /** The project's agent and the person's own coding agents (ADR 0008). */
@@ -220,9 +349,12 @@ interface Props {
   onUseAgent(kind: AgentKind): void;
   /** Asks again where the person's own agents stand, as the agent menu opens. */
   onRefreshAgents(): void;
+  /** Saves how one of the person's own agents runs. */
+  onAgentSettings<K extends keyof AgentSettings>(kind: K, settings: AgentSettings[K]): void;
   ready: boolean;
   disabled: boolean;
-  onSettings(): void;
+  /** Opens Models, on one of the person's own agents when one is named. */
+  onSettings(agent?: Exclude<AgentKind, 'built-in'>): void;
   marks: Mark[];
   refs: Reference[];
   version: number;
@@ -263,6 +395,7 @@ export function Assistant({
   agents,
   onUseAgent,
   onRefreshAgents,
+  onAgentSettings,
   ready,
   disabled,
   onSettings,
@@ -289,18 +422,6 @@ export function Assistant({
 }: Props) {
   const [items, setItems] = useState<Row[]>([]);
   const current: AgentKind = agents?.current ?? 'built-in';
-  /** The person's own agent the project talks to, if it is not the built-in one. */
-  const outside = agents?.harnesses.find((h) => h.kind === current);
-  /** Whether the menu of agents is open. */
-  const [picking, setPicking] = useState(false);
-  useEffect(() => {
-    if (!picking) return;
-    const close = (event: PointerEvent) => {
-      if (!(event.target instanceof Element && event.target.closest('.agent-picker'))) setPicking(false);
-    };
-    addEventListener('pointerdown', close);
-    return () => removeEventListener('pointerdown', close);
-  }, [picking]);
   /** A message waiting for the turn to end; `steer` stopped the turn for it. */
   const [queued, setQueued] = useState<{ text: string; steer: boolean } | null>(null);
   const [undoing, setUndoing] = useState(false);
@@ -512,7 +633,16 @@ export function Assistant({
         <button type="button" className="icon-button" aria-label="Hide assistant" data-tip="Hide assistant" data-key="[" onClick={onHide}>
           <PanelLeftClose size={15} />
         </button>
-        <h2>Assistant</h2>
+        <h2 className="visually-hidden">Assistant</h2>
+        <AgentChip
+          active={active}
+          agents={agents}
+          disabled={working}
+          onUseAgent={onUseAgent}
+          onRefreshAgents={onRefreshAgents}
+          onAgentSettings={onAgentSettings}
+          onSettings={onSettings}
+        />
         {usage && usage.turns > 0 && (
           <span
             className="usage-total"
@@ -525,8 +655,15 @@ export function Assistant({
         <button type="button" className="icon-button" aria-label="History" data-tip="History: go back to before a turn" onClick={onHistory}>
           <History size={15} />
         </button>
-        <button type="button" className="quiet" onClick={clear} disabled={working || items.length === 0}>
-          New conversation
+        <button
+          type="button"
+          className="icon-button"
+          aria-label="New conversation"
+          data-tip="New conversation"
+          onClick={clear}
+          disabled={working || items.length === 0}
+        >
+          <SquarePen size={15} />
         </button>
       </div>
       <div
@@ -546,7 +683,7 @@ export function Assistant({
                 <>
                   {' '}
                   First,{' '}
-                  <button type="button" className="link" onClick={onSettings}>
+                  <button type="button" className="link" onClick={() => onSettings()}>
                     set up a model
                   </button>
                   .
@@ -910,70 +1047,6 @@ export function Assistant({
           onKeyDown={onKey}
         />
         <div className="composer-actions">
-          <span className="agent-picker">
-            <button
-              type="button"
-              className="composer-model"
-              aria-label={`Choose the agent, current: ${outside ? outside.name : active ? `${active.model} by ${active.name}` : 'none set up'}`}
-              aria-haspopup="menu"
-              aria-expanded={picking}
-              title={outside ? `${outside.name}${outside.version ? ` ${outside.version}` : ''}` : active ? `${active.model} · ${active.name}` : 'Set up a model'}
-              disabled={working || !agents}
-              onClick={() => {
-                if (!picking) onRefreshAgents();
-                setPicking(!picking);
-              }}
-            >
-              <span>{!agents ? 'Finding the agent…' : outside ? outside.name : active ? active.model : 'Set up a model'}</span>
-              <ChevronDown size={12} />
-            </button>
-            {picking && (
-              <span className="menu agent-menu" role="menu">
-                <button
-                  type="button"
-                  role="menuitemradio"
-                  aria-checked={current === 'built-in'}
-                  onClick={() => {
-                    setPicking(false);
-                    if (current !== 'built-in') onUseAgent('built-in');
-                    else onSettings();
-                  }}
-                >
-                  <strong>{active ? active.model : 'Built-in agent'}</strong>
-                  <span>{active ? `Built-in agent · ${active.name}` : 'Built-in agent · set up a model in Models'}</span>
-                </button>
-                {agents?.harnesses.map((harness) => (
-                  <button
-                    key={harness.kind}
-                    type="button"
-                    role="menuitemradio"
-                    aria-checked={current === harness.kind}
-                    disabled={harness.state !== 'ready'}
-                    onClick={() => {
-                      setPicking(false);
-                      if (current !== harness.kind) onUseAgent(harness.kind);
-                    }}
-                  >
-                    <strong>{harness.name}</strong>
-                    <span>
-                      {harness.state === 'ready' ? `Your ${harness.name}${harness.version ? ` ${harness.version}` : ''} · its own sign-in` : harness.hint}
-                    </span>
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    setPicking(false);
-                    onSettings();
-                  }}
-                >
-                  <strong>Models…</strong>
-                  <span>Providers and keys for the built-in agent</span>
-                </button>
-              </span>
-            )}
-          </span>
           {working ? (
             <button
               type="button"

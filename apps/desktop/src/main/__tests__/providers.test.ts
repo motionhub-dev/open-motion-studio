@@ -86,3 +86,38 @@ describe('ProviderStore', () => {
     await expect(store.active()).rejects.toThrow('No model is set up');
   });
 });
+
+describe('the coding agents’ settings', () => {
+  it('are kept in settings.json beside the providers, each agent on its own, unset meaning its own default', async () => {
+    const store = new ProviderStore(dir);
+    expect(await store.agentSettings()).toEqual({
+      claude: { model: '', effort: '', fallbackModel: '', budgetUsd: null },
+      codex: { model: '', effort: '' },
+    });
+    await store.save({ ...WIRE, name: 'A', baseUrl: 'https://a.example', model: 'm', key: KEY });
+    await store.saveAgentSettings('claude', { model: ' opus ', effort: 'xhigh', fallbackModel: 'sonnet', budgetUsd: 2 });
+    await store.saveAgentSettings('codex', { model: 'gpt-6.1-sol', effort: 'high' });
+    const saved = JSON.parse(await readFile(join(dir, 'settings.json'), 'utf8'));
+    expect(saved.agents).toEqual({
+      claude: { model: 'opus', effort: 'xhigh', fallbackModel: 'sonnet', budgetUsd: 2 },
+      codex: { model: 'gpt-6.1-sol', effort: 'high' },
+    });
+    expect(saved.providers).toHaveLength(1);
+    // Saving a provider keeps the agents' settings.
+    await store.save({ ...WIRE, name: 'B', baseUrl: 'https://b.example', model: 'm', key: KEY });
+    expect((await store.agentSettings()).codex.model).toBe('gpt-6.1-sol');
+  });
+
+  it('refuses what could read as another flag, an effort Claude Code does not take, and a cap that is no amount', async () => {
+    const store = new ProviderStore(dir);
+    const claude = { model: '', effort: '', fallbackModel: '', budgetUsd: null };
+    await expect(store.saveAgentSettings('claude', { ...claude, model: '--dangerously-skip-permissions' })).rejects.toThrow('Not a model');
+    await expect(store.saveAgentSettings('codex', { model: 'a b', effort: '' })).rejects.toThrow('Not a model');
+    await expect(store.saveAgentSettings('claude', { ...claude, effort: 'ultra' })).rejects.toThrow('effort');
+    await expect(store.saveAgentSettings('claude', { ...claude, model: 'opus', fallbackModel: 'opus' })).rejects.toThrow('fallback');
+    for (const budgetUsd of [0, -1, Number.NaN, '5']) {
+      await expect(store.saveAgentSettings('claude', { ...claude, budgetUsd })).rejects.toThrow('cap');
+    }
+    await expect(store.saveAgentSettings('built-in' as never, {})).rejects.toThrow();
+  });
+});

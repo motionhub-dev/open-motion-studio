@@ -7,6 +7,7 @@ import { ArrowLeft, ChevronDown, Download, Keyboard, PanelLeftOpen, PanelRightCl
 import { useEffect, useRef, useState } from 'react';
 import {
   type AgentKind,
+  type AgentSettings,
   type Agents,
   type BuildResult,
   MAX_MARKS,
@@ -104,12 +105,15 @@ const typing = (target: EventTarget | null) =>
 interface Props {
   project: Project;
   providers: Providers | null;
-  onSettings(): void;
+  /** Opens Models, on one of the person's own coding agents when one is named. */
+  onSettings(agent?: Exclude<AgentKind, 'built-in'>): void;
+  /** Changes each time Models closes, which may have changed how the agents run. */
+  modelsClosed: number;
   onChange(project: Project): void;
   onClose(): void;
 }
 
-export function ProjectView({ project, providers, onSettings, onChange, onClose }: Props) {
+export function ProjectView({ project, providers, onSettings, modelsClosed, onChange, onClose }: Props) {
   const [build, setBuild] = useState<BuildResult | null>(null);
   const [review, setReview] = useState<FilmReview | null>(null);
   const [importing, setImporting] = useState(false);
@@ -211,7 +215,14 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
     return () => {
       live = false;
     };
-  }, [project.path]);
+  }, [project.path, modelsClosed]);
+  async function saveAgentSettings<K extends keyof AgentSettings>(kind: K, settings: AgentSettings[K]) {
+    try {
+      setAgents(await window.studio.saveAgentSettings(kind, settings));
+    } catch (e) {
+      setToast({ text: reason(e), error: true });
+    }
+  }
   // Nothing is sent until the project's agent is known: a project on Codex must not seem to be on the built-in one.
   const ready = !agents
     ? false
@@ -557,6 +568,7 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
               agents={agents}
               onUseAgent={(kind) => void useAgent(kind)}
               onRefreshAgents={refreshAgents}
+              onAgentSettings={(kind, settings) => void saveAgentSettings(kind, settings)}
               ready={ready}
               disabled={importing || checking || progress !== null}
               onWorking={setBusy}

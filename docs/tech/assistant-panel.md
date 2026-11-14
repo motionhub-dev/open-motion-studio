@@ -66,6 +66,12 @@ work block is red only when its last call failed, since a turn that fixed what f
 
 ## Slice 3: the person's own agent, its settings and the header
 
+*Built*, as below; the details are in `architecture.md` (step 7.4). Beyond the plan: Codex is sent its model and
+effort on every turn, the default said outright (its own configuration's, else its default model), since Codex keeps
+a turn's choice for the thread's later turns; a Claude Code turn stopped at its cap says so, and its tokens are read
+from `model_usage_since_last_result`, its `usage` being zero on an error. New conversation became an icon to leave the
+chip room.
+
 - **Settings**, kept in the app's `settings.json` (userData) per agent and shown in Models under Your coding agents:
   - Claude Code: model (Default, Sonnet, Opus, Haiku, or a full model name), effort (the CLI's levels), fallback model,
     and a spending cap per turn (`--max-budget-usd`). They are start flags, so a change ends the running process and

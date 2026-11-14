@@ -329,7 +329,16 @@ Each step is a vertical slice that runs end to end before the next begins.
       terminal), one process per project with Read, Glob, Grep, Edit and Write, edits accepted, the Studio's MCP
       server allowed, and no setting sources; Stop ends the process and the next message resumes the session. Its
       events are pinned by a test against a stand-in process, and the developer drove it on a signed-in Claude Code;
-      signed out, Models and the agent picker say so.
+      signed out, Models and the agent chip say so.
+      *How each runs* is the person's, in `settings.json` (`agents`, beside the providers) and shown in Models and the
+      assistant's agent menu, an empty value leaving the choice to the agent: Claude Code's model (an alias or a full
+      name), effort, fallback model and cap per turn, start flags (`--model`, `--effort`, `--fallback-model`,
+      `--max-budget-usd`), so saving them ends its process and the next message resumes the session on them; a turn
+      stopped at its cap says so. Codex's model (from its `model/list`, asked once a run) and effort go on every
+      `turn/start`, since Codex keeps a turn's choice for the thread: its default is said outright, the person's own
+      Codex configuration's model and effort (`config/read`), else Codex's default model at its own effort. A model
+      or effort is a name with no space and no leading dash, so it never reads as another flag. Driven on Claude Code
+      2.1.325 (haiku at low effort; a cap reached) and Codex 0.167.0 (gpt-6.1-terra at low).
    5. *Models shows each agent's state*: not installed (the vendor's install command), not signed in (Codex's sign-in
       from the Studio, Claude Code's command), too old or too new, ready; and a failed turn says which. *Built* for
       Codex: not installed and too old link to OpenAI's own page, not signed in starts Codex's sign-in

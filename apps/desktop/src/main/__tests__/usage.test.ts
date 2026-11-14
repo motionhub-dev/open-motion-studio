@@ -45,6 +45,22 @@ describe('tokens on one footing', () => {
       }),
     ).toEqual({ tokens: { input: 4, cacheRead: 6531, cacheWrite: 3426, output: 97, reasoning: 0 }, calls: 3, model: 'claude-sonnet-5-5', costUsd: 0.0008 });
   });
+
+  it('reads a Claude Code turn that ended in an error from its models since the last result, its usage being zero', () => {
+    // As Claude Code 2.1 reported a turn stopped at its cap.
+    const zero = { input_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0, output_tokens: 0 };
+    const since = { 'claude-haiku-5-5': { inputTokens: 2, outputTokens: 147, cacheReadInputTokens: 1670, cacheCreationInputTokens: 3335, thinkingTokens: 0 } };
+    expect(
+      claudeResult({
+        type: 'result',
+        is_error: true,
+        num_turns: 1,
+        usage: zero,
+        modelUsage: { 'claude-haiku-5-5': { inputTokens: 900, outputTokens: 9000 } },
+        model_usage_since_last_result: since,
+      }),
+    ).toEqual({ tokens: { input: 2, cacheRead: 1670, cacheWrite: 3335, output: 147, reasoning: 0 }, calls: 1, model: 'claude-haiku-5-5' });
+  });
 });
 
 describe("a project's usage log", () => {

@@ -8,7 +8,8 @@ import { safeStorage } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { Protocol, ProviderInput, ProviderView, Providers } from '../shared/api';
+import type { AgentSettings, Protocol, ProviderInput, ProviderView, Providers } from '../shared/api';
+import { CLAUDE_EFFORTS } from './agent/harness';
 
 interface StoredProvider {
   id: string;
@@ -22,6 +23,42 @@ interface StoredProvider {
 interface Settings {
   providers: StoredProvider[];
   active: string | null;
+  agents?: Partial<AgentSettings>;
+}
+
+const NO_AGENT_SETTINGS: AgentSettings = {
+  claude: { model: '', effort: '', fallbackModel: '', budgetUsd: null },
+  codex: { model: '', effort: '' },
+};
+
+/**
+ * A model or effort as a CLI argument takes it: empty (the agent's own default) or a name with no space and no
+ * leading dash, so it can never read as another flag.
+ */
+function cleanName(value: unknown, what: string): string {
+  if (value === undefined || value === null) return '';
+  if (typeof value !== 'string') throw new Error(`Not ${what}.`);
+  const name = value.trim();
+  if (name && !/^[A-Za-z0-9][\w.:/[\]-]*$/.test(name)) throw new Error(`Not ${what}: ${name}`);
+  return name;
+}
+
+/** One coding agent's settings as the form gave them, checked. */
+export function cleanAgentSettings<K extends keyof AgentSettings>(kind: K, input: unknown): AgentSettings[K] {
+  if (!input || typeof input !== 'object') throw new Error('Not an agent’s settings.');
+  const given = input as Record<string, unknown>;
+  const model = cleanName(given.model, 'a model');
+  const effort = cleanName(given.effort, 'an effort');
+  if (kind === 'codex') return { model, effort } as AgentSettings[K];
+  if (kind !== 'claude') throw new Error('Choose an agent.');
+  if (effort && !CLAUDE_EFFORTS.includes(effort)) throw new Error(`Claude Code takes an effort of ${CLAUDE_EFFORTS.join(', ')}.`);
+  const fallbackModel = cleanName(given.fallbackModel, 'a fallback model');
+  if (fallbackModel && fallbackModel === model) throw new Error('The fallback model has to be another model than the one Claude Code runs on.');
+  const budget = given.budgetUsd;
+  if (budget !== null && budget !== undefined && (typeof budget !== 'number' || !Number.isFinite(budget) || budget <= 0)) {
+    throw new Error('A cap per turn is an amount above zero, in dollars.');
+  }
+  return { model, effort, fallbackModel, budgetUsd: typeof budget === 'number' ? budget : null } as AgentSettings[K];
 }
 
 export interface Provider extends StoredProvider {
@@ -148,6 +185,20 @@ export class ProviderStore {
     settings.active = id as string;
     await writeJson(this.settingsFile, settings);
     return this.list();
+  }
+
+  /** How the person runs their own coding agents; what was never set is the agent's own default. */
+  async agentSettings(): Promise<AgentSettings> {
+    const saved = (await this.settings()).agents ?? {};
+    return { claude: { ...NO_AGENT_SETTINGS.claude, ...saved.claude }, codex: { ...NO_AGENT_SETTINGS.codex, ...saved.codex } };
+  }
+
+  async saveAgentSettings<K extends keyof AgentSettings>(kind: K, input: unknown): Promise<AgentSettings> {
+    const cleaned = cleanAgentSettings(kind, input);
+    const settings = await this.settings();
+    settings.agents = { ...settings.agents, [kind]: cleaned };
+    await writeJson(this.settingsFile, settings);
+    return this.agentSettings();
   }
 
   /** The active provider with its key opened, for one call. */
