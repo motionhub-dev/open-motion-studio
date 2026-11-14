@@ -183,7 +183,7 @@ export interface SentMark {
 
 /** A source-aware reference, attached separately from the creator's words. */
 export interface Reference {
-  kind: 'scene' | 'layer' | 'line' | 'asset' | 'issue';
+  kind: 'scene' | 'layer' | 'line' | 'asset' | 'motion' | 'issue';
   label: string;
   scene?: string;
   layer?: string;
@@ -194,6 +194,9 @@ export interface Reference {
   /** Where film.tsx writes it, `film.tsx:12-18`, added when the message is sent. */
   source?: string;
 }
+
+/** Whether a reference points at the picture (a scene, a layer or a line), so it holds only for the build it was taken from. */
+export const ofPicture = (ref: Reference): boolean => ref.kind === 'scene' || ref.kind === 'layer' || ref.kind === 'line';
 
 /** The most marks one message may carry. */
 export const MAX_MARKS = 5;

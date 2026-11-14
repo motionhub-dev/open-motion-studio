@@ -4,7 +4,7 @@ export function readReferences(value: unknown): Reference[] {
   if (value === undefined) return [];
   if (!Array.isArray(value) || value.length > 8) throw new Error('A message carries at most eight references.');
   return value.map((raw) => {
-    if (!raw || !['scene', 'layer', 'line', 'asset', 'issue'].includes(raw.kind) || typeof raw.label !== 'string' || !raw.label.trim())
+    if (!raw || !['scene', 'layer', 'line', 'asset', 'motion', 'issue'].includes(raw.kind) || typeof raw.label !== 'string' || !raw.label.trim())
       throw new Error('Not a reference.');
     const result: Reference = { kind: raw.kind, label: raw.label.slice(0, 200) };
     for (const key of ['scene', 'layer', 'line', 'path', 'detail', 'source'] as const) {
