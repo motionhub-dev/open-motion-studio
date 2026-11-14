@@ -1,6 +1,6 @@
 # Sound, narration and captions
 
-> **Status:** Plan, slice A built · **Updated:** 2026-11-14
+> **Status:** Plan, slices A and B built · **Updated:** 2026-11-14
 
 How a film gets sound, a spoken narration and captions, in three slices: music and effects that play and export, captions
 drawn from a film's lines, and a narration synthesized line by line whose word times time the captions.
@@ -47,6 +47,10 @@ Music and effects the person brings, heard in the preview and mixed into the MP4
   sound report.
 
 ## Slice B: captions from lines
+
+*Built*, as below (`@motionhub/runtime` 0.7.0). The runtime times the lines and draws the captions, so the preview and
+the export agree. A line that overlaps the one before it, or that is left no time, is an error. Every export carries
+the lines as subtitles, whether or not the picture shows captions.
 
 Captions without any audio: a line's words, shown while it is said.
 

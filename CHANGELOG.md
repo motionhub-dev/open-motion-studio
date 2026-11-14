@@ -3,6 +3,17 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-14 — A film's lines are timed, shown as captions and exported as subtitles
+
+- **What:** A `<Line>` can say when it is said (`at`, `dur`); lines that do not share their scene evenly.
+  `<Film captions>` shows the line being said at the foot of the picture, in the preview and the export alike. Every
+  MP4 export carries the lines as a subtitle track and writes them beside it as an `.srt` file. The timeline shows the
+  lines on a Lines row.
+- **Why:** A film's script had no timing and could not be read with the sound off.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/tech/sound-and-captions.md`, `apps/desktop/src/main/film/captions.ts`, `apps/desktop/src/renderer/src/timeline.tsx`.
+
 ## 2026-11-14 — A film plays music and sound effects, and exports with sound
 
 - **What:** A film's `<Sound>` elements (`@motionhub/runtime` 0.7.0; ADR 0010) play in the preview, in step with the

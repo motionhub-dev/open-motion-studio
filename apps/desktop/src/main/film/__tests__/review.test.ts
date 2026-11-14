@@ -8,6 +8,7 @@ const film = {
   seconds: 6,
   layers: [],
   sounds: [],
+  captions: false,
   scenes: [
     { id: 'intro', start: 0, duration: 3, layers: [], lines: [] },
     { id: 'end', start: 3, duration: 3, layers: [], lines: [] },

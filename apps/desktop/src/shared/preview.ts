@@ -1,6 +1,7 @@
 // The preview bridge protocol: the messages between the Studio and a film's preview frame
 // (docs/tech/architecture.md, "The film").
 
+import type { FilmLine } from '@motionhub/runtime';
 import type { FilmSound } from './sound';
 
 export interface FilmInfo {
@@ -14,6 +15,8 @@ export interface FilmInfo {
   layers: LayerBox[];
   /** Every <Sound> it plays, the film's own and its scenes', in the film's seconds (shared/sound.ts). */
   sounds: FilmSound[];
+  /** Whether it draws its lines as captions (<Film captions>). */
+  captions: boolean;
 }
 
 /** A box of the frame a <Layer> draws in, in the film's pixels. */
@@ -33,7 +36,8 @@ export interface SceneInfo {
   start: number;
   duration: number;
   layers: LayerBox[];
-  lines: { id: string; text: string }[];
+  /** What it says, each line with when it is said, in the film's seconds. */
+  lines: FilmLine[];
 }
 
 /** A box on the frame, in fractions of its width and height. */

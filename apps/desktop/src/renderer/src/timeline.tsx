@@ -175,6 +175,8 @@ export function Timeline({
   const [range, setRange] = useState<{ from: number; to: number } | null>(null);
   const seconds = film.seconds || 1;
   const waves = useWaveforms(film.sounds);
+  /** Every line, with its scene, when it is said. */
+  const lines = film.scenes.flatMap((scene) => scene.lines.filter((line) => line.end > line.start).map((line) => ({ line, scene: scene.id })));
   // Each sound where it plays: as long as its file makes it once read, and until then as long as it may play.
   const soundLanes = soundRows(
     film.sounds.flatMap((sound, index) => {
@@ -340,6 +342,11 @@ export function Timeline({
                 {r === 0 ? 'Sound' : ''}
               </span>
             ))}
+            {lines.length > 0 && (
+              <span title={film.captions ? 'What the film says, shown as captions' : 'What the film says: its script, and its subtitles in an export'}>
+                Lines
+              </span>
+            )}
             {[...rows].map(([id, row]) => (
               <span key={id} title={row.label}>
                 {row.label}
@@ -501,6 +508,23 @@ export function Timeline({
                   })}
                 </div>
               ))}
+              {lines.length > 0 && (
+                <div className="lane lines-lane">
+                  {lines.map(({ line, scene }) => (
+                    <button
+                      key={line.id}
+                      type="button"
+                      className={`line-span${t >= line.start && t < line.end ? ' current' : ''}${selected?.kind === 'line' && selected.line === line.id ? ' selected' : ''}`}
+                      style={{ left: at(line.start), width: at(line.end - line.start) }}
+                      aria-label={`${line.text}, ${timecode(line.start)} to ${timecode(line.end)}`}
+                      title={`“${line.text}” · ${timecode(line.start)}–${timecode(line.end)}`}
+                      onClick={() => onSelect({ kind: 'line', label: line.text, scene, line: line.id, time: line.start })}
+                    >
+                      {line.text}
+                    </button>
+                  ))}
+                </div>
+              )}
               {[...rows].map(([id, row]) => (
                 <div key={id} className="lane layer-lane">
                   {row.spans.map((span, i) => (

@@ -282,7 +282,7 @@ async function check(ctx: ToolContext): Promise<ToolOutcome> {
 function outlineLine(scene: SceneInfo): string {
   const seconds = (s: number) => `${Math.round(s * 100) / 100}`;
   const layers = scene.layers.map((l) => `${l.id} (${l.x},${l.y} ${l.w}×${l.h})`).join(', ') || 'no layers';
-  const lines = scene.lines.map((l) => `"${l.text}"`).join(' ');
+  const lines = scene.lines.map((l) => `"${l.text}" (${seconds(l.start)}–${seconds(l.end)} s)`).join(' ');
   return `- ${scene.id}, ${seconds(scene.start)} to ${seconds(scene.start + scene.duration)} s: ${layers}${lines ? `; says ${lines}` : ''}`;
 }
 

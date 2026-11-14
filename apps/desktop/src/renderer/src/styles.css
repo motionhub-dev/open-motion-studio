@@ -4024,3 +4024,31 @@ kbd {
   border-style: dashed;
   border-color: var(--bad);
 }
+
+/* What the film says, each line a band while it is said: its script, its captions and its subtitles. */
+.line-span {
+  position: absolute;
+  top: 6px;
+  height: 18px;
+  padding: 0 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--sheet);
+  color: var(--text2);
+  font-size: 11px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.line-span:hover {
+  border-color: var(--text);
+}
+.line-span.current {
+  border-color: var(--text);
+  color: var(--text);
+}
+.line-span.selected {
+  border-color: var(--annotate);
+  background: color-mix(in srgb, var(--annotate) 12%, var(--sheet));
+}

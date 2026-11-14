@@ -15,6 +15,7 @@ import type { Box, FilmInfo } from '../../shared/preview';
 import type { SceneStills } from '../../shared/api';
 import { STATE_DIR } from '../project';
 import { buildDir } from './film';
+import { srt } from './captions';
 import { soundInputs, soundMix } from './mix';
 
 export const RENDER_PARTITION = 'oms-render';
@@ -94,7 +95,7 @@ export async function openStage(version: number): Promise<Stage> {
           const error = await failed();
           if (error) throw new Error(error);
           const info = (await contents.executeJavaScript(
-            'window.__oms ? {seconds: __oms.seconds, width: __oms.width, height: __oms.height, fps: __oms.fps, scenes: __oms.scenes, layers: __oms.layers, sounds: __oms.sounds} : null',
+            'window.__oms ? {seconds: __oms.seconds, width: __oms.width, height: __oms.height, fps: __oms.fps, scenes: __oms.scenes, layers: __oms.layers, sounds: __oms.sounds, captions: __oms.captions} : null',
           )) as FilmInfo | null;
           if (info) return info;
           await new Promise((done) => setTimeout(done, 50));
@@ -183,10 +184,14 @@ const write = (stream: NodeJS.WritableStream, chunk: Buffer) =>
     stream.write(chunk, (error) => (error ? fail(error) : done()));
   });
 
+/** Where an export's subtitles are written: beside the video, under its name. */
+export const subtitlesFile = (file: string): string => `${file.replace(/\.mp4$/i, '')}.srt`;
+
 /**
- * Renders build `version` of the film in `dir` to `file` as an MP4, its sounds mixed in, reporting the share done (0
- * to 1). The video is written beside `file` and moved into place only when it is whole, so a failed or cancelled
- * export leaves whatever was at `file` untouched.
+ * Renders build `version` of the film in `dir` to `file` as an MP4, its sounds mixed in and its lines as a soft
+ * subtitle track, reporting the share done (0 to 1); the lines are written beside it as SubRip too
+ * (subtitlesFile). Each is written beside its place and moved there only when the video is whole, so a failed or
+ * cancelled export leaves whatever was there untouched.
  */
 export async function exportFrames(
   dir: string,
@@ -197,11 +202,22 @@ export async function exportFrames(
 ): Promise<void> {
   const stage = await openStage(version);
   const partial = `${file}.partial.mp4`;
+  const partialSubtitles = `${file}.partial.srt`;
   try {
     const { film } = stage;
     const frames = Math.round(film.seconds * film.fps);
-    // The sounds come after the picture's input (0); a film with none is picture only.
+    // The sounds come after the picture's input (0), then the subtitles; a film with neither is picture only.
     const mix = soundMix(await soundInputs(dir, ffmpegPath(), film.sounds), frames / film.fps, 1);
+    const subtitles = srt(film);
+    if (subtitles) await writeFile(partialSubtitles, subtitles);
+    const subtitleInput = 1 + (mix ? mix.inputs.length / 2 : 0);
+    const streams = [
+      ...(mix ? [...mix.inputs, '-filter_complex', mix.graph] : []),
+      ...(subtitles ? ['-i', partialSubtitles] : []),
+      ...(mix || subtitles ? ['-map', '0:v'] : []),
+      ...(mix ? ['-map', '[aout]', '-c:a', 'aac', '-b:a', '192k'] : []),
+      ...(subtitles ? ['-map', `${subtitleInput}:s`, '-c:s', 'mov_text', '-metadata:s:s:0', 'language=und'] : []),
+    ];
     const ffmpeg = spawn(
       ffmpegPath(),
       [
@@ -216,7 +232,7 @@ export async function exportFrames(
         'png',
         '-i',
         '-',
-        ...(mix ? [...mix.inputs, '-filter_complex', mix.graph, '-map', '0:v', '-map', '[aout]', '-c:a', 'aac', '-b:a', '192k'] : []),
+        ...streams,
         ...VIDEO,
         '-g',
         String(film.fps * 2),
@@ -256,8 +272,10 @@ export async function exportFrames(
     }
     await finished;
     await rename(partial, file);
+    if (subtitles) await rename(partialSubtitles, subtitlesFile(file));
   } finally {
     stage.close();
     await rm(partial, { force: true });
+    await rm(partialSubtitles, { force: true });
   }
 }

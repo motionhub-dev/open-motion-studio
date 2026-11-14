@@ -91,7 +91,9 @@ A top bar over a grid of panels (`project-view.tsx`):
   it says so in muted words, and it tints on hover), for a film with sounds a Sound row (each sound a cobalt-tinted
   band from where it starts for as long as it plays, its file's name in mono over its waveform, filled cobalt on a
   decibel scale through its volume and fades; overlapping sounds on rows of their own, named once; a file that will
-  not read dashed in `--bad`; a click seeks to it), a dashed span for each layer (selected, solid cobalt on a cobalt
+  not read dashed in `--bad`; a click seeks to it), a Lines row for a film that says anything (each line a sheet band
+  while it is said, its words in it; the one being said inked, a selected one cobalt; a click selects it and seeks),
+  a dashed span for each layer (selected, solid cobalt on a cobalt
   tint; changed by the last turn, a green ring on a green tint) and the playhead through them. The check's issues are small triangles on the ruler
   (`--bad` for an error, muted for a warning), and the moment under the pointer is an ink label on it
   with its scene. Ctrl and the wheel zoom about the pointer (1× to 32×); a playhead out of view is a chip at the edge
@@ -195,7 +197,8 @@ and return to their saved visibility on a wider window.
 History uses a vertical stack of request labels, timestamps and changed paths. Restore is an ink action, followed by
 a native modal explaining its scope and inverse checkpoint. Checks distinguish blockers from structural warnings;
 no passing sample is labelled as proof of complete visual correctness. Export's native modal shows the real film
-specification, its sound (the sounds mixed, or picture only) and check outcome before the vermilion save action.
+specification, its sound (the sounds mixed, or picture only), its subtitles (captions in the picture where the film
+draws them; the lines as a track and an .srt beside it) and check outcome before the vermilion save action.
 
 The launcher introduces three starting-point cards in the same paper/ink palette. The assistant's brief is a compact
 optional form that prepares a message. Asset cards show real local images or a font icon, with an explicit message

@@ -41,6 +41,11 @@ export function ExportDialog({
               : 'picture only'}{' '}
             · original film size
           </p>
+          {review?.film && review.film.scenes.some((scene) => scene.lines.length > 0) && (
+            <p>
+              {review.film.captions ? 'Captions in the picture, and the lines' : 'The lines'} as subtitles: a track in the video and an .srt file beside it
+            </p>
+          )}
           {review?.film && (
             <span className="mono">
               {review.film.width} × {review.film.height} · {review.film.fps} fps · {review.film.seconds.toFixed(1)} s

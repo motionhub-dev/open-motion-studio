@@ -116,7 +116,12 @@ One engine, the Studio's own ([ADR 0005](../adr/0005-the-studio-has-one-engine-i
   lists every sound and fails on a file the project does not have. The timeline draws each sound on a Sound row
   (overlapping ones on rows of their own), its waveform read once by ffmpeg (50 peaks a second, kept in
   `.motion-studio/peaks/`) and drawn on a decibel scale through its volume and fades. A Remotion project exported from
-  the Studio has no sound yet: `@motionhub/remotion` does not play `<Sound>`. A motion's reel plays as a film inside one scene. The timeline's scene frames are six small JPEGs
+  the Studio has no sound yet: `@motionhub/remotion` does not play `<Sound>`.
+- **Lines and captions**: the runtime times each `<Line>` in its scene (its `at` and `dur`, else an equal share) and
+  reports its `start` and `end`; `<Film captions>` makes the runtime draw the line being said as a `<Caption>`, so the
+  preview and the export show it alike. Every export also carries the lines as subtitles (`film/captions.ts`): SubRip
+  written beside the MP4 under its name and embedded as a soft `mov_text` track. The timeline draws them on a Lines
+  row; `check` gives each line's times. A motion's reel plays as a film inside one scene. The timeline's scene frames are six small JPEGs
   a scene, evenly through it, photographed once a build has stood for a moment and kept in
   `.motion-studio/thumbs/<hash of the build>.json`, one file, replaced when the film changes.
 - **A motion is taken into a project the way `@motionhub/cli get` takes it** (built, through the CLI's own library): the
