@@ -18,6 +18,16 @@ Every key change to Open Motion Studio, newest first, by date. What counts as ke
 - **Refs:** ADR 0011, ADR 0012, `docs/tech/sound-and-captions.md`, `apps/desktop/src/main/voice.ts`,
   `apps/desktop/src/main/narration.ts`, `apps/desktop/src/renderer/src/voice-dialog.tsx`.
 
+## 2026-11-14 — A Remotion project exported from the Studio plays the film's sounds
+
+- **What:** The Remotion export writes `@motionhub/remotion` 0.5 and `@motionhub/runtime` 0.7, plays the film's sounds
+  with `<FilmAudio>` in `src/Root.tsx`, and copies each sound file into the project's `public/`. A film with `<Sound>`
+  rendered by Remotion now carries them; before, it did not render there.
+- **Why:** The Studio's films gained sounds, and an exported project should play what the film does.
+- **Breaking:** None.
+- **Upgrade:** Nothing; a project exported before keeps its versions.
+- **Refs:** `apps/desktop/src/main/film/remotion-export.ts`, motionhub-dev/motionhub#107.
+
 ## 2026-11-14 — A film's lines are timed, shown as captions and exported as subtitles
 
 - **What:** A `<Line>` can say when it is said (`at`, `dur`); lines that do not share their scene evenly.

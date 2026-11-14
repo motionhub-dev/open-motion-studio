@@ -885,14 +885,16 @@ function registerHandlers(): void {
       // The scenes as the film has them now, from the build the person sees.
       const stage = await openStage(build.version);
       let scenes: string[];
+      let sounds: string[];
       try {
         scenes = stage.film.scenes.map((scene) => scene.id);
+        sounds = stage.film.sounds.map((sound) => sound.src);
       } finally {
         stage.close();
       }
       if (state.build?.version !== build.version)
         throw new Error('The film changed before export. Review the latest version and export again.');
-      await writeRemotionProject(state.project.path, path, state.project.name, scenes);
+      await writeRemotionProject(state.project.path, path, state.project.name, scenes, sounds);
       exported = path;
       return path;
     } finally {

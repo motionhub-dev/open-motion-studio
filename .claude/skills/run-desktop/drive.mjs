@@ -19,6 +19,7 @@
 //   file:<path>      print a file of the open project (e.g. .motion-studio/usage.jsonl)
 //   put:<from>=<to>  copy a local file into the open project at <to> (a new film.tsx is built), e.g. a sound into media/
 //   export:<file>    export the film as an MP4 to <file>, the save dialog answered by the step, and wait for it
+//   remotion:<dir>   export the film as a Remotion project into <dir> (empty or new), the folder dialog answered
 //   session:<file>   put a conversation (the built-in agent's messages, as .motion-studio/session.json holds them) in
 //                    the open project, then close it and open it again from the launcher's recents, so it shows
 //   stills:<n>       the same with a made-up conversation: one turn that looked at <n> stills of the film
@@ -187,6 +188,14 @@ try {
       }, file);
       const result = await page.evaluate(() => window.studio.exportFilm().then((f) => ({ file: f }), (e) => ({ error: String(e) })));
       console.log('export:', JSON.stringify(result), fs.existsSync(file) ? `${fs.statSync(file).size} bytes` : 'no file');
+    } else if (verb === 'remotion') {
+      // The film as a Remotion project in <folder>, empty or new: the folder dialog answers with it.
+      const folder = path.resolve(arg);
+      await app.evaluate(({ dialog }, folder) => {
+        dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [folder] });
+      }, folder);
+      const result = await page.evaluate(() => window.studio.exportRemotion().then((f) => ({ folder: f }), (e) => ({ error: String(e) })));
+      console.log('remotion:', JSON.stringify(result));
     } else if (verb === 'session' || verb === 'stills') {
       const messages = verb === 'session' ? JSON.parse(fs.readFileSync(arg, 'utf8')) : await lookedAt(page, Number(arg) || 6);
       const project = await page.getAttribute('.topbar .name', 'title');
