@@ -144,16 +144,71 @@ const directories = async (dir: string): Promise<string[]> => {
   }
 };
 
-/** The motions the project holds: from the hub (motions/@scope/slug) and its own (motions/name). */
-export async function projectMotions(dir: string): Promise<ProjectMotion[]> {
-  const lock = (await hub()).readLock(dir);
+/** The ids of the motions the project holds: from the hub (@scope/slug) and its own (name), sorted. */
+async function motionIds(dir: string): Promise<string[]> {
   const ids: string[] = [];
   for (const name of await directories(join(dir, MOTIONS))) {
     if (name.startsWith('@')) {
       for (const slug of await directories(join(dir, MOTIONS, name))) ids.push(`${name}/${slug}`);
     } else ids.push(name);
   }
-  return Promise.all(ids.sort().map((id) => described(dir, id, lock.motions[id]?.version ?? null)));
+  return ids.sort();
+}
+
+/** The motions the project holds: from the hub (motions/@scope/slug) and its own (motions/name). */
+export async function projectMotions(dir: string): Promise<ProjectMotion[]> {
+  const lock = (await hub()).readLock(dir);
+  return Promise.all((await motionIds(dir)).map((id) => described(dir, id, lock.motions[id]?.version ?? null)));
+}
+
+/** A CSS string for `text`: quoted, its quotes and backslashes escaped, and nothing that ends a line or a rule. */
+const cssString = (text: string) => `"${text.replace(/[\\"]/g, '\\$&').replace(/[\n\r\f]/g, ' ')}"`;
+
+/**
+ * The faces the project's motions carry for their components, as CSS: one @font-face for each entry of a motion's
+ * `react/fonts/fonts.json` (`[{family, file, weight, style}]`, motionhub's format) whose WOFF2 file is there, served
+ * from the project on the preview's scheme. An entry that is not one is left out and said in `skipped`.
+ */
+export async function motionFaces(dir: string): Promise<{ css: string; skipped: string[] }> {
+  const rules: string[] = [];
+  const skipped: string[] = [];
+  for (const id of await motionIds(dir)) {
+    const fonts = join(dir, MOTIONS, id, 'react', 'fonts');
+    let list: unknown;
+    try {
+      list = JSON.parse(await readFile(join(fonts, 'fonts.json'), 'utf8'));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') continue;
+      skipped.push(`${id}: react/fonts/fonts.json is not JSON`);
+      continue;
+    }
+    if (!Array.isArray(list)) {
+      skipped.push(`${id}: react/fonts/fonts.json is not a list`);
+      continue;
+    }
+    for (const face of list as { family?: unknown; file?: unknown; weight?: unknown; style?: unknown }[]) {
+      const { family, file, weight, style } = face ?? {};
+      if (typeof family !== 'string' || !family.trim() || typeof file !== 'string' || !/^[^/\\]+\.woff2$/.test(file) || file.startsWith('.')) {
+        skipped.push(`${id}: a face needs a family and a .woff2 file in react/fonts/ (${JSON.stringify(face)})`);
+        continue;
+      }
+      if (!existsSync(join(fonts, file))) {
+        skipped.push(`${id}: react/fonts/${file} is not there`);
+        continue;
+      }
+      const url = ['', 'project', MOTIONS, ...id.split('/'), 'react', 'fonts', file].map(encodeURIComponent).join('/');
+      const descriptors = [
+        `font-family: ${cssString(family.trim())}`,
+        `src: url(${cssString(url)}) format("woff2")`,
+        // a weight is a number or a range of two ("100 900"); a style is a keyword
+        typeof weight === 'number' || (typeof weight === 'string' && /^\d{1,3}( \d{1,3})?$/.test(weight)) ? `font-weight: ${weight}` : '',
+        typeof style === 'string' && /^(normal|italic|oblique)$/.test(style) ? `font-style: ${style}` : '',
+        'font-display: block',
+      ].filter(Boolean);
+      rules.push(`@font-face { ${descriptors.join('; ')}; }`);
+    }
+  }
+  return { css: rules.join('\n'), skipped };
 }
 
 /** Public catalogue players run under a separate host and CSP, never the project's file surface. */

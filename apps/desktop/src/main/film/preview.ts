@@ -5,8 +5,8 @@
 //
 //   oms-preview://film/                  the page (?render=1 for stills and export, ?v= the build)
 //   oms-preview://film/studio/<file>     the Studio's preview scripts (resources/preview/: core.js, pick.js)
-//   oms-preview://film/build/<file>      the film's bundle and assets, from <project>/.motion-studio/build/
-//   oms-preview://film/project/<file>    the project's own files (a motion's poster and previews)
+//   oms-preview://film/build/<file>      the film's bundle and assets, and its motions' faces (fonts.css), from <project>/.motion-studio/build/
+//   oms-preview://film/project/<file>    the project's own files (a motion's poster, previews and faces)
 
 import { app, protocol, type Session, type WebContents } from 'electron';
 import { readFile, realpath } from 'node:fs/promises';

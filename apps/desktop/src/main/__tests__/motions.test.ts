@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { catalogueResource, motionDetail, motionReel, projectMotions, searchMotions, useMotion } from '../motions';
+import { catalogueResource, motionDetail, motionFaces, motionReel, projectMotions, searchMotions, useMotion } from '../motions';
 
 const ID = '@someone/paper-cut';
 let root: string;
@@ -187,4 +187,54 @@ it('never follows a cached player resource symlink to an outside file', async ()
   const filename = createHash('sha256').update(`${base}/play/demo/`).digest('hex') + '.resource';
   await symlink(outside, join(folder, filename));
   await expect(catalogueResource(project, '/play/demo/', base)).rejects.toThrow('symbolic link');
+});
+
+describe("the motions' faces", () => {
+  let dir: string;
+  const fonts = (id: string) => join(dir, 'motions', id, 'react', 'fonts');
+  async function motion(id: string, list: unknown, files: string[]) {
+    await mkdir(fonts(id), { recursive: true });
+    await writeFile(join(fonts(id), 'fonts.json'), typeof list === 'string' ? list : JSON.stringify(list));
+    for (const file of files) await writeFile(join(fonts(id), file), 'wOF2');
+  }
+  beforeEach(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'oms-faces-'));
+  });
+
+  it('declares each face a motion carries, from the project on the preview scheme', async () => {
+    await motion('@someone/paper-cut', [{ family: 'Paper Serif', file: 'serif.woff2', weight: 400, style: 'italic' }], ['serif.woff2']);
+    await motion('own', [{ family: 'Mono "Plus"', file: 'mono.woff2', weight: '100 900' }], ['mono.woff2']);
+    const { css, skipped } = await motionFaces(dir);
+    expect(skipped).toEqual([]);
+    expect(css.split('\n')).toEqual([
+      '@font-face { font-family: "Paper Serif"; src: url("/project/motions/%40someone/paper-cut/react/fonts/serif.woff2") format("woff2"); font-weight: 400; font-style: italic; font-display: block; }',
+      '@font-face { font-family: "Mono \\"Plus\\""; src: url("/project/motions/own/react/fonts/mono.woff2") format("woff2"); font-weight: 100 900; font-display: block; }',
+    ]);
+  });
+
+  it('leaves out, and says, a face whose file is not a WOFF2 beside it', async () => {
+    await motion(
+      '@someone/paper-cut',
+      [
+        { family: 'Escapes', file: '../../../../secret.woff2' },
+        { family: 'Missing', file: 'gone.woff2' },
+        { family: 'Not a face', file: 'face.ttf' },
+        { file: 'nameless.woff2' },
+        { family: 'Kept', file: 'kept.woff2', weight: '400; color: red', style: 'bold' },
+      ],
+      ['face.ttf', 'nameless.woff2', 'kept.woff2'],
+    );
+    await motion('broken', '{not json', []);
+    const { css, skipped } = await motionFaces(dir);
+    expect(css).toBe('@font-face { font-family: "Kept"; src: url("/project/motions/%40someone/paper-cut/react/fonts/kept.woff2") format("woff2"); font-display: block; }');
+    expect(skipped).toHaveLength(5);
+    expect(skipped.join('\n')).toContain('broken: react/fonts/fonts.json is not JSON');
+    expect(skipped.join('\n')).toContain('gone.woff2 is not there');
+  });
+
+  it('is empty for a project without motions or faces', async () => {
+    expect(await motionFaces(dir)).toEqual({ css: '', skipped: [] });
+    await mkdir(join(dir, 'motions', 'plain'), { recursive: true });
+    expect(await motionFaces(dir)).toEqual({ css: '', skipped: [] });
+  });
 });

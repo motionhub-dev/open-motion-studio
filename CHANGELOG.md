@@ -3,6 +3,17 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-14 — A film is set in its motions' own faces
+
+- **What:** The faces a motion carries (`react/fonts/fonts.json` and its WOFF2 files) are loaded in the preview before
+  the film draws, and a still or an export waits for them, so type set with a motion's `var(--font-<name>)` is in that
+  face rather than the system's. Each build writes them as `.motion-studio/build/fonts.css`; an entry that is not a
+  WOFF2 beside its list is left out and logged. The agent is told the faces are there.
+- **Why:** Every film made in a motion with its own type fell back to the system's faces.
+- **Breaking:** None.
+- **Upgrade:** Nothing; the next build of a project writes its faces.
+- **Refs:** `apps/desktop/src/main/motions.ts`, `apps/desktop/src/preview/core.tsx`, `docs/tech/architecture.md`.
+
 ## 2026-11-13 — A project can talk to the person's own Claude Code
 
 - **What:** The agent picker and Models also offer the person's own Claude Code, when it is installed where
