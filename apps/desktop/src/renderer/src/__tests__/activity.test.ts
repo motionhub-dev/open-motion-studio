@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ChatItem } from '../../../shared/api';
 import type { FilmInfo } from '../../../shared/preview';
-import { blocks, changeKey, changeLine, failingRun, filmChanges, workLine, workedFor } from '../activity';
+import { blocks, changeKey, changeLine, failingRun, filmChanges, outcomeOf, turnFacts, turnLine, workedFor } from '../activity';
 
 describe('how long a turn took', () => {
   it('says seconds under a minute and minutes with seconds past it, never zero', () => {
@@ -21,33 +21,62 @@ const tool = (id: string, name: string, summary: string, ok?: boolean): ChatItem
 });
 
 describe('the conversation as blocks', () => {
-  it('folds each run of tool calls into one block, and keeps a question on its own', () => {
+  it('folds a turn’s work into one block, with what the agent said between its calls, and keeps its answer and a question out', () => {
     const items: ChatItem[] = [
       { kind: 'user', text: 'Go', marks: [] },
+      { kind: 'assistant', text: 'Let me look.' },
       tool('1', 'read_file', 'Reading film.tsx', true),
       tool('2', 'edit_file', 'Editing film.tsx', true),
-      { kind: 'assistant', text: 'Done' },
+      { kind: 'assistant', text: 'Now checking.' },
       tool('3', 'check', 'Checking the film', true),
+      { kind: 'assistant', text: 'Done. Which look?' },
       { ...(tool('4', 'ask_person', 'Asking you', true) as Extract<ChatItem, { kind: 'tool' }>), ask: { question: 'Which?', options: [] } },
+      { kind: 'user', text: 'The first', marks: [] },
+      tool('5', 'edit_file', 'Editing film.tsx', true),
+      { kind: 'assistant', text: 'Done.' },
     ];
-    expect(blocks(items).map((b) => (b.kind === 'work' ? `work:${b.tools.length}` : b.kind))).toEqual([
-      'item',
-      'work:2',
-      'item',
-      'work:1',
+    const drawn = blocks(items);
+    expect(drawn.map((b) => (b.kind === 'work' ? `work:${b.steps.length}/${b.tools.length}` : b.kind === 'item' ? b.item.kind : b.kind))).toEqual([
+      'user',
+      'work:5/3',
+      'assistant',
       'ask',
+      'user',
+      'work:1/1',
+      'assistant',
     ]);
+    const work = drawn[1] as Extract<(typeof drawn)[number], { kind: 'work' }>;
+    expect(work.steps.flatMap((s) => (s.kind === 'said' ? [s.text] : []))).toEqual(['Let me look.', 'Now checking.']);
   });
 
-  it('says a run of calls in a few words, with how many failed', () => {
+  it('says what a turn gave: its answer after its last call, and how its last check came out', () => {
+    const items: ChatItem[] = [
+      { kind: 'user', text: 'Go', marks: [] },
+      tool('1', 'check', 'Checking the film', false),
+      { kind: 'assistant', text: 'Fixing the overlap.' },
+      tool('2', 'edit_file', 'Editing parts/gauge.tsx', true),
+      tool('3', 'check', 'Checking the film', true),
+      { kind: 'assistant', text: 'The gauge sits clear of the caption.' },
+    ];
+    expect(turnFacts(items, items.length)).toEqual({ answer: 'The gauge sits clear of the caption.', check: true });
+    expect(turnFacts(items.slice(0, 3), 3)).toEqual({ answer: 'Fixing the overlap.', check: false });
+    expect(outcomeOf(undefined)).toBe('done');
+    expect(outcomeOf({ error: false })).toBe('stopped');
+    expect(outcomeOf({ error: true })).toBe('failed');
+  });
+
+  it('says a turn’s work in a few words, with how many failed', () => {
     const run = [
       tool('1', 'edit_file', 'Editing film.tsx', true),
       tool('2', 'edit_file', 'Editing film.tsx', true),
       tool('3', 'check', 'Checking the film', false),
       tool('4', 'check', 'Checking the film', true),
       tool('5', 'still', 'Looking at 1.0 s', true),
+      tool('6', 'read_file', 'Reading film.tsx', true),
+      tool('7', 'edit_file', 'Editing parts/gauge.tsx and 2 more', true),
+      tool('8', 'still', 'Looking at 2.0 s', true),
     ] as Extract<ChatItem, { kind: 'tool' }>[];
-    expect(workLine(run)).toBe('Edited film.tsx · Checked ×2 · Looked · 1 failed');
+    expect(turnLine(run)).toBe('read 1 file · edited 2 files · checked twice · looked at 2 frames · 1 failed');
   });
 
   it('counts the same tool failing in a row since the person last spoke', () => {

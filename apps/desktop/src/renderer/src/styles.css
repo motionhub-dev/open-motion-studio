@@ -1125,6 +1125,11 @@ button.status:hover {
   gap: 10px;
 }
 
+/* The log scrolls; what is in it keeps its height (an item that clips would otherwise shrink to fit). */
+.log > * {
+  flex-shrink: 0;
+}
+
 .message {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -1173,7 +1178,8 @@ button.status:hover {
   display: none;
 }
 
-.tool.failed summary {
+/* A turn whose work ended on a failure: its line, not each of its steps (a failed step says so itself). */
+.tool.failed > summary {
   color: var(--bad);
 }
 
@@ -1227,6 +1233,18 @@ button.status:hover {
   border-radius: var(--r-button);
   background: var(--text);
   color: var(--bg);
+}
+
+/* While the agent works, Send is Stop. */
+.composer .send.stop {
+  width: auto;
+  display: inline-flex;
+  gap: 6px;
+  padding: 0 10px;
+  background: var(--bad);
+  color: var(--sheet);
+  font-size: 12px;
+  font-weight: 600;
 }
 
 /* The motion panel. */
@@ -2669,6 +2687,36 @@ kbd {
   line-height: 1.6;
   margin-top: 8px;
 }
+/* The turn's phases: those it went through ticked, the one it is in inked. */
+.phases {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.phases li {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.phases li.done {
+  color: var(--text2);
+}
+.phases li.done svg {
+  color: var(--good);
+}
+.phases li.on {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg);
+}
 .export-lede {
   color: var(--muted);
 }
@@ -3205,6 +3253,41 @@ kbd {
   gap: 6px;
 }
 
+/* A turn's work, one framed block: its line, and its steps when open. */
+.work > .tool {
+  border: 1px solid var(--line);
+  border-radius: var(--r-button);
+  padding: 4px 8px;
+}
+.work > .tool[open] {
+  padding-bottom: 8px;
+}
+.work > .tool > summary b {
+  font-weight: 500;
+  color: var(--text2);
+}
+.work > .tool > summary .work-fold {
+  margin-left: auto;
+  flex: none;
+  transition: transform 0.15s;
+}
+.work > .tool[open] > summary .work-fold {
+  transform: rotate(180deg);
+}
+/* What the agent said between its calls. */
+.work-steps li.said {
+  font-style: italic;
+  color: var(--text2);
+  padding: 2px 0 2px 8px;
+  border-left: 2px solid var(--line);
+  white-space: pre-wrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .work > .tool > summary .work-fold {
+    transition: none;
+  }
+}
+
 .work-steps {
   list-style: none;
   margin: 4px 0 0 20px;
@@ -3268,9 +3351,51 @@ kbd {
   gap: 8px;
   padding: 10px;
   border: 1px solid var(--line);
-  border-left: 2px solid var(--good);
+  border-left: 3px solid var(--good);
   border-radius: var(--r-button);
   background: var(--bg);
+}
+
+.turn-card.failed {
+  border-left-color: var(--bad);
+}
+
+.turn-card.stopped {
+  border-left-color: var(--muted);
+}
+
+/* How the turn ended, in one line: done, its time and tokens, its files, its check, the film's new length. */
+.turn-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 10px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.turn-line strong {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.turn-line .pass {
+  color: var(--good);
+}
+
+.turn-line .fail {
+  color: var(--bad);
+}
+
+.turn-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.earlier-turns {
+  align-self: center;
 }
 
 .turn-took {

@@ -79,6 +79,15 @@ export async function noteFiles(dir: string, published = false): Promise<FileNot
   return note;
 }
 
+/** Words that name files by their whole path (an outside agent's), with the project's folder taken out of them. */
+export function inProject(words: string, dir: string): string {
+  let out = words;
+  // Either slash: Windows paths come back from some agents written with forward ones.
+  for (const form of new Set([dir, dir.split('\\').join('/'), dir.split('/').join('\\')]))
+    for (const slash of ['/', '\\']) out = out.split(form + slash).join('');
+  return out;
+}
+
 /** Puts files back as a note had them (changesBetween that note and now): changed ones rewritten, new ones removed. */
 export async function putBack(dir: string, changes: Change[]): Promise<void> {
   for (const change of changes) await replace(join(dir, ...change.path.split('/')), change.before);
@@ -102,6 +111,11 @@ export class ProjectHistory {
   /** The entry this history's writes went into, if it has written anything. */
   get checkpoint(): string | undefined {
     return this.entry?.id;
+  }
+
+  /** How many files this history's writes changed. */
+  get files(): number {
+    return this.entry?.changes.length ?? 0;
   }
 
   private async file(): Promise<string> {

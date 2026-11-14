@@ -118,3 +118,12 @@ it('notes the motions from motionhub on their own, and puts back what changed in
   await expect(readFile(join(dir, 'motions', '@hub', 'look', 'extra.css'))).rejects.toThrow();
   expect(await readFile(join(dir, 'motions', 'mine', 'tokens.json'), 'utf8')).toBe('own');
 });
+
+it('names an outside agent’s files in the project, whichever slash it wrote, and leaves other paths whole', async () => {
+  const { inProject } = await import('../history');
+  const dir = String.raw`C:\Users\me\films\heat`;
+  expect(inProject(String.raw`Editing C:\Users\me\films\heat\parts\gauge.tsx`, dir)).toBe(String.raw`Editing parts\gauge.tsx`);
+  expect(inProject('Reading C:/Users/me/films/heat/film.tsx', dir)).toBe('Reading film.tsx');
+  expect(inProject(String.raw`Reading C:\Users\me\films\heat-old\film.tsx`, dir)).toBe(String.raw`Reading C:\Users\me\films\heat-old\film.tsx`);
+  expect(inProject('Running ls /home/me/films/heat/parts', '/home/me/films/heat')).toBe('Running ls parts');
+});

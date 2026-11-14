@@ -15,6 +15,9 @@ export interface TurnEnd {
   kind: 'turn';
   before: FilmInfo | null;
   checkpoint?: string;
+  /** How many files the turn changed. */
+  files?: number;
+  outcome: 'done' | 'failed' | 'stopped';
   usage?: TurnUsage;
 }
 
@@ -53,65 +56,120 @@ export function workedFor(seconds: number): string {
 /** A row of the conversation in the panel: what the transcript holds, and where turns ended. */
 export type Row = ChatItem | TurnEnd;
 
+/** What the agent said before its last tool call of a turn: said while it worked, kept with the work. */
+export interface Said {
+  kind: 'said';
+  text: string;
+  index: number;
+}
+
+/** A step of a turn's work: a tool call, or what the agent said between them. */
+export type Step = Tool | Said;
+
 /**
- * The conversation as the panel draws it: each item, each run of tool calls as one block, and each question the
- * agent asked as its own block.
+ * The conversation as the panel draws it: the person's messages; each turn's work as one block (its tool calls, and
+ * what the agent said before its last one); the agent's answer after; and each question the agent asked, its leave
+ * asked, a notice and where the turn ended, each on its own.
  */
 export type Block =
   | { kind: 'item'; item: Exclude<Row, Tool>; index: number }
-  | { kind: 'work'; tools: Tool[] }
+  | { kind: 'work'; steps: Step[]; tools: Tool[] }
   | { kind: 'ask'; tool: Tool & { ask: NonNullable<Tool['ask']> }; index: number };
+
+const isWork = (item: Row): item is Tool => item.kind === 'tool' && !item.ask;
 
 export function blocks(items: Row[]): Block[] {
   const out: Block[] = [];
+  const turn = (from: number, to: number) => {
+    let last = -1;
+    for (let i = from; i < to; i++) if (isWork(items[i]!)) last = i;
+    let work: Extract<Block, { kind: 'work' }> | null = null;
+    const take = (step: Step, tool?: Tool) => {
+      if (!work) out.push((work = { kind: 'work', steps: [], tools: [] }));
+      work.steps.push(step);
+      if (tool) work.tools.push(tool);
+    };
+    for (let index = from; index < to; index++) {
+      const item = items[index]!;
+      if (item.kind === 'tool') {
+        if (item.ask) out.push({ kind: 'ask', tool: { ...item, ask: item.ask }, index });
+        else take(item, item);
+      } else if (item.kind === 'assistant' && index < last) take({ kind: 'said', text: item.text, index });
+      else out.push({ kind: 'item', item, index });
+    }
+  };
+  let from = 0;
   items.forEach((item, index) => {
-    const last = out[out.length - 1];
-    if (item.kind !== 'tool') out.push({ kind: 'item', item, index });
-    else if (item.ask) out.push({ kind: 'ask', tool: { ...item, ask: item.ask }, index });
-    else if (last?.kind === 'work') last.tools.push(item);
-    else out.push({ kind: 'work', tools: [item] });
+    if (item.kind === 'user' && index > from) {
+      turn(from, index);
+      from = index;
+    }
   });
+  turn(from, items.length);
   return out;
 }
 
-/** The path a tool call's summary names, for the calls that name one. */
-const pathOf = (tool: Tool) => /^(?:Writing|Editing|Reading) (.+)$/.exec(tool.summary)?.[1];
+/** A path a tool call's summary names, for the calls that name one. */
+const pathOf = (tool: Tool) => /^(?:Writing|Editing|Reading) (.+?)(?: and \d+ more)?$/.exec(tool.summary)?.[1];
 
-/** A run of tool calls in a few words: `Edited film.tsx · Checked ×2 · Looked ×3`. */
-export function workLine(tools: Tool[]): string {
+const times = (n: number) => (n === 1 ? 'once' : n === 2 ? 'twice' : `${n} times`);
+const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`;
+
+/** A turn's work in a few words: `read 2 files · edited 3 files · checked twice · looked at 6 frames · 1 failed`. */
+export function turnLine(tools: Tool[]): string {
   const edited = new Set<string>();
+  let read = 0;
   const counts = new Map<string, number>();
   for (const tool of tools) {
-    if (tool.name === 'write_file' || tool.name === 'edit_file') {
-      edited.add(pathOf(tool) ?? 'a file');
-      continue;
-    }
-    const verb =
-      tool.name === 'check'
-        ? 'Checked'
-        : tool.name === 'still'
-          ? 'Looked'
-          : tool.name === 'read_file' || tool.name === 'list_files'
-            ? 'Read'
-            : tool.name === 'search_motions'
-              ? 'Searched motionhub'
-              : tool.name === 'use_motion'
-                ? 'Took a motion'
-                : tool.name === 'shell'
-                  ? 'Ran a command'
-                  : tool.name === 'web_search'
-                    ? 'Searched the web'
-                    : tool.name;
-    counts.set(verb, (counts.get(verb) ?? 0) + 1);
+    if (tool.name === 'write_file' || tool.name === 'edit_file') edited.add(pathOf(tool) ?? tool.id);
+    else if (tool.name === 'read_file' || tool.name === 'list_files') read++;
+    else counts.set(tool.name, (counts.get(tool.name) ?? 0) + 1);
   }
   const parts = [
-    ...(edited.size ? [`Edited ${[...edited].slice(0, 2).join(', ')}${edited.size > 2 ? ` +${edited.size - 2}` : ''}`] : []),
-    ...[...counts].map(([verb, n]) => (n > 1 ? `${verb} ×${n}` : verb)),
-  ];
+    read ? `read ${plural(read, 'file')}` : '',
+    edited.size ? `edited ${plural(edited.size, 'file')}` : '',
+    ...[...counts].map(([name, n]) =>
+      name === 'check'
+        ? `checked ${times(n)}`
+        : name === 'still'
+          ? `looked at ${plural(n, 'frame')}`
+          : name === 'shell'
+            ? `ran ${plural(n, 'command')}`
+            : name === 'search_motions'
+              ? 'searched motionhub'
+              : name === 'use_motion'
+                ? `took ${plural(n, 'motion')}`
+                : name === 'web_search'
+                  ? 'searched the web'
+                  : name,
+    ),
+  ].filter(Boolean);
   const failed = tools.filter((t) => t.result && !t.result.ok).length;
-  return `${parts.join(' · ')}${failed ? ` · ${failed} failed` : ''}`;
+  return [...parts, failed ? `${failed} failed` : ''].filter(Boolean).join(' · ');
 }
 
+/**
+ * What a turn that ended at row `end` gave: its answer (what the agent said after its last tool call) and how its last
+ * check of the film came out, if it checked.
+ */
+export function turnFacts(items: Row[], end: number): { answer: string; check?: boolean } {
+  let from = end;
+  while (from > 0 && items[from - 1]!.kind !== 'user') from--;
+  let last = from - 1;
+  for (let i = from; i < end; i++) if (isWork(items[i]!)) last = i;
+  const answer = items
+    .slice(last + 1, end)
+    .flatMap((item) => (item.kind === 'assistant' ? [item.text] : []))
+    .join('\n\n');
+  const check = items
+    .slice(from, end)
+    .filter((item): item is Tool => item.kind === 'tool' && item.name === 'check' && !!item.result)
+    .pop();
+  return { answer, ...(check ? { check: check.result!.ok } : {}) };
+}
+
+/** How a turn ended, from its end: done, stopped (a notice that is not an error) or failed. */
+export const outcomeOf = (notice?: { error: boolean }): TurnEnd['outcome'] => (!notice ? 'done' : notice.error ? 'failed' : 'stopped');
 /** The tool call still running, if any. */
 export const running = (tools: Tool[]) => tools.find((tool) => !tool.result);
 

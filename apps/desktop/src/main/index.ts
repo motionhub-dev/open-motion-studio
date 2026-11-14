@@ -40,7 +40,7 @@ import { keepFilmsInPlace, registerPreviewScheme, servePreview } from './film/pr
 import { motionDetail, motionReel, projectMotions, searchMotions, useMotion } from './motions';
 import { STATE_DIR, createProject, isRecent, openProject, projectAt, recentProjects, rememberProject } from './project';
 import { describeReferences, filmSpans, readReferences } from './agent/references';
-import { ProjectHistory, changesBetween, noteFiles, putBack } from './history';
+import { ProjectHistory, changesBetween, inProject, noteFiles, putBack } from './history';
 import { NO_TOKENS, type Spent, readTurns, recordTurn, totals } from './usage';
 import { randomUUID } from 'node:crypto';
 import { isAbsolute, relative, resolve } from 'node:path';
@@ -284,7 +284,11 @@ async function outsideTurn(
   const began = Date.now();
   let toolCalls = 0;
   const emit = (event: AgentEvent) => {
-    if (event.type === 'tool') toolCalls++;
+    if (event.type === 'tool') {
+      toolCalls++;
+      // The agent names files by their whole path; the panel names them in the project.
+      event = { ...event, summary: inProject(event.summary, dir) };
+    }
     agent.items = applyEvent(agent.items, event);
     if (open === state) send(EVENTS.agent, event);
   };
@@ -374,7 +378,7 @@ async function outsideTurn(
   const usage: TurnUsage = { ...spent.tokens, calls: spent.calls, seconds: (Date.now() - began) / 1000, ...(spent.model ? { model: spent.model } : {}) };
   // Logged before the turn ends, so the panel reads it with the turn.
   await logTurn(dir, { agent: agent.kind, usage, notice: outcome.notice, stopped: signal.aborted, tools: toolCalls, checkpoint, costUsd: spent.costUsd });
-  emit({ type: 'end', notice: outcome.notice, checkpoint, usage });
+  emit({ type: 'end', notice: outcome.notice, checkpoint, files: history.files, usage });
   if (checkpoint) state.lastTurn = { checkpoint, start };
   await saveAgent(dir, agent);
   return { ok: outcome.ok };
@@ -698,7 +702,7 @@ function registerHandlers(): void {
             if (event.type === 'tool') toolCalls++;
             if (event.type === 'end' && event.usage) {
               // The model is the provider's; the turn is logged as it ends.
-              event = { ...event, usage: { ...event.usage, model: provider.model } };
+              event = { ...event, files: history.files, usage: { ...event.usage, model: provider.model } };
               logged = logTurn(dir, { agent: 'built-in', usage: event.usage!, notice: event.notice, stopped: controller.signal.aborted, tools: toolCalls, checkpoint: event.checkpoint });
             }
             if (open === state) send(EVENTS.agent, event);

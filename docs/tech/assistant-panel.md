@@ -48,7 +48,9 @@ sees what a turn cost.
 
 ## Slice 2: a turn as one block, and its outcome
 
-The mock's "finished turn" and "working turn".
+The mock's "finished turn" and "working turn". *Built*, as below; an outside agent's file paths are made the
+project's in the main process (`history.ts inProject`), and the `end` event carries the files the turn changed. The
+work block is red only when its last call failed, since a turn that fixed what failed on the way ended well.
 
 - **One block**: a turn's tool calls fold into one line ("How it got there · read 2 files · edited 3 · checked twice ·
   looked at 6 frames"), open while the turn runs and folded when it ends, in the same place so nothing jumps; its steps

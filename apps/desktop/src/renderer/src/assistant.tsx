@@ -6,7 +6,7 @@
 // stops it and goes in its place.
 
 import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react';
-import { AlertTriangle, ArrowUp, Check, ChevronDown, Clock, History, Loader, PanelLeftClose, RotateCcw, Square, X } from 'lucide-react';
+import { AlertTriangle, ArrowUp, Check, ChevronDown, Clock, Copy, History, Loader, PanelLeftClose, RotateCcw, Square, X } from 'lucide-react';
 import {
   type AgentEvent,
   type AgentKind,
@@ -21,7 +21,23 @@ import {
   applyEvent,
 } from '../../shared/api';
 import type { FilmInfo } from '../../shared/preview';
-import { type Row, allTokens, blocks, changeKey, changeLine, failingRun, filmChanges, running, tokenCount, tokenParts, workLine, workedFor } from './activity';
+import {
+  type Row,
+  type Step,
+  allTokens,
+  blocks,
+  changeKey,
+  changeLine,
+  failingRun,
+  filmChanges,
+  outcomeOf,
+  running,
+  tokenCount,
+  tokenParts,
+  turnFacts,
+  turnLine,
+  workedFor,
+} from './activity';
 import { Brief } from './brief';
 import { Markdown } from './markdown';
 import { elementName, timecode } from './preview';
@@ -30,7 +46,10 @@ import { reason } from './reason';
 function apply(items: Row[], event: AgentEvent, before: FilmInfo | null): Row[] {
   // The turn rows stay where they are; the transcript's own items take the event as everywhere else.
   if (event.type === 'end')
-    return [...applyEvent(items as ChatItem[], event), { kind: 'turn', before, checkpoint: event.checkpoint, usage: event.usage }];
+    return [
+      ...applyEvent(items as ChatItem[], event),
+      { kind: 'turn', before, checkpoint: event.checkpoint, files: event.files, outcome: outcomeOf(event.notice), usage: event.usage },
+    ];
   if (event.type === 'tool-result' || event.type === 'approval-done')
     return items.map((item) => (item.kind === 'turn' ? item : applyEvent([item], event)[0]!));
   const last = items[items.length - 1];
@@ -62,32 +81,62 @@ function shownStills<T>(stills: T[], open: boolean): { shown: T[]; folded: numbe
   return { shown: stills.slice(0, STILLS_SHOWN - 1), folded: stills.length - (STILLS_SHOWN - 1) };
 }
 
-/** A run of tool calls: one line saying what was done, or what is being done now, and the stills beside it in a row. */
-function Work({ tools, live, onStill }: { tools: Tool[]; live: boolean; onStill(tool: Tool): void }) {
+/**
+ * A turn's work as one block: a line saying what it did ("How it got there · read 2 files · edited 3 files"), or what
+ * it is doing now; its steps under it (each tool call, and what the agent said between them), open while the turn
+ * runs and folded when it ends, unless the person opened or folded it; and the stills it looked at in a row.
+ */
+function Work({ steps, tools, live, onStill }: { steps: Step[]; tools: Tool[]; live: boolean; onStill(tool: Tool): void }) {
   const now = live ? running(tools) : undefined;
-  const failed = tools.some((tool) => tool.result && !tool.result.ok);
+  // A turn that fixed what failed on the way ended well: only a last call that failed marks the work as failing.
+  const finished = tools.filter((tool) => tool.result);
+  const failed = finished.length > 0 && !finished[finished.length - 1]!.result!.ok;
   const stills = tools.filter((tool) => tool.result?.image);
   const [open, setOpen] = useState(false);
+  /** Whether the person opened or folded the steps themselves, which the turn's end then leaves alone. */
+  const [unfolded, setUnfolded] = useState<boolean | null>(null);
   const { shown, folded } = shownStills(stills, open);
   return (
     <div className="work">
-      <details className={`tool${failed && !now ? ' failed' : ''}`}>
+      <details
+        className={`tool${failed && !live ? ' failed' : ''}`}
+        open={unfolded ?? live}
+        onToggle={(event) => {
+          const now = event.currentTarget.open;
+          if (now !== (unfolded ?? live)) setUnfolded(now);
+        }}
+      >
         <summary>
-          {now ? <Loader size={13} className="spin" /> : failed ? <X size={13} /> : <Check size={13} className="ok" />}
-          <span>{now ? `Now: ${now.summary}…` : workLine(tools)}</span>
+          {live ? <Loader size={13} className="spin" /> : failed ? <X size={13} /> : <Check size={13} className="ok" />}
+          <span>
+            {live ? (
+              now ? `Now: ${now.summary}…` : 'Working…'
+            ) : (
+              <>
+                <b>How it got there</b> · {turnLine(tools)}
+              </>
+            )}
+          </span>
+          <ChevronDown size={13} className="work-fold" />
         </summary>
         <ol className="work-steps">
-          {tools.map((tool) => (
-            <li key={tool.id} className={tool.result && !tool.result.ok ? 'failed' : undefined}>
-              <details>
-                <summary>
-                  {!tool.result ? <Loader size={12} className="spin" /> : tool.result.ok ? <Check size={12} className="ok" /> : <X size={12} />}
-                  <span>{tool.summary}</span>
-                </summary>
-                {tool.result && !tool.result.image && <pre>{tool.result.text}</pre>}
-              </details>
-            </li>
-          ))}
+          {steps.map((step) =>
+            step.kind === 'said' ? (
+              <li key={`said-${step.index}`} className="said">
+                {step.text}
+              </li>
+            ) : (
+              <li key={step.id} className={step.result && !step.result.ok ? 'failed' : undefined}>
+                <details>
+                  <summary>
+                    {!step.result ? <Loader size={12} className="spin" /> : step.result.ok ? <Check size={12} className="ok" /> : <X size={12} />}
+                    <span>{step.summary}</span>
+                  </summary>
+                  {step.result && !step.result.image && <pre>{step.result.text}</pre>}
+                </details>
+              </li>
+            ),
+          )}
         </ol>
       </details>
       {stills.length > 0 && (
@@ -118,6 +167,44 @@ function Work({ tools, live, onStill }: { tools: Tool[]; live: boolean; onStill(
     </div>
   );
 }
+
+/** Copies the agent's answer, and says for a moment whether it did. */
+function CopyButton({ text }: { text: string }) {
+  const [said, setSaid] = useState<{ ok: boolean; why?: string } | null>(null);
+  useEffect(() => {
+    if (!said) return;
+    const timer = setTimeout(() => setSaid(null), 1600);
+    return () => clearTimeout(timer);
+  }, [said]);
+  return (
+    <button
+      type="button"
+      className="button ghost"
+      data-tip={said && !said.ok ? `Not copied: ${said.why}` : 'Copy the agent’s answer'}
+      onClick={() =>
+        navigator.clipboard.writeText(text).then(
+          () => setSaid({ ok: true }),
+          (e: unknown) => setSaid({ ok: false, why: reason(e) }),
+        )
+      }
+    >
+      {said?.ok ? <Check size={13} /> : <Copy size={13} />}
+      {said ? (said.ok ? 'Copied' : 'Not copied') : 'Copy'}
+    </button>
+  );
+}
+
+/** How many of the last turns the conversation draws whole. */
+const RECENT_TURNS = 3;
+
+type Phase = 'thinking' | 'editing' | 'checking' | 'reviewing';
+/** The phases a turn goes through, in the order the progress row shows them. */
+const PHASES: [Phase, string][] = [
+  ['thinking', 'Thinking'],
+  ['editing', 'Editing'],
+  ['checking', 'Checking'],
+  ['reviewing', 'Looking'],
+];
 
 /** Ways to begin, for an empty conversation. */
 const STARTS = [
@@ -217,6 +304,8 @@ export function Assistant({
   /** A message waiting for the turn to end; `steer` stopped the turn for it. */
   const [queued, setQueued] = useState<{ text: string; steer: boolean } | null>(null);
   const [undoing, setUndoing] = useState(false);
+  /** Whether the person asked to see the turns before the last few. */
+  const [showEarlier, setShowEarlier] = useState(false);
   /** The film when the last message went, which the turn's end keeps. */
   const filmAtSend = useRef<FilmInfo | null>(null);
   /** The project's turns added up, from its usage log, for the header. */
@@ -227,7 +316,9 @@ export function Assistant({
   const [draft, setDraft] = useState('');
   const [following, setFollowing] = useState(true);
   const [working, setWorking] = useState(false);
-  const [phase, setPhase] = useState<'thinking' | 'editing' | 'checking' | 'reviewing'>('thinking');
+  const [phase, setPhase] = useState<Phase>('thinking');
+  /** The phases the running turn has been through, ticked in the progress row. */
+  const [seen, setSeen] = useState<Set<Phase>>(new Set(['thinking']));
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
     if (!working) return;
@@ -275,7 +366,10 @@ export function Assistant({
       const before = filmAtSend.current;
       setItems((current) => apply(current, event, before));
       if (event.type === 'end') setWorking(false);
-      if (event.type === 'phase') setPhase(event.phase);
+      if (event.type === 'phase') {
+        setPhase(event.phase);
+        setSeen((now) => (now.has(event.phase) ? now : new Set(now).add(event.phase)));
+      }
     });
     window.studio.conversation().then(
       (items) => {
@@ -345,6 +439,7 @@ export function Assistant({
     filmAtSend.current = film;
     setFollowing(true);
     setPhase('thinking');
+    setSeen(new Set(['thinking']));
     setWorking(true);
     setItems((current) => [...current, { kind: 'user', text, marks: shown, refs: refsSent, version }]);
     // The composer is free for the next message while the turn runs; a message that fails comes back to it.
@@ -393,12 +488,19 @@ export function Assistant({
   }
 
   const drawn = blocks(items);
+  /** Where the person's last message is drawn: what follows it is the turn that runs while the agent works. */
+  const lastAsked = drawn.findLastIndex((block) => block.kind === 'item' && block.item.kind === 'user');
+  // The last turns are drawn whole; earlier ones wait behind a button.
+  const asked = drawn.flatMap((block, b) => (block.kind === 'item' && block.item.kind === 'user' ? [b] : []));
+  const firstShown = showEarlier || asked.length <= RECENT_TURNS ? 0 : asked[asked.length - RECENT_TURNS]!;
+  const earlier = asked.filter((b) => b < firstShown).length;
   const failing = working ? failingRun(items) : null;
 
   async function clear() {
     try {
       await window.studio.clearConversation();
       setItems([]);
+      setShowEarlier(false);
     } catch (e) {
       setItems((current) => [...current, { kind: 'notice', text: reason(e), error: true }]);
     }
@@ -464,13 +566,20 @@ export function Assistant({
             ))}
           </div>
         )}
+        {earlier > 0 && (
+          <button type="button" className="quiet earlier-turns" onClick={() => setShowEarlier(true)}>
+            Show {earlier} earlier {earlier === 1 ? 'turn' : 'turns'}
+          </button>
+        )}
         {drawn.map((block, b) => {
+          if (b < firstShown) return null;
           if (block.kind === 'work')
             return (
               <Work
                 key={block.tools[0]!.id}
+                steps={block.steps}
                 tools={block.tools}
-                live={working && b === drawn.length - 1}
+                live={working && b > lastAsked}
                 onStill={(tool) => {
                   if (tool.at !== undefined) onSeek(tool.at);
                   setShown({ image: tool.result!.image!, caption: tool.result!.text });
@@ -514,13 +623,29 @@ export function Assistant({
             const undoable = latest && !working && item.checkpoint;
             // Every turn says what it took; one that changed nothing and cannot be undone says only that.
             if ((latest && working) || (!changes.length && !undoable && !item.usage)) return null;
+            const { answer, check } = turnFacts(items, i);
+            // The film's length, where the turn changed it.
+            const longer = item.before && after && Math.abs(after.seconds - item.before.seconds) >= 0.05 ? after.seconds - item.before.seconds : 0;
             return (
-              <div key={`turn-${i}`} className="turn-card">
-                {item.usage && (
-                  <span className="turn-took" title={tokenParts(item.usage)}>
-                    {workedFor(item.usage.seconds)} · {tokenCount(allTokens(item.usage))} tokens
-                  </span>
-                )}
+              <div key={`turn-${i}`} className={`turn-card ${item.outcome}`}>
+                <div className="turn-line">
+                  <strong>{item.outcome === 'done' ? 'Done' : item.outcome === 'stopped' ? 'Stopped' : 'Failed'}</strong>
+                  {item.usage && (
+                    <span className="turn-took" title={tokenParts(item.usage)}>
+                      {workedFor(item.usage.seconds)} · {tokenCount(allTokens(item.usage))} tokens
+                    </span>
+                  )}
+                  {!!item.files && <span>{item.files === 1 ? '1 file' : `${item.files} files`}</span>}
+                  {check !== undefined && (
+                    <span className={check ? 'pass' : 'fail'}>{check ? '✓ Check: no problems' : '✕ Check: problems left'}</span>
+                  )}
+                  {longer !== 0 && after && (
+                    <span>
+                      film {after.seconds.toFixed(1)} s ({longer > 0 ? '+' : '−'}
+                      {Math.abs(longer).toFixed(1)})
+                    </span>
+                  )}
+                </div>
                 {changes.length > 0 && (
                   <>
                     <span className="eyebrow">{changeLine(changes)}</span>
@@ -539,17 +664,22 @@ export function Assistant({
                     </div>
                   </>
                 )}
-                {undoable && (
-                  <button
-                    type="button"
-                    className="button ghost"
-                    disabled={working || undoing}
-                    data-tip="Put the files back as they were before this turn, take the turn out of the conversation, and put your message back to change. History can undo this too."
-                    onClick={() => void undo(item.checkpoint!)}
-                  >
-                    <RotateCcw size={13} />
-                    Undo this turn
-                  </button>
+                {(undoable || answer) && (
+                  <div className="turn-actions">
+                    {undoable && (
+                      <button
+                        type="button"
+                        className="button"
+                        disabled={working || undoing}
+                        data-tip="Put the files back as they were before this turn, take the turn out of the conversation, and put your message back to change. History can undo this too."
+                        onClick={() => void undo(item.checkpoint!)}
+                      >
+                        <RotateCcw size={13} />
+                        Go back to before this
+                      </button>
+                    )}
+                    {answer && <CopyButton text={answer} />}
+                  </div>
                 )}
               </div>
             );
@@ -629,6 +759,14 @@ export function Assistant({
         })}
         {working && (
           <div className="agent-progress" role="status">
+            <ol className="phases" aria-label="Where the turn is">
+              {PHASES.map(([key, label]) => (
+                <li key={key} className={key === phase ? 'on' : seen.has(key) ? 'done' : undefined}>
+                  {seen.has(key) && key !== phase && <Check size={11} />}
+                  {label}
+                </li>
+              ))}
+            </ol>
             <div>
               <Loader size={13} className="spin" />
               <strong>
@@ -644,16 +782,10 @@ export function Assistant({
                 {Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}
               </span>
             </div>
-            {failing && failing.times >= 3 ? (
+            {failing && failing.times >= 3 && (
               <p className="warning">
                 <AlertTriangle size={13} /> {failing.name} has failed {failing.times} times in a row. You can stop it and say what
                 to try instead.
-              </p>
-            ) : (
-              <p>
-                {elapsed >= 60
-                  ? 'Still working. You can stop at any time; file changes remain recoverable in History.'
-                  : 'Your project stays on this computer. File changes are checkpointed as they happen.'}
               </p>
             )}
           </div>
@@ -845,14 +977,15 @@ export function Assistant({
           {working ? (
             <button
               type="button"
-              className="send"
+              className="send stop"
               aria-label="Stop"
               data-tip="Stop"
               onClick={() => {
                 window.studio.stopAgent().catch((e) => setItems((items) => [...items, { kind: 'notice', text: reason(e), error: true }]));
               }}
             >
-              <Square size={13} fill="currentColor" />
+              <Square size={11} fill="currentColor" />
+              Stop
             </button>
           ) : (
             <button
