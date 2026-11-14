@@ -3,6 +3,18 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-14 — Every turn says its tokens and time, and is logged
+
+- **What:** Each turn of every agent ends with its time and tokens (input, cached, cache written, output, reasoning,
+  model calls), shown on the turn's card ("Worked for 1m 12s · 18.4k tokens", the parts on hover), with the project's
+  total beside the assistant's title. Each turn is also appended as one JSON line to the project's
+  `.motion-studio/usage.jsonl` (ADR 0009), with Claude Code's reported cost there, never shown. Chat Completions
+  providers' cached prompt and reasoning tokens are now read too.
+- **Why:** To track and tune the agents' turns, and so the person sees what a turn took.
+- **Breaking:** None.
+- **Upgrade:** Nothing; a project's log starts with its next turn, and git already leaves `.motion-studio/` out.
+- **Refs:** ADR 0009, `apps/desktop/src/main/usage.ts`, `docs/tech/assistant-panel.md`.
+
 ## 2026-11-14 — The outline follows the playhead and shows the film
 
 - **What:** The outline is one row a scene (a frame of it, its first line, number, start and length) on a rail that

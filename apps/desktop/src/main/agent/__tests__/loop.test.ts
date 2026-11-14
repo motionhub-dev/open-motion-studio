@@ -6,8 +6,8 @@ import type { ToolContext } from '../tools';
 
 vi.mock('electron', () => ({}));
 
-const reply = (content: Message['content'], stop: Message['stop_reason'] = 'end_turn') =>
-  ({ id: 'msg', type: 'message', role: 'assistant', model: 'm', content, stop_reason: stop }) as unknown as Message;
+const reply = (content: Message['content'], stop: Message['stop_reason'] = 'end_turn', usage?: Record<string, number>) =>
+  ({ id: 'msg', type: 'message', role: 'assistant', model: 'm', content, stop_reason: stop, usage }) as unknown as Message;
 
 const use = (id: string, name: string, input: unknown) => ({ type: 'tool_use', id, name, input }) as Message['content'][number];
 const say = (text: string) => ({ type: 'text', text, citations: null }) as Message['content'][number];
@@ -44,14 +44,19 @@ function setup(replies: Message[]) {
 describe('runTurn', () => {
   it('runs the tools the model asks for and sends their results back, until it ends its turn', async () => {
     const { events, messages, call, turn } = setup([
-      reply([say('Looking.'), use('t1', 'search_motions', { words: 'ocean' })], 'tool_use'),
-      reply([say('Done.')]),
+      reply([say('Looking.'), use('t1', 'search_motions', { words: 'ocean' })], 'tool_use', { input_tokens: 900, cache_read_input_tokens: 4000, output_tokens: 60 }),
+      reply([say('Done.')], 'end_turn', { input_tokens: 120, cache_read_input_tokens: 4900, cache_creation_input_tokens: 80, output_tokens: 15 }),
     ]);
     await runTurn(turn, String);
     expect(call).toHaveBeenCalledTimes(2);
     expect(messages.map((m) => m.role)).toEqual(['user', 'assistant', 'user', 'assistant']);
     expect(messages[2]!.content).toEqual([{ type: 'tool_result', tool_use_id: 't1', content: 'No motion has all of those words.' }]);
-    expect(events.at(-1)).toEqual({ type: 'end', notice: undefined });
+    // The turn's account: its two calls' tokens added up, and its time.
+    expect(events.at(-1)).toEqual({
+      type: 'end',
+      notice: undefined,
+      usage: { input: 1020, cacheRead: 8900, cacheWrite: 80, output: 75, reasoning: 0, calls: 2, seconds: expect.any(Number) },
+    });
     expect(transcript(messages).map((i) => i.kind)).toEqual(['user', 'assistant', 'tool', 'assistant']);
   });
 
@@ -73,7 +78,7 @@ describe('runTurn', () => {
   it('ends with the provider’s reason when a call fails', async () => {
     const { turn, events } = setup([]);
     expect(await runTurn(turn, () => 'The provider refused the key.')).toEqual({ ok: false });
-    expect(events.at(-1)).toEqual({ type: 'end', notice: { text: 'The provider refused the key.', error: true } });
+    expect(events.at(-1)).toMatchObject({ type: 'end', notice: { text: 'The provider refused the key.', error: true }, usage: { calls: 0 } });
   });
 
   it('answers the calls it did not run when the person stops it', async () => {
@@ -115,5 +120,5 @@ describe('ask_person', () => {
 it('ends a turn with the History entry of what it wrote', async () => {
   const { events, turn } = setup([reply([say('Done.')])]);
   await runTurn({ ...turn, checkpoint: () => 'entry-1' }, String);
-  expect(events.at(-1)).toEqual({ type: 'end', notice: undefined, checkpoint: 'entry-1' });
+  expect(events.at(-1)).toMatchObject({ type: 'end', notice: undefined, checkpoint: 'entry-1' });
 });

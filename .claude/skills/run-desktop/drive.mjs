@@ -14,6 +14,9 @@
 //   theme:<scheme>   dark, light or system: the colour scheme the window draws in
 //   size:<w>x<h>     resize the window
 //   boxes            print the workspace's panels' boxes as JSON
+//   agent:<kind>     make the project talk to built-in, claude or codex (its agent.json), and open it again
+//   send:<text>      send a message and wait for the turn to end: a real turn, on the person's own sign-in or key
+//   file:<path>      print a file of the open project (e.g. .motion-studio/usage.jsonl)
 //   session:<file>   put a conversation (the built-in agent's messages, as .motion-studio/session.json holds them) in
 //                    the open project, then close it and open it again from the launcher's recents, so it shows
 //   stills:<n>       the same with a made-up conversation: one turn that looked at <n> stills of the film
@@ -144,6 +147,28 @@ try {
           }),
         ),
       );
+    } else if (verb === 'agent') {
+      // The project's agent, as .motion-studio/agent.json keeps it; the project is opened again to take it up.
+      const project = await page.getAttribute('.topbar .name', 'title');
+      fs.mkdirSync(path.join(project, '.motion-studio'), { recursive: true });
+      fs.writeFileSync(path.join(project, '.motion-studio', 'agent.json'), JSON.stringify({ kind: arg, items: [] }));
+      await page.evaluate(() => document.querySelector('.topbar > .icon-button')?.click());
+      await page.waitForSelector('.recent', { timeout: 30_000 });
+      await page.evaluate(() => document.querySelector('.recent')?.click());
+      await page.waitForSelector('.stage-bar', { timeout: 30_000 });
+      await settled(page);
+    } else if (verb === 'file') {
+      // A file of the open project, printed (the throwaway profile, and the project in it, go when the run ends).
+      const project = await page.getAttribute('.topbar .name', 'title');
+      const file = path.join(project, arg);
+      console.log(fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : `no file: ${arg}`);
+    } else if (verb === 'send') {
+      // A real turn: it runs on the agent as the person set it up, and spends their tokens.
+      await page.fill('.composer textarea', arg);
+      await page.press('.composer textarea', 'Enter');
+      await page.waitForSelector('.agent-progress', { timeout: 30_000 }).catch(() => undefined);
+      await page.waitForSelector('.agent-progress', { state: 'detached', timeout: 300_000 });
+      await page.waitForTimeout(500);
     } else if (verb === 'session' || verb === 'stills') {
       const messages = verb === 'session' ? JSON.parse(fs.readFileSync(arg, 'utf8')) : await lookedAt(page, Number(arg) || 6);
       const project = await page.getAttribute('.topbar .name', 'title');

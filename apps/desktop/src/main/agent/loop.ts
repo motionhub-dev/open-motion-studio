@@ -9,6 +9,7 @@ import { REFERENCES_TAG, transcriptReferences } from './references';
 import { MARKS_TAG, transcriptMarks } from './marks';
 import type { Call, MessageParam } from './model';
 import { type ToolContext, type ToolOutcome, askOf, runTool } from './tools';
+import { NO_TOKENS, addTokens, messageTokens } from '../usage';
 
 /** Model calls in one turn before the agent is stopped. */
 export const MAX_CALLS = 40;
@@ -72,6 +73,9 @@ export function summary(name: string, input: unknown): string {
 /** Runs one turn on `messages`, which it extends in place. Never throws: a failure ends the turn with a notice. */
 export async function runTurn(turn: Turn, failure: (error: unknown) => string): Promise<{ ok: boolean }> {
   const { messages, emit, signal } = turn;
+  const started = Date.now();
+  let tokens = NO_TOKENS;
+  let made = 0;
   messages.push({ role: 'user', content: turn.content });
   await turn.save(messages);
   let notice: { text: string; error: boolean } | undefined;
@@ -83,6 +87,8 @@ export async function runTurn(turn: Turn, failure: (error: unknown) => string): 
       }
       emit({ type: 'phase', phase: 'thinking' });
       const reply = await turn.call(messages, (text) => emit({ type: 'text', text }), signal);
+      tokens = addTokens(tokens, messageTokens(reply.usage));
+      made++;
       messages.push({ role: 'assistant', content: reply.content });
       await turn.save(messages);
 
@@ -148,7 +154,7 @@ export async function runTurn(turn: Turn, failure: (error: unknown) => string): 
     notice = signal.aborted ? { text: 'Stopped.', error: false } : { text: failure(error), error: true };
   }
   if (signal.aborted && !notice) notice = { text: 'Stopped.', error: false };
-  emit({ type: 'end', notice, checkpoint: turn.checkpoint?.() });
+  emit({ type: 'end', notice, checkpoint: turn.checkpoint?.(), usage: { ...tokens, calls: made, seconds: (Date.now() - started) / 1000 } });
   return { ok: !notice?.error && !signal.aborted };
 }
 

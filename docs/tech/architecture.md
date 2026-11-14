@@ -64,7 +64,7 @@ site/                  the introduction page at studio.motionhub.dev: static HTM
 
 | Component | Owns | Never does |
 | --- | --- | --- |
-| `project` | The folder is the truth: files on disk, git if the person uses it. The Studio's own state for a project is `.motion-studio/` (the film's bundle in `build/`, the conversation in `session.json`, the checkpoints in `history.json`, the timeline's scene frames in `thumbs/`), which a new project's `.gitignore` leaves out | Keep a copy of the project elsewhere |
+| `project` | The folder is the truth: files on disk, git if the person uses it. The Studio's own state for a project is `.motion-studio/` (the film's bundle in `build/`, the conversation in `session.json`, the checkpoints in `history.json`, the timeline's scene frames in `thumbs/`, each turn's tokens and time in `usage.jsonl` (ADR 0009)), which a new project's `.gitignore` leaves out | Keep a copy of the project elsewhere |
 | `film/*` | Turning `film.tsx` into a playable preview, a still at a time, and an MP4 | Know about the agent or the UI |
 | `agent` | The conversation, the tools, what the agent may do | Hold a key longer than a turn, or write the Studio's state, a motion from motionhub, dependencies or git |
 | `providers` | The providers in `settings.json` (userData); each key sealed with `safeStorage` in `keys.json`, opened for a call | Put a key in a reply to the renderer, a log, an error or a project |

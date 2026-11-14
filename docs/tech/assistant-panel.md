@@ -24,20 +24,25 @@ Every turn records its tokens and time; where the agent says what it cost, that 
 
 ## Slice 1: every turn's tokens and time
 
+*Built.* As planned, but for a reopened project: its turns' cards are drawn only for turns run while it is open, and
+the head shows the project's totals from the log. Codex's accounts were checked on Codex 0.167.0: one
+`thread/tokenUsage/updated` per model call, its `last` that call's and its `total` the thread's.
+
 The ground the rest stands on, and what the developer asked for first: to track and tune the agents, and so the person
 sees what a turn cost.
 
-- **The turn's account**: the `end` event carries `usage: { seconds, model?, input, output, cacheRead?, cacheWrite?,
-  reasoning?, costUsd? }`, summed over the turn's calls (built-in `loop.ts`), taken from the turn's `result`s (Claude
-  Code, summed when a message sent mid-turn ran as a turn of its own) or from the last `thread/tokenUsage/updated` of the
-  turn (Codex). The seconds are the main process's, from the message to the turn's end, for every agent alike.
+- **The turn's account**: the `end` event carries `usage: { seconds, calls, model?, input, cacheRead, cacheWrite,
+  output, reasoning }`, summed over the turn's calls (built-in `loop.ts`), over the turn's `result`s (Claude Code, more
+  than one when a message sent mid-turn ran as a turn of its own) or over the `last` of each
+  `thread/tokenUsage/updated` under the turn's id (Codex). The built-in turn's seconds are its loop's; an outside
+  agent's, the main process's from the message to the turn's end.
 - **On disk**: each turn's account is appended to `.motion-studio/usage.jsonl`, one JSON line: the time, the agent, the
-  model, the account, whether the turn finished, failed or was stopped, its checkpoint id, the number of tool calls and
-  of the check's runs. A line is never rewritten; a project's log is the project's (git ignores it with the rest of
-  `.motion-studio/`). An ADR (0009) fixes the line's format, since tools may come to read it.
-- **Shown**: the turn's card reads `1m 12s · 18.4k tokens · $0.21` (the cost only where the agent reported one), each
-  part explained on hover (input, cached, output, reasoning). The conversation's total sits in the header's tooltip.
-  Turn cards are drawn from the log too, so a reopened project shows its turns' accounts.
+  model, the account, whether the turn finished, failed or was stopped, its checkpoint id, the number of tool calls,
+  and Claude Code's reported cost. A line is never rewritten; a project's log is the project's (git ignores it with the
+  rest of `.motion-studio/`). ADR 0009 fixes the line's format.
+- **Shown**: tokens, never money (the developer's choice): the turn's card reads `Worked for 1m 12s · 18.4k tokens`,
+  its parts on hover (model, calls, input, cached, cache written, output, reasoning); the project's total sits beside
+  the assistant's title. A reopened project's earlier turns keep no card (they are not rows of the transcript).
 - **Tests**: what reaches `usage.jsonl` and where, for each agent's events (the stand-in Claude Code process, a Codex
   notification fixture, the built-in loop with scripted replies); a Claude Code turn that ran on after its `result`.
 

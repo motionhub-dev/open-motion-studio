@@ -201,8 +201,34 @@ export type AgentEvent =
   /** An outside agent asks leave to do something beyond its sandbox; the panel answers with answerApproval. */
   | { type: 'approval'; approval: Approval }
   | { type: 'approval-done'; id: string; answer: ApprovalAnswer }
-  /** `checkpoint` is the History entry of the files the turn wrote, if it wrote any. */
-  | { type: 'end'; notice?: { text: string; error: boolean }; checkpoint?: string };
+  /** `checkpoint` is the History entry of the files the turn wrote, if it wrote any; `usage`, what the turn took. */
+  | { type: 'end'; notice?: { text: string; error: boolean }; checkpoint?: string; usage?: TurnUsage };
+
+/**
+ * The tokens an agent reported for a turn, on one footing for every agent: `input` excludes what was read from or
+ * written to the prompt cache, which `cacheRead` and `cacheWrite` count; `reasoning` is the part of `output` spent
+ * thinking.
+ */
+export interface Tokens {
+  input: number;
+  cacheRead: number;
+  cacheWrite: number;
+  output: number;
+  reasoning: number;
+}
+
+/** What a turn took: its time from the message to its end, its model calls and tokens, and its model where known. */
+export interface TurnUsage extends Tokens {
+  seconds: number;
+  calls: number;
+  model?: string;
+}
+
+/** A project's turns, added up from its usage log. */
+export interface UsageTotals extends Tokens {
+  turns: number;
+  seconds: number;
+}
 
 /** The conversation with one more of the agent's events in it: its words joined, each tool call and then its result. */
 export function applyEvent(items: ChatItem[], event: AgentEvent): ChatItem[] {
@@ -363,6 +389,8 @@ export interface StudioApi {
    * runs, and the words should wait for the turn's end.
    */
   steerAgent(text: string): Promise<boolean>;
+  /** The open project's turns added up, from its usage log (.motion-studio/usage.jsonl). */
+  projectUsage(): Promise<UsageTotals>;
   /** Forgets the open project's conversation. */
   clearConversation(): Promise<void>;
   /** Calls `listener` with what the agent does; returns the unsubscribe. */
@@ -417,6 +445,7 @@ export const CHANNELS = {
   stopAgent: 'agent:stop',
   steerAgent: 'agent:steer',
   clearConversation: 'agent:clear',
+  projectUsage: 'agent:usage',
   exportFilm: 'film:export',
   cancelExport: 'film:cancel-export',
   exportRemotion: 'film:export-remotion',
