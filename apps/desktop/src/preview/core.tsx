@@ -81,7 +81,7 @@ function info(module: FilmModule): FilmInfo {
   const outline = outlineOf(module.default, frame);
   if (!outline) throw new Error(`film.tsx draws no <Film>: ${write}.`);
   const sounds = [...outline.sounds, ...outline.scenes.flatMap((scene) => scene.sounds)];
-  return { ...frame, seconds: outline.seconds, scenes: outline.scenes, layers: outline.layers, sounds, captions: outline.captions };
+  return { ...frame, seconds: outline.seconds, scenes: outline.scenes, layers: outline.layers, sounds, captions: outline.captions, voice: outline.voice };
 }
 
 /** The structure the film's <Film> reports when it is drawn once, off the page, at its start; null when it draws none. */

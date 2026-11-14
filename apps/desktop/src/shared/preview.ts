@@ -15,8 +15,10 @@ export interface FilmInfo {
   layers: LayerBox[];
   /** Every <Sound> it plays, the film's own and its scenes', in the film's seconds (shared/sound.ts). */
   sounds: FilmSound[];
-  /** Whether it draws its lines as captions (<Film captions>). */
-  captions: boolean;
+  /** Whether it draws its lines as captions (<Film captions>), whole or word by word. */
+  captions: boolean | 'words';
+  /** The voice its lines are spoken in (<Film voice="provider:name">), or null. */
+  voice: string | null;
 }
 
 /** A box of the frame a <Layer> draws in, in the film's pixels. */

@@ -95,7 +95,7 @@ export async function openStage(version: number): Promise<Stage> {
           const error = await failed();
           if (error) throw new Error(error);
           const info = (await contents.executeJavaScript(
-            'window.__oms ? {seconds: __oms.seconds, width: __oms.width, height: __oms.height, fps: __oms.fps, scenes: __oms.scenes, layers: __oms.layers, sounds: __oms.sounds, captions: __oms.captions} : null',
+            'window.__oms ? {seconds: __oms.seconds, width: __oms.width, height: __oms.height, fps: __oms.fps, scenes: __oms.scenes, layers: __oms.layers, sounds: __oms.sounds, captions: __oms.captions, voice: __oms.voice} : null',
           )) as FilmInfo | null;
           if (info) return info;
           await new Promise((done) => setTimeout(done, 50));
