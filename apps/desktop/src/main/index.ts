@@ -23,6 +23,7 @@ import {
   applyEvent,
   ofPicture,
 } from '../shared/api';
+import type { FilmInfo } from '../shared/preview';
 import {
   type AppServer,
   type Place,
@@ -46,6 +47,8 @@ import { TOOLS, type ToolContext, projectPath } from './agent/tools';
 import type { BuildContext } from 'esbuild';
 import { exportFrames, ffmpegPath, openStage, sceneStills, serveRenders } from './film/capture';
 import { soundPeaks } from './film/mix';
+import { voiceFilm } from './narration';
+import { speak, voicesOf } from './voice';
 import { EXAMPLES, openExample } from './examples';
 import { ASSET_EXTENSIONS, importAssets, projectAssets } from './assets';
 import { reviewBuild } from './film/review';
@@ -563,6 +566,45 @@ function registerHandlers(): void {
     });
     stillsQueue = run.catch(() => {});
     return run;
+  });
+  ipcMain.handle(CHANNELS.voices, () => providers().voices());
+  ipcMain.handle(CHANNELS.saveVoice, (_event, input: unknown) => providers().saveVoice(input));
+  ipcMain.handle(CHANNELS.removeVoice, (_event, kind: unknown) => providers().removeVoice(kind));
+  ipcMain.handle(CHANNELS.voiceChoices, async (_event, input: unknown) => {
+    const draft = input as { kind?: unknown } | null;
+    return voicesOf(await providers().voiceSetup(draft?.kind, input));
+  });
+  ipcMain.handle(CHANNELS.sampleVoice, async (_event, input: unknown, voice: unknown, text: unknown) => {
+    if (typeof voice !== 'string' || !/^[\w.:-]{1,120}$/.test(voice)) throw new Error('Choose a voice to hear.');
+    if (typeof text !== 'string' || !text.trim() || text.length > 300) throw new Error('A sample is a sentence of up to 300 characters.');
+    const draft = input as { kind?: unknown } | null;
+    const speech = await speak(await providers().voiceSetup(draft?.kind, input), voice, text.trim());
+    return `data:audio/mpeg;base64,${speech.audio.toString('base64')}`;
+  });
+  // The film's lines spoken in its voice into voice/, then the film built again, so the preview times them by their speech.
+  ipcMain.handle(CHANNELS.voiceFilm, async () => {
+    const state = requireOpen();
+    const build = state.build;
+    if (!build?.ok) throw new Error('The film does not build: fix its errors before voicing it.');
+    if (working || exporting) throw new Error('Finish the current task before voicing the film.');
+    const controller = new AbortController();
+    working = controller;
+    try {
+      const stage = await openStage(build.version);
+      let film: FilmInfo;
+      try {
+        film = stage.film;
+      } finally {
+        stage.close();
+      }
+      const voiced = await voiceFilm(state.project.path, film, (kind) => providers().voiceSetup(kind), ffmpegPath(), (done, of) =>
+        send(EVENTS.voiceProgress, { done, of }),
+      );
+      if (open === state && state.watcher) await state.watcher.rebuild();
+      return voiced;
+    } finally {
+      if (working === controller) working = null;
+    }
   });
   ipcMain.handle(CHANNELS.soundPeaks, (_event, src: unknown) => {
     if (typeof src !== 'string') throw new Error('Name a sound of the film.');

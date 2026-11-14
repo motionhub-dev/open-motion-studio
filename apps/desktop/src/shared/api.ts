@@ -496,6 +496,20 @@ export interface StudioApi {
   exportFilm(): Promise<string | null>;
   /** Calls `listener` with the running export's progress (0 to 1); returns the unsubscribe. */
   onExportProgress(listener: (done: number) => void): () => void;
+
+  /** The voice providers set up (ADR 0012), without their keys. */
+  voices(): Promise<VoiceView[]>;
+  /** Sets a voice provider up or changes it; a key, when given, replaces the stored one. */
+  saveVoice(input: VoiceInput): Promise<VoiceView[]>;
+  removeVoice(kind: VoiceKind): Promise<VoiceView[]>;
+  /** The voices a provider offers: the one the form describes (its key typed, or the stored one). */
+  voiceChoices(input: VoiceInput): Promise<VoiceChoice[]>;
+  /** A sentence spoken in `voice` through the provider the form describes, as an MP3 data URL to hear. */
+  sampleVoice(input: VoiceInput, voice: string, text: string): Promise<string>;
+  /** Speaks the open film's lines in its voice into voice/ (only what changed), then builds the film again to time them. */
+  voiceFilm(): Promise<VoicedFilm>;
+  /** Calls `listener` with the voicing's progress, lines done of all; returns the unsubscribe. */
+  onVoiceProgress(listener: (progress: { done: number; of: number }) => void): () => void;
   /** Stops the running export, if any. */
   cancelExport(): Promise<void>;
   /** Asks for an empty (or new) folder, then writes the film there as a Remotion project; the folder, or null when the person cancels. */
@@ -523,6 +537,12 @@ export const CHANNELS = {
   lastBuild: 'film:last-build',
   sceneStills: 'film:scene-stills',
   soundPeaks: 'film:sound-peaks',
+  voices: 'voices:list',
+  saveVoice: 'voices:save',
+  removeVoice: 'voices:remove',
+  voiceChoices: 'voices:choices',
+  sampleVoice: 'voices:sample',
+  voiceFilm: 'film:voice',
   projectMotions: 'motions:project',
   searchMotions: 'motions:search',
   useMotion: 'motions:use',
@@ -555,5 +575,6 @@ export const CHANNELS = {
 export const EVENTS = {
   build: 'film:built',
   exportProgress: 'film:export-progress',
+  voiceProgress: 'film:voice-progress',
   agent: 'agent:event',
 } as const;
