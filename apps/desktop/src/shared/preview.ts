@@ -19,6 +19,18 @@ export interface FilmInfo {
   captions: boolean | 'words';
   /** The voice its lines are spoken in (<Film voice="provider:name">), or null. */
   voice: string | null;
+  /** Its voiced lines' clips, each where its line is said: the narration the preview plays and the export mixes. */
+  narration: SpokenLine[];
+  /** Each voiced line's speech, by line id, as the runtime times lines by it (its `voice`). */
+  speech: Record<string, { seconds: number; words: { text: string; start: number; end: number }[] }>;
+}
+
+/** A voiced line's clip (voice/<key>.mp3), from `at` to `until` in the film's seconds. */
+export interface SpokenLine {
+  line: string;
+  src: string;
+  at: number;
+  until: number;
 }
 
 /** A box of the frame a <Layer> draws in, in the film's pixels. */

@@ -64,11 +64,37 @@ const positive = (value: unknown, name: string, fallback: number): number => {
   throw new Error(`film.${name} must be a positive number of ${name === 'fps' ? 'frames a second' : 'pixels'}.`);
 };
 
+/** The project's narration as voice/ keeps it: the film's voice and, by line id, its clip's key and what it holds. */
+interface Spoken {
+  voice: string;
+  lines: Record<string, { key: string; text: string; voice: string; seconds: number; words: FilmInfo['speech'][string]['words'] }>;
+}
+
+/** The project's narration, read from voice/ through the scheme; null when it has none, or a clip will not read (said in the console). */
+async function spoken(): Promise<Spoken | null> {
+  const response = await fetch('project/voice/lines.json');
+  if (!response.ok) return null;
+  try {
+    const narration = (await response.json()) as { voice: string; lines: Record<string, string> };
+    const lines: Spoken['lines'] = {};
+    for (const [id, key] of Object.entries(narration.lines)) {
+      if (!/^[0-9a-f]{16}$/.test(key)) continue;
+      const clip = await fetch(`project/voice/${key}.json`);
+      if (clip.ok) lines[id] = { key, ...((await clip.json()) as Omit<Spoken['lines'][string], 'key'>) };
+    }
+    return { voice: narration.voice, lines };
+  } catch (error) {
+    console.warn('The narration in voice/ did not read:', error);
+    return null;
+  }
+}
+
 /**
  * What the film is: its size and rate from `export const film`, and its length and scenes from the <Film> it draws. Learning
- * them takes one render, off the page, at its start.
+ * them takes one render, off the page, at its start, and one more when it has a narration: a line's speech is used only while
+ * the line still says its words, in the film's voice, and the runtime times the voiced lines by it.
  */
-function info(module: FilmModule): FilmInfo {
+function info(module: FilmModule, narration: Spoken | null = null): FilmInfo {
   const film = module.film ?? {};
   if (typeof module.default !== 'function') throw new Error('film.tsx has no default export: export default the film component.');
   const frame = {
@@ -78,18 +104,43 @@ function info(module: FilmModule): FilmInfo {
   };
   const write = 'its default export returns a <Film> of <Scene id duration>s, whose durations are its length';
   if ('seconds' in film) throw new Error(`film.tsx gives film.seconds, which a film no longer has: ${write}. Take seconds out of film.`);
-  const outline = outlineOf(module.default, frame);
-  if (!outline) throw new Error(`film.tsx draws no <Film>: ${write}.`);
+  const unvoiced = outlineOf(module.default, frame);
+  if (!unvoiced) throw new Error(`film.tsx draws no <Film>: ${write}.`);
+  const speech: FilmInfo['speech'] = {};
+  const keys: Record<string, string> = {};
+  if (narration && unvoiced.voice && narration.voice === unvoiced.voice) {
+    for (const line of unvoiced.scenes.flatMap((scene) => scene.lines)) {
+      const clip = narration.lines[line.id];
+      if (!clip || clip.text !== line.text || clip.voice !== unvoiced.voice) continue;
+      speech[line.id] = { seconds: clip.seconds, words: clip.words };
+      keys[line.id] = clip.key;
+    }
+  }
+  const outline = Object.keys(speech).length ? outlineOf(module.default, frame, speech)! : unvoiced;
   const sounds = [...outline.sounds, ...outline.scenes.flatMap((scene) => scene.sounds)];
-  return { ...frame, seconds: outline.seconds, scenes: outline.scenes, layers: outline.layers, sounds, captions: outline.captions, voice: outline.voice };
+  const spokenLines = outline.scenes
+    .flatMap((scene) => scene.lines)
+    .filter((line) => line.voiced && keys[line.id])
+    .map((line) => ({ line: line.id, src: `voice/${keys[line.id]}.mp3`, at: line.start, until: line.end }));
+  return {
+    ...frame,
+    seconds: outline.seconds,
+    scenes: outline.scenes,
+    layers: outline.layers,
+    sounds,
+    captions: outline.captions,
+    voice: outline.voice,
+    narration: spokenLines,
+    speech,
+  };
 }
 
 /** The structure the film's <Film> reports when it is drawn once, off the page, at its start; null when it draws none. */
-function outlineOf(Film: ComponentType, frame: { width: number; height: number; fps: number }): FilmOutline | null {
+function outlineOf(Film: ComponentType, frame: { width: number; height: number; fps: number }, voice: FilmInfo['speech'] = {}): FilmOutline | null {
   let outline: FilmOutline | null = null;
   let failure: unknown = null;
   const root = createRoot(document.createElement('div'), { onUncaughtError: (error) => (failure ??= error) });
-  const value = { useTime: () => 0, useCompositionTime: () => 0, ...frame, Video: Footage, onFilm: (o: FilmOutline) => (outline = o) };
+  const value = { useTime: () => 0, useCompositionTime: () => 0, ...frame, Video: Footage, voice, onFilm: (o: FilmOutline) => (outline = o) };
   flushSync(() =>
     root.render(
       <MotionRuntimeProvider value={value}>
@@ -115,6 +166,7 @@ function Frame({ Film, film, t, scale }: { Film: ComponentType; film: FilmInfo; 
     width: film.width,
     height: film.height,
     Video: Footage,
+    voice: film.speech,
   };
   return (
     <div
@@ -143,7 +195,7 @@ function Player({ Film, film }: { Film: ComponentType; film: FilmInfo }) {
   const tRef = useRef(0);
   tRef.current = t;
   // The film's sounds; while they play, the audio clock is the preview's. A seek while playing starts them again there.
-  const audio = useMemo(() => new FilmAudio(film.sounds), [film]);
+  const audio = useMemo(() => new FilmAudio(film.sounds, film.narration), [film]);
   const [from, setFrom] = useState(0);
 
   useEffect(() => {
@@ -277,7 +329,7 @@ async function start(): Promise<void> {
     await load(`build/film-${Number(version)}.js`);
     const module = (globalThis as { __omsFilm?: FilmModule }).__omsFilm;
     if (!module) throw new Error('The film did not load.');
-    const film = info(module);
+    const film = info(module, await spoken());
     const root = createRoot(document.getElementById('root')!);
     root.render(render ? <Still Film={module.default} film={film} /> : <Player Film={module.default} film={film} />);
     window.__omsFrame = film;

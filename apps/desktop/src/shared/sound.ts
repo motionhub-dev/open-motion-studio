@@ -39,3 +39,30 @@ export function soundGain(sound: FilmSound, span: number, u: number): number {
   const fall = fadeOut > 0 ? Math.min(1, (span - u) / fadeOut) : 1;
   return decibels(sound.volume) * Math.min(rise, fall);
 }
+
+/** How long a ducked sound takes to go down before a line is spoken, and to come back after, in seconds. */
+export const DUCK = { attack: 0.12, release: 0.5 };
+
+/** How far a sound that ducks is down at `t`, from 0 (not at all) to 1 (its whole `duck`), by the narration's spans. */
+export function ducked(spans: { at: number; until: number }[], t: number): number {
+  let level = 0;
+  for (const { at, until } of spans) {
+    const rise = Math.min(1, Math.max(0, (t - (at - DUCK.attack)) / DUCK.attack));
+    const fall = Math.min(1, Math.max(0, (until + DUCK.release - t) / DUCK.release));
+    level = Math.max(level, Math.min(rise, fall));
+  }
+  return level;
+}
+
+/** A voiced line's clip as a sound: played whole from where its line is said, never past where it ends. */
+export const spokenSound = (line: { src: string; at: number; until: number }): FilmSound => ({
+  src: line.src,
+  at: line.at,
+  dur: null,
+  until: line.until,
+  trim: 0,
+  loop: false,
+  volume: 0,
+  fadeIn: 0,
+  fadeOut: 0,
+});

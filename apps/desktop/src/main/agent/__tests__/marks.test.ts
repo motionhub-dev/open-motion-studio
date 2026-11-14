@@ -63,7 +63,7 @@ describe('describeMarks', () => {
 
 describe('markedMessage', () => {
   const image = { getSize: () => ({ width: 1920, height: 1080 }), resize: () => image, toJPEG: () => Buffer.from('jpeg') };
-  const stage = (): Stage => ({ film: { seconds: 6, width: 1920, height: 1080, fps: 30, scenes: [{ id: 'all', start: 0, duration: 6, layers: [], lines: [] }], layers: [], sounds: [], captions: false, voice: null }, frame: vi.fn(async () => image as never), close: vi.fn() });
+  const stage = (): Stage => ({ film: { seconds: 6, width: 1920, height: 1080, fps: 30, scenes: [{ id: 'all', start: 0, duration: 6, layers: [], lines: [] }], layers: [], sounds: [], captions: false, voice: null, narration: [], speech: {} }, frame: vi.fn(async () => image as never), close: vi.fn() });
 
   it('sends each marked frame, outlined, and a stretch by its middle, to a model that reads images', async () => {
     const opened = stage();

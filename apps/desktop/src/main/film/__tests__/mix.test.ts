@@ -101,6 +101,28 @@ describe('the export\'s mix', () => {
     expect(peak).toBeGreaterThan(-2);
   }, 60_000);
 
+  it('ducks a sound under the narration by its duck, and brings it back after', async () => {
+    const bed = await soundFile(dir, 'media/bed.wav');
+    const narration = [{ at: 1, until: 2 }];
+    const mix = soundMix(
+      [{ sound: sound({ src: 'media/bed.wav', loop: true, until: 4, volume: -6, duck: 12 }), file: bed, fileSeconds: await mediaSeconds(ffmpeg, bed) }],
+      4,
+      0,
+      narration,
+    )!;
+    expect(mix.graph).toContain(":eval=frame");
+    const out = join(dir, 'ducked.wav');
+    await run(['-y', '-loglevel', 'error', ...mix.inputs, '-filter_complex', mix.graph, '-map', '[aout]', out]);
+    const peak = async (at: number) =>
+      Number(/Peak level dB: (-?[\d.]+)/.exec(await run(['-ss', String(at), '-t', '0.2', '-i', out, '-af', 'astats=measure_overall=Peak_level:measure_perchannel=none', '-f', 'null', '-']))?.[1]);
+    const before = await peak(0.4);
+    const under = await peak(1.4);
+    const after = await peak(3.2);
+    expect(before - under).toBeGreaterThan(11);
+    expect(before - under).toBeLessThan(13);
+    expect(Math.abs(after - before)).toBeLessThan(0.5);
+  }, 60_000);
+
   it('refuses a sound outside the project, or in its hidden folders', async () => {
     await writeFile(join(dir, 'secret.txt'), 'x');
     for (const src of ['../secret.txt', 'https://example.com/a.mp3', 'media/missing.wav', '.git/config']) {

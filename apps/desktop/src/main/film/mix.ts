@@ -8,7 +8,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { STATE_DIR } from '../project';
-import { type FilmSound, soundFades, soundPlace, soundRegion, soundSpan } from '../../shared/sound';
+import { DUCK, type FilmSound, decibels, soundFades, soundPlace, soundRegion, soundSpan } from '../../shared/sound';
 import { buildDir } from './film';
 import { safePreviewFile } from './preview';
 
@@ -48,6 +48,7 @@ export function soundMix(
   sounds: { sound: FilmSound; file: string; fileSeconds: number }[],
   seconds: number,
   first: number,
+  narration: { at: number; until: number }[] = [],
 ): { inputs: string[]; graph: string } | null {
   const heard = sounds.filter(({ sound, fileSeconds }) => soundSpan(sound, fileSeconds) > 0 && sound.at < seconds);
   if (!heard.length) return null;
@@ -70,12 +71,29 @@ export function soundMix(
       ...(fadeIn > 0 ? [`afade=t=in:st=0:d=${n(fadeIn)}`] : []),
       ...(fadeOut > 0 ? [`afade=t=out:st=${n(span - fadeOut)}:d=${n(fadeOut)}`] : []),
       `adelay=${n(sound.at * 1000)}:all=1`,
+      // Down by its duck while the narration is heard, in the film's time: the curve the preview ducks by (shared/sound.ts).
+      ...(sound.duck && narration.length ? [`volume='${duckExpression(sound.duck, narration)}':eval=frame`] : []),
     ];
     return `[${first + i}:a]${steps.join(',')}[s${i}]`;
   });
   const sum = `${heard.map((_, i) => `[s${i}]`).join('')}amix=inputs=${heard.length}:normalize=0:duration=longest`;
   const finish = `alimiter=limit=${CEILING}:level=false:latency=true,apad,atrim=end=${n(seconds)},asetpts=PTS-STARTPTS[aout]`;
   return { inputs, graph: [...chains, `${sum},${finish}`].join(';') };
+}
+
+/**
+ * ffmpeg's expression for a sound's gain under the narration at its time `t`: 1, down to -`duck` dB while a line is said,
+ * ramped over DUCK.attack before it and DUCK.release after, as `ducked` gives it.
+ */
+export function duckExpression(duck: number, spans: { at: number; until: number }[]): string {
+  const level = spans
+    .map(({ at, until }) => {
+      const rise = `min(1,max(0,(t-${n(at - DUCK.attack)})/${n(DUCK.attack)}))`;
+      const fall = `min(1,max(0,(${n(until + DUCK.release)}-t)/${n(DUCK.release)}))`;
+      return `min(${rise},${fall})`;
+    })
+    .reduce((all, one) => `max(${all},${one})`);
+  return `1-${n(1 - decibels(-duck))}*${level}`;
 }
 
 /** How many peaks a second a waveform keeps. */
