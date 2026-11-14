@@ -3,6 +3,18 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-14 — Point at anything with @, import with +, one tray for the next message
+
+- **What:** Typing @ in the composer (or its @ button) opens a picker over the film's scenes, layers and lines and the
+  project's assets and motions, narrowed as you type; a pick joins the next message. + imports images or fonts into
+  the project and adds them too. References and marks now sit in one tray over the composer with their count, and
+  Send reads "Send 3". A motion in the project can be a reference.
+- **Why:** Pointing the agent at a part of the film or the project took a trip to another panel.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/reference-picker.tsx`, `apps/desktop/src/renderer/src/assistant.tsx`,
+  `apps/desktop/src/main/agent/references.ts`, `docs/design.md`.
+
 ## 2026-11-14 — Choose your coding agent's model and effort; the agent sits at the assistant's top
 
 - **What:** Claude Code's model (an alias or a full name), effort, fallback model and cap per turn, and Codex's model

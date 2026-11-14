@@ -11,6 +11,7 @@ import {
   type Agents,
   type BuildResult,
   MAX_MARKS,
+  ofPicture,
   type Mark,
   type Project,
   type Providers,
@@ -443,7 +444,7 @@ export function ProjectView({ project, providers, onSettings, modelsClosed, onCh
   }
   function reference(ref: Reference) {
     if (busy || importing || checking || progress !== null) return;
-    if (!build?.ok && ref.kind !== 'asset' && ref.kind !== 'issue') {
+    if (!build?.ok && ofPicture(ref)) {
       setToast({ text: 'Fix the current build before referencing the picture.', error: true });
       return;
     }
@@ -454,6 +455,29 @@ export function ProjectView({ project, providers, onSettings, modelsClosed, onCh
     setLayout({ assistant: true });
     setRefs((current) => (current.some((r) => JSON.stringify(r) === JSON.stringify(ref)) ? current : [...current, ref]));
     setFocusRequest((n) => n + 1);
+  }
+  /** Imports images or fonts into the project's assets, and puts the new ones in the next message's tray. */
+  async function importForMessage() {
+    if (busy || importing || checking || progress !== null) return;
+    setImporting(true);
+    try {
+      const before = new Set((await window.studio.projectAssets()).map((a) => a.path));
+      const added = (await window.studio.importAssets()).filter((a) => !before.has(a.path));
+      if (!added.length) return;
+      const room = 8 - refs.length;
+      setRefs((current) => [
+        ...current,
+        ...added.slice(0, room).map((a): Reference => ({ kind: 'asset', label: a.name, path: a.path, detail: `Use this local ${a.kind}: ${a.path}` })),
+      ]);
+      if (added.length > room) {
+        setToast({ text: `Imported ${added.length} files; a message carries up to eight references, so ${added.length - room} wait in Assets.`, error: false });
+      }
+      setFocusRequest((n) => n + 1);
+    } catch (e) {
+      setToast({ text: reason(e), error: true });
+    } finally {
+      setImporting(false);
+    }
   }
 
   // The timeline is at least its chosen height and takes whatever the stage, no taller than its film, leaves.
@@ -575,6 +599,8 @@ export function ProjectView({ project, providers, onSettings, modelsClosed, onCh
               refs={refs}
               version={build?.version ?? 0}
               focusRequest={focusRequest}
+              onReference={reference}
+              onImport={() => void importForMessage()}
               onRemoveRef={(i) => setRefs((items) => items.filter((_, n) => n !== i))}
               onSettings={onSettings}
               marks={marks}

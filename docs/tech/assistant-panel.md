@@ -86,6 +86,9 @@ chip room.
 
 ## Slice 4: the composer gathers what the next message carries
 
+*Built*, as below, with a motion as a new kind of reference; a reference keeps its card (a reference has no note, so
+the tray holds the two kinds of card as before, under one head), and Send reads "Send 3".
+
 - **One tray** above the box for marks, stretches and references (scenes, layers, lines, issues, assets), each a row
   with its number or kind, its moment and its note, removable; Send reads "Send 3 edits" when the tray holds any.
 - **@** opens a picker over the film's scenes, layers and lines and the project's assets and motions, grouped, typed to

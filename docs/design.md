@@ -133,7 +133,7 @@ recent projects with their path (`~` for the home folder), and a banner while no
   dashed outline; on Claude Code, Enter adds a message of words to the turn instead, as a bubble in the conversation
   where it was sent. Items the last turn changed are ringed in green in the outline and the timeline for four seconds, and
   the stage says the agent is working in a dark pill over its top left. The composer grows with its text up to 180px; Enter
-  sends, Shift+Enter breaks the line, and Send (or Stop) sits at the box's end. The assistant's head is hide, the
+  sends, Shift+Enter breaks the line, + and @ at its start, and Send (or Stop) at its end. The assistant's head is hide, the
   project's agent as a round chip, its tokens, then History and New conversation as icons. The chip has a dot (green
   ready, `--bad` signed out or too old, hollow not installed or no model) and the built-in agent's model, or the
   person's own agent with the model chosen for it ("Claude Code · opus"; ADR 0008), the rest on hover. It opens a menu
@@ -170,8 +170,13 @@ recent projects with their path (`~` for the home folder), and a banner while no
 The tabs select one panel, keeping the picture large as capabilities grow. A selected layer has a cobalt
 dashed declared-bounds box, distinct from solid picture marks. References are small paper cards with a cobalt edge,
 a type label and a time where applicable; clicking locates without sending. The selection's card is dashed and labelled
-Selected. Marks wait above the composer as the same cards, each with its number, what and when, and a field for its
-note; a sent message shows each mark with a thumbnail of the frame the model saw. The timeline adds quiet dashed layer
+Selected. Marks wait as the same cards, each with its number, what and when, and a field for its note; references
+and marks share one tray over the composer, headed "With the next message" and their count, and Send then reads
+"Send 3". The composer's foot has + (import images or fonts into the project, each joining the tray) and @ (the
+picker; typing @ at a word's start opens it too): a sheet over the composer, its picks in groups (Scenes, Layers,
+Lines, Assets, Motions) with where each is in muted mono, the first five of each until something is typed, then
+every pick whose words or place hold what was typed; ↑↓ move, Enter or Tab adds, Esc closes, and the @ and what
+followed it leave the draft. A sent message shows each mark with a thumbnail of the frame the model saw. The timeline adds quiet dashed layer
 spans and fit/zoom controls. A panel hides from its head and comes back from the top bar, and F enters or leaves focus mode. On compact windows the project tools start folded, can be reopened explicitly,
 and return to their saved visibility on a wider window.
 

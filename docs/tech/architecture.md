@@ -48,7 +48,7 @@ apps/desktop/
       openai.ts        the Chat Completions translation, to and from the Messages shape
       tools.ts         what the agent may do to the project
       marks.ts         the places a person marked on the picture, as the agent receives them
-      references.ts    the scenes, layers, lines, assets and issues a message refers to, checked and sent as a
+      references.ts    the scenes, layers, lines, assets, motions and issues a message refers to, checked and sent as a
                        <references> block with the build they were taken from, and where film.tsx writes each
       test-connection.ts  a provider's connection test: one call asking for a tool call, its time, never its key
     providers.ts       the providers, and their keys sealed with safeStorage
@@ -149,8 +149,9 @@ conversation and the tools, tool calls are executed in `main`, their results app
   images, the frame at each moment photographed with its box outlined in red (`window.__omsMark` draws it on the
   render page; a stretch is shown by its middle). The conversation keeps them in the person's message; the assistant
   panel shows the person's words and each mark with its moment, its note and the frame the model saw.
-- **References** (built): a scene, layer, line, asset or check issue sent with a message (`agent/references.ts`), at
-  most eight. What was last selected in a panel goes with the next message unless put aside. A scene, layer or line
+- **References** (built): a scene, layer, line, asset, motion or check issue sent with a message
+  (`agent/references.ts`), at most eight, added from a panel or the composer's @ picker (`reference-picker.tsx`).
+  Only a scene, layer or line holds for the build it was taken from (`ofPicture`). What was last selected in a panel goes with the next message unless put aside. A scene, layer or line
   carries where film.tsx writes it (`filmSpans`, by its literal id), so the agent reads those lines first.
 - **Tools** (built): `list_files`, `read_file`, `write_file`, `edit_file`; `check` (builds the film and draws its start,
   the middle of each scene and its end, reporting any error, or each scene with its span, its layers' boxes and its

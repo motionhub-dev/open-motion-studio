@@ -20,6 +20,7 @@ import {
   type Project,
   type TurnUsage,
   applyEvent,
+  ofPicture,
 } from '../shared/api';
 import {
   type AppServer,
@@ -683,7 +684,7 @@ function registerHandlers(): void {
     const marks = readMarks(rawMarks);
     const refs = readReferences(rawRefs);
     if (
-      (marks.length || refs.some((r) => r.kind !== 'asset' && r.kind !== 'issue')) &&
+      (marks.length || refs.some(ofPicture)) &&
       (!state.build?.ok || version !== state.build.version)
     ) {
       throw new Error('The preview changed. Select your references again before sending.');

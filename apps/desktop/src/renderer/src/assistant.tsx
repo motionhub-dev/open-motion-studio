@@ -6,7 +6,7 @@
 // stops it and goes in its place.
 
 import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react';
-import { AlertTriangle, ArrowUp, Check, ChevronDown, Clock, Copy, History, Loader, PanelLeftClose, RotateCcw, Square, SquarePen, X } from 'lucide-react';
+import { AlertTriangle, ArrowUp, AtSign, Check, ChevronDown, Clock, Copy, History, Loader, PanelLeftClose, Plus, RotateCcw, Square, SquarePen, X } from 'lucide-react';
 import {
   type AgentEvent,
   type AgentKind,
@@ -44,6 +44,7 @@ import { Brief } from './brief';
 import { Markdown } from './markdown';
 import { elementName, timecode } from './preview';
 import { reason } from './reason';
+import { type Pickable, ReferencePicker, matchPicks, mentionAt, pickables, useProjectFiles } from './reference-picker';
 import { ModelEffort, useAgentModels } from './settings';
 
 function apply(items: Row[], event: AgentEvent, before: FilmInfo | null): Row[] {
@@ -359,6 +360,10 @@ interface Props {
   refs: Reference[];
   version: number;
   onRemoveRef(index: number): void;
+  /** Adds a reference to the next message (the @ picker's picks). */
+  onReference(ref: Reference): void;
+  /** Imports images or fonts into the project and adds them to the next message. */
+  onImport(): void;
   focusRequest: number;
   onRemoveMark(index: number): void;
   onNoteMark(index: number, note: string): void;
@@ -418,6 +423,8 @@ export function Assistant({
   refs,
   version,
   onRemoveRef,
+  onReference,
+  onImport,
   focusRequest,
 }: Props) {
   const [items, setItems] = useState<Row[]>([]);
@@ -435,6 +442,32 @@ export function Assistant({
     window.studio.projectUsage().then(setUsage, (e) => setItems((items) => [...items, { kind: 'notice', text: reason(e), error: true }]));
   useEffect(() => void refreshUsage(), []);
   const [draft, setDraft] = useState('');
+  /** The @ being typed in the draft (where it starts, what follows it), while the picker is open; the match in hand. */
+  const [mention, setMention] = useState<{ start: number; query: string } | null>(null);
+  const [pickAt, setPickAt] = useState(0);
+  const files = useProjectFiles(mention !== null);
+  const matches = mention ? matchPicks(pickables(film, files.assets, files.motions), mention.query) : [];
+  /** Takes the @ and what follows it out of the draft, and adds the pick to the tray. */
+  function pick(chosen: Pickable) {
+    if (!mention) return;
+    setDraft((current) => current.slice(0, mention.start) + current.slice(mention.start + 1 + mention.query.length));
+    setMention(null);
+    onReference(chosen.ref);
+  }
+  /** Opens the picker from its button: an @ where the caret is, as if typed. */
+  function startMention() {
+    const field = composer.current;
+    const at = field?.selectionStart ?? draft.length;
+    const spaced = at > 0 && !/\s/.test(draft[at - 1]!) ? ' @' : '@';
+    const next = draft.slice(0, at) + spaced + draft.slice(at);
+    setDraft(next);
+    setMention({ start: at + spaced.length - 1, query: '' });
+    setPickAt(0);
+    requestAnimationFrame(() => {
+      field?.focus();
+      field?.setSelectionRange(at + spaced.length, at + spaced.length);
+    });
+  }
   const [following, setFollowing] = useState(true);
   const [working, setWorking] = useState(false);
   const [phase, setPhase] = useState<Phase>('thinking');
@@ -456,6 +489,8 @@ export function Assistant({
   // The selection goes with the message as a reference, unless it is one already or there is no room.
   const selectionRef = selection && !refs.some((r) => same(r, selection)) && refs.length < 8 ? selection : null;
   const sending = selectionRef ? [...refs, selectionRef] : refs;
+  /** How many marks and references the next message carries. */
+  const tray = marks.length + sending.length;
 
   useEffect(() => {
     if (noteRequest.n) notes.current[noteRequest.index]?.focus();
@@ -585,6 +620,24 @@ export function Assistant({
   }
 
   function onKey(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (mention && !event.nativeEvent.isComposing) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        setMention(null);
+        return;
+      }
+      if (matches.length && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+        event.preventDefault();
+        setPickAt((at) => (at + (event.key === 'ArrowDown' ? 1 : matches.length - 1)) % matches.length);
+        return;
+      }
+      if (matches.length && (event.key === 'Enter' || event.key === 'Tab')) {
+        event.preventDefault();
+        pick(matches[Math.min(pickAt, matches.length - 1)]!);
+        return;
+      }
+    }
     if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
       void send(undefined, working && (event.ctrlKey || event.metaKey));
@@ -933,6 +986,12 @@ export function Assistant({
           Back to latest ↓
         </button>
       )}
+      {tray > 0 && (
+        <div className="tray" aria-label="What the next message carries">
+          <div className="tray-head">
+            <span className="label">With the next message</span>
+            <span className="mono">{tray}</span>
+          </div>
       {sending.length > 0 && (
         <ul className="reference-cards" aria-label="References for the next message">
           {sending.map((ref, i) => (
@@ -1005,6 +1064,8 @@ export function Assistant({
           ))}
         </ul>
       )}
+        </div>
+      )}
       {queued && (
         <div className="queued" role="status">
           <Clock size={13} />
@@ -1027,6 +1088,16 @@ export function Assistant({
         </div>
       )}
       <form className="composer" onSubmit={send}>
+        {mention && (
+          <ReferencePicker
+            matches={matches}
+            active={Math.min(pickAt, matches.length - 1)}
+            loading={files.loading}
+            error={files.error}
+            onPick={pick}
+            onHover={setPickAt}
+          />
+        )}
         <textarea
           ref={composer}
           value={draft}
@@ -1043,10 +1114,38 @@ export function Assistant({
                 : 'Ask for a film, or a change to this one'
           }
           aria-label="Message"
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            setMention(mentionAt(e.target.value, e.target.selectionStart));
+            setPickAt(0);
+          }}
+          onBlur={() => setMention(null)}
           onKeyDown={onKey}
         />
         <div className="composer-actions">
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="Import images or fonts for this message"
+            data-tip="Import images or fonts"
+            disabled={working || disabled}
+            onClick={onImport}
+          >
+            <Plus size={15} />
+          </button>
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="Point at a scene, layer, line, asset or motion"
+            data-tip="Point at something"
+            data-key="@"
+            disabled={working}
+            onPointerDown={(e) => e.preventDefault()}
+            onClick={startMention}
+          >
+            <AtSign size={15} />
+          </button>
+          <span className="spacer" />
           {working ? (
             <button
               type="button"
@@ -1063,12 +1162,13 @@ export function Assistant({
           ) : (
             <button
               type="submit"
-              className="send"
               aria-label="Send"
               data-tip="Send"
               data-key="Enter"
+              className={tray ? 'send with-tray' : 'send'}
               disabled={(!draft.trim() && !marks.length && !sending.length) || !ready || disabled}
             >
+              {tray > 0 && <span>Send {tray}</span>}
               <ArrowUp size={16} />
             </button>
           )}
