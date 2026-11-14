@@ -10,6 +10,7 @@ import {
   EVENTS,
   type AgentEvent,
   type AgentKind,
+  type AgentModel,
   type Agents,
   type Approval,
   type ApprovalAnswer,
@@ -20,10 +21,21 @@ import {
   type TurnUsage,
   applyEvent,
 } from '../shared/api';
-import { type AppServer, type Place, codexInput, codexTurn, openThread, signInCodex, signedIn, startCodex } from './agent/codex';
+import {
+  type AppServer,
+  type Place,
+  codexChoice,
+  codexInput,
+  codexModels,
+  codexTurn,
+  openThread,
+  signInCodex,
+  signedIn,
+  startCodex,
+} from './agent/codex';
 import { type StudioMcp, startStudioMcp } from './agent/studio-mcp';
 import { CLAUDE_INSTALL, CODEX_INSTALL, findClaude, findCodex } from './agent/harness';
-import { ClaudeSession, claudeArgs, newClaudeSession } from './agent/claude';
+import { CLAUDE_MODELS, ClaudeSession, claudeArgs, newClaudeSession } from './agent/claude';
 import { runTurn, transcript } from './agent/loop';
 import { markedMessage, readMarks } from './agent/marks';
 import { type MessageParam, caller, failure } from './agent/model';
@@ -132,6 +144,8 @@ async function saveAgent(dir: string, agent: AgentState): Promise<void> {
 /** Whether Codex is signed in, as its app-server last said, so Models need not start it on every look. */
 /** When Codex last said it is signed in; a sign-out is asked again every time, so a new sign-in shows at once. */
 let codexSignedInAt = 0;
+/** The models Codex offers, asked once while the app runs: its catalogue changes with Codex, not with the project. */
+let codexListed: AgentModel[] | null = null;
 
 /** The person's own coding agents and where each stands, with the one thing to do about it. */
 async function harnesses(): Promise<HarnessView[]> {
@@ -172,7 +186,7 @@ async function claudeHarness(): Promise<HarnessView> {
 
 async function agents(): Promise<Agents> {
   const [codex, claude] = await Promise.all([harnesses(), claudeHarness()]);
-  return { current: open ? (await agentOf(open)).kind : 'built-in', harnesses: [...codex, claude] };
+  return { current: open ? (await agentOf(open)).kind : 'built-in', harnesses: [...codex, claude], settings: await providers().agentSettings() };
 }
 
 /** The folder whose film the preview scheme serves, while one is open. */
@@ -340,7 +354,8 @@ async function outsideTurn(
       if (!state.claude) {
         const resume = !!agent.thread;
         agent.thread ??= newClaudeSession();
-        const session = new ClaudeSession(found.bin, dir, claudeArgs(FILM_SKILL, studioUrl, { id: agent.thread, resume }));
+        const settings = (await providers().agentSettings()).claude;
+        const session = new ClaudeSession(found.bin, dir, claudeArgs(FILM_SKILL, studioUrl, { id: agent.thread, resume }, settings));
         state.claude = session;
         // A session that ends (Stop, or Claude Code's own exit) is started again, resumed, for the next message.
         void session.ended.then(() => {
@@ -355,7 +370,13 @@ async function outsideTurn(
       state.codex ??= await startCodex(found.bin, dir, app.getVersion());
       const thread = (agent.thread = await openThread(state.codex, dir, FILM_SKILL, studioUrl, agent.thread));
       const codex = state.codex;
-      run = (signal) => codexTurn(codex, thread, codexInput(content), emit, signal, ask, (path) => placeIn(dir, path));
+      const [read, models, settings] = await Promise.all([
+        codex.request<{ config: Parameters<typeof codexChoice>[1] }>('config/read', { cwd: dir }),
+        codexListed ?? codexModels(codex).then((listed) => (codexListed = listed)),
+        providers().agentSettings(),
+      ]);
+      const choice = codexChoice(settings.codex, read.config, models);
+      run = (signal) => codexTurn(codex, thread, codexInput(content), choice, emit, signal, ask, (path) => placeIn(dir, path));
     }
     await saveAgent(dir, agent);
     const before = await noteFiles(dir);
@@ -579,6 +600,27 @@ function registerHandlers(): void {
     } finally {
       if (server !== open?.codex) server.close();
     }
+    return agents();
+  });
+  ipcMain.handle(CHANNELS.agentModels, async (_event, kind: unknown) => {
+    if (kind === 'claude') return CLAUDE_MODELS;
+    if (kind !== 'codex') throw new Error('Choose an agent.');
+    if (codexListed) return codexListed;
+    const found = await findCodex();
+    if (found.state !== 'found') throw new Error('Codex is not ready: Models says what it needs first.');
+    const server = open?.codex ?? (await startCodex(found.bin, app.getPath('home'), app.getVersion()));
+    try {
+      return (codexListed = await codexModels(server));
+    } finally {
+      if (server !== open?.codex) server.close();
+    }
+  });
+  ipcMain.handle(CHANNELS.saveAgentSettings, async (_event, kind: unknown, settings: unknown) => {
+    if (kind !== 'claude' && kind !== 'codex') throw new Error('Choose an agent.');
+    if (working) throw new Error('Finish the current turn before changing how the agent runs.');
+    await providers().saveAgentSettings(kind, settings);
+    // Claude Code takes its settings when it starts: the next message starts it again, resuming the session.
+    if (kind === 'claude') open?.claude?.close();
     return agents();
   });
   ipcMain.handle(CHANNELS.answerApproval, (_event, id: unknown, answer: unknown) => {

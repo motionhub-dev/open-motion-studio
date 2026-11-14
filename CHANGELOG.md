@@ -3,6 +3,20 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-14 — Choose your coding agent's model and effort; the agent sits at the assistant's top
+
+- **What:** Claude Code's model (an alias or a full name), effort, fallback model and cap per turn, and Codex's model
+  (from its own list) and effort, are set in Models under Your coding agents and kept in the app's `settings.json`
+  (`agents`). The project's agent is now a chip at the top of the assistant, with a dot for whether it can take a
+  message; its menu changes the agent and, for Claude Code or Codex, its model and effort. The composer's picker is
+  gone, and New conversation is an icon. A Claude Code turn stopped at its cap says so, and counts its tokens.
+- **Why:** The person picks how their own agent runs, as they would in its own app, and sees which agent and model a
+  project talks to before sending.
+- **Breaking:** None.
+- **Upgrade:** Nothing; unset settings leave each agent on its own defaults.
+- **Refs:** `apps/desktop/src/main/providers.ts`, `apps/desktop/src/main/agent/claude.ts`,
+  `apps/desktop/src/main/agent/codex.ts`, `apps/desktop/src/renderer/src/assistant.tsx`, `docs/tech/architecture.md`.
+
 ## 2026-11-14 — A turn reads as one block and ends with its outcome
 
 - **What:** A turn's tool calls are one framed block ("How it got there · read 2 files · edited 1 file · checked

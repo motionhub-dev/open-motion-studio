@@ -74,12 +74,34 @@ export const addSpent = (a: Spent, b: Spent): Spent => ({
   ...(a.costUsd !== undefined || b.costUsd !== undefined ? { costUsd: (a.costUsd ?? 0) + (b.costUsd ?? 0) } : {}),
 });
 
-/** A Claude Code `result`: its tokens, its model (the one that wrote most), and its cost in dollars where it says. */
+type ModelUse = { inputTokens?: number; cacheReadInputTokens?: number; cacheCreationInputTokens?: number; outputTokens?: number; thinkingTokens?: number };
+
+/**
+ * A Claude Code `result`: its tokens, its model (the one that wrote most), and its cost in dollars where it says. Its
+ * `usage` is the turn's, but zero on a turn that ended in an error (a cap reached, Claude Code 2.1); then the tokens
+ * are its models' since the last result (`model_usage_since_last_result`; `modelUsage` is the session's).
+ */
 export function claudeResult(event: Record<string, unknown>): Spent {
-  const models = Object.entries((event.modelUsage ?? {}) as Record<string, { outputTokens?: number }>);
+  const since = event.model_usage_since_last_result as Record<string, ModelUse> | undefined;
+  const models = Object.entries(since ?? ((event.modelUsage ?? {}) as Record<string, ModelUse>));
   const model = models.sort(([, a], [, b]) => count(b.outputTokens) - count(a.outputTokens))[0]?.[0];
+  const reported = messageTokens(event.usage);
+  const tokens =
+    since && Object.values(reported).every((n) => n === 0)
+      ? Object.values(since).reduce<Tokens>(
+          (sum, m) =>
+            addTokens(sum, {
+              input: count(m.inputTokens),
+              cacheRead: count(m.cacheReadInputTokens),
+              cacheWrite: count(m.cacheCreationInputTokens),
+              output: count(m.outputTokens),
+              reasoning: count(m.thinkingTokens),
+            }),
+          NO_TOKENS,
+        )
+      : reported;
   return {
-    tokens: messageTokens(event.usage),
+    tokens,
     ...(model ? { model } : {}),
     ...(typeof event.total_cost_usd === 'number' ? { costUsd: event.total_cost_usd } : {}),
     calls: count(event.num_turns),

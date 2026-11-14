@@ -64,6 +64,9 @@ export const CODEX_INSTALL = 'https://developers.openai.com/codex';
 /** The version of Claude Code the Studio was written and tested against (`claude -p` with stream-json in and out). */
 export const CLAUDE_MIN = '2.1.71';
 
+/** The efforts Claude Code takes (`claude --help`, 2.1). */
+export const CLAUDE_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
+
 /** Where Anthropic's native installer puts `claude`, on every platform. */
 export function claudePlaces(platform: NodeJS.Platform = process.platform, home = homedir()): string[] {
   return [join(home, '.local', 'bin', platform === 'win32' ? 'claude.exe' : 'claude')];

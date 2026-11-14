@@ -7,7 +7,17 @@
 
 import { Check, ExternalLink, KeyRound, Loader, Plus, RefreshCw, X } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
-import type { Agents, HarnessState, HarnessView, ProviderInput, ProviderTest, Providers, ProviderView } from '../../shared/api';
+import type {
+  AgentModel,
+  AgentSettings,
+  Agents,
+  HarnessState,
+  HarnessView,
+  ProviderInput,
+  ProviderTest,
+  Providers,
+  ProviderView,
+} from '../../shared/api';
 import { reason } from './reason';
 
 type Preset = Omit<ProviderInput, 'key'> & { note: string };
@@ -39,15 +49,175 @@ const initials = (name: string) =>
 /** What each state of a coding agent is called. */
 const STATES: Record<HarnessState, string> = { missing: 'Not installed', old: 'Needs an update', 'signed-out': 'Not signed in', ready: 'Ready' };
 
-/** One of the person's own coding agents: where it stands, and the one thing to do about it. */
-function AgentPane({ harness, onAgents, onClose }: { harness: HarnessView; onAgents(agents: Agents): void; onClose(): void }) {
-  const [busy, setBusy] = useState<'checking' | 'signing-in' | null>(null);
+type OutsideKind = HarnessView['kind'];
+
+/** The models a coding agent offers, asked of it when shown: null while it is asked, empty when it could not say. */
+export function useAgentModels(kind: OutsideKind | null): { models: AgentModel[] | null; error: string | null } {
+  const [found, setFound] = useState<{ kind: OutsideKind; models: AgentModel[]; error: string | null } | null>(null);
+  useEffect(() => {
+    if (!kind) return;
+    let live = true;
+    window.studio.agentModels(kind).then(
+      (models) => live && setFound({ kind, models, error: null }),
+      (e) => live && setFound({ kind, models: [], error: reason(e) }),
+    );
+    return () => {
+      live = false;
+    };
+  }, [kind]);
+  return found && found.kind === kind ? found : { models: null, error: null };
+}
+
+/** The efforts a model takes; for the agent's own default model, any its models take. */
+const effortsOf = (models: AgentModel[], model: string) =>
+  models.find((m) => m.id === model)?.efforts ?? [...new Set(models.flatMap((m) => m.efforts))];
+
+/**
+ * A coding agent's model and effort. Claude Code takes a full model name as well as its aliases, so in Models
+ * (`freeModel`) its model is typed, with the aliases offered.
+ */
+export function ModelEffort({
+  kind,
+  models,
+  value,
+  onChange,
+  freeModel = false,
+}: {
+  kind: OutsideKind;
+  models: AgentModel[];
+  value: { model: string; effort: string };
+  onChange(change: { model?: string; effort?: string }): void;
+  freeModel?: boolean;
+}) {
+  const own = kind === 'claude' ? 'Claude Code' : 'Codex';
+  const efforts = effortsOf(models, value.model);
+  return (
+    <>
+      <label>
+        Model
+        {freeModel ? (
+          <>
+            <input
+              type="text"
+              className="mono"
+              list={`${kind}-models`}
+              value={value.model}
+              placeholder={`${own}'s default`}
+              onChange={(e) => onChange({ model: e.target.value })}
+            />
+            <datalist id={`${kind}-models`}>
+              {models.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </datalist>
+          </>
+        ) : (
+          <select value={value.model} onChange={(e) => onChange({ model: e.target.value })}>
+            <option value="">Default</option>
+            {models.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+            {value.model && !models.some((m) => m.id === value.model) && <option value={value.model}>{value.model}</option>}
+          </select>
+        )}
+      </label>
+      <label>
+        Effort
+        <select value={value.effort} onChange={(e) => onChange({ effort: e.target.value })}>
+          <option value="">Default</option>
+          {efforts.map((effort) => (
+            <option key={effort} value={effort}>
+              {effort}
+            </option>
+          ))}
+          {value.effort && !efforts.includes(value.effort) && <option value={value.effort}>{value.effort}</option>}
+        </select>
+      </label>
+    </>
+  );
+}
+
+/** How a ready coding agent runs: its model and effort, and for Claude Code its fallback model and cap per turn. */
+function AgentSettingsFields<K extends OutsideKind>({
+  kind,
+  value,
+  onChange,
+}: {
+  kind: K;
+  value: AgentSettings[K];
+  onChange(next: AgentSettings[K]): void;
+}) {
+  const { models, error } = useAgentModels(kind);
+  const claude = kind === 'claude' ? (value as AgentSettings['claude']) : null;
+  return (
+    <div className="fields">
+      <ModelEffort kind={kind} models={models ?? []} value={value} freeModel={kind === 'claude'} onChange={(change) => onChange({ ...value, ...change })} />
+      {claude && (
+        <>
+          <label>
+            Fallback model
+            <input
+              type="text"
+              className="mono"
+              list="claude-models"
+              value={claude.fallbackModel}
+              placeholder="None"
+              onChange={(e) => onChange({ ...claude, fallbackModel: e.target.value } as AgentSettings[K])}
+            />
+            <span className="hint">When its own model is overloaded.</span>
+          </label>
+          <label>
+            Cap per turn, US$
+            <input
+              type="number"
+              min="0.01"
+              step="0.5"
+              value={claude.budgetUsd ?? ''}
+              placeholder="No cap"
+              onChange={(e) => onChange({ ...claude, budgetUsd: e.target.value === '' ? null : Number(e.target.value) } as AgentSettings[K])}
+            />
+            <span className="hint">A turn stops when it has spent this much.</span>
+          </label>
+        </>
+      )}
+      {error && <p className="hint wide">{error}</p>}
+    </div>
+  );
+}
+
+/** One of the person's own coding agents: where it stands, the one thing to do about it, and, ready, how it runs. */
+function AgentPane({
+  harness,
+  settings,
+  onAgents,
+  onClose,
+}: {
+  harness: HarnessView;
+  settings: AgentSettings;
+  onAgents(agents: Agents): void;
+  onClose(): void;
+}) {
+  const [busy, setBusy] = useState<'checking' | 'signing-in' | 'saving' | null>(null);
   const [error, setError] = useState<string | null>(null);
-  async function act(kind: 'checking' | 'signing-in') {
+  const [draft, setDraft] = useState(settings[harness.kind]);
+  const [saved, setSaved] = useState(false);
+  async function act(kind: 'checking' | 'signing-in' | 'saving') {
     setBusy(kind);
     setError(null);
+    setSaved(false);
     try {
-      onAgents(kind === 'signing-in' ? await window.studio.signInAgent(harness.kind) : await window.studio.agents());
+      onAgents(
+        kind === 'signing-in'
+          ? await window.studio.signInAgent(harness.kind)
+          : kind === 'saving'
+            ? await window.studio.saveAgentSettings(harness.kind, draft)
+            : await window.studio.agents(),
+      );
+      if (kind === 'saving') setSaved(true);
     } catch (e) {
       setError(reason(e));
     } finally {
@@ -68,14 +238,29 @@ function AgentPane({ harness, onAgents, onClose }: { harness: HarnessView; onAge
       </p>
       <p className="note">
         {harness.state === 'ready'
-          ? `Your own ${harness.name}, on its own sign-in and plan. Pick it in the composer for a project; the Studio gives it the film's tools and asks you before it goes beyond its sandbox.`
+          ? `Your own ${harness.name}, on its own sign-in and plan. Pick it for a project at the top of the assistant; the Studio gives it the film's tools and asks you before it goes beyond its sandbox.`
           : harness.state === 'signed-out'
             ? harness.kind === 'codex'
               ? `${harness.name} is installed. Sign in through it: your browser opens its sign-in, and the Studio never sees your account's credentials.`
               : `${harness.name} is installed. ${harness.hint ?? ''}: it signs in on its own, and the Studio never sees your account's credentials.`
             : `${harness.hint ?? ''}. The Studio looks for it where its installer puts it, never in a project.`}
       </p>
+      {harness.state === 'ready' && (
+        <AgentSettingsFields
+          kind={harness.kind}
+          value={draft}
+          onChange={(next) => {
+            setDraft(next);
+            setSaved(false);
+          }}
+        />
+      )}
       {busy === 'signing-in' && <p className="note">Finish signing in in your browser; this waits for it.</p>}
+      {saved && (
+        <p className="test good" role="status">
+          {harness.kind === 'claude' ? 'Saved. Claude Code starts on it at your next message, in the same conversation.' : 'Saved. Codex runs on it from your next message.'}
+        </p>
+      )}
       {error && (
         <p className="error" role="alert">
           {error}
@@ -99,15 +284,32 @@ function AgentPane({ harness, onAgents, onClose }: { harness: HarnessView; onAge
             Sign in
           </button>
         )}
+        {harness.state === 'ready' && (
+          <button type="button" className="button primary" disabled={busy !== null} onClick={() => void act('saving')}>
+            {busy === 'saving' && <Loader size={14} className="spin" />}
+            Save
+          </button>
+        )}
       </div>
     </div>
   );
 }
 
-export function Settings({ providers, onChange, onClose }: { providers: Providers; onChange(p: Providers): void; onClose(): void }) {
+export function Settings({
+  providers,
+  agent,
+  onChange,
+  onClose,
+}: {
+  providers: Providers;
+  /** The coding agent to open Models on, rather than the providers. */
+  agent?: OutsideKind;
+  onChange(p: Providers): void;
+  onClose(): void;
+}) {
   /** The person's own coding agents, and which one is open in the right pane, if any. */
   const [agents, setAgents] = useState<Agents | null>(null);
-  const [shown, setShown] = useState<HarnessView['kind'] | null>(null);
+  const [shown, setShown] = useState<OutsideKind | null>(agent ?? null);
   useEffect(() => {
     let live = true;
     window.studio.agents().then(
@@ -237,7 +439,7 @@ export function Settings({ providers, onChange, onClose }: { providers: Provider
         </div>
 
         {harness ? (
-          <AgentPane harness={harness} onAgents={setAgents} onClose={onClose} />
+          <AgentPane key={harness.kind} harness={harness} settings={agents!.settings} onAgents={setAgents} onClose={onClose} />
         ) : (
         <form className="provider-form" onSubmit={save}>
           <div className="panel-head">

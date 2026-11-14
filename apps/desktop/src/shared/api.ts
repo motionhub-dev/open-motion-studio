@@ -86,10 +86,37 @@ export interface HarnessView {
   link?: string;
 }
 
-/** The project's agent and the coding agents on this machine. */
+/**
+ * How the person runs their own coding agents, kept in the app's settings.json. An empty string leaves the choice to
+ * the agent itself (its own default model or effort).
+ */
+export interface AgentSettings {
+  claude: {
+    /** An alias (`opus`, `sonnet`…) or a full model name. */
+    model: string;
+    effort: string;
+    /** The model Claude Code turns to when its own is overloaded. */
+    fallbackModel: string;
+    /** The most a turn may spend, in US dollars (`--max-budget-usd`); null for no cap. */
+    budgetUsd: number | null;
+  };
+  codex: { model: string; effort: string };
+}
+
+/** A model a coding agent offers, and the efforts it takes. */
+export interface AgentModel {
+  id: string;
+  name: string;
+  efforts: string[];
+  /** The effort it runs at when none is chosen. */
+  effort?: string;
+}
+
+/** The project's agent, the coding agents on this machine and how the person runs them. */
 export interface Agents {
   current: AgentKind;
   harnesses: HarnessView[];
+  settings: AgentSettings;
 }
 
 export interface ProviderView {
@@ -375,6 +402,10 @@ export interface StudioApi {
   signInAgent(kind: Exclude<AgentKind, 'built-in'>): Promise<Agents>;
   /** Makes the open project talk to this agent from its next message. */
   useAgent(kind: AgentKind): Promise<Agents>;
+  /** The models a coding agent offers: Claude Code's aliases, or what Codex's `model/list` names. */
+  agentModels(kind: Exclude<AgentKind, 'built-in'>): Promise<AgentModel[]>;
+  /** Saves how one coding agent runs; Claude Code starts again with it at the next message. */
+  saveAgentSettings<K extends keyof AgentSettings>(kind: K, settings: AgentSettings[K]): Promise<Agents>;
   saveProvider(input: ProviderInput): Promise<Providers>;
   removeProvider(id: string): Promise<Providers>;
   activateProvider(id: string): Promise<Providers>;
@@ -437,6 +468,8 @@ export const CHANNELS = {
   providers: 'providers:list',
   agents: 'agent:agents',
   useAgent: 'agent:use',
+  agentModels: 'agent:models',
+  saveAgentSettings: 'agent:save-settings',
   answerApproval: 'agent:answer-approval',
   signInAgent: 'agent:sign-in',
   saveProvider: 'providers:save',

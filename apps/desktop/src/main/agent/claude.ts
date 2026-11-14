@@ -9,8 +9,8 @@
 import { type ChildProcess, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import type Anthropic from '@anthropic-ai/sdk';
-import type { AgentEvent } from '../../shared/api';
-import { claudeEnv } from './harness';
+import type { AgentEvent, AgentModel, AgentSettings } from '../../shared/api';
+import { CLAUDE_EFFORTS, claudeEnv } from './harness';
 import { moment, question, summary } from './loop';
 import { NO_TOKENS, type Spent, addSpent, claudeResult } from '../usage';
 
@@ -25,9 +25,24 @@ type Block = Anthropic.Beta.BetaContentBlockParam;
 type Notice = { text: string; error: boolean };
 type Event = { type: string; subtype?: string; [key: string]: unknown };
 
-/** The arguments a session starts with: the Studio's settings alone, and a new session or the one to go on with. */
-export function claudeArgs(skill: string, studioUrl: string, session: { id: string; resume: boolean }): string[] {
+/** Claude Code's aliases for the latest model of each family; a full model name works as well. */
+export const CLAUDE_MODELS: AgentModel[] = [
+  { id: 'fable', name: 'Fable', efforts: CLAUDE_EFFORTS },
+  { id: 'opus', name: 'Opus', efforts: CLAUDE_EFFORTS },
+  { id: 'sonnet', name: 'Sonnet', efforts: CLAUDE_EFFORTS },
+  { id: 'haiku', name: 'Haiku', efforts: CLAUDE_EFFORTS },
+];
+
+/**
+ * The arguments a session starts with: the Studio's settings alone, how the person chose to run it (each left out
+ * when it is the CLI's own default), and a new session or the one to go on with.
+ */
+export function claudeArgs(skill: string, studioUrl: string, session: { id: string; resume: boolean }, settings: AgentSettings['claude']): string[] {
   return [
+    ...(settings.model ? ['--model', settings.model] : []),
+    ...(settings.effort ? ['--effort', settings.effort] : []),
+    ...(settings.fallbackModel ? ['--fallback-model', settings.fallbackModel] : []),
+    ...(settings.budgetUsd !== null ? ['--max-budget-usd', String(settings.budgetUsd)] : []),
     '-p',
     '--input-format',
     'stream-json',
@@ -248,7 +263,11 @@ export function translateClaude(event: Event, reading: ClaudeReading): AgentEven
 /** How a turn ended, from its `result`: nothing to say when it went well, else Claude Code's own words. */
 export function resultNotice(event: Event): Notice | undefined {
   if (event.is_error !== true) return undefined;
-  const said = typeof event.result === 'string' ? event.result : '';
+  const errors = Array.isArray(event.errors) ? event.errors.filter((e): e is string => typeof e === 'string') : [];
+  const said = typeof event.result === 'string' && event.result ? event.result : errors.join(' ');
+  if (event.subtype === 'error_max_budget_usd') {
+    return { text: `The turn stopped at its cap${said ? `: ${said}` : ''}. Raise or remove the cap per turn in Models to go on.`, error: true };
+  }
   if (/not logged in/i.test(said)) return { text: 'Claude Code is not signed in. Sign in with `claude auth login`, then send again.', error: true };
   return { text: said || 'Claude Code could not finish the turn.', error: true };
 }

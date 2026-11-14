@@ -3,7 +3,7 @@
 
 import { Folder, Info, Plus, ArrowUpRight, Play } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import type { Project, Providers, Example } from '../../shared/api';
+import type { Example, HarnessView, Project, Providers } from '../../shared/api';
 import { Logo } from './logo';
 import { ProjectView } from './project-view';
 import { reason } from './reason';
@@ -16,7 +16,10 @@ export function App() {
   const [busy, setBusy] = useState(false);
   const [providers, setProviders] = useState<Providers | null>(null);
   const [examples, setExamples] = useState<Example[]>([]);
-  const [settings, setSettings] = useState(false);
+  /** Models, when open: on the providers, or on one of the person's own coding agents. */
+  const [settings, setSettings] = useState<false | { agent?: HarnessView['kind'] }>(false);
+  /** Counts the times Models closed, so the open project asks again how its agent runs. */
+  const [modelsClosed, setModelsClosed] = useState(0);
 
   useEffect(() => {
     window.studio.examples().then(setExamples, (e) => setError(reason(e)));
@@ -41,7 +44,17 @@ export function App() {
     }
   }
 
-  const dialog = settings && providers && <Settings providers={providers} onChange={setProviders} onClose={() => setSettings(false)} />;
+  const dialog = settings && providers && (
+    <Settings
+      providers={providers}
+      agent={settings.agent}
+      onChange={setProviders}
+      onClose={() => {
+        setSettings(false);
+        setModelsClosed((n) => n + 1);
+      }}
+    />
+  );
 
   if (project) {
     return (
@@ -49,7 +62,8 @@ export function App() {
         <ProjectView
           project={project}
           providers={providers}
-          onSettings={() => setSettings(true)}
+          onSettings={(agent) => setSettings(agent ? { agent } : {})}
+          modelsClosed={modelsClosed}
           onChange={setProject}
           onClose={() => {
             window.studio.closeProject().then(
@@ -178,7 +192,7 @@ export function App() {
               No model is set up yet. The agent runs on yours: any Anthropic Messages or OpenAI Chat Completions server, or one on this
               computer.
             </p>
-            <button type="button" className="button primary" onClick={() => setSettings(true)}>
+            <button type="button" className="button primary" onClick={() => setSettings({})}>
               Set up a model
             </button>
           </div>

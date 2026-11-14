@@ -9,7 +9,7 @@
 
 import { type ChildProcess, spawn } from 'node:child_process';
 import type Anthropic from '@anthropic-ai/sdk';
-import type { AgentEvent, Approval, ApprovalAnswer } from '../../shared/api';
+import type { AgentEvent, AgentModel, AgentSettings, Approval, ApprovalAnswer } from '../../shared/api';
 import { moment, question, summary } from './loop';
 import { NO_TOKENS, type Spent, addSpent, codexTokens } from '../usage';
 
@@ -217,6 +217,50 @@ export async function openThread(server: AppServer, dir: string, instructions: s
   return started.thread.id;
 }
 
+/** A model in Codex's `model/list`, as far as the Studio reads it. */
+interface ListedModel {
+  id: string;
+  displayName?: string;
+  hidden?: boolean;
+  isDefault?: boolean;
+  supportedReasoningEfforts?: { reasoningEffort: string }[];
+  defaultReasoningEffort?: string;
+}
+
+/** The models the person's Codex offers (`model/list`), its default first. */
+export async function codexModels(server: AppServer): Promise<AgentModel[]> {
+  const listed = await server.request<{ data: ListedModel[] }>('model/list', {});
+  return listed.data
+    .filter((m) => !m.hidden)
+    .sort((a, b) => Number(!!b.isDefault) - Number(!!a.isDefault))
+    .map((m) => ({
+      id: m.id,
+      name: m.displayName || m.id,
+      efforts: (m.supportedReasoningEfforts ?? []).map((e) => e.reasoningEffort),
+      ...(m.defaultReasoningEffort ? { effort: m.defaultReasoningEffort } : {}),
+    }));
+}
+
+/**
+ * The model and effort a turn runs on, both always sent, since Codex keeps a turn's choice for the thread's later
+ * turns: a choice of the person's own default is said outright so going back to it takes. The default is what the
+ * person's own Codex configuration names (`config/read`), else Codex's default model; an effort the model does not
+ * take falls back to the model's own.
+ */
+export function codexChoice(
+  settings: AgentSettings['codex'],
+  config: { model?: unknown; model_reasoning_effort?: unknown },
+  models: AgentModel[],
+): { model: string; effort?: string } {
+  const configured = typeof config.model === 'string' ? config.model : '';
+  const model = settings.model || configured || models[0]?.id;
+  if (!model) throw new Error('Codex named no model to run on.');
+  const known = models.find((m) => m.id === model);
+  const wanted = settings.effort || (typeof config.model_reasoning_effort === 'string' ? config.model_reasoning_effort : '');
+  const effort = known && !known.efforts.includes(wanted) ? known.effort : wanted || known?.effort;
+  return { model, ...(effort ? { effort } : {}) };
+}
+
 type Block = Anthropic.Beta.BetaContentBlockParam;
 
 /** The person's message, as the built-in agent would get it, in Codex's input: its words in one text, its frames as images. */
@@ -384,6 +428,7 @@ export async function codexTurn(
   server: AppServer,
   thread: string,
   input: Params[],
+  choice: { model: string; effort?: string },
   emit: (event: AgentEvent) => void,
   signal: AbortSignal,
   ask: (approval: Omit<Approval, 'id'>) => Promise<ApprovalAnswer>,
@@ -425,7 +470,7 @@ export async function codexTurn(
   let notice: Notice | undefined;
   try {
     emit({ type: 'phase', phase: 'thinking' });
-    const started = await server.request<{ turn: { id: string } }>('turn/start', { threadId: thread, input });
+    const started = await server.request<{ turn: { id: string } }>('turn/start', { threadId: thread, input, ...choice });
     turnId = started.turn.id;
     if (signal.aborted) interrupt();
     notice = await Promise.race([
@@ -439,5 +484,5 @@ export async function codexTurn(
     signal.removeEventListener('abort', interrupt);
   }
   if (signal.aborted && !notice) notice = { text: 'Stopped.', error: false };
-  return { ok: !notice?.error && !signal.aborted, notice, spent };
+  return { ok: !notice?.error && !signal.aborted, notice, spent: { ...spent, model: choice.model } };
 }

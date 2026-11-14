@@ -217,6 +217,7 @@ button.link {
 input[type='search'],
 input[type='text'],
 input[type='password'],
+input[type='number'],
 textarea,
 select {
   font: inherit;
@@ -3098,40 +3099,12 @@ kbd {
   border-radius: var(--r-button);
 }
 
-/* The model belongs to the message, beside its send action. */
+/* Send, or Stop while a turn runs, at the box's end. */
 .composer-actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
-}
-.composer-model {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  max-width: calc(100% - 44px);
-  min-height: 28px;
-  margin-left: -4px;
-  padding: 4px 6px;
-  border: 1px solid transparent;
-  border-radius: var(--r-control);
-  background: transparent;
-  color: var(--muted);
-  font-size: 11px;
-  text-align: left;
-}
-.composer-model:hover {
-  background: var(--s2);
-  color: var(--text);
-}
-.composer-model span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.composer-model svg {
-  flex: none;
 }
 
 /* The marks for the next message: each by number, what and when, and what should change there. */
@@ -3644,28 +3617,72 @@ kbd {
   overflow-y: auto;
 }
 
-/* The agent picker in the composer: the built-in agent on its model, or the person's own Codex (ADR 0008). */
+/* The project's agent at the top of the assistant: the built-in one on its model, or the person's own (ADR 0008). */
 .agent-picker {
   position: relative;
-  margin-left: -4px;
-  /* It keeps its width beside Send (and Stop), cutting a long model name short only at its own limit. */
   flex: 0 1 auto;
-  min-width: 4.5em;
-  max-width: calc(100% - 44px);
+  min-width: 0;
   display: inline-flex;
 }
 
-.agent-picker .composer-model {
-  max-width: 100%;
-  /* The pull to the left is the picker's, not the button's: a negative margin inside a flex item shrinks its text. */
+.agent-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 26px;
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+}
+.agent-chip:hover:not(:disabled) {
+  background: var(--s2);
+}
+.agent-chip .state-dot {
   margin-left: 0;
+}
+.agent-chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.agent-chip svg {
+  flex: none;
+  color: var(--muted);
 }
 
 .agent-menu {
-  top: auto;
-  bottom: calc(100% + 6px);
   right: auto;
-  left: -4px;
+  left: 0;
+  min-width: 300px;
+}
+
+/* The model and effort of the person's own agent, changed from the menu. */
+.agent-menu-settings {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 4px 0;
+  padding: 8px 10px;
+  border-block: 1px solid var(--line);
+}
+.agent-menu-settings label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.agent-menu-settings select {
+  width: 100%;
+}
+.agent-menu-settings .note {
+  grid-column: 1 / -1;
+  margin: 0;
 }
 
 /* What an outside agent asks leave to do (ADR 0008), answered in the panel. */

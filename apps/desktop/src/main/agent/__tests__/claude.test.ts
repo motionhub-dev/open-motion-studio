@@ -6,10 +6,13 @@ import { claudeEnv, claudePlaces } from '../harness';
 
 vi.mock('electron', () => ({}));
 
+const DEFAULTS = { model: '', effort: '', fallbackModel: '', budgetUsd: null };
+
 describe('a Claude Code session', () => {
   it('starts with the Studio settings alone: no setting sources, only its MCP server, a fixed set of tools', () => {
-    const args = claudeArgs('THE SKILL', 'http://127.0.0.1:5/mcp/x', { id: 'abc', resume: false });
+    const args = claudeArgs('THE SKILL', 'http://127.0.0.1:5/mcp/x', { id: 'abc', resume: false }, DEFAULTS);
     const after = (flag: string) => args[args.indexOf(flag) + 1];
+    for (const flag of ['--model', '--effort', '--fallback-model', '--max-budget-usd']) expect(args).not.toContain(flag);
     expect(args[0]).toBe('-p');
     expect(after('--input-format')).toBe('stream-json');
     expect(after('--output-format')).toBe('stream-json');
@@ -21,7 +24,17 @@ describe('a Claude Code session', () => {
     expect(CLAUDE_TOOLS).not.toContain('WebFetch');
     expect(after('--append-system-prompt')).toBe('THE SKILL');
     expect(after('--session-id')).toBe('abc');
-    expect(claudeArgs('s', 'u', { id: 'abc', resume: true })).toContain('--resume');
+    expect(claudeArgs('s', 'u', { id: 'abc', resume: true }, DEFAULTS)).toContain('--resume');
+  });
+
+  it('starts on the model, effort, fallback and cap per turn the person chose', () => {
+    const args = claudeArgs('s', 'u', { id: 'abc', resume: true }, { model: 'opus', effort: 'xhigh', fallbackModel: 'sonnet', budgetUsd: 0.5 });
+    const after = (flag: string) => args[args.indexOf(flag) + 1];
+    expect(after('--model')).toBe('opus');
+    expect(after('--effort')).toBe('xhigh');
+    expect(after('--fallback-model')).toBe('sonnet');
+    expect(after('--max-budget-usd')).toBe('0.5');
+    expect(after('--resume')).toBe('abc');
   });
 
   it('runs without what a Claude Code session it was started from would pass on', () => {
@@ -84,6 +97,11 @@ describe('a Claude Code session', () => {
     expect(resultNotice({ type: 'result', is_error: false })).toBeUndefined();
     expect(resultNotice({ type: 'result', is_error: true, result: 'Not logged in. Please run /login' })?.text).toMatch(/claude auth login/);
     expect(resultNotice({ type: 'result', is_error: true, result: 'Rate limited' })).toEqual({ text: 'Rate limited', error: true });
+    // As Claude Code 2.1 ends a turn at its --max-budget-usd: no result, the reason in `errors`.
+    expect(
+      resultNotice({ type: 'result', is_error: true, subtype: 'error_max_budget_usd', errors: ['Reached maximum budget ($0.0001)'] })?.text,
+    ).toBe('The turn stopped at its cap: Reached maximum budget ($0.0001). Raise or remove the cap per turn in Models to go on.');
+    expect(resultNotice({ type: 'result', is_error: true, errors: ['Overloaded'] })?.text).toBe('Overloaded');
   });
 
   it('runs turns one after another on one process, and Stop ends it', async () => {

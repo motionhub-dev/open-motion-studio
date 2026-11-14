@@ -133,10 +133,13 @@ recent projects with their path (`~` for the home folder), and a banner while no
   dashed outline; on Claude Code, Enter adds a message of words to the turn instead, as a bubble in the conversation
   where it was sent. Items the last turn changed are ringed in green in the outline and the timeline for four seconds, and
   the stage says the agent is working in a dark pill over its top left. The composer grows with its text up to 180px; Enter
-  sends, Shift+Enter breaks the line. The agent picker sits inside the composer below the text, opposite Send;
-  it shows the built-in agent's model, or Codex when the project talks to the person's own (ADR 0008), keeps the full
-  name on hover, and opens a menu upward: the built-in agent on its provider, Codex with its version or what it needs
-  (installing, updating, signing in), and Models. Until the project's agent is known it says so, and nothing sends.
+  sends, Shift+Enter breaks the line, and Send (or Stop) sits at the box's end. The assistant's head is hide, the
+  project's agent as a round chip, its tokens, then History and New conversation as icons. The chip has a dot (green
+  ready, `--bad` signed out or too old, hollow not installed or no model) and the built-in agent's model, or the
+  person's own agent with the model chosen for it ("Claude Code · opus"; ADR 0008), the rest on hover. It opens a menu
+  downward: the built-in agent on its provider, Codex and Claude Code with their versions or what they need
+  (installing, updating, signing in), for the person's own agent its Model and Effort as two selects that take at
+  once, and Models. Until the project's agent is known it says so, and nothing sends.
 - **Outline** (`outline.tsx`): the scene count and length with Collapse all / Expand all; the film's own layers folded
   in a dashed group; then each scene as one row on the playhead's rail (a frame from the timeline's stills, its first
   line, its number, start and length; a fold at its end), its layers under it topmost first by name, and the rest of

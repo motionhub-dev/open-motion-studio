@@ -1,5 +1,18 @@
 import { describe, expect, it, vi } from 'vitest';
-import { STUDIO_SERVER, approvalFor, codexInput, codexTurn, sessionConfig, signInCodex, translate, turnEnd, type Reading } from '../codex';
+import type { AgentModel } from '../../../shared/api';
+import {
+  STUDIO_SERVER,
+  approvalFor,
+  codexChoice,
+  codexInput,
+  codexModels,
+  codexTurn,
+  sessionConfig,
+  signInCodex,
+  translate,
+  turnEnd,
+  type Reading,
+} from '../codex';
 import { atLeast, codexPlaces, versionOf } from '../harness';
 
 vi.mock('electron', () => ({}));
@@ -159,9 +172,11 @@ describe('what a Codex turn took', () => {
         turnId,
         tokenUsage: { last: { inputTokens: input, cachedInputTokens: cached, cacheWriteInputTokens: 0, outputTokens: output, reasoningOutputTokens: reasoning } },
       });
+    let started: Record<string, unknown> = {};
     const server = {
       on: (l: typeof listener) => ((listener = l), () => undefined),
-      request: async () => {
+      request: async (_method: string, params: Record<string, unknown>) => {
+        started = params;
         setTimeout(() => {
           call('an-earlier-turn', 5000, 0, 50, 0);
           // As Codex 0.167 reported them: its input includes the cached part, its output the reasoning.
@@ -174,7 +189,47 @@ describe('what a Codex turn took', () => {
       ended: new Promise<void>(() => undefined),
       lastWords: () => '',
     } as never;
-    const outcome = await codexTurn(server, 'th', [], () => undefined, new AbortController().signal, async () => 'deny', () => 'project');
-    expect(outcome.spent).toEqual({ tokens: { input: 17010, cacheRead: 16640, cacheWrite: 0, output: 85, reasoning: 6 }, calls: 2 });
+    const choice = { model: 'gpt-6.1-sol', effort: 'high' };
+    const outcome = await codexTurn(server, 'th', [], choice, () => undefined, new AbortController().signal, async () => 'deny', () => 'project');
+    expect(started).toEqual({ threadId: 'th', input: [], model: 'gpt-6.1-sol', effort: 'high' });
+    expect(outcome.spent).toEqual({
+      tokens: { input: 17010, cacheRead: 16640, cacheWrite: 0, output: 85, reasoning: 6 },
+      calls: 2,
+      model: 'gpt-6.1-sol',
+    });
+  });
+});
+
+describe('the model a Codex turn runs on', () => {
+  const models: AgentModel[] = [
+    { id: 'sol', name: 'Sol', efforts: ['low', 'medium', 'high'], effort: 'low' },
+    { id: 'astra', name: 'Astra', efforts: ['medium', 'high', 'max'], effort: 'medium' },
+  ];
+
+  it('is the person’s choice, with the effort they chose when the model takes it', () => {
+    expect(codexChoice({ model: 'astra', effort: 'max' }, {}, models)).toEqual({ model: 'astra', effort: 'max' });
+    expect(codexChoice({ model: 'sol', effort: 'max' }, {}, models)).toEqual({ model: 'sol', effort: 'low' });
+  });
+
+  it('says the default outright: their own Codex configuration’s, else Codex’s first model', () => {
+    expect(codexChoice({ model: '', effort: '' }, { model: 'astra', model_reasoning_effort: 'high' }, models)).toEqual({ model: 'astra', effort: 'high' });
+    expect(codexChoice({ model: '', effort: '' }, {}, models)).toEqual({ model: 'sol', effort: 'low' });
+    expect(codexChoice({ model: 'a-model-it-did-not-list', effort: '' }, {}, models)).toEqual({ model: 'a-model-it-did-not-list' });
+  });
+
+  it('lists what model/list names, hidden ones left out and the default first', async () => {
+    const server = {
+      request: async () => ({
+        data: [
+          { id: 'astra', displayName: 'Astra', supportedReasoningEfforts: [{ reasoningEffort: 'high' }], defaultReasoningEffort: 'high' },
+          { id: 'old', hidden: true },
+          { id: 'sol', displayName: 'Sol', isDefault: true, supportedReasoningEfforts: [{ reasoningEffort: 'low' }] },
+        ],
+      }),
+    } as never;
+    expect(await codexModels(server)).toEqual([
+      { id: 'sol', name: 'Sol', efforts: ['low'] },
+      { id: 'astra', name: 'Astra', efforts: ['high'], effort: 'high' },
+    ]);
   });
 });
