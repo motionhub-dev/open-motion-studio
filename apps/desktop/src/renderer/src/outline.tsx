@@ -84,10 +84,6 @@ export function Outline({
       onWheel={() => (touched.current = Date.now())}
       onPointerDown={() => (touched.current = Date.now())}
     >
-      <div className="panel-intro">
-        <span className="eyebrow">The shape of your film</span>
-        <p>Find a scene, inspect a layer, or bring it into the conversation.</p>
-      </div>
       {film.layers.length > 0 && (
         <section>
           <h3 className="label">Across the film</h3>

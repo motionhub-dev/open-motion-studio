@@ -65,25 +65,37 @@ key where it has one.
 
 A top bar over a grid of panels (`project-view.tsx`):
 
-- **Top bar**: the mark (it closes the project), the project's name (its path on hover) and whether its film
-  builds, then the panel controls, keyboard shortcuts and Export, which shows progress and cancels while running,
-  with a menu beside it for a Remotion project. On a Mac the window has no title bar (`hiddenInset`): its buttons sit over the top bar, which
+- **Top bar**: the mark (it closes the project), the project's name (its path on hover) and its status (building,
+  built with the last check's issue count, or does not build), which opens Checks; then a button for each hidden panel,
+  keyboard shortcuts and Export, which shows progress and cancels while running, with a menu beside it for a Remotion
+  project. On a Mac the window has no title bar (`hiddenInset`): its buttons sit over the top bar, which
   leaves them room and moves the window; the launcher keeps a strip at its top to move it by.
-- **Assistant** down the left, the **stage** in the middle, **Outline**, **Motions**, **Assets**, **Inspector**, **History** and **Checks** behind a narrow tool rail on the right, the
-  **transport and timeline** along the bottom under the stage and the right panel.
-- The assistant's and the right panel's widths and the timeline's height are dragged at their edges (or set with the
-  arrow keys on the handle), and the timeline folds to its transport; `layout.tsx` keeps them in the app's local storage.
-- The timeline (`timeline.tsx`) is a ruler, a Scenes lane for a film of scenes (each scene a block named by its id, the
-  one under the playhead inked, its lines on hover), the Marks lane (a flag for each mark, a cobalt band for a stretch,
-  dragged out along the lane) and the playhead through them. The check's issues are small triangles on the ruler
+- **Assistant** down the whole left, the **stage** in the middle, the **project tools** on the right, the **timeline**
+  along the bottom under the stage and the project tools. A shown panel hides from its own head (the assistant's left
+  corner, the tools' right corner).
+- The **stage** is the film's height where there is room: its picture takes the film's shape with 16 px of ink around
+  the frame, and its foot is the controls (previous frame, play, next frame, the time, loop; then Pick, Region and
+  Guides as one labelled group, the film's size and rate, and full screen). A narrow stage keeps the group's icons and
+  drops the size. Full screen is the stage alone, picture and foot, with no corners; Esc or the button leaves it.
+- The **project tools** are four tabs, Outline, Inspector, Assets and Motions. History opens from the assistant's head
+  and Checks from the status; either shows its title with a way back to the tabs.
+- The assistant's and the right panel's widths are dragged at their edges, and the timeline's height is the least it
+  has: it takes whatever the stage leaves (handles take the arrow keys too). The timeline folds to its head, and the
+  stage then takes the rest; `layout.tsx` keeps the sizes in the app's local storage.
+- The timeline (`timeline.tsx`) is a head (its zoom, fit, follow and fold), a ruler, a Scenes lane for a film of scenes (each scene a block named by its title over a strip of its frames, as many
+  40 px frames as its width holds, each the nearest in time; until they are made, the title alone; a triangle by the
+  lane's name, its reason on hover, when they could not be made; the
+  one under the playhead inked, its lines on hover; a selected scene ringed in cobalt, the scene of a selected layer
+  ringed thinly), the Marks lane (a flag for each mark, a cobalt band for a stretch, dragged out along the lane; empty,
+  it says so in muted words, and it tints on hover), a dashed span for each layer (selected, solid cobalt on a cobalt
+  tint; changed by the last turn, a green ring on a green tint) and the playhead through them. The check's issues are small triangles on the ruler
   (`--bad` for an error, muted for a warning), and the moment under the pointer is an ink label on it
   with its scene. Ctrl and the wheel zoom about the pointer (1× to 32×); a playhead out of view is a chip at the edge
   it went past.
 - A mark being made is a dashed cobalt box with its number, and beside it a floating sheet that asks what should change
   there: below the mark, else above, right or left, kept inside the stage. A mark in hand in the composer is drawn lit
   (thicker, with a soft cobalt halo) on the picture and the timeline.
-- The stage draws the film's frame contained and centred with room around it, on ink with a shadow; the marking tools
-  float over its top right corner.
+- The stage draws the film's frame contained and centred on ink with a shadow.
 - Keys, grouped in one table (`SHORTCUTS` in `project-view.tsx`) that ? lists in a dialog: Space or K plays, ← → step
   a frame (Shift, a second), ↑ ↓ go to the previous or next scene, Home and End to the start and end; C cycles Pick,
   Region and off, G shows the safe-area guides, Esc lets a mark go, then puts the tool down, then clears the selection;
@@ -102,9 +114,11 @@ recent projects with their path (`~` for the home folder), and a banner while no
 ## The panels and the models dialog
 
 - **Assistant** (`assistant.tsx`, `activity.ts`): the person's words in a bubble, the agent's as Markdown (`markdown.tsx`:
-  drawn as React elements, never as HTML), each run of tool calls one muted line with its state, its steps folded under
-  it. Stills sit beside it as a grid of thumbnails; clicking one seeks the stage to its moment and opens it large on a
-  dimmed ground (Esc closes). A turn's end is a paper card with a green (`--good`) edge listing what changed as small
+  drawn as React elements, never as HTML), each run of tool calls one muted line at 11 px, a step below the agent's words, with its state, its steps folded under
+  it. Stills sit under it as one row of four small thumbnails; more than four show three and a count of the rest,
+  which opens them all (and Fewer folds them again); clicking one seeks the stage to its moment and opens it large on a
+  dimmed ground (Esc closes). A turn's end is a paper card with a green (`--good`) edge: how long the turn took (for
+  turns run while the project is open), what changed as small
   pills (a removed one struck through) and Undo this turn; a question the agent asks is a sheet card with an ink edge
   and its answers as buttons, the recommended one primary. What an outside agent asks leave to do is a sheet card with
   a `--bad` edge: its title, the command or paths in mono, its reason, and Allow once, Allow for this session and Deny,
@@ -134,13 +148,13 @@ recent projects with their path (`~` for the home folder), and a banner while no
 
 ## Exploration and recovery
 
-The tool rail selects one panel, keeping the picture large as capabilities grow. Outline rows show a human-readable
+The tabs select one panel, keeping the picture large as capabilities grow. Outline rows show a human-readable
 scene line before its id; their message action appears on hover and keyboard focus. A selected layer has a cobalt
 dashed declared-bounds box, distinct from solid picture marks. References are small paper cards with a cobalt edge,
 a type label and a time where applicable; clicking locates without sending. The selection's card is dashed and labelled
 Selected. Marks wait above the composer as the same cards, each with its number, what and when, and a field for its
 note; a sent message shows each mark with a thumbnail of the frame the model saw. The timeline adds quiet dashed layer
-spans and fit/zoom controls. Panel visibility can be toggled in the top bar, and F enters or leaves focus mode. On compact windows the project tools start folded, can be reopened explicitly,
+spans and fit/zoom controls. A panel hides from its head and comes back from the top bar, and F enters or leaves focus mode. On compact windows the project tools start folded, can be reopened explicitly,
 and return to their saved visibility on a wider window.
 
 History uses a vertical stack of request labels, timestamps and changed paths. Restore is an ink action, followed by

@@ -3,6 +3,68 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-13 — Each scene on the timeline shows its frames, and the stage goes full screen
+
+- **What:** A scene's block on the timeline is its title over a strip of its frames. They are photographed once a
+  build has stood for a moment and kept in the project's `.motion-studio/thumbs/`, one file named by the build's hash,
+  replaced when the film changes. The stage's controls end with full screen, which Esc leaves.
+- **Why:** A film's shape reads at a glance from its pictures, not from scene names; and a film is judged at its size.
+- **Breaking:** None.
+- **Upgrade:** Nothing. A project gains `.motion-studio/thumbs/`, which git already leaves out with the rest of
+  `.motion-studio/`.
+- **Refs:** `apps/desktop/src/main/film/capture.ts`, `apps/desktop/src/renderer/src/timeline.tsx`, `docs/tech/architecture.md`.
+
+## 2026-11-13 — The timeline shows what is selected and what changed
+
+- **What:** A selected scene has a heavier cobalt ring, and the scene of a selected layer a thin one; a selected layer
+  span is solid cobalt on a cobalt tint, and a span the last turn changed is tinted green as well as ringed. The empty
+  Marks lane says that dragging along it marks a stretch.
+- **Why:** Selection and change were faint on the timeline, and marking a stretch was found only by trying.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/timeline.tsx`, `docs/design.md`.
+
+## 2026-11-13 — A turn says how long it took, and the agent's steps step back
+
+- **What:** The card where a turn ends opens with how long it took (`Worked for 1m 12s`). The line for a run of the
+  agent's tool calls is a size smaller than its words.
+- **Why:** The agent's answer is what a person reads; its steps are there to open when wanted.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/assistant.tsx`, `apps/desktop/src/renderer/src/activity.ts`.
+
+## 2026-11-13 — What is typed while a project opens is kept
+
+- **What:** The assistant is no longer drawn again once the project's agent is found, a few seconds after the project
+  opens; only a switch of agent starts it afresh.
+- **Why:** Words typed into the composer in those first seconds, and stills opened, were dropped.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/project-view.tsx`.
+
+## 2026-11-13 — The stills an agent looked at take one row
+
+- **What:** The stills under a run of the agent's tools are one row of four small thumbnails; past four, the row shows
+  three and a count of the rest, which opens them all.
+- **Why:** A turn that checked many frames filled the assistant with pictures and pushed its answer out of view.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/assistant.tsx`, `docs/design.md`.
+
+## 2026-11-13 — The workspace gives the film and the timeline the room
+
+- **What:** The stage is no taller than its film where there is room, and its foot carries play, the time, loop and the
+  pointing tools as labelled buttons (Pick, Region, Guides); the timeline takes the height the stage leaves, with its
+  own head (zoom, fit, follow, fold). The project tools are four labelled tabs (Outline, Inspector, Assets, Motions);
+  History opens from the assistant's head and Checks from the status in the top bar, which counts the last check's
+  issues. Each panel hides from its own head and comes back from the top bar; the top bar's focus button is gone (F
+  stays). The right panel is at least 280 px wide.
+- **Why:** The picture sat in a tall dark box with its controls in another panel, and the side panel's rail and
+  headings pushed its content down; the space now goes to the film and the timeline.
+- **Breaking:** None.
+- **Upgrade:** Nothing. A stored right-panel width under 280 px opens at 280 px.
+- **Refs:** `docs/design.md`, `apps/desktop/src/renderer/src/project-view.tsx`, `apps/desktop/src/renderer/src/preview.tsx`.
+
 ## 2026-11-13 — A project can talk to the person's own Claude Code
 
 - **What:** The agent picker and Models also offer the person's own Claude Code, when it is installed where
