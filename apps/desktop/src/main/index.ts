@@ -60,7 +60,7 @@ import { motionDetail, motionReel, projectMotions, searchMotions, useMotion } fr
 import { STATE_DIR, createProject, isRecent, openProject, projectAt, recentProjects, rememberProject } from './project';
 import { describeReferences, filmSpans, readReferences } from './agent/references';
 import { ProjectHistory, changesBetween, inProject, noteFiles, putBack } from './history';
-import { NO_TOKENS, type Spent, readTurns, recordTurn, totals } from './usage';
+import { NO_TOKENS, type Spent, readUsage, recordUsage, totals } from './usage';
 import { randomUUID } from 'node:crypto';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { ProviderStore } from './providers';
@@ -263,6 +263,15 @@ async function voiceOpenFilm(state: NonNullable<typeof open>): Promise<VoicedFil
   const voiced = await voiceFilm(state.project.path, film, (kind) => providers().voiceSetup(kind), ffmpegPath(), (done, of) =>
     send(EVENTS.voiceProgress, { done, of }),
   );
+  if (voiced.spoken) {
+    await recordUsage(state.project.path, {
+      at: new Date().toISOString(),
+      voice: film.voice!,
+      lines: voiced.spoken,
+      characters: voiced.characters,
+      speech: Math.round(voiced.seconds * 100) / 100,
+    });
+  }
   if (open === state && state.watcher) await state.watcher.rebuild();
   return voiced;
 }
@@ -294,7 +303,7 @@ async function logTurn(
   turn: { agent: AgentKind; usage: TurnUsage; notice?: { error: boolean }; stopped: boolean; tools: number; checkpoint?: string; costUsd?: number },
 ): Promise<void> {
   try {
-    await recordTurn(dir, {
+    await recordUsage(dir, {
       at: new Date().toISOString(),
       agent: turn.agent,
       outcome: turn.stopped ? 'stopped' : turn.notice?.error ? 'failed' : 'done',
@@ -733,7 +742,7 @@ function registerHandlers(): void {
     }
   });
   ipcMain.handle(CHANNELS.stopAgent, () => working?.abort());
-  ipcMain.handle(CHANNELS.projectUsage, async () => totals(await readTurns(requireOpen().project.path)));
+  ipcMain.handle(CHANNELS.projectUsage, async () => totals(await readUsage(requireOpen().project.path)));
   // Words into the turn that runs, for Claude Code alone, which takes a message mid-turn; else they wait for its end.
   ipcMain.handle(CHANNELS.steerAgent, async (_event, text: unknown) => {
     const state = requireOpen();

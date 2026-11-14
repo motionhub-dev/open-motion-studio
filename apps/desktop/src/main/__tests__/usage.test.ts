@@ -2,7 +2,7 @@ import { appendFile, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { type UsageLine, chatTokens, claudeResult, codexTokens, messageTokens, readTurns, recordTurn, totals, usageFile } from '../usage';
+import { type UsageLine, chatTokens, claudeResult, codexTokens, messageTokens, readUsage, recordUsage, totals, usageFile } from '../usage';
 
 vi.mock('electron', () => ({}));
 
@@ -88,23 +88,30 @@ describe("a project's usage log", () => {
 
   it('keeps one line a turn in .motion-studio/usage.jsonl, appended', async () => {
     expect(usageFile(dir)).toBe(join(dir, '.motion-studio', 'usage.jsonl'));
-    await recordTurn(dir, line({ costUsd: 0.21, checkpoint: 'entry-1', model: 'claude-sonnet-5-5' }));
-    await recordTurn(dir, line({ agent: 'codex', outcome: 'stopped' }));
+    await recordUsage(dir, line({ costUsd: 0.21, checkpoint: 'entry-1', model: 'claude-sonnet-5-5' }));
+    await recordUsage(dir, line({ agent: 'codex', outcome: 'stopped' }));
     const text = await readFile(usageFile(dir), 'utf8');
     expect(text.split('\n')).toHaveLength(3);
     expect(JSON.parse(text.split('\n')[0]!)).toMatchObject({ agent: 'claude', costUsd: 0.21, checkpoint: 'entry-1' });
-    expect((await readTurns(dir)).map((l) => l.outcome)).toEqual(['done', 'stopped']);
+    expect((await readUsage(dir)).map((l) => 'outcome' in l && l.outcome)).toEqual(['done', 'stopped']);
   });
 
   it('adds the turns up, leaving out a line cut short', async () => {
-    expect(totals(await readTurns(dir))).toEqual({ turns: 0, seconds: 0, input: 0, cacheRead: 0, cacheWrite: 0, output: 0, reasoning: 0 });
-    await recordTurn(dir, line({}));
+    expect(totals(await readUsage(dir))).toEqual({ turns: 0, seconds: 0, input: 0, cacheRead: 0, cacheWrite: 0, output: 0, reasoning: 0, voicedCharacters: 0, voicedSeconds: 0 });
+    await recordUsage(dir, line({}));
     await appendFile(usageFile(dir), '{"at":"2026-11-14T06:0');
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     await appendFile(usageFile(dir), '\n');
-    await recordTurn(dir, line({ seconds: 8, input: 10, output: 5, cacheRead: 0, cacheWrite: 0, reasoning: 2 }));
-    expect(totals(await readTurns(dir))).toEqual({ turns: 2, seconds: 80, input: 1010, cacheRead: 20000, cacheWrite: 500, output: 805, reasoning: 2 });
+    await recordUsage(dir, line({ seconds: 8, input: 10, output: 5, cacheRead: 0, cacheWrite: 0, reasoning: 2 }));
+    expect(totals(await readUsage(dir))).toMatchObject({ turns: 2, seconds: 80, input: 1010, cacheRead: 20000, cacheWrite: 500, output: 805, reasoning: 2 });
     expect(warn).toHaveBeenCalledOnce();
     warn.mockRestore();
+  });
+
+  it('keeps each voicing apart from the turns, adding up what it spoke', async () => {
+    await recordUsage(dir, line({}));
+    await recordUsage(dir, { at: '2026-11-14T07:00:00.000Z', voice: 'azure:zh-CN-XiaoxiaoNeural', lines: 3, characters: 42, speech: 9.5 });
+    await recordUsage(dir, { at: '2026-11-14T07:05:00.000Z', voice: 'azure:zh-CN-XiaoxiaoNeural', lines: 1, characters: 8, speech: 1.25 });
+    expect(totals(await readUsage(dir))).toMatchObject({ turns: 1, seconds: 72, voicedCharacters: 50, voicedSeconds: 10.75 });
   });
 });

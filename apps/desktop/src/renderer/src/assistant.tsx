@@ -723,7 +723,9 @@ export function Assistant({
         {usage && usage.turns > 0 && (
           <span
             className="usage-total"
-            title={`This project, ${usage.turns} ${usage.turns === 1 ? 'turn' : 'turns'}: ${tokenParts(usage)}`}
+            title={`This project, ${usage.turns} ${usage.turns === 1 ? 'turn' : 'turns'}: ${tokenParts(usage)}${
+              usage.voicedCharacters ? `. Voiced ${usage.voicedCharacters} characters, ${usage.voicedSeconds.toFixed(1)} s of speech` : ''
+            }`}
           >
             {tokenCount(allTokens(usage))} tokens
           </span>

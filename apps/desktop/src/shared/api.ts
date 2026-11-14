@@ -315,6 +315,9 @@ export interface TurnUsage extends Tokens {
 export interface UsageTotals extends Tokens {
   turns: number;
   seconds: number;
+  /** What voicing the film spoke (ADR 0012): the characters a provider bills, and the speech they made, in seconds. */
+  voicedCharacters: number;
+  voicedSeconds: number;
 }
 
 /** The conversation with one more of the agent's events in it: its words joined, each tool call and then its result. */

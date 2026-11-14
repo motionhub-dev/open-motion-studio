@@ -1,6 +1,6 @@
 # Sound, narration and captions
 
-> **Status:** Plan, slices A, B and C built but usage · **Updated:** 2026-11-14
+> **Status:** Plan, slices A, B and C built · **Updated:** 2026-11-14
 
 How a film gets sound, a spoken narration and captions, in three slices: music and effects that play and export, captions
 drawn from a film's lines, and a narration synthesized line by line whose word times time the captions.
@@ -85,8 +85,8 @@ A voice says each line; its words time the captions.
 - **Captions**: `<Film captions>` a line at a time, `captions="words"` lighting each word of a voiced line as it is
   said.
 - **Mix**: music under a narration is ducked (attack 0.12 s, release 0.5 s); the narration is brought to −16 LUFS.
-- **Usage** (not built yet): each synthesis logged in `usage.jsonl` with its characters and seconds, and shown with the
-  turn's tokens. Voicing says what it spoke now.
+- **Usage**: each voicing that spoke something is a line in `usage.jsonl` (`{at, voice, lines, characters, speech}`),
+  apart from the turns; the project's total on the assistant says on hover what voicing spoke.
 - **Tests**: each provider's request and words read into one shape (fixtures); the clip's key, what voicing keeps and
   removes; ducking measured in the mix; the agent's `list_voices`, `voice_lines` and `check` notes.
 
