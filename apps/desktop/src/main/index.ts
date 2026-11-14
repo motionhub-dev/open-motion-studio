@@ -54,7 +54,7 @@ import { EXAMPLES, openExample } from './examples';
 import { ASSET_EXTENSIONS, importAssets, projectAssets } from './assets';
 import { reviewBuild } from './film/review';
 import { FILM, FILM_SKILL, startFilm, watchFilm } from './film/film';
-import { writeRemotionProject } from './film/remotion-export';
+import { type ExportedSpeech, exportedSpeech, writeRemotionProject } from './film/remotion-export';
 import { keepFilmsInPlace, registerPreviewScheme, servePreview } from './film/preview';
 import { motionDetail, motionReel, projectMotions, searchMotions, useMotion } from './motions';
 import { STATE_DIR, createProject, isRecent, openProject, projectAt, recentProjects, rememberProject } from './project';
@@ -895,15 +895,17 @@ function registerHandlers(): void {
       const stage = await openStage(build.version);
       let scenes: string[];
       let sounds: string[];
+      let speech: ExportedSpeech;
       try {
         scenes = stage.film.scenes.map((scene) => scene.id);
         sounds = stage.film.sounds.map((sound) => sound.src);
+        speech = exportedSpeech(stage.film);
       } finally {
         stage.close();
       }
       if (state.build?.version !== build.version)
         throw new Error('The film changed before export. Review the latest version and export again.');
-      await writeRemotionProject(state.project.path, path, state.project.name, scenes, sounds);
+      await writeRemotionProject(state.project.path, path, state.project.name, scenes, sounds, speech);
       exported = path;
       return path;
     } finally {
