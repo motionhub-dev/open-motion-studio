@@ -20,15 +20,16 @@ import {
   applyEvent,
 } from '../../shared/api';
 import type { FilmInfo } from '../../shared/preview';
-import { type Row, blocks, changeKey, changeLine, failingRun, filmChanges, running, workLine } from './activity';
+import { type Row, blocks, changeKey, changeLine, failingRun, filmChanges, running, workLine, workedFor } from './activity';
 import { Brief } from './brief';
 import { Markdown } from './markdown';
 import { elementName, timecode } from './preview';
 import { reason } from './reason';
 
-function apply(items: Row[], event: AgentEvent, before: FilmInfo | null): Row[] {
+function apply(items: Row[], event: AgentEvent, before: FilmInfo | null, seconds?: number): Row[] {
   // The turn rows stay where they are; the transcript's own items take the event as everywhere else.
-  if (event.type === 'end') return [...applyEvent(items as ChatItem[], event), { kind: 'turn', before, checkpoint: event.checkpoint }];
+  if (event.type === 'end')
+    return [...applyEvent(items as ChatItem[], event), { kind: 'turn', before, checkpoint: event.checkpoint, seconds }];
   if (event.type === 'tool-result' || event.type === 'approval-done')
     return items.map((item) => (item.kind === 'turn' ? item : applyEvent([item], event)[0]!));
   const last = items[items.length - 1];
@@ -217,6 +218,8 @@ export function Assistant({
   const [undoing, setUndoing] = useState(false);
   /** The film when the last message went, which the turn's end keeps. */
   const filmAtSend = useRef<FilmInfo | null>(null);
+  /** When the last message went, which the turn's end measures from. */
+  const sentAt = useRef<number | null>(null);
   const [draft, setDraft] = useState('');
   const [following, setFollowing] = useState(true);
   const [working, setWorking] = useState(false);
@@ -266,7 +269,8 @@ export function Assistant({
     const stop = window.studio.onAgentEvent((event) => {
       events++;
       const before = filmAtSend.current;
-      setItems((current) => apply(current, event, before));
+      const seconds = event.type === 'end' && sentAt.current !== null ? (Date.now() - sentAt.current) / 1000 : undefined;
+      setItems((current) => apply(current, event, before, seconds));
       if (event.type === 'end') setWorking(false);
       if (event.type === 'phase') setPhase(event.phase);
     });
@@ -323,6 +327,7 @@ export function Assistant({
     if (working || !ready || disabled) return;
     const shown: SentMark[] = sent.map(({ t, end, note }) => ({ t, ...(end !== undefined ? { end } : {}), note }));
     filmAtSend.current = film;
+    sentAt.current = Date.now();
     setFollowing(true);
     setPhase('thinking');
     setWorking(true);
@@ -486,6 +491,7 @@ export function Assistant({
             if ((latest && working) || (!changes.length && !undoable)) return null;
             return (
               <div key={`turn-${i}`} className="turn-card">
+                {item.seconds !== undefined && <span className="turn-took">{workedFor(item.seconds)}</span>}
                 {changes.length > 0 && (
                   <>
                     <span className="eyebrow">{changeLine(changes)}</span>

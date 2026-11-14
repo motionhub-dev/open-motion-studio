@@ -1081,8 +1081,9 @@ button.status:hover {
   color: var(--bad);
 }
 
+/* What the agent did between its words: a quiet line, a step under the words it serves. */
 .tool {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--muted);
 }
 
@@ -1091,8 +1092,12 @@ button.status:hover {
   list-style: none;
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 22px;
+  gap: 6px;
+  min-height: 20px;
+}
+
+.tool summary:hover {
+  color: var(--text2);
 }
 
 .tool summary::-webkit-details-marker {
@@ -3025,6 +3030,11 @@ kbd {
   border-left: 2px solid var(--good);
   border-radius: var(--r-button);
   background: var(--bg);
+}
+
+.turn-took {
+  font-size: 11px;
+  color: var(--muted);
 }
 
 .turn-changes {

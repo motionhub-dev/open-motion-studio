@@ -3,6 +3,15 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-13 — A turn says how long it took, and the agent's steps step back
+
+- **What:** The card where a turn ends opens with how long it took (`Worked for 1m 12s`). The line for a run of the
+  agent's tool calls is a size smaller than its words.
+- **Why:** The agent's answer is what a person reads; its steps are there to open when wanted.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/assistant.tsx`, `apps/desktop/src/renderer/src/activity.ts`.
+
 ## 2026-11-13 — What is typed while a project opens is kept
 
 - **What:** The assistant is no longer drawn again once the project's agent is found, a few seconds after the project

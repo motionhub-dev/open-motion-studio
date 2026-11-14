@@ -109,10 +109,11 @@ recent projects with their path (`~` for the home folder), and a banner while no
 ## The panels and the models dialog
 
 - **Assistant** (`assistant.tsx`, `activity.ts`): the person's words in a bubble, the agent's as Markdown (`markdown.tsx`:
-  drawn as React elements, never as HTML), each run of tool calls one muted line with its state, its steps folded under
+  drawn as React elements, never as HTML), each run of tool calls one muted line at 11 px, a step below the agent's words, with its state, its steps folded under
   it. Stills sit under it as one row of four small thumbnails; more than four show three and a count of the rest,
   which opens them all (and Fewer folds them again); clicking one seeks the stage to its moment and opens it large on a
-  dimmed ground (Esc closes). A turn's end is a paper card with a green (`--good`) edge listing what changed as small
+  dimmed ground (Esc closes). A turn's end is a paper card with a green (`--good`) edge: how long the turn took (for
+  turns run while the project is open), what changed as small
   pills (a removed one struck through) and Undo this turn; a question the agent asks is a sheet card with an ink edge
   and its answers as buttons, the recommended one primary. What an outside agent asks leave to do is a sheet card with
   a `--bad` edge: its title, the command or paths in mono, its reason, and Allow once, Allow for this session and Deny,

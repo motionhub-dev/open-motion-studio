@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import type { ChatItem } from '../../../shared/api';
 import type { FilmInfo } from '../../../shared/preview';
-import { blocks, changeKey, changeLine, failingRun, filmChanges, workLine } from '../activity';
+import { blocks, changeKey, changeLine, failingRun, filmChanges, workLine, workedFor } from '../activity';
+
+describe('how long a turn took', () => {
+  it('says seconds under a minute and minutes with seconds past it, never zero', () => {
+    expect(workedFor(0.2)).toBe('Worked for 1s');
+    expect(workedFor(59.4)).toBe('Worked for 59s');
+    expect(workedFor(59.6)).toBe('Worked for 1m 0s');
+    expect(workedFor(499)).toBe('Worked for 8m 19s');
+  });
+});
 
 const tool = (id: string, name: string, summary: string, ok?: boolean): ChatItem => ({
   kind: 'tool',
