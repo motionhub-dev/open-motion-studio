@@ -9,12 +9,20 @@ type Tool = Extract<ChatItem, { kind: 'tool' }>;
 
 /**
  * Where a turn of the agent ended, as the panel keeps it while the project is open: the film as it was when the
- * person sent the message, and the History entry of the files the turn wrote.
+ * person sent the message, the History entry of the files the turn wrote, and how long the turn took in seconds.
  */
 export interface TurnEnd {
   kind: 'turn';
   before: FilmInfo | null;
   checkpoint?: string;
+  seconds?: number;
+}
+
+/** How long a turn took, as the panel says it: `Worked for 8s`, `Worked for 1m 12s`. */
+export function workedFor(seconds: number): string {
+  const whole = Math.max(1, Math.round(seconds));
+  const minutes = Math.floor(whole / 60);
+  return `Worked for ${minutes ? `${minutes}m ${whole % 60}s` : `${whole}s`}`;
 }
 
 /** A row of the conversation in the panel: what the transcript holds, and where turns ended. */

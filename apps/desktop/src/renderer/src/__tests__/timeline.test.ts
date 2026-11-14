@@ -1,5 +1,14 @@
 import { expect, it } from 'vitest';
-import { ZOOM, scrollToKeep, zoomBy } from '../timeline';
+import { TILE, ZOOM, scrollToKeep, stripOf, zoomBy } from '../timeline';
+
+it('fills a scene’s strip with as many frames as fit, each the nearest in time', () => {
+  const frames = ['a', 'b', 'c', 'd', 'e', 'f'];
+  expect(stripOf(frames, TILE * 6)).toEqual(frames);
+  expect(stripOf(frames, TILE * 3)).toEqual(['b', 'd', 'f']);
+  expect(stripOf(frames, TILE * 12)).toEqual(['a', 'a', 'b', 'b', 'c', 'c', 'd', 'd', 'e', 'e', 'f', 'f']);
+  expect(stripOf(frames, 10)).toEqual(['d']);
+  expect(stripOf([], 400)).toEqual([]);
+});
 
 it('keeps the zoom between the whole film and its limit', () => {
   expect(zoomBy(1, 0.5)).toBe(ZOOM.min);
