@@ -3,6 +3,21 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-14 — A film's lines are spoken in a voice the person chooses
+
+- **What:** Models has Voices: Azure, ElevenLabs, MiniMax and OpenAI, each with how to get its key, its voices and a
+  sentence to hear; there is no default voice. A film names its voice (`<Film voice="azure:zh-CN-XiaoxiaoNeural">`,
+  `@motionhub/runtime` 0.8.0), and Voice in the top bar, or the agent's `voice_lines`, speaks its lines into the
+  project's `voice/`, only those whose words changed. A voiced line lasts as long as its speech; the preview plays the
+  narration, the export mixes it, and a `<Sound duck>` sinks under it; `captions="words"` lights each word as it is
+  said. The agent lists voices with `list_voices`, and `check` names lines not yet spoken and speech cut short.
+- **Why:** A film's script had no voice, and its captions no timing from speech.
+- **Breaking:** None.
+- **Upgrade:** Nothing; `@motionhub/runtime` moves from 0.7.0 to 0.8.0. A voice provider's key is sealed in
+  `keys.json` like a model's.
+- **Refs:** ADR 0011, ADR 0012, `docs/tech/sound-and-captions.md`, `apps/desktop/src/main/voice.ts`,
+  `apps/desktop/src/main/narration.ts`, `apps/desktop/src/renderer/src/voice-dialog.tsx`.
+
 ## 2026-11-14 — A film's lines are timed, shown as captions and exported as subtitles
 
 - **What:** A `<Line>` can say when it is said (`at`, `dur`); lines that do not share their scene evenly.

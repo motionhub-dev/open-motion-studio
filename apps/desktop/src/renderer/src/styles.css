@@ -3784,6 +3784,11 @@ kbd {
   color: var(--muted);
 }
 
+.voice-providers {
+  grid-template-columns: repeat(2, 1fr);
+  margin-top: 12px;
+}
+
 .voice-pick {
   display: flex;
   gap: 8px;

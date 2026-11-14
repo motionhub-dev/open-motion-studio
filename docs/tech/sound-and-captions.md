@@ -1,6 +1,6 @@
 # Sound, narration and captions
 
-> **Status:** Plan, slices A and B built · **Updated:** 2026-11-14
+> **Status:** Plan, slices A, B and C built but usage · **Updated:** 2026-11-14
 
 How a film gets sound, a spoken narration and captions, in three slices: music and effects that play and export, captions
 drawn from a film's lines, and a narration synthesized line by line whose word times time the captions.
@@ -75,19 +75,20 @@ A voice says each line; its words time the captions.
   - MiniMax (`t2a_v2` with word subtitles): key and group id.
   - OpenAI (`/audio/speech`, its words from one `/audio/transcriptions` call with word timestamps): a key many already
     have.
-  - Each with its voice, speed and model, and a sample to hear.
+  - Each with its model, its voices listed to search, and a sentence to hear in one.
 - **Synthesis** is asked for, never automatic, since it may cost money: Voice the film in the stage bar and the agent's
   `voice_lines` tool. Each line is synthesized once per text, voice, speed and provider, into the project's `voice/`
   (the clip and its words), which git keeps with the film; only changed lines are spoken again.
-- **Timing**: a spoken line's length is its clip's; a scene's lines follow one another with a lead, a hold and a tail
-  (0.4, 0.4 and 0.8 s by default), and `check` reports a scene too short for what it says. Before a line is spoken, its
-  length is estimated (about 2.8 English words or 4.5 Chinese characters a second).
-- **Captions** turn on with a narration, timed by its words: a line at a time, or word by word (CJK by character).
+- **Timing**: the runtime gives a voiced line its speech's length, after a lead and with a hold of 0.4 s; speech that
+  runs into the next line or past its scene is cut there, and `check` says by how much. A line not yet spoken keeps its
+  written or even share.
+- **Captions**: `<Film captions>` a line at a time, `captions="words"` lighting each word of a voiced line as it is
+  said.
 - **Mix**: music under a narration is ducked (attack 0.12 s, release 0.5 s); the narration is brought to −16 LUFS.
-- **Usage**: each synthesis is logged in `usage.jsonl` with its characters and seconds, and shown with the turn's
-  tokens.
-- **Tests**: each provider's words read into one shape (fixtures); the clip's name from its inputs; line and scene
-  times from clips; ducking in the filter graph; the card that asks for a voice before the first narration.
+- **Usage** (not built yet): each synthesis logged in `usage.jsonl` with its characters and seconds, and shown with the
+  turn's tokens. Voicing says what it spoke now.
+- **Tests**: each provider's request and words read into one shape (fixtures); the clip's key, what voicing keeps and
+  removes; ducking measured in the mix; the agent's `list_voices`, `voice_lines` and `check` notes.
 
 Later: a narration from the person's own recording, its words from a provider's transcription, through the same
 captions.

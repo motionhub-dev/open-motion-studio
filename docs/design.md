@@ -67,8 +67,10 @@ A top bar over a grid of panels (`project-view.tsx`):
 
 - **Top bar**: the mark (it closes the project), the project's name (its path on hover) and its status (building,
   built with the last check's issue count, or does not build), which opens Checks; then a button for each hidden panel,
-  keyboard shortcuts and Export, which shows progress and cancels while running, with a menu beside it for a Remotion
-  project. On a Mac the window has no title bar (`hiddenInset`): its buttons sit over the top bar, which
+  keyboard shortcuts, Voice (when the film has lines or a voice) and Export, which shows progress and cancels while
+  running, with a menu beside it for a Remotion project. Voice opens a dialog that goes one step at a time: with no voice
+  provider set up, the four as cards, each opening it in Models; with no `<Film voice>`, what to ask the agent; then the
+  lines, how many are spoken, and Voice with its progress line by line. On a Mac the window has no title bar (`hiddenInset`): its buttons sit over the top bar, which
   leaves them room and moves the window; the launcher keeps a strip at its top to move it by.
 - **Assistant** down the whole left, the **stage** in the middle, the **project tools** on the right, the **timeline**
   along the bottom under the stage and the project tools. A shown panel hides from its own head (the assistant's left
@@ -176,7 +178,10 @@ recent projects with their path (`~` for the home folder), and a banner while no
   answered and called a tool, and how fast. Under the providers, **Your coding agents** lists the person's own (ADR
   0008), each with its state in words and a dot (green ready, `--bad` not signed in or too old, hollow not installed);
   one opened says what it is and offers the one action that fixes its state (Install or Update, a link to the
-  vendor's page; Sign in, through the agent itself) beside Check again.
+  vendor's page; Sign in, through the agent itself) beside Check again. Under them, **Voices** lists the four voice
+  providers (ADR 0012), a filled dot for one set up; one opened gives its steps to a key and a link to the page, the
+  key and what else it needs (Azure's region, MiniMax's site and group id, a model), its voices to search once listed,
+  and Hear it, which speaks a sentence in the voice chosen and says what a film writes for it.
 
 
 ## Exploration and recovery
