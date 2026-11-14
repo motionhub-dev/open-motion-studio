@@ -114,12 +114,19 @@ recent projects with their path (`~` for the home folder), and a banner while no
 ## The panels and the models dialog
 
 - **Assistant** (`assistant.tsx`, `activity.ts`): the person's words in a bubble, the agent's as Markdown (`markdown.tsx`:
-  drawn as React elements, never as HTML), each run of tool calls one muted line at 11 px, a step below the agent's words, with its state, its steps folded under
-  it. Stills sit under it as one row of four small thumbnails; more than four show three and a count of the rest,
-  which opens them all (and Fewer folds them again); clicking one seeks the stage to its moment and opens it large on a
-  dimmed ground (Esc closes). A turn's end is a paper card with a green (`--good`) edge: how long the turn took (for
-  turns run while the project is open), what changed as small
-  pills (a removed one struck through) and Undo this turn; a question the agent asks is a sheet card with an ink edge
+  drawn as React elements, never as HTML). A turn's work is one framed block: one muted line at 11 px ("How it got
+  there · read 2 files · edited 1 file · checked twice · 1 failed", or "Now: …" with a spinner while it runs), red only
+  when its last call failed, and its steps under it: each tool call (files named in the project) and, in italics, what
+  the agent said between them. It is open while the turn runs and folds when it ends, unless the person opened or folded
+  it. What the agent said after its last call is its answer, under the block. Stills sit under the work as one row of
+  four small thumbnails; more than four show three and a count of the rest, which opens them all (and Fewer folds them
+  again); clicking one seeks the stage to its moment and opens it large on a dimmed ground (Esc closes). The last three
+  turns are drawn whole; earlier ones wait behind "Show N earlier turns". A turn's end is a paper card with an edge
+  green for done, `--bad` for failed and muted for stopped: one line (Done, Stopped or Failed; its time and tokens, the
+  parts on hover; the files it changed; its last check's result; the film's new length), what changed as small pills
+  (a removed one struck through), and Go back to before this (the last turn's) and Copy (its answer); for turns run
+  while the project is open. While a turn runs, the progress card shows its phases as a row (Thinking, Editing,
+  Checking, Looking; those passed ticked, the current inked), what it is doing and the clock, and Send is a red Stop; a question the agent asks is a sheet card with an ink edge
   and its answers as buttons, the recommended one primary. What an outside agent asks leave to do is a sheet card with
   a `--bad` edge: its title, the command or paths in mono, its reason, and Allow once, Allow for this session and Deny,
   Deny primary; once answered, the answer in muted words. A message waiting for the turn sits above the composer on a

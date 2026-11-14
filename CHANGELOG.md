@@ -3,6 +3,21 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-14 — A turn reads as one block and ends with its outcome
+
+- **What:** A turn's tool calls are one framed block ("How it got there · read 2 files · edited 1 file · checked
+  twice"), open while it runs and folded after, with what the agent said between calls inside it and its answer
+  under it; files are named in the project, never by their whole path. The turn's card says how it ended (Done,
+  Stopped, Failed), its time and tokens, the files it changed, its last check, the film's new length and what changed,
+  with Go back to before this and Copy. The last three turns are drawn whole, earlier ones behind "Show N earlier
+  turns". While a turn runs, its phases show as a row of steps, and Send is a red Stop. A long answer no longer clips
+  in a full conversation.
+- **Why:** The work split a turn into many lines and buried its answer, outside agents' paths named the person's
+  folders, and the end said little of what the turn did.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/assistant.tsx`, `apps/desktop/src/renderer/src/activity.ts`, `docs/design.md`.
+
 ## 2026-11-14 — Every turn says its tokens and time, and is logged
 
 - **What:** Each turn of every agent ends with its time and tokens (input, cached, cache written, output, reasoning,

@@ -201,8 +201,11 @@ export type AgentEvent =
   /** An outside agent asks leave to do something beyond its sandbox; the panel answers with answerApproval. */
   | { type: 'approval'; approval: Approval }
   | { type: 'approval-done'; id: string; answer: ApprovalAnswer }
-  /** `checkpoint` is the History entry of the files the turn wrote, if it wrote any; `usage`, what the turn took. */
-  | { type: 'end'; notice?: { text: string; error: boolean }; checkpoint?: string; usage?: TurnUsage };
+  /**
+   * `checkpoint` is the History entry of the files the turn wrote, if it wrote any, and `files` how many it changed;
+   * `usage`, what the turn took.
+   */
+  | { type: 'end'; notice?: { text: string; error: boolean }; checkpoint?: string; files?: number; usage?: TurnUsage };
 
 /**
  * The tokens an agent reported for a turn, on one footing for every agent: `input` excludes what was read from or
