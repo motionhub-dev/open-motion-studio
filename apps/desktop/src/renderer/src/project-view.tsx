@@ -21,7 +21,7 @@ import { Assistant } from './assistant';
 import { AssetsPanel } from './assets-panel';
 import { ReviewPanel } from './review-panel';
 import { ExportDialog } from './export-dialog';
-import { Outline } from './outline';
+import { type Hovered, Outline } from './outline';
 import { HistoryPanel } from './history-panel';
 import { Inspector } from './inspector';
 import { LIMITS, Splitter, useLayout } from './layout';
@@ -154,6 +154,8 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
     return () => observer.disconnect();
   }, [project.film]);
   const [selected, setSelected] = useState<Reference | null>(null);
+  /** The layer under the pointer in the outline or on the timeline, shown in both and on the picture. */
+  const [hovered, setHovered] = useState<Hovered>(null);
   /** Whether the stage shows the safe-area guides. */
   const [guides, setGuides] = useState(false);
   /** What was last selected in a panel, which goes with the next message unless it is put aside. */
@@ -606,6 +608,7 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
             marks={marks}
             lit={lit}
             selected={selected}
+            hovered={hovered}
             working={busy}
             guides={guides}
             onGuides={() => setGuides(!guides)}
@@ -690,6 +693,9 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
                   fresh={fresh}
                   t={player.t}
                   playing={player.playing}
+                  stills={stills?.scenes ?? null}
+                  hovered={hovered}
+                  onHover={setHovered}
                   onSelect={select}
                   onReference={reference}
                   onPlay={player.playRange}
@@ -759,6 +765,8 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
                 onFold={(folded) => setLayout({ folded })}
                 stills={stills?.scenes ?? null}
                 stillsError={stillsError}
+                hovered={hovered}
+                onHover={setHovered}
               />
             ) : (
               <div className="timeline-options">

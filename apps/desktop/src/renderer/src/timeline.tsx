@@ -8,7 +8,7 @@ import { ChevronDown, ChevronUp, ChevronsLeft, ChevronsRight, Locate, Minus, Plu
 import { MAX_MARKS, type FilmIssue, type Mark, type Reference, type SceneStills } from '../../shared/api';
 import type { FilmInfo, LayerBox } from '../../shared/preview';
 import { timecode } from './preview';
-import { sceneTitle } from './outline';
+import { type Hovered, sameHovered, sceneTitle } from './outline';
 import { changeKey } from './activity';
 
 function stepFor(seconds: number): number {
@@ -74,6 +74,8 @@ export function Timeline({
   onFold,
   stills,
   stillsError,
+  hovered,
+  onHover,
 }: {
   film: FilmInfo;
   t: number;
@@ -96,6 +98,9 @@ export function Timeline({
   stills: SceneStills | null;
   /** Why the frames could not be made, if they could not. */
   stillsError: string;
+  /** The layer under the pointer here or in the outline, lit in both and drawn on the picture. */
+  hovered: Hovered;
+  onHover(hovered: Hovered): void;
 }) {
   const [zoom, setZoom] = useState(1);
   /** The zoom as last asked for, ahead of the render, so wheel steps that come together add up. */
@@ -328,7 +333,7 @@ export function Timeline({
                 {film.scenes.map((scene) => (
                   <button
                     key={scene.id}
-                    className={`scene${t >= scene.start && t < scene.start + scene.duration ? ' current' : ''}${selected?.scene === scene.id ? (selected.kind === 'scene' ? ' selected' : ' holds-selected') : ''}${fresh.has(changeKey({ kind: 'scene', scene: scene.id })) ? ' fresh' : ''}`}
+                    className={`scene${t >= scene.start && t < scene.start + scene.duration ? ' current' : ''}${selected?.scene === scene.id ? (selected.kind === 'scene' ? ' selected' : ' holds-selected') : ''}${hovered?.scene === scene.id ? ' holds-hovered' : ''}${fresh.has(changeKey({ kind: 'scene', scene: scene.id })) ? ' fresh' : ''}`}
                     aria-pressed={selected?.kind === 'scene' && selected.scene === scene.id}
                     style={{ left: at(scene.start), width: at(scene.duration) }}
                     title={`${sceneTitle(scene)} · ${timecode(scene.start)}–${timecode(scene.start + scene.duration)}`}
@@ -393,7 +398,9 @@ export function Timeline({
                   {row.spans.map((span, i) => (
                     <button
                       key={i}
-                      className={`layer-span${selected?.kind === 'layer' && selected.layer === span.layer.id && selected.scene === span.scene ? ' selected' : ''}${fresh.has(changeKey({ kind: 'layer', scene: span.scene, layer: span.layer.id })) ? ' fresh' : ''}`}
+                      className={`layer-span${selected?.kind === 'layer' && selected.layer === span.layer.id && selected.scene === span.scene ? ' selected' : ''}${fresh.has(changeKey({ kind: 'layer', scene: span.scene, layer: span.layer.id })) ? ' fresh' : ''}${sameHovered(hovered, span.layer.id, span.scene) ? ' hovered' : ''}`}
+                      onPointerEnter={() => onHover({ layer: span.layer.id, scene: span.scene })}
+                      onPointerLeave={() => onHover(null)}
                       aria-label={`${span.layer.id}${span.scene ? ` in ${span.scene}` : ', global layer'}`}
                       title="Declared scene span; content may animate within it"
                       style={{ left: at(span.start), width: at(span.duration) }}

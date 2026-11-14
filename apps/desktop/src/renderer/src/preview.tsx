@@ -23,6 +23,7 @@ import {
 import { type PointerEvent, type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { type BuildResult, MARK_NOTE, MAX_MARKS, type Mark, type Reference } from '../../shared/api';
 import type { Box, FilmInfo, FromPreview, PickedElement, ToPreview } from '../../shared/preview';
+import { type Hovered, sameHovered } from './outline';
 
 export type Tool = 'pick' | 'region' | null;
 
@@ -220,6 +221,7 @@ export function Stage({
   lit,
   onMark,
   selected,
+  hovered = null,
   working,
   onFix,
   guides,
@@ -234,6 +236,8 @@ export function Stage({
   lit: number | null;
   onMark(mark: Mark): void;
   selected: Reference | null;
+  /** The layer under the pointer in the outline or on the timeline, drawn as its declared box. */
+  hovered?: Hovered;
   /** Whether the agent is working on the film, which the stage says over its corner. */
   working: boolean;
   /** Hands an error on the stage to the agent, as an issue for the next message. */
@@ -303,6 +307,10 @@ export function Stage({
   const selectedScene = film?.scenes.find((s) => s.id === selected?.scene);
   const selectedLayer = selected?.kind === 'layer' ? (selectedScene?.layers ?? film?.layers)?.find((l) => l.id === selected.layer) : null;
   const selectionVisible = !selectedScene || (t >= selectedScene.start && t < selectedScene.start + selectedScene.duration);
+  // A hovered layer is drawn while its scene is the one on screen (a film's own layer, always).
+  const hoveredScene = hovered?.scene ? film?.scenes.find((s) => s.id === hovered.scene) : undefined;
+  const hoveredOnScreen = !hoveredScene || (t >= hoveredScene.start && t < hoveredScene.start + hoveredScene.duration);
+  const hoveredLayer = hovered && hoveredOnScreen ? (hoveredScene ? hoveredScene.layers : film?.layers)?.find((l) => l.id === hovered.layer) : undefined;
 
   const place = (b: Box) =>
     box && {
@@ -442,7 +450,15 @@ export function Stage({
                 <span>{selected?.label} · declared bounds</span>
               </div>
             )}
-            {guides && (
+            {film && hoveredLayer && !sameHovered(hovered, selectedLayer?.id ?? '', selected?.scene) && (
+            <div
+              className="selection-box hovered"
+              style={place({ x: hoveredLayer.x / film.width, y: hoveredLayer.y / film.height, w: hoveredLayer.w / film.width, h: hoveredLayer.h / film.height }) ?? undefined}
+            >
+              <span>{hoveredLayer.id}</span>
+            </div>
+          )}
+          {guides && (
               <>
                 <div className="safe-guide" style={place({ x: 0.05, y: 0.05, w: 0.9, h: 0.9 }) ?? undefined} />
                 <div className="safe-guide title" style={place({ x: 0.1, y: 0.1, w: 0.8, h: 0.8 }) ?? undefined} />

@@ -130,6 +130,14 @@ recent projects with their path (`~` for the home folder), and a banner while no
   it shows the built-in agent's model, or Codex when the project talks to the person's own (ADR 0008), keeps the full
   name on hover, and opens a menu upward: the built-in agent on its provider, Codex with its version or what it needs
   (installing, updating, signing in), and Models. Until the project's agent is known it says so, and nothing sends.
+- **Outline** (`outline.tsx`): the scene count and length with Collapse all / Expand all; the film's own layers folded
+  in a dashed group; then each scene as one row on the playhead's rail (a frame from the timeline's stills, its first
+  line, its number, start and length; a fold at its end), its layers under it topmost first by name, and the rest of
+  its lines as quotes. The rail's node is hollow before a scene, filled after, filled and ringed while it plays, and the
+  line fills as far into the scene as the playhead is. The scene the playhead enters opens and the one it leaves closes,
+  unless the person folded or opened it; selecting something elsewhere opens its scene. Actions float over a row's end
+  on hover or focus: Play and Ask on a scene, Solo and Ask on a layer, Ask on a line. A layer hovered here or on the
+  timeline is lit in both, and its declared box drawn dashed on a cobalt tint on the picture while its scene is on screen.
 - **Motions** (`motion-panel.tsx`): the project's motions as poster cards (initials when a motion has no poster); one
   opened is its page — poster, name, line, its colour tokens as swatches, its components with their previews, and its
   MOTION.md. The catalogue search answers as cards with Use.
@@ -149,8 +157,7 @@ recent projects with their path (`~` for the home folder), and a banner while no
 
 ## Exploration and recovery
 
-The tabs select one panel, keeping the picture large as capabilities grow. Outline rows show a human-readable
-scene line before its id; their message action appears on hover and keyboard focus. A selected layer has a cobalt
+The tabs select one panel, keeping the picture large as capabilities grow. A selected layer has a cobalt
 dashed declared-bounds box, distinct from solid picture marks. References are small paper cards with a cobalt edge,
 a type label and a time where applicable; clicking locates without sending. The selection's card is dashed and labelled
 Selected. Marks wait above the composer as the same cards, each with its number, what and when, and a field for its
