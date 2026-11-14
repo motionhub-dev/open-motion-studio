@@ -2,17 +2,20 @@
 // Remotion entry whose one composition draws the film inside @motionhub/remotion's <MotionProvider>, each scene in a
 // Series.Sequence of its own written on its own line (Remotion Studio tells sequences apart by where they are written), so the
 // scenes are named clips on its timeline. Their lengths come from film.tsx; the scenes themselves are the ones the film had
-// when it was exported, and filmMetadata says so when they no longer are. Nothing is installed or run: the person runs npm and
-// Remotion themselves, under Remotion's licence.
+// when it was exported, and filmMetadata says so when they no longer are. The film's sounds play through the binding's
+// <FilmAudio>, each file copied into public/ under its path in the film, where Remotion's staticFile finds it. Nothing is installed
+// or run: the person runs npm and Remotion themselves, under Remotion's licence.
 
-import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
-import { basename, join, relative, resolve, sep } from 'node:path';
+import { copyFile, cp, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { basename, dirname, join, relative, resolve, sep } from 'node:path';
+import { soundPlace } from '../../shared/sound';
+import { safePreviewFile } from './preview';
 import { STATE_DIR, ignore, requireEmpty } from '../project';
 
 /** The versions an exported project starts from: Remotion 4, and the motionhub packages whose <Film> draws in its <Sequence>s. */
 export const REMOTION_DEPENDENCIES: Record<string, string> = {
-  '@motionhub/remotion': '0.4.0',
-  '@motionhub/runtime': '0.6.0',
+  '@motionhub/remotion': '0.5.0',
+  '@motionhub/runtime': '0.7.0',
   '@remotion/cli': '4.0.542',
   react: '19.3.1',
   'react-dom': '19.3.1',
@@ -38,7 +41,7 @@ const ROOT = (id: string, scenes: string[]) => {
 // Series.Sequence of its own, so the scenes are named clips on Remotion Studio's timeline; their lengths come from film.tsx.
 import {Composition, Series} from 'remotion';
 import {FilmScene} from '@motionhub/runtime';
-import {MotionProvider, filmMetadata, sceneFrames} from '@motionhub/remotion';
+import {FilmAudio, MotionProvider, filmMetadata, sceneFrames} from '@motionhub/remotion';
 import Main, {film} from '../film';
 
 /** The film's scenes, in order. A scene added to, taken out of or moved in film.tsx is changed here and in the Series too. */
@@ -53,6 +56,8 @@ const scene = (id: string) => (
 
 const Film = () => (
   <MotionProvider tokens={{}} root={false}>
+    {/* The film's sounds, on the film's frames: each file is in public/, under its path in the film. */}
+    <FilmAudio component={Main} film={film} />
     <Series>
 ${sequences}
     </Series>
@@ -125,9 +130,10 @@ async function readJson(file: string): Promise<Record<string, unknown> | null> {
 /**
  * Writes the film in `dir` as a Remotion project into `out`, a folder that is empty or does not exist yet and is not inside the
  * project. A package.json the project has keeps its own dependencies, with Remotion's added; a tsconfig.json or README.md it has
- * is kept as it is. Returns the composition's id.
+ * is kept as it is. Each of `sounds` (the film's <Sound> srcs) that is a file in the project is copied into public/ under its
+ * path, for <FilmAudio>. Returns the composition's id.
  */
-export async function writeRemotionProject(dir: string, out: string, name: string, scenes: string[]): Promise<string> {
+export async function writeRemotionProject(dir: string, out: string, name: string, scenes: string[], sounds: string[] = []): Promise<string> {
   if (!scenes.length) throw new Error('The film has no scenes to export.');
   const project = resolve(dir);
   const target = resolve(out);
@@ -163,6 +169,14 @@ export async function writeRemotionProject(dir: string, out: string, name: strin
     await writeFile(join(target, 'README.md'), README(name, id), { flag: 'wx' });
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+  }
+  for (const src of new Set(sounds)) {
+    const place = soundPlace(src);
+    if (place?.root !== 'project') continue;
+    const file = await safePreviewFile(project, place.path, true).catch(() => null);
+    if (!file) throw new Error(`<Sound src="${src}"> is no file in the project, so the Remotion project could not play it.`);
+    await mkdir(dirname(join(target, 'public', place.path)), { recursive: true });
+    await copyFile(file, join(target, 'public', place.path));
   }
   await ignore(target, ['node_modules/', 'out/']);
   return id;

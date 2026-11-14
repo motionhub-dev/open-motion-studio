@@ -27,8 +27,8 @@ changes land in `motionhub-dev/motions` (`packages/runtime`) before the Studio u
 
 *Built*, as below (`@motionhub/runtime` 0.7.0 gives `<Sound>`), with three differences:
 - The Inspector does not show a sound: a click on its band seeks to it, and hovering shows its level, loop and fades.
-- The Remotion export has no sound yet, and a film that imports `<Sound>` does not render there: `@motionhub/remotion` 0.4
-  takes runtime 0.6 only, so the export pins it. A binding that takes 0.7, and then plays `<Sound>`, comes next.
+- The Remotion export plays the sounds through `@motionhub/remotion` 0.5's `<FilmAudio>`, each file copied into its
+  `public/`.
 - Overlapping sounds take rows of their own on the timeline, and the waveform is drawn on a decibel scale.
 
 Music and effects the person brings, heard in the preview and mixed into the MP4.

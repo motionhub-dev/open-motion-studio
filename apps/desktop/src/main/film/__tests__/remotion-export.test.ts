@@ -58,6 +58,18 @@ describe('writeRemotionProject', () => {
     expect(await readFile(join(out, 'README.md'), 'utf8')).toBe('Mine.\n');
   });
 
+  it('copies the film’s sounds into public/, for FilmAudio to play, and refuses one the project does not have', async () => {
+    await mkdir(join(film, 'media'), { recursive: true });
+    await writeFile(join(film, 'media', 'bed.mp3'), 'sound');
+    const out = join(root, 'out');
+    await writeRemotionProject(film, out, 'heat pump', ['intro'], ['media/bed.mp3', './media/bed.mp3', 'build/hit-AB12.wav']);
+    expect(await readFile(join(out, 'public', 'media', 'bed.mp3'), 'utf8')).toBe('sound');
+    // Its place in the film stays too, where film.tsx may import it.
+    expect(await readFile(join(out, 'media', 'bed.mp3'), 'utf8')).toBe('sound');
+    expect(await readFile(join(out, 'src', 'Root.tsx'), 'utf8')).toContain('<FilmAudio component={Main} film={film} />');
+    await expect(writeRemotionProject(film, join(root, 'again'), 'f', ['intro'], ['media/missing.mp3'])).rejects.toThrow('is no file in the project');
+  });
+
   it('refuses a folder that is not empty, or one inside the film', async () => {
     const full = join(root, 'full');
     await mkdir(full);

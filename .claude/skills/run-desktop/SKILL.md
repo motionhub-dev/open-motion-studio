@@ -47,6 +47,7 @@ Then **read the screenshots**. A blank or launcher-only shot means it did not re
 | `file:<path>` | print a file of the open project, such as `.motion-studio/usage.jsonl` (the run's profile, and the project in it, go when it ends) |
 | `put:<from>=<to>` | copy a local file into the open project at `<to>`, such as a sound into `media/` or a `film.tsx` to try; a new `film.tsx` is built before the next step |
 | `export:<file>` | export the film as an MP4 to `<file>` (the save dialog is answered by the step) and wait for it; then read it with the shipped ffmpeg (`ffmpeg -i`, `astats`) |
+| `remotion:<dir>` | export the film as a Remotion project into `<dir>`, empty or new (the folder dialog is answered by the step); render it with `npm install` and `npx remotion render` there |
 
 To look at the assistant without a model: `stills:9 ss:folded "click:.work-stills .more" ss:open`.
 

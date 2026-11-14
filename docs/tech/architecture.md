@@ -116,8 +116,9 @@ One engine, the Studio's own ([ADR 0005](../adr/0005-the-studio-has-one-engine-i
   lists every sound and fails on a file the project does not have. The timeline draws each sound on a Sound row
   (overlapping ones on rows of their own), its waveform read once by ffmpeg (50 peaks a second, kept in
   `.motion-studio/peaks/`) and drawn on a decibel scale through its volume and fades. A Remotion project exported from
-  the Studio has no sound yet: `@motionhub/remotion` 0.4 does not play `<Sound>` and takes runtime 0.6 only, so the
-  export pins 0.6, where a film that imports `<Sound>` does not render (a line's times and `captions` are ignored there).
+  the Studio plays the sounds through `@motionhub/remotion` 0.5's `<FilmAudio>` in its `Root.tsx`, on runtime 0.7, each
+  file copied into its `public/` under its path in the film; rendered by Remotion, its sound matches the Studio's own
+  export within a frame's worth of fade.
 - **Lines and captions**: the runtime times each `<Line>` in its scene (its `at` and `dur`, else an equal share) and
   reports its `start` and `end`; `<Film captions>` makes the runtime draw the line being said as a `<Caption>`, so the
   preview and the export show it alike. Every export also carries the lines as subtitles (`film/captions.ts`): SubRip
