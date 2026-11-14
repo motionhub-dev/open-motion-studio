@@ -3,6 +3,16 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-14 — A Remotion project exported from the Studio speaks the film's narration
+
+- **What:** The Remotion export writes `@motionhub/remotion` 0.6 and `@motionhub/runtime` 0.8, gives a narrated film's
+  speech to the binding as `src/voice.json`, and copies its clips into `public/voice/`; Remotion times the lines, plays
+  the narration and ducks the sounds under it as the Studio's own export does.
+- **Why:** A narrated film exported to Remotion lost its voice and its lines' timing.
+- **Breaking:** None.
+- **Upgrade:** Nothing; a project exported before keeps its versions.
+- **Refs:** `apps/desktop/src/main/film/remotion-export.ts`, motionhub-dev/motionhub#109.
+
 ## 2026-11-14 — A film's lines are spoken in a voice the person chooses
 
 - **What:** Models has Voices: Azure, ElevenLabs, MiniMax and OpenAI, each with how to get its key, its voices and a

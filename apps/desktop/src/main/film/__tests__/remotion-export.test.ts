@@ -2,7 +2,7 @@ import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promis
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { REMOTION_DEPENDENCIES, compositionId, writeRemotionProject } from '../remotion-export';
+import { REMOTION_DEPENDENCIES, compositionId, exportedSpeech, writeRemotionProject } from '../remotion-export';
 
 vi.mock('electron', () => ({}));
 
@@ -39,7 +39,7 @@ describe('writeRemotionProject', () => {
     expect(root_).toContain('calculateMetadata={() => filmMetadata(Main, film, SCENES)}');
     expect(root_).toContain('const SCENES = ["intro", "how"];');
     expect(root_.match(/<Series.Sequence name=\{"(\w+)"\} durationInFrames=\{frames\["\1"\]\}>\{scene\("\1"\)\}<\/Series.Sequence>\n/g)).toHaveLength(2);
-    expect(root_).toContain("import Main, {film} from '../film';");
+    expect(root_).toContain("import Main, {film as frame} from '../film';");
     expect(await readFile(join(out, 'src', 'index.ts'), 'utf8')).toContain('registerRoot(Root)');
     const manifest = JSON.parse(await readFile(join(out, 'package.json'), 'utf8'));
     expect(manifest.dependencies).toEqual(REMOTION_DEPENDENCIES);
@@ -68,6 +68,26 @@ describe('writeRemotionProject', () => {
     expect(await readFile(join(out, 'media', 'bed.mp3'), 'utf8')).toBe('sound');
     expect(await readFile(join(out, 'src', 'Root.tsx'), 'utf8')).toContain('<FilmAudio component={Main} film={film} />');
     await expect(writeRemotionProject(film, join(root, 'again'), 'f', ['intro'], ['media/missing.mp3'])).rejects.toThrow('is no file in the project');
+  });
+
+  it('gives a narrated film its speech, timing its lines as the Studio does, with each clip in public/voice/', async () => {
+    await mkdir(join(film, 'voice'), { recursive: true });
+    await writeFile(join(film, 'voice', '0123456789abcdef.mp3'), 'speech');
+    const speech = exportedSpeech({
+      speech: { l1: { seconds: 1.5, words: [{ text: 'Heat', start: 0, end: 0.4 }] }, l2: { seconds: 1, words: [] } },
+      narration: [{ line: 'l1', src: 'voice/0123456789abcdef.mp3', at: 0.4, until: 1.9 }],
+    });
+    expect(speech).toEqual({ l1: { seconds: 1.5, words: [{ text: 'Heat', start: 0, end: 0.4 }], src: 'voice/0123456789abcdef.mp3' } });
+    const out = join(root, 'out');
+    await writeRemotionProject(film, out, 'heat pump', ['intro'], [], speech);
+    expect(JSON.parse(await readFile(join(out, 'src', 'voice.json'), 'utf8'))).toEqual(speech);
+    expect(await readFile(join(out, 'public', 'voice', '0123456789abcdef.mp3'), 'utf8')).toBe('speech');
+    const rootFile = await readFile(join(out, 'src', 'Root.tsx'), 'utf8');
+    expect(rootFile).toContain('<MotionProvider tokens={{}} root={false} voice={voice}>');
+    expect(rootFile).toContain('const film = {...frame, voice};');
+    // A film that is not narrated says so with an empty voice.json, and Root.tsx reads the same.
+    await writeRemotionProject(film, join(root, 'plain'), 'f', ['intro']);
+    expect(await readFile(join(root, 'plain', 'src', 'voice.json'), 'utf8')).toBe('{}\n');
   });
 
   it('refuses a folder that is not empty, or one inside the film', async () => {

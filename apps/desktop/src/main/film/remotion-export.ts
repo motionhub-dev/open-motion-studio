@@ -3,19 +3,22 @@
 // Series.Sequence of its own written on its own line (Remotion Studio tells sequences apart by where they are written), so the
 // scenes are named clips on its timeline. Their lengths come from film.tsx; the scenes themselves are the ones the film had
 // when it was exported, and filmMetadata says so when they no longer are. The film's sounds play through the binding's
-// <FilmAudio>, each file copied into public/ under its path in the film, where Remotion's staticFile finds it. Nothing is installed
-// or run: the person runs npm and Remotion themselves, under Remotion's licence.
+// <FilmAudio>, each file copied into public/ under its path in the film, where Remotion's staticFile finds it; a narrated film's
+// speech (each voiced line's length, words and clip) is src/voice.json, given to the provider and the film so the lines are timed
+// as the Studio times them, its clips copied into public/voice/. Nothing is installed or run: the person runs npm and Remotion
+// themselves, under Remotion's licence.
 
 import { copyFile, cp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
+import type { FilmInfo } from '../../shared/preview';
 import { soundPlace } from '../../shared/sound';
 import { safePreviewFile } from './preview';
 import { STATE_DIR, ignore, requireEmpty } from '../project';
 
 /** The versions an exported project starts from: Remotion 4, and the motionhub packages whose <Film> draws in its <Sequence>s. */
 export const REMOTION_DEPENDENCIES: Record<string, string> = {
-  '@motionhub/remotion': '0.5.0',
-  '@motionhub/runtime': '0.7.0',
+  '@motionhub/remotion': '0.6.0',
+  '@motionhub/runtime': '0.8.0',
   '@remotion/cli': '4.0.542',
   react: '19.3.1',
   'react-dom': '19.3.1',
@@ -42,7 +45,11 @@ const ROOT = (id: string, scenes: string[]) => {
 import {Composition, Series} from 'remotion';
 import {FilmScene} from '@motionhub/runtime';
 import {FilmAudio, MotionProvider, filmMetadata, sceneFrames} from '@motionhub/remotion';
-import Main, {film} from '../film';
+import Main, {film as frame} from '../film';
+// Each voiced line's speech, by id: its length, its words' times, and its clip in public/ ({} when the film is not narrated).
+import voice from './voice.json';
+
+const film = {...frame, voice};
 
 /** The film's scenes, in order. A scene added to, taken out of or moved in film.tsx is changed here and in the Series too. */
 const SCENES = [${scenes.map(literal).join(', ')}];
@@ -55,8 +62,8 @@ const scene = (id: string) => (
 );
 
 const Film = () => (
-  <MotionProvider tokens={{}} root={false}>
-    {/* The film's sounds, on the film's frames: each file is in public/, under its path in the film. */}
+  <MotionProvider tokens={{}} root={false} voice={voice}>
+    {/* The film's sounds and narration, on the film's frames: each file is in public/, under its path in the film. */}
     <FilmAudio component={Main} film={film} />
     <Series>
 ${sequences}
@@ -127,13 +134,27 @@ async function readJson(file: string): Promise<Record<string, unknown> | null> {
   }
 }
 
+/** A narrated film's speech as the exported project gives it to the binding: each voiced line's, with its clip. */
+export type ExportedSpeech = Record<string, FilmInfo['speech'][string] & { src: string }>;
+
+/** The speech of each line the film says in its voice, with its clip, from the film as the preview has it. */
+export const exportedSpeech = (film: Pick<FilmInfo, 'speech' | 'narration'>): ExportedSpeech =>
+  Object.fromEntries(film.narration.filter((n) => film.speech[n.line]).map((n) => [n.line, { ...film.speech[n.line]!, src: n.src }]));
+
 /**
  * Writes the film in `dir` as a Remotion project into `out`, a folder that is empty or does not exist yet and is not inside the
  * project. A package.json the project has keeps its own dependencies, with Remotion's added; a tsconfig.json or README.md it has
- * is kept as it is. Each of `sounds` (the film's <Sound> srcs) that is a file in the project is copied into public/ under its
- * path, for <FilmAudio>. Returns the composition's id.
+ * is kept as it is. Each of `sounds` (the film's <Sound> srcs) and each clip of `speech` that is a file in the project is copied
+ * into public/ under its path, for <FilmAudio>; `speech` is src/voice.json. Returns the composition's id.
  */
-export async function writeRemotionProject(dir: string, out: string, name: string, scenes: string[], sounds: string[] = []): Promise<string> {
+export async function writeRemotionProject(
+  dir: string,
+  out: string,
+  name: string,
+  scenes: string[],
+  sounds: string[] = [],
+  speech: ExportedSpeech = {},
+): Promise<string> {
   if (!scenes.length) throw new Error('The film has no scenes to export.');
   const project = resolve(dir);
   const target = resolve(out);
@@ -164,17 +185,18 @@ export async function writeRemotionProject(dir: string, out: string, name: strin
   await mkdir(join(target, 'src'), { recursive: true });
   await writeFile(join(target, 'src', 'index.ts'), INDEX);
   await writeFile(join(target, 'src', 'Root.tsx'), ROOT(id, scenes));
+  await writeFile(join(target, 'src', 'voice.json'), json(speech));
   if (!(await readJson(join(target, 'tsconfig.json')))) await writeFile(join(target, 'tsconfig.json'), json(TSCONFIG));
   try {
     await writeFile(join(target, 'README.md'), README(name, id), { flag: 'wx' });
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
   }
-  for (const src of new Set(sounds)) {
+  for (const src of new Set([...sounds, ...Object.values(speech).map((line) => line.src)])) {
     const place = soundPlace(src);
     if (place?.root !== 'project') continue;
     const file = await safePreviewFile(project, place.path, true).catch(() => null);
-    if (!file) throw new Error(`<Sound src="${src}"> is no file in the project, so the Remotion project could not play it.`);
+    if (!file) throw new Error(`${src} is no file in the project, so the Remotion project could not play it.`);
     await mkdir(dirname(join(target, 'public', place.path)), { recursive: true });
     await copyFile(file, join(target, 'public', place.path));
   }
