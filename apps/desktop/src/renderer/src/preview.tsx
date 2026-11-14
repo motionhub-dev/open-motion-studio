@@ -10,6 +10,8 @@ import {
   Crosshair,
   Frame,
   Loader,
+  Maximize,
+  Minimize,
   Pause,
   Play,
   Repeat,
@@ -243,6 +245,23 @@ export function Stage({
   column?: number;
 }) {
   const stage = useRef<HTMLDivElement>(null);
+  /** The stage with its controls, which fills the screen in full screen. */
+  const root = useRef<HTMLDivElement>(null);
+  const [fullscreen, setFullscreen] = useState(false);
+  useEffect(() => {
+    const change = () => setFullscreen(document.fullscreenElement === root.current);
+    document.addEventListener('fullscreenchange', change);
+    return () => document.removeEventListener('fullscreenchange', change);
+  }, []);
+  // Esc leaves full screen, as in a browser (Electron leaves it to the page), once no mark is being asked about.
+  useEffect(() => {
+    if (!fullscreen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !document.querySelector('.mark-ask')) void document.exitFullscreen().catch((e: unknown) => console.error('Leaving full screen failed:', e));
+    };
+    addEventListener('keydown', onKey);
+    return () => removeEventListener('keydown', onKey);
+  }, [fullscreen]);
   const [size, setSize] = useState<{ width: number; height: number } | null>(null);
   const [drag, setDrag] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -386,7 +405,7 @@ export function Stage({
   }
 
   return (
-    <div className="stage" style={{ gridColumn: column, gridRow: 1 }}>
+    <div className="stage" ref={root} style={{ gridColumn: column, gridRow: 1 }}>
       <div className="picture" ref={stage} style={{ padding: INSET }}>
         {/* The picture asks for the film's own shape, so the stage is no taller than its frame where there is room. */}
         <div className="fit" style={{ aspectRatio: film ? `${film.width} / ${film.height}` : '16 / 9' }} />
@@ -560,12 +579,28 @@ export function Stage({
           </div>
         )}
       </div>
-      <Controls player={player} tool={tool} full={full} disabled={disabled} guides={guides} onGuides={onGuides} />
+      <Controls
+        player={player}
+        tool={tool}
+        full={full}
+        disabled={disabled}
+        guides={guides}
+        onGuides={onGuides}
+        fullscreen={fullscreen}
+        onFullscreen={() => {
+          const done = fullscreen ? document.exitFullscreen() : root.current?.requestFullscreen();
+          // Refused only when the window cannot go full screen; the stage stays as it was, and the reason is logged.
+          done?.catch((e: unknown) => console.error('Full screen was refused:', e));
+        }}
+      />
     </div>
   );
 }
 
-/** The stage's foot: play and step on the left, the tools that point at the picture and the film's size on the right. */
+/**
+ * The stage's foot: play and step on the left; the tools that point at the picture, the film's size and full screen
+ * on the right.
+ */
 function Controls({
   player,
   tool,
@@ -573,6 +608,8 @@ function Controls({
   disabled,
   guides,
   onGuides,
+  fullscreen,
+  onFullscreen,
 }: {
   player: Player;
   tool: Tool;
@@ -580,6 +617,8 @@ function Controls({
   disabled: boolean;
   guides: boolean;
   onGuides(): void;
+  fullscreen: boolean;
+  onFullscreen(): void;
 }) {
   const { film, t, playing } = player;
   const fullTip = `A message carries at most ${MAX_MARKS} marks`;
@@ -677,6 +716,16 @@ function Controls({
           {film.width}×{film.height} · {Math.round(film.fps * 100) / 100} fps
         </span>
       )}
+      <button
+        type="button"
+        className="icon-button"
+        aria-label={fullscreen ? 'Leave full screen' : 'Full screen'}
+        data-tip={fullscreen ? 'Leave full screen' : 'Full screen'}
+        data-key={fullscreen ? 'Esc' : undefined}
+        onClick={onFullscreen}
+      >
+        {fullscreen ? <Minimize size={15} /> : <Maximize size={15} />}
+      </button>
     </div>
   );
 }

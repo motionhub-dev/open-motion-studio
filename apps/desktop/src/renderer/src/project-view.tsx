@@ -15,6 +15,7 @@ import {
   type Providers,
   type Reference,
   type FilmReview,
+  type SceneStills,
 } from '../../shared/api';
 import { Assistant } from './assistant';
 import { AssetsPanel } from './assets-panel';
@@ -240,6 +241,30 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
   }, [project.path, project.film]);
 
   useEffect(() => window.studio.onExportProgress(setProgress), []);
+
+  /** The scenes' frames for the timeline, of the build they were made from; asked for once a build has settled. */
+  const [stills, setStills] = useState<{ version: number; scenes: SceneStills } | null>(null);
+  const [stillsError, setStillsError] = useState('');
+  useEffect(() => {
+    if (!build?.ok) return;
+    const version = build.version;
+    let live = true;
+    // A turn of the agent builds many times: only a build that stays a moment is photographed.
+    const timer = setTimeout(() => {
+      window.studio.sceneStills(version).then(
+        (scenes) => {
+          if (!live || !scenes) return;
+          setStills({ version, scenes });
+          setStillsError('');
+        },
+        (e) => live && setStillsError(reason(e)),
+      );
+    }, 1500);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [build?.ok, build?.version]);
 
   // The export menu closes when the person clicks anywhere else.
   useEffect(() => {
@@ -732,6 +757,8 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
                 onRange={(start, end) => mark({ t: start, end, box: { x: 0, y: 0, w: 1, h: 1 }, element: null, note: '' })}
                 onSeek={seek}
                 onFold={(folded) => setLayout({ folded })}
+                stills={stills?.scenes ?? null}
+                stillsError={stillsError}
               />
             ) : (
               <div className="timeline-options">

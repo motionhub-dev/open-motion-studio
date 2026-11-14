@@ -38,7 +38,7 @@ apps/desktop/
       film.ts          film.tsx: start one, bundle it with esbuild on every change; film.md is the agent's skill
       preview.ts       the oms-preview: scheme the film's page, the Studio's preview scripts, the film's bundle and
                        the project's own files are served on
-      capture.ts       an offscreen window that photographs the film: stills, and export through ffmpeg
+      capture.ts       an offscreen window that photographs the film: stills, the timeline's scene frames, and export through ffmpeg
       remotion-export.ts  the film written as a Remotion project
       review.ts        the sampled check before an export: build errors, a size MP4 refuses, layers past the frame,
                        and a draw of the start, each scene's middle and the end
@@ -64,7 +64,7 @@ site/                  the introduction page at studio.motionhub.dev: static HTM
 
 | Component | Owns | Never does |
 | --- | --- | --- |
-| `project` | The folder is the truth: files on disk, git if the person uses it. The Studio's own state for a project is `.motion-studio/` (the film's bundle in `build/`, the conversation in `session.json`, the checkpoints in `history.json`), which a new project's `.gitignore` leaves out | Keep a copy of the project elsewhere |
+| `project` | The folder is the truth: files on disk, git if the person uses it. The Studio's own state for a project is `.motion-studio/` (the film's bundle in `build/`, the conversation in `session.json`, the checkpoints in `history.json`, the timeline's scene frames in `thumbs/`), which a new project's `.gitignore` leaves out | Keep a copy of the project elsewhere |
 | `film/*` | Turning `film.tsx` into a playable preview, a still at a time, and an MP4 | Know about the agent or the UI |
 | `agent` | The conversation, the tools, what the agent may do | Hold a key longer than a turn, or write the Studio's state, a motion from motionhub, dependencies or git |
 | `providers` | The providers in `settings.json` (userData); each key sealed with `safeStorage` in `keys.json`, opened for a call | Put a key in a reply to the renderer, a log, an error or a project |
@@ -101,7 +101,9 @@ One engine, the Studio's own ([ADR 0005](../adr/0005-the-studio-has-one-engine-i
 - **Playing, stills and export**: the Studio plays the film on the core's own clock; a still or an export opens the page
   with `?render=1` in an offscreen window, moves it to each frame's time (`window.__oms.seek`) and photographs it, and
   export pipes the frames to ffmpeg (shipped with the app) as H.264 High at level 4.1, BT.709, a key frame every two
-  seconds, faststart. A motion's reel plays as a film inside one scene.
+  seconds, faststart. A motion's reel plays as a film inside one scene. The timeline's scene frames are six small JPEGs
+  a scene, evenly through it, photographed once a build has stood for a moment and kept in
+  `.motion-studio/thumbs/<hash of the build>.json`, one file, replaced when the film changes.
 - **A motion is taken into a project the way `@motionhub/cli get` takes it** (built, through the CLI's own library): the
   whole package, checked against the index's SHA-256, into `motions/@<scope>/<slug>/`, recorded in `motions.lock.json`.
   The copy is the project's and is never changed; a project's own motions are `motions/<name>/`. A film imports a
@@ -255,11 +257,11 @@ panels, built and planned, each a projection of the project:
 | Panel | What it does | Writes |
 | --- | --- | --- |
 | **Assistant** | The conversation, the agent's words as Markdown, each run of tool calls one line of plain words with its stills beside it (one clicked seeks to its moment and opens large), what each turn changed in the film, the agent's questions as cards, a message waiting for the turn or steering it (built); the turn's spend is planned | Through the agent |
-| **Preview** | The film's preview with transport; the mark tools (pick an element, drag a region) ask what should change there and attach it to the next message, flagged on the timeline (built) | Nothing |
+| **Preview** | The film's preview with transport and full screen; the mark tools (pick an element, drag a region) ask what should change there and attach it to the next message, flagged on the timeline (built) | Nothing |
 | **Motion** | The project's motions as poster cards; one opened shows its colours, its components with their previews and its MOTION.md (`motionDetail`); the catalogue search with Use (built). Reels are planned | Through `useMotion` |
 | **Inspector** | The element last picked: its path, moment, scene and layer, box in the film's pixels, words, computed look (`PickedElement.styles`, which the agent also reads) and attributes (built) | Nothing |
 | **Files** | The tree and a read-only CodeMirror view; open in the person's own editor | Nothing |
-| **Timeline** | Read-only: a ruler to seek on (the moment under the pointer named with its scene), the film's scenes (a scene clicked seeks to its start), the marks (a drag along their lane marks a stretch), the check's issues at their moments (clicked, to the assistant) and the playhead; zoom about the pointer, a view that follows the playhead while it plays, and a chip that brings back a playhead out of view (built) | Nothing |
+| **Timeline** | Read-only: a ruler to seek on (the moment under the pointer named with its scene), the film's scenes, each with a strip of its frames (a scene clicked seeks to its start), the marks (a drag along their lane marks a stretch), the check's issues at their moments (clicked, to the assistant) and the playhead; zoom about the pointer, a view that follows the playhead while it plays, and a chip that brings back a playhead out of view (built) | Nothing |
 | **Export** | Queue, progress, open the file | Nothing |
 | **Settings** | Providers and keys in two panes, with a connection test (`testProvider`: one call as the form stands, asking for a tool call, with the typed key or the stored one; the reply carries no key), and the person's own coding agents with where each stands and the one action that fixes it (built); permissions are planned | App settings |
 

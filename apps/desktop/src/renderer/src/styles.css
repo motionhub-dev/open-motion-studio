@@ -768,6 +768,11 @@ button.status:hover {
   opacity: 0.4;
 }
 
+/* Full screen, the stage is the screen: no corners, and the picture takes all but its foot. */
+.stage:fullscreen {
+  border-radius: 0;
+}
+
 /* A narrow stage keeps the tools' icons and lets the film's size go. */
 @container (max-width: 620px) {
   .stage-bar .spec,
@@ -975,6 +980,54 @@ button.status:hover {
   border-color: var(--text);
   background: var(--text);
   color: var(--bg);
+}
+
+/* A scene's block: its title over a strip of its frames (timeline.tsx TILE wide each), once they are made. */
+.lane.scenes-lane {
+  height: 48px;
+}
+
+.timeline .scenes-lane .scene {
+  height: 40px;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+.scene-title {
+  flex: none;
+  height: 16px;
+  padding: 0 6px;
+  line-height: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.timeline .scene:not(:has(.strip)) .scene-title {
+  height: 100%;
+  line-height: 38px;
+}
+
+.timeline .scene .strip {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 1px;
+  padding: 0 1px 1px;
+  overflow: hidden;
+}
+
+.timeline .scene .strip img {
+  flex: none;
+  width: 39px;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 2px;
+}
+
+.timeline .names .scenes-name {
+  height: 48px;
+  gap: 4px;
 }
 
 .timeline .flag {

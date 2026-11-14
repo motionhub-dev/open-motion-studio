@@ -6,10 +6,15 @@
 
 import { BrowserWindow, app, session, type NativeImage } from 'electron';
 import { spawn } from 'node:child_process';
-import { rename, rm } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import ffmpegStatic from 'ffmpeg-static';
 import { keepFilmsInPlace, PREVIEW_URL, servePreview } from './preview';
 import type { Box, FilmInfo } from '../../shared/preview';
+import type { SceneStills } from '../../shared/api';
+import { STATE_DIR } from '../project';
+import { buildDir } from './film';
 
 export const RENDER_PARTITION = 'oms-render';
 
@@ -123,6 +128,52 @@ export async function openStage(version: number): Promise<Stage> {
     window.destroy();
     throw error;
   }
+}
+
+/** How many frames each scene is shown by on the timeline, evenly through it. */
+export const SCENE_STILLS = 6;
+/** The width the timeline's frames are kept at, in pixels; small, since they are drawn small. */
+const STILL_WIDTH = 160;
+
+/** Where a project keeps the timeline's frames: one file for the build they are of, named by that build's hash. */
+export const stillsDir = (dir: string): string => join(dir, STATE_DIR, 'thumbs');
+
+/**
+ * Each scene of build `version` as SCENE_STILLS small frames, by scene id, as data URLs. They are kept in
+ * `.motion-studio/thumbs/<hash of the build>.json`, so the same film is photographed once; making them for a new
+ * build removes the files of the others there, and nothing outside that folder is written or removed.
+ */
+export async function sceneStills(dir: string, version: number, open: (version: number) => Promise<Stage>): Promise<SceneStills> {
+  const hash = createHash('sha256')
+    .update(await readFile(join(buildDir(dir), `film-${version}.js`)))
+    .digest('hex')
+    .slice(0, 16);
+  const folder = stillsDir(dir);
+  const file = join(folder, `${hash}.json`);
+  try {
+    return JSON.parse(await readFile(file, 'utf8')) as SceneStills;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+  }
+  const stage = await open(version);
+  const stills: SceneStills = {};
+  try {
+    for (const scene of stage.film.scenes) {
+      stills[scene.id] = [];
+      for (let i = 0; i < SCENE_STILLS; i++) {
+        const image = await stage.frame(scene.start + ((i + 0.5) / SCENE_STILLS) * scene.duration);
+        stills[scene.id]!.push(`data:image/jpeg;base64,${image.resize({ width: STILL_WIDTH }).toJPEG(70).toString('base64')}`);
+      }
+    }
+  } finally {
+    stage.close();
+  }
+  await mkdir(folder, { recursive: true });
+  // Written whole, then moved into place: a file there is always a whole one.
+  await writeFile(`${file}.partial`, JSON.stringify(stills));
+  await rename(`${file}.partial`, file);
+  for (const name of await readdir(folder)) if (name !== `${hash}.json`) await rm(join(folder, name), { force: true });
+  return stills;
 }
 
 /** Writes one chunk to a stream, waiting when its buffer is full. */

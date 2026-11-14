@@ -33,6 +33,7 @@ Then **read the screenshots**. A blank or launcher-only shot means it did not re
 | `ss:<name>` | screenshot to `<shots-dir>/<name>.png` |
 | `key:<key>` | press a key, Playwright names (`Space`, `ArrowRight`, `Backslash`, `BracketLeft`) |
 | `click:<css>` | click the first match, through the DOM |
+| `tap:<css>` | click it with the mouse, as a person: what needs a gesture (full screen) needs this |
 | `wait:<ms>` | wait |
 | `size:<w>x<h>` | resize the window (it opens at 1600×960) |
 | `eval:<js>` | evaluate an expression in the window, print it as JSON |

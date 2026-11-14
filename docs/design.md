@@ -75,13 +75,16 @@ A top bar over a grid of panels (`project-view.tsx`):
   corner, the tools' right corner).
 - The **stage** is the film's height where there is room: its picture takes the film's shape with 16 px of ink around
   the frame, and its foot is the controls (previous frame, play, next frame, the time, loop; then Pick, Region and
-  Guides as one labelled group, and the film's size and rate). A narrow stage keeps the group's icons and drops the size.
+  Guides as one labelled group, the film's size and rate, and full screen). A narrow stage keeps the group's icons and
+  drops the size. Full screen is the stage alone, picture and foot, with no corners; Esc or the button leaves it.
 - The **project tools** are four tabs, Outline, Inspector, Assets and Motions. History opens from the assistant's head
   and Checks from the status; either shows its title with a way back to the tabs.
 - The assistant's and the right panel's widths are dragged at their edges, and the timeline's height is the least it
   has: it takes whatever the stage leaves (handles take the arrow keys too). The timeline folds to its head, and the
   stage then takes the rest; `layout.tsx` keeps the sizes in the app's local storage.
-- The timeline (`timeline.tsx`) is a head (its zoom, fit, follow and fold), a ruler, a Scenes lane for a film of scenes (each scene a block named by its id, the
+- The timeline (`timeline.tsx`) is a head (its zoom, fit, follow and fold), a ruler, a Scenes lane for a film of scenes (each scene a block named by its title over a strip of its frames, as many
+  40 px frames as its width holds, each the nearest in time; until they are made, the title alone; a triangle by the
+  lane's name, its reason on hover, when they could not be made; the
   one under the playhead inked, its lines on hover; a selected scene ringed in cobalt, the scene of a selected layer
   ringed thinly), the Marks lane (a flag for each mark, a cobalt band for a stretch, dragged out along the lane; empty,
   it says so in muted words, and it tints on hover), a dashed span for each layer (selected, solid cobalt on a cobalt

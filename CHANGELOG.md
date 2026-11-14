@@ -3,6 +3,17 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-13 — Each scene on the timeline shows its frames, and the stage goes full screen
+
+- **What:** A scene's block on the timeline is its title over a strip of its frames. They are photographed once a
+  build has stood for a moment and kept in the project's `.motion-studio/thumbs/`, one file named by the build's hash,
+  replaced when the film changes. The stage's controls end with full screen, which Esc leaves.
+- **Why:** A film's shape reads at a glance from its pictures, not from scene names; and a film is judged at its size.
+- **Breaking:** None.
+- **Upgrade:** Nothing. A project gains `.motion-studio/thumbs/`, which git already leaves out with the rest of
+  `.motion-studio/`.
+- **Refs:** `apps/desktop/src/main/film/capture.ts`, `apps/desktop/src/renderer/src/timeline.tsx`, `docs/tech/architecture.md`.
+
 ## 2026-11-13 — The timeline shows what is selected and what changed
 
 - **What:** A selected scene has a heavier cobalt ring, and the scene of a selected layer a thin one; a selected layer

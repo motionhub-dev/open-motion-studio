@@ -5,7 +5,7 @@
 // edge that brings it back. The check's issues sit on the ruler at their moments.
 import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent, type WheelEvent } from 'react';
 import { ChevronDown, ChevronUp, ChevronsLeft, ChevronsRight, Locate, Minus, Plus, Scan, TriangleAlert } from 'lucide-react';
-import { MAX_MARKS, type FilmIssue, type Mark, type Reference } from '../../shared/api';
+import { MAX_MARKS, type FilmIssue, type Mark, type Reference, type SceneStills } from '../../shared/api';
 import type { FilmInfo, LayerBox } from '../../shared/preview';
 import { timecode } from './preview';
 import { sceneTitle } from './outline';
@@ -28,6 +28,18 @@ export const zoomBy = (zoom: number, factor: number) => Math.min(ZOOM.max, Math.
 export function scrollToKeep(scroll: number, x: number, width: number, from: number, to: number): number {
   const fraction = (scroll + x) / (width * from);
   return Math.max(0, fraction * width * to - x);
+}
+
+/** The width of one frame in a scene's strip, in pixels. */
+export const TILE = 40;
+
+/**
+ * The frames a scene's strip of `width` pixels shows: as many as fit, each the scene's frame nearest its place in time.
+ */
+export function stripOf<T>(frames: T[], width: number): T[] {
+  if (!frames.length) return [];
+  const count = Math.max(1, Math.floor(width / TILE));
+  return Array.from({ length: count }, (_, i) => frames[Math.min(frames.length - 1, Math.floor(((i + 0.5) / count) * frames.length))]!);
 }
 
 /** Folds the timeline to its head, or opens it again. */
@@ -60,6 +72,8 @@ export function Timeline({
   selected,
   onSelect,
   onFold,
+  stills,
+  stillsError,
 }: {
   film: FilmInfo;
   t: number;
@@ -78,6 +92,10 @@ export function Timeline({
   onSelect(ref: Reference): void;
   /** Folds the timeline to its head. */
   onFold(folded: boolean): void;
+  /** Each scene's frames, by scene id, drawn as a strip in its block; null until they are made. */
+  stills: SceneStills | null;
+  /** Why the frames could not be made, if they could not. */
+  stillsError: string;
 }) {
   const [zoom, setZoom] = useState(1);
   /** The zoom as last asked for, ahead of the render, so wheel steps that come together add up. */
@@ -239,7 +257,10 @@ export function Timeline({
       <div className="timeline" aria-label="Timeline">
         <div className="timeline-scroll">
           <div className="names" aria-hidden="true">
-            <span>Scenes</span>
+            <span className="scenes-name" title={stillsError ? `The scenes' frames could not be made: ${stillsError}` : undefined}>
+              Scenes
+              {stillsError && <TriangleAlert size={11} />}
+            </span>
             <span title={full ? `A message carries at most ${MAX_MARKS} marks` : 'Drag along this lane to mark a stretch of the film'}>
               Marks
             </span>
@@ -303,7 +324,7 @@ export function Timeline({
                   <TriangleAlert size={10} />
                 </button>
               ))}
-              <div className="lane">
+              <div className="lane scenes-lane">
                 {film.scenes.map((scene) => (
                   <button
                     key={scene.id}
@@ -313,7 +334,14 @@ export function Timeline({
                     title={`${sceneTitle(scene)} · ${timecode(scene.start)}–${timecode(scene.start + scene.duration)}`}
                     onClick={() => onSelect({ kind: 'scene', label: sceneTitle(scene), scene: scene.id, time: scene.start })}
                   >
-                    {sceneTitle(scene)}
+                    <span className="scene-title">{sceneTitle(scene)}</span>
+                    {stills?.[scene.id] && (
+                      <span className="strip" aria-hidden="true">
+                        {stripOf(stills[scene.id]!, (scene.duration / seconds) * grid).map((src, i) => (
+                          <img key={i} src={src} alt="" />
+                        ))}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
