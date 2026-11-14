@@ -3,6 +3,20 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-14 — The outline follows the playhead and shows the film
+
+- **What:** The outline is one row a scene (a frame of it, its first line, number, start and length) on a rail that
+  marks the scenes played, the one playing and how far into it the playhead is. The scene playing opens and the one
+  left closes, unless the person folded it; Collapse all / Expand all sits at the top, the film's own layers in a group
+  of their own. Layers are listed by name, topmost first; a scene's first line is its title and no longer repeated, and
+  the "Script · read only" and size labels are gone. A layer hovered in the outline or on the timeline is lit in both
+  and drawn on the picture.
+- **Why:** The outline listed each title twice and every layer's size, showed no picture, and barely said where the
+  playhead was.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/outline.tsx`, `docs/design.md`.
+
 ## 2026-11-14 — Words sent to Claude Code while it works go into its turn
 
 - **What:** On a project that talks to the person's own Claude Code, Enter during a turn sends the words into that

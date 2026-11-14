@@ -8,6 +8,7 @@
 //   key:<key>        press a key (Playwright names: Space, ArrowRight, Backslash, BracketLeft, ...)
 //   click:<css>      click the first element matching the selector, through the DOM
 //   tap:<css>        click it with the mouse, as a person would: what needs a gesture (full screen) needs this
+//   hover:<css>      move the mouse over it (and leave it there for the next steps)
 //   wait:<ms>        wait
 //   eval:<js>        evaluate an expression in the window and print its value as JSON
 //   theme:<scheme>   dark, light or system: the colour scheme the window draws in
@@ -116,7 +117,8 @@ try {
       // A real click, for what only a person's gesture may do (full screen); it lands where the element is drawn.
       await page.click(arg, { timeout: 10_000 });
       await page.mouse.move(0, 0);
-    } else if (verb === 'wait') await page.waitForTimeout(Number(arg) || 500);
+    } else if (verb === 'hover') await page.hover(arg, { timeout: 10_000 });
+    else if (verb === 'wait') await page.waitForTimeout(Number(arg) || 500);
     else if (verb === 'eval') console.log(JSON.stringify(await page.evaluate(arg)));
     else if (verb === 'theme') {
       // The stylesheet follows prefers-color-scheme. Playwright emulates light by default, over the system's choice,

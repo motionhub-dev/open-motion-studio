@@ -2164,34 +2164,118 @@ kbd {
   flex-direction: column;
   gap: 12px;
 }
-.outline-scene {
-  border-top: 1px solid var(--line);
-  padding-top: 10px;
+/* The outline: a count and fold-all, the film's own layers in a dashed group, then the scenes on the playhead's rail. */
+.side-content > .body.outline-panel {
+  gap: 2px;
+  padding: 4px 8px 16px 6px;
 }
-/* The tabs' rule is the first scene's. */
-.outline-scene:first-child {
-  border-top: 0;
-  padding-top: 0;
-}
-.outline-scene-head {
+.outline-tools {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 6px;
+  padding: 4px 6px 6px;
+  font-size: 11px;
+  color: var(--muted);
 }
-.outline-row {
+.outline-tools .quiet {
+  font-size: 11px;
+}
+.outline-global {
+  margin: 0 0 6px 22px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-button);
+  padding: 0 4px;
+}
+.outline-global > summary {
+  list-style: none;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 4px;
-  border: 1px solid transparent;
+  gap: 6px;
+  padding: 6px 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.outline-global > summary::-webkit-details-marker {
+  display: none;
+}
+.outline-global[open] > summary {
+  color: var(--text2);
+}
+.outline-global[open] {
+  padding-bottom: 4px;
+}
+
+/* A scene on the rail: a line down the left that fills as the playhead goes, and a node that is hollow before the scene,
+   ringed while it plays and filled after. */
+.outline-scene {
+  position: relative;
+  padding-left: 22px;
+}
+.outline-rail {
+  position: absolute;
+  left: 8px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--line);
+}
+.outline-rail > span {
+  position: absolute;
+  inset: 0 0 auto;
+  background: var(--text);
+}
+/* The rail runs from the first scene's node to the last's. */
+.outline-scene:first-of-type .outline-rail {
+  top: 31px;
+}
+.outline-scene:last-of-type .outline-rail {
+  bottom: auto;
+  height: 32px;
+}
+.outline-scene:only-of-type .outline-rail {
+  display: none;
+}
+.outline-node {
+  position: absolute;
+  left: 3px;
+  top: 25px;
+  z-index: 1;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--muted);
+  background: var(--sheet);
+}
+.outline-scene.played .outline-node,
+.outline-scene.playing .outline-node {
+  border-color: var(--text);
+  background: var(--text);
+}
+.outline-scene.playing .outline-node {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--text) 18%, transparent);
+}
+
+/* A row: what it names, picked by a click; its actions on hover; a scene's fold. */
+.outline-row {
+  position: relative;
+  display: flex;
+  align-items: center;
   border-radius: var(--r-button);
 }
-.outline-row:hover {
-  background: var(--bg);
+.outline-row:hover,
+.outline-row.hovered {
+  background: var(--s2);
+}
+.outline-row.hovered {
+  box-shadow: inset 2px 0 var(--annotate);
 }
 .outline-row.selected {
-  background: var(--s2);
-  border-color: var(--line);
+  background: color-mix(in srgb, var(--annotate) 12%, transparent);
+  box-shadow: inset 0 0 0 1px var(--annotate);
+}
+.outline-scene.playing > .outline-scene-row:not(.selected):not(:hover) {
+  background: color-mix(in srgb, var(--text) 5%, transparent);
 }
 .outline-pick {
   display: flex;
@@ -2199,53 +2283,122 @@ kbd {
   gap: 8px;
   flex: 1;
   min-width: 0;
-  padding: 10px 6px;
+  padding: 5px 6px;
   background: none;
   border: none;
   text-align: left;
+  color: var(--text);
 }
 .outline-pick > svg {
   flex: none;
   color: var(--muted);
 }
-.outline-pick > span:not(.outline-number) {
+.outline-scene-row > .outline-pick {
+  gap: 10px;
+  padding: 7px 6px;
+}
+.outline-scene-row > .outline-pick > span {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   min-width: 0;
 }
-.outline-pick strong {
+.outline-scene-row strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
   font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.outline-scene-row small {
+  font: 10px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.outline-scene-row small b {
   font-weight: 500;
+  color: var(--text);
+}
+.outline-thumb {
+  flex: none;
+  width: 64px;
+  aspect-ratio: 16 / 9;
+  border-radius: 3px;
+  object-fit: cover;
+  background: var(--stage);
+}
+.outline-fold {
+  flex: none;
+  width: 24px;
+  height: 24px;
+}
+.outline-fold svg {
+  transition: transform 0.15s;
+}
+.outline-scene.closed .outline-fold svg {
+  transform: rotate(-90deg);
+}
+.outline-layer {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.outline-pick small {
-  font: 10px var(--font-mono);
-  color: var(--muted);
-}
-.outline-number {
   font: 11px var(--font-mono);
-  color: var(--muted);
 }
 .outline-children {
-  padding-left: 12px;
-  border-left: 1px solid var(--line);
-  margin-left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 0 6px 18px;
 }
-.row-action {
-  opacity: 0;
-  flex: none;
+.outline-line q {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text2);
+  padding-left: 9px;
+  border-left: 2px solid var(--line);
 }
-.outline-row:hover .row-action,
-.outline-row:focus-within .row-action {
-  opacity: 1;
+/* Actions float over the row's end on hover or focus, so a name keeps the row's width. */
+.row-actions {
+  position: absolute;
+  right: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-button);
+  background: var(--sheet);
+  box-shadow: var(--float-shadow);
+}
+.outline-children .row-actions,
+.outline-global .row-actions {
+  right: 4px;
+}
+.row-actions .icon-button {
+  width: 24px;
+  height: 24px;
+}
+.outline-row:hover > .row-actions,
+.outline-row:focus-within > .row-actions {
+  display: flex;
+}
+@media (prefers-reduced-motion: reduce) {
+  .outline-fold svg {
+    transition: none;
+  }
 }
 .selection-box {
   position: absolute;
   border: 1px dashed var(--annotate);
   pointer-events: none;
+}
+/* The layer under the pointer in the outline or on the timeline. */
+.selection-box.hovered {
+  border: 1.5px dashed var(--annotate);
+  background: color-mix(in srgb, var(--annotate) 8%, transparent);
 }
 .selection-box > span {
   position: absolute;
@@ -2376,6 +2529,15 @@ kbd {
 .timeline .scene.selected {
   outline: 2px solid var(--annotate);
   outline-offset: 1px;
+}
+/* The layer under the pointer here or in the outline, and the scene it is in. */
+.layer-span.hovered {
+  border: 1px dashed var(--annotate);
+  background: color-mix(in srgb, var(--annotate) 10%, var(--sheet));
+  color: var(--text);
+}
+.timeline .scene.holds-hovered:not(.selected) {
+  box-shadow: inset 0 -2px var(--annotate);
 }
 /* The scene a selected layer or line is in. */
 .timeline .scene.holds-selected {
@@ -3331,15 +3493,6 @@ kbd {
   width: 22px;
   height: 22px;
   color: inherit;
-}
-
-/* The scene under the playhead in the outline. */
-.outline-scene.current .outline-scene-head .eyebrow {
-  color: var(--text);
-}
-
-.outline-scene.current .outline-scene-head .eyebrow::before {
-  content: '▶ ';
 }
 
 .shortcuts section + section {
