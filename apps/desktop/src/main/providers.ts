@@ -8,7 +8,8 @@ import { safeStorage } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { AgentSettings, Protocol, ProviderInput, ProviderView, Providers } from '../shared/api';
+import type { AgentSettings, Protocol, ProviderInput, ProviderView, Providers, VoiceInput, VoiceKind, VoiceView } from '../shared/api';
+import type { VoiceSetup } from './voice';
 import { CLAUDE_EFFORTS } from './agent/harness';
 
 interface StoredProvider {
@@ -24,6 +25,31 @@ interface Settings {
   providers: StoredProvider[];
   active: string | null;
   agents?: Partial<AgentSettings>;
+  /** The voice providers set up, by kind; their keys are in keys.json as `voice:<kind>`. */
+  voices?: Partial<Record<VoiceKind, Omit<VoiceInput, 'kind' | 'key'>>>;
+}
+
+export const VOICE_KINDS: VoiceKind[] = ['azure', 'elevenlabs', 'minimax', 'openai'];
+export const VOICE_NAMES: Record<VoiceKind, string> = { azure: 'Azure', elevenlabs: 'ElevenLabs', minimax: 'MiniMax', openai: 'OpenAI' };
+
+/** A voice provider as the form gave it, checked: what each kind needs beside its key, and nothing a URL could carry. */
+function cleanVoice(input: unknown): VoiceInput {
+  if (!input || typeof input !== 'object') throw new Error('Not a voice provider.');
+  const given = input as Record<string, unknown>;
+  const kind = given.kind as VoiceKind;
+  if (!VOICE_KINDS.includes(kind)) throw new Error('Not a voice provider.');
+  const text = (value: unknown, pattern: RegExp, what: string) => {
+    if (value === undefined || value === null || value === '') return undefined;
+    if (typeof value !== 'string' || !pattern.test(value.trim())) throw new Error(`Not ${what}.`);
+    return value.trim();
+  };
+  const key = typeof given.key === 'string' && given.key.trim() ? given.key.trim() : undefined;
+  const region = text(given.region, kind === 'minimax' ? /^(global|china)$/ : /^[a-z0-9]{2,40}$/, kind === 'minimax' ? 'MiniMax’s site (global or china)' : 'an Azure region, as eastasia');
+  const groupId = text(given.groupId, /^\d{1,40}$/, 'a MiniMax group id');
+  const model = text(given.model, /^[\w.:-]{1,80}$/, 'a model');
+  if (kind === 'azure' && !region) throw new Error('Azure needs its region, as eastasia: the resource’s Keys and Endpoint page shows it.');
+  if (kind === 'minimax' && !groupId) throw new Error('MiniMax needs its group id: the account page shows it.');
+  return { kind, ...(key ? { key } : {}), ...(region ? { region } : {}), ...(groupId ? { groupId } : {}), ...(model ? { model } : {}) };
 }
 
 const NO_AGENT_SETTINGS: AgentSettings = {
@@ -199,6 +225,60 @@ export class ProviderStore {
     settings.agents = { ...settings.agents, [kind]: cleaned };
     await writeJson(this.settingsFile, settings);
     return this.agentSettings();
+  }
+
+  /** The voice providers set up (ADR 0012), without their keys: only whether one is stored. */
+  async voices(): Promise<VoiceView[]> {
+    const [settings, keys] = await Promise.all([this.settings(), this.keys()]);
+    return VOICE_KINDS.flatMap((kind) => {
+      const saved = settings.voices?.[kind];
+      return saved ? [{ kind, ...saved, hasKey: `voice:${kind}` in keys }] : [];
+    });
+  }
+
+  /** Sets a voice provider up, or changes it; a key, when given, replaces the stored one, sealed as a model provider's is. */
+  async saveVoice(input: unknown): Promise<VoiceView[]> {
+    const voice = cleanVoice(input);
+    const settings = await this.settings();
+    const { kind, key, ...kept } = voice;
+    const keys = await this.keys();
+    if (key) {
+      if (!safeStorage.isEncryptionAvailable()) throw new Error('This system has no keychain to keep a key in.');
+      keys[`voice:${kind}`] = safeStorage.encryptString(key).toString('base64');
+      await writeJson(this.keysFile, keys);
+    } else if (!(`voice:${kind}` in keys)) {
+      throw new Error(`${VOICE_NAMES[kind]} needs its key.`);
+    }
+    settings.voices = { ...settings.voices, [kind]: kept };
+    await writeJson(this.settingsFile, settings);
+    return this.voices();
+  }
+
+  async removeVoice(kind: unknown): Promise<VoiceView[]> {
+    if (!VOICE_KINDS.includes(kind as VoiceKind)) throw new Error('Not a voice provider.');
+    const settings = await this.settings();
+    if (settings.voices) delete settings.voices[kind as VoiceKind];
+    await writeJson(this.settingsFile, settings);
+    const keys = await this.keys();
+    if (`voice:${kind}` in keys) {
+      delete keys[`voice:${kind}`];
+      await writeJson(this.keysFile, keys);
+    }
+    return this.voices();
+  }
+
+  /** A voice provider with its key opened, for one call; the form's own, not saved, when given (a sample before saving). */
+  async voiceSetup(kind: unknown, draft?: unknown): Promise<VoiceSetup> {
+    if (draft !== undefined) {
+      const voice = cleanVoice(draft);
+      if (voice.key) return { ...voice, key: voice.key };
+      kind = voice.kind;
+    }
+    if (!VOICE_KINDS.includes(kind as VoiceKind)) throw new Error('Not a voice provider.');
+    const saved = (await this.settings()).voices?.[kind as VoiceKind];
+    const sealed = (await this.keys())[`voice:${kind}`];
+    if (!saved || !sealed) throw new Error(`${VOICE_NAMES[kind as VoiceKind]} is not set up: add it in Models, under Voices.`);
+    return { kind: kind as VoiceKind, ...saved, ...(draft !== undefined ? cleanVoice(draft) : {}), key: safeStorage.decryptString(Buffer.from(sealed, 'base64')) };
   }
 
   /** The active provider with its key opened, for one call. */

@@ -121,3 +121,35 @@ describe('the coding agents’ settings', () => {
     await expect(store.saveAgentSettings('built-in' as never, {})).rejects.toThrow();
   });
 });
+
+describe('the voice providers', () => {
+  it('keep their keys sealed, out of the settings and out of what the renderer sees', async () => {
+    const store = new ProviderStore(dir);
+    const views = await store.saveVoice({ kind: 'azure', key: ` ${KEY} `, region: 'eastasia' });
+    expect(views).toEqual([{ kind: 'azure', region: 'eastasia', hasKey: true }]);
+    expect(JSON.stringify(views)).not.toContain(KEY);
+    expect(await readFile(join(dir, 'settings.json'), 'utf8')).not.toContain(KEY);
+    expect(await readFile(join(dir, 'keys.json'), 'utf8')).not.toContain(KEY);
+    expect(await store.voiceSetup('azure')).toEqual({ kind: 'azure', region: 'eastasia', key: KEY });
+    // A change without a key keeps the stored one; a form tried before saving uses its own.
+    await store.saveVoice({ kind: 'azure', region: 'eastus' });
+    expect(await store.voiceSetup('azure')).toMatchObject({ region: 'eastus', key: KEY });
+    expect(await store.voiceSetup('azure', { kind: 'azure', region: 'westeurope', key: 'typed' })).toEqual({ kind: 'azure', region: 'westeurope', key: 'typed' });
+    expect(await store.removeVoice('azure')).toEqual([]);
+    expect(await readFile(join(dir, 'keys.json'), 'utf8')).not.toContain('voice:azure');
+    await expect(store.voiceSetup('azure')).rejects.toThrow('not set up');
+  });
+
+  it('refuse what each provider cannot run without, and anything that is not a name', async () => {
+    const store = new ProviderStore(dir);
+    await expect(store.saveVoice({ kind: 'openai' })).rejects.toThrow('needs its key');
+    await expect(store.saveVoice({ kind: 'azure', key: KEY })).rejects.toThrow('region');
+    await expect(store.saveVoice({ kind: 'azure', key: KEY, region: 'east.evil.example' })).rejects.toThrow('Azure region');
+    await expect(store.saveVoice({ kind: 'minimax', key: KEY, region: 'global' })).rejects.toThrow('group id');
+    await expect(store.saveVoice({ kind: 'minimax', key: KEY, groupId: '123', region: 'moon' })).rejects.toThrow('global or china');
+    await expect(store.saveVoice({ kind: 'edge', key: KEY })).rejects.toThrow('Not a voice provider');
+    expect(await store.saveVoice({ kind: 'minimax', key: KEY, groupId: '123', region: 'china', model: 'speech-2.8-hd' })).toEqual([
+      { kind: 'minimax', groupId: '123', region: 'china', model: 'speech-2.8-hd', hasKey: true },
+    ]);
+  });
+});
