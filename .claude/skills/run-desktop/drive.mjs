@@ -9,6 +9,7 @@
 //   click:<css>      click the first element matching the selector, through the DOM
 //   wait:<ms>        wait
 //   eval:<js>        evaluate an expression in the window and print its value as JSON
+//   theme:<scheme>   dark, light or system: the colour scheme the window draws in
 //   size:<w>x<h>     resize the window
 //   boxes            print the workspace's panels' boxes as JSON
 //   session:<file>   put a conversation (the built-in agent's messages, as .motion-studio/session.json holds them) in
@@ -112,6 +113,12 @@ try {
       if (!found) console.log('not found:', arg);
     } else if (verb === 'wait') await page.waitForTimeout(Number(arg) || 500);
     else if (verb === 'eval') console.log(JSON.stringify(await page.evaluate(arg)));
+    else if (verb === 'theme') {
+      // The stylesheet follows prefers-color-scheme. Playwright emulates light by default, over the system's choice,
+      // so the scheme is set through its emulation (system: no emulation).
+      await page.emulateMedia({ colorScheme: arg === 'dark' || arg === 'light' ? arg : null });
+      await page.waitForTimeout(500);
+    }
     else if (verb === 'size') {
       const [w, h] = arg.split('x').map(Number);
       await resize(w, h);
