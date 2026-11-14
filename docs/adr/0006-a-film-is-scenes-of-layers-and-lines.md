@@ -1,6 +1,6 @@
 # 6. A film is scenes of layers and lines
 
-> **Status:** Accepted · **Date:** 2026-11-10
+> **Status:** Accepted, amended by [0011](0011-narration-is-synthesized-per-line-and-times-the-captions.md) (a line is spoken; `useLine`) · **Date:** 2026-11-10
 
 ## Context
 

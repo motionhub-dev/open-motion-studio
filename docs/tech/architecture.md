@@ -360,8 +360,6 @@ What gates what: 2 gates everything; 3 gates nothing else; 7 needs nothing after
   - how much of a reopened session the CLI gives back, and so whether the panel redraws a reopened conversation from
     it or keeps its own copy.
 
-- **Narration**: whether text-to-speech and voices ever belong in the Studio, and through which providers. Out of the
-  first version.
 - **Signing**: an Apple Developer ID and a Windows code-signing certificate, whose account they are under, and their cost.
 - **ffmpeg**: the app ships `ffmpeg-static`'s build for now, which is GPL (it holds x264). Shipping it beside an
   Apache-2.0 app is aggregation, but owes its licence and an offer of its source; an LGPL build without x264 would need
