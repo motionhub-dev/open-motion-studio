@@ -284,6 +284,9 @@ export interface Asset {
   bytes: number;
 }
 
+/** Each scene's frames for the timeline, by scene id, as data URLs, evenly through the scene. */
+export type SceneStills = Record<string, string[]>;
+
 export interface StudioApi {
   examples(): Promise<Example[]>;
   openExample(id: string): Promise<Project>;
@@ -314,6 +317,11 @@ export interface StudioApi {
   lastBuild(): Promise<BuildResult | null>;
   /** Calls `listener` after every build of the open project; returns the unsubscribe. */
   onBuild(listener: (result: BuildResult) => void): () => void;
+  /**
+   * The scenes' frames of build `version` for the timeline, made once and kept in the project's `.motion-studio/thumbs/`;
+   * null when that build is no longer the open project's latest good one.
+   */
+  sceneStills(version: number): Promise<SceneStills | null>;
 
   /** The motions the open project holds. */
   projectMotions(): Promise<ProjectMotion[]>;
@@ -389,6 +397,7 @@ export const CHANNELS = {
   startFilm: 'project:start-film',
   closeProject: 'project:close',
   lastBuild: 'film:last-build',
+  sceneStills: 'film:scene-stills',
   projectMotions: 'motions:project',
   searchMotions: 'motions:search',
   useMotion: 'motions:use',

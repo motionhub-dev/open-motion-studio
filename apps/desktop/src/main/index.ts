@@ -29,7 +29,7 @@ import { type MessageParam, caller, failure } from './agent/model';
 import { testProvider } from './agent/test-connection';
 import { TOOLS, type ToolContext, projectPath } from './agent/tools';
 import type { BuildContext } from 'esbuild';
-import { exportFrames, openStage, serveRenders } from './film/capture';
+import { exportFrames, openStage, sceneStills, serveRenders } from './film/capture';
 import { EXAMPLES, openExample } from './examples';
 import { ASSET_EXTENSIONS, importAssets, projectAssets } from './assets';
 import { reviewBuild } from './film/review';
@@ -491,6 +491,19 @@ function registerHandlers(): void {
   });
 
   ipcMain.handle(CHANNELS.lastBuild, () => open?.build ?? null);
+
+  // One photographing of the scenes at a time; a request whose build is no longer the latest by its turn is let go.
+  let stillsQueue: Promise<unknown> = Promise.resolve();
+  ipcMain.handle(CHANNELS.sceneStills, (_event, version: unknown) => {
+    if (typeof version !== 'number' || !Number.isInteger(version)) throw new Error('Name a build of the film.');
+    const run = stillsQueue.then(async () => {
+      const state = open;
+      if (!state?.build?.ok || state.build.version !== version) return null;
+      return sceneStills(state.project.path, version, openStage);
+    });
+    stillsQueue = run.catch(() => {});
+    return run;
+  });
 
   ipcMain.handle(CHANNELS.projectMotions, () => projectMotions(requireOpen().project.path));
   ipcMain.handle(CHANNELS.searchMotions, (_event, words: unknown) => searchMotions(typeof words === 'string' ? words : ''));

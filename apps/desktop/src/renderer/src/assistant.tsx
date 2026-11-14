@@ -6,7 +6,7 @@
 // stops it and goes in its place.
 
 import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react';
-import { AlertTriangle, ArrowUp, Check, ChevronDown, Clock, Loader, RotateCcw, Square, X } from 'lucide-react';
+import { AlertTriangle, ArrowUp, Check, ChevronDown, Clock, History, Loader, PanelLeftClose, RotateCcw, Square, X } from 'lucide-react';
 import {
   type AgentEvent,
   type AgentKind,
@@ -20,15 +20,16 @@ import {
   applyEvent,
 } from '../../shared/api';
 import type { FilmInfo } from '../../shared/preview';
-import { type Row, blocks, changeKey, changeLine, failingRun, filmChanges, running, workLine } from './activity';
+import { type Row, blocks, changeKey, changeLine, failingRun, filmChanges, running, workLine, workedFor } from './activity';
 import { Brief } from './brief';
 import { Markdown } from './markdown';
 import { elementName, timecode } from './preview';
 import { reason } from './reason';
 
-function apply(items: Row[], event: AgentEvent, before: FilmInfo | null): Row[] {
+function apply(items: Row[], event: AgentEvent, before: FilmInfo | null, seconds?: number): Row[] {
   // The turn rows stay where they are; the transcript's own items take the event as everywhere else.
-  if (event.type === 'end') return [...applyEvent(items as ChatItem[], event), { kind: 'turn', before, checkpoint: event.checkpoint }];
+  if (event.type === 'end')
+    return [...applyEvent(items as ChatItem[], event), { kind: 'turn', before, checkpoint: event.checkpoint, seconds }];
   if (event.type === 'tool-result' || event.type === 'approval-done')
     return items.map((item) => (item.kind === 'turn' ? item : applyEvent([item], event)[0]!));
   const last = items[items.length - 1];
@@ -48,11 +49,25 @@ const same = (a: Reference, b: Reference) => JSON.stringify(a) === JSON.stringif
 
 type Tool = Extract<Row, { kind: 'tool' }>;
 
-/** A run of tool calls: one line saying what was done, or what is being done now, and the stills beside it. */
+/** How many stills a run of tool calls shows in its row before the rest fold behind a count. */
+const STILLS_SHOWN = 4;
+
+/**
+ * The stills a run shows, and how many it folds: all of them when they fit in the row or the person opened them,
+ * else one fewer than the row, whose last place is the count of the rest.
+ */
+function shownStills<T>(stills: T[], open: boolean): { shown: T[]; folded: number } {
+  if (open || stills.length <= STILLS_SHOWN) return { shown: stills, folded: 0 };
+  return { shown: stills.slice(0, STILLS_SHOWN - 1), folded: stills.length - (STILLS_SHOWN - 1) };
+}
+
+/** A run of tool calls: one line saying what was done, or what is being done now, and the stills beside it in a row. */
 function Work({ tools, live, onStill }: { tools: Tool[]; live: boolean; onStill(tool: Tool): void }) {
   const now = live ? running(tools) : undefined;
   const failed = tools.some((tool) => tool.result && !tool.result.ok);
   const stills = tools.filter((tool) => tool.result?.image);
+  const [open, setOpen] = useState(false);
+  const { shown, folded } = shownStills(stills, open);
   return (
     <div className="work">
       <details className={`tool${failed && !now ? ' failed' : ''}`}>
@@ -76,7 +91,7 @@ function Work({ tools, live, onStill }: { tools: Tool[]; live: boolean; onStill(
       </details>
       {stills.length > 0 && (
         <div className="work-stills">
-          {stills.map((tool) => (
+          {shown.map((tool) => (
             <button
               key={tool.id}
               type="button"
@@ -87,6 +102,16 @@ function Work({ tools, live, onStill }: { tools: Tool[]; live: boolean; onStill(
               <img src={tool.result!.image} alt={tool.result!.text} />
             </button>
           ))}
+          {folded > 0 && (
+            <button type="button" className="still more" aria-label={`Show ${folded} more stills`} onClick={() => setOpen(true)}>
+              +{folded}
+            </button>
+          )}
+          {open && (
+            <button type="button" className="still more" onClick={() => setOpen(false)}>
+              Fewer
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -136,6 +161,10 @@ interface Props {
   onFresh(keys: string[]): void;
   /** The last turn was taken back: its files are as they were before it. */
   onUndone(): void;
+  /** Hides the assistant; the top bar and [ bring it back. */
+  onHide(): void;
+  /** Opens the project's history, the turns' checkpoints, in the project tools. */
+  onHistory(): void;
 }
 
 /** The composer grows with its text to about eight lines. */
@@ -162,6 +191,8 @@ export function Assistant({
   film,
   onFresh,
   onUndone,
+  onHide,
+  onHistory,
   onWorking,
   refs,
   version,
@@ -187,6 +218,8 @@ export function Assistant({
   const [undoing, setUndoing] = useState(false);
   /** The film when the last message went, which the turn's end keeps. */
   const filmAtSend = useRef<FilmInfo | null>(null);
+  /** When the last message went, which the turn's end measures from. */
+  const sentAt = useRef<number | null>(null);
   const [draft, setDraft] = useState('');
   const [following, setFollowing] = useState(true);
   const [working, setWorking] = useState(false);
@@ -236,7 +269,8 @@ export function Assistant({
     const stop = window.studio.onAgentEvent((event) => {
       events++;
       const before = filmAtSend.current;
-      setItems((current) => apply(current, event, before));
+      const seconds = event.type === 'end' && sentAt.current !== null ? (Date.now() - sentAt.current) / 1000 : undefined;
+      setItems((current) => apply(current, event, before, seconds));
       if (event.type === 'end') setWorking(false);
       if (event.type === 'phase') setPhase(event.phase);
     });
@@ -306,6 +340,7 @@ export function Assistant({
     if (working || !ready || disabled) return;
     const shown: SentMark[] = sent.map(({ t, end, note }) => ({ t, ...(end !== undefined ? { end } : {}), note }));
     filmAtSend.current = film;
+    sentAt.current = Date.now();
     setFollowing(true);
     setPhase('thinking');
     setWorking(true);
@@ -369,8 +404,14 @@ export function Assistant({
   return (
     <>
       <div className="head">
+        <button type="button" className="icon-button" aria-label="Hide assistant" data-tip="Hide assistant" data-key="[" onClick={onHide}>
+          <PanelLeftClose size={15} />
+        </button>
         <h2>Assistant</h2>
         <span className="spacer" />
+        <button type="button" className="icon-button" aria-label="History" data-tip="History: go back to before a turn" onClick={onHistory}>
+          <History size={15} />
+        </button>
         <button type="button" className="quiet" onClick={clear} disabled={working || items.length === 0}>
           New conversation
         </button>
@@ -463,6 +504,7 @@ export function Assistant({
             if ((latest && working) || (!changes.length && !undoable)) return null;
             return (
               <div key={`turn-${i}`} className="turn-card">
+                {item.seconds !== undefined && <span className="turn-took">{workedFor(item.seconds)}</span>}
                 {changes.length > 0 && (
                   <>
                     <span className="eyebrow">{changeLine(changes)}</span>

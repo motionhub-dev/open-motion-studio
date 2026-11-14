@@ -1,17 +1,17 @@
 // The film's preview: its page in a sandboxed frame on the oms-preview: scheme, driven by
 // the preview bridge protocol (src/shared/preview.ts). usePlayer holds what the page reports
 // (the film, the time, whether it plays) and what the person is doing with it (a tool to
-// mark the picture, looping); Stage draws the frame and the marks over it, Transport the
-// controls and the timeline. A new build reloads the frame at the same time.
+// mark the picture, looping); Stage draws the frame, the marks over it and, along its foot,
+// the controls that play it and point at it. A new build reloads the frame at the same time.
 
 import {
-  ChevronDown,
-  ChevronUp,
   ChevronsDown,
   ChevronsUp,
   Crosshair,
   Frame,
   Loader,
+  Maximize,
+  Minimize,
   Pause,
   Play,
   Repeat,
@@ -21,9 +21,8 @@ import {
   X,
 } from 'lucide-react';
 import { type PointerEvent, type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { type BuildResult, type FilmIssue, MARK_NOTE, MAX_MARKS, type Mark, type Reference } from '../../shared/api';
+import { type BuildResult, MARK_NOTE, MAX_MARKS, type Mark, type Reference } from '../../shared/api';
 import type { Box, FilmInfo, FromPreview, PickedElement, ToPreview } from '../../shared/preview';
-import { Timeline } from './timeline';
 
 export type Tool = 'pick' | 'region' | null;
 
@@ -183,7 +182,7 @@ function frameIn(stage: { width: number; height: number }, film: FilmInfo) {
 }
 
 /** The room the page leaves around the frame, so it sits on the ink with its shadow. */
-const INSET = 24;
+const INSET = 16;
 
 /** The gap between a mark and the box that asks about it, and the least room it keeps from the stage's edge, in pixels. */
 const GAP = 8;
@@ -246,6 +245,23 @@ export function Stage({
   column?: number;
 }) {
   const stage = useRef<HTMLDivElement>(null);
+  /** The stage with its controls, which fills the screen in full screen. */
+  const root = useRef<HTMLDivElement>(null);
+  const [fullscreen, setFullscreen] = useState(false);
+  useEffect(() => {
+    const change = () => setFullscreen(document.fullscreenElement === root.current);
+    document.addEventListener('fullscreenchange', change);
+    return () => document.removeEventListener('fullscreenchange', change);
+  }, []);
+  // Esc leaves full screen, as in a browser (Electron leaves it to the page), once no mark is being asked about.
+  useEffect(() => {
+    if (!fullscreen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !document.querySelector('.mark-ask')) void document.exitFullscreen().catch((e: unknown) => console.error('Leaving full screen failed:', e));
+    };
+    addEventListener('keydown', onKey);
+    return () => removeEventListener('keydown', onKey);
+  }, [fullscreen]);
   const [size, setSize] = useState<{ width: number; height: number } | null>(null);
   const [drag, setDrag] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -389,143 +405,301 @@ export function Stage({
   }
 
   return (
-    <div className="stage" ref={stage} style={{ gridColumn: column, gridRow: 1 }}>
-      {box && film && <div className="plate" style={place({ x: 0, y: 0, w: 1, h: 1 }) ?? undefined} />}
-      {shownBuild?.ok && (
-        <iframe
-          key={shownBuild.version}
-          ref={player.frame}
-          title="Film preview"
-          sandbox="allow-scripts"
-          src={`oms-preview://film/?v=${shownBuild.version}`}
-          style={{ inset: INSET, width: `calc(100% - ${2 * INSET}px)`, height: `calc(100% - ${2 * INSET}px)` }}
-        />
-      )}
-      {film && box && (
-        <div
-          className={`marks${tool ? ` tool-${tool}` : ''}`}
-          onPointerDown={tool && !draft ? down : undefined}
-          onPointerMove={tool ? move : undefined}
-          onPointerUp={tool ? up : undefined}
-        >
-          {film && selectedLayer && selectionVisible && (
-            <div
-              className="selection-box"
-              style={
-                place({
-                  x: selectedLayer.x / film.width,
-                  y: selectedLayer.y / film.height,
-                  w: selectedLayer.w / film.width,
-                  h: selectedLayer.h / film.height,
-                }) ?? undefined
-              }
-            >
-              <span>{selected?.label} · declared bounds</span>
-            </div>
-          )}
-          {guides && (
-            <>
-              <div className="safe-guide" style={place({ x: 0.05, y: 0.05, w: 0.9, h: 0.9 }) ?? undefined} />
-              <div className="safe-guide title" style={place({ x: 0.1, y: 0.1, w: 0.8, h: 0.8 }) ?? undefined} />
-            </>
-          )}
-          {marks.map((mark, i) =>
-            mark.end === undefined && Math.abs(mark.t - t) <= NEAR ? (
-              <div key={i} className={`mark${lit === i ? ' lit' : ''}`} style={place(mark.box) ?? undefined}>
-                <span className="number">{i + 1}</span>
-              </div>
-            ) : null,
-          )}
-          {drag && (
-            <div
-              className="mark drawing"
-              style={
-                place({
-                  x: Math.min(drag.x0, drag.x1),
-                  y: Math.min(drag.y0, drag.y1),
-                  w: Math.abs(drag.x1 - drag.x0),
-                  h: Math.abs(drag.y1 - drag.y0),
-                }) ?? undefined
-              }
-            />
-          )}
-          {draft && (
-            <div className="mark drawing" style={place(draft.box) ?? undefined}>
-              <span className="number">{marks.length + 1}</span>
-            </div>
-          )}
-        </div>
-      )}
-      {draft && (
-        <div
-          ref={ask}
-          className="mark-ask"
-          role="dialog"
-          aria-label={`Mark ${marks.length + 1}`}
-          style={askAt ?? { left: 0, top: 0, visibility: 'hidden' }}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          <textarea
-            ref={askField}
-            value={note}
-            rows={2}
-            maxLength={MARK_NOTE}
-            aria-label="What should change here"
-            placeholder="What should change here? (optional)"
-            onChange={(e) => setNote(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') {
-                e.stopPropagation();
-                setDraft(null);
-              } else if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-                e.preventDefault();
-                add();
-              }
-            }}
+    <div className="stage" ref={root} style={{ gridColumn: column, gridRow: 1 }}>
+      <div className="picture" ref={stage} style={{ padding: INSET }}>
+        {/* The picture asks for the film's own shape, so the stage is no taller than its frame where there is room. */}
+        <div className="fit" style={{ aspectRatio: film ? `${film.width} / ${film.height}` : '16 / 9' }} />
+        {box && film && <div className="plate" style={place({ x: 0, y: 0, w: 1, h: 1 }) ?? undefined} />}
+        {shownBuild?.ok && (
+          <iframe
+            key={shownBuild.version}
+            ref={player.frame}
+            title="Film preview"
+            sandbox="allow-scripts"
+            src={`oms-preview://film/?v=${shownBuild.version}`}
+            style={{ inset: INSET, width: `calc(100% - ${2 * INSET}px)`, height: `calc(100% - ${2 * INSET}px)` }}
           />
-          <span className="found">
-            {draft.element ? `${elementName(draft.element)}${draft.element.layer ? ` · ${draft.element.layer}` : ''}` : 'A region of the frame'} ·{' '}
-            {timecode(draft.t)}
-          </span>
-          <div className="ask-actions">
-            {draft.picked && draft.picked.levels > 1 && (
+        )}
+        {film && box && (
+          <div
+            className={`marks${tool ? ` tool-${tool}` : ''}`}
+            onPointerDown={tool && !draft ? down : undefined}
+            onPointerMove={tool ? move : undefined}
+            onPointerUp={tool ? up : undefined}
+          >
+            {film && selectedLayer && selectionVisible && (
+              <div
+                className="selection-box"
+                style={
+                  place({
+                    x: selectedLayer.x / film.width,
+                    y: selectedLayer.y / film.height,
+                    w: selectedLayer.w / film.width,
+                    h: selectedLayer.h / film.height,
+                  }) ?? undefined
+                }
+              >
+                <span>{selected?.label} · declared bounds</span>
+              </div>
+            )}
+            {guides && (
               <>
-                <button
-                  type="button"
-                  className="icon-button"
-                  aria-label="The element around it"
-                  data-tip="The element around it"
-                  disabled={draft.picked.depth >= draft.picked.levels - 1}
-                  onClick={() => step(1)}
-                >
-                  <ChevronsUp size={15} />
-                </button>
-                <button
-                  type="button"
-                  className="icon-button"
-                  aria-label="The element inside"
-                  data-tip="The element inside"
-                  disabled={draft.picked.depth === 0}
-                  onClick={() => step(-1)}
-                >
-                  <ChevronsDown size={15} />
-                </button>
+                <div className="safe-guide" style={place({ x: 0.05, y: 0.05, w: 0.9, h: 0.9 }) ?? undefined} />
+                <div className="safe-guide title" style={place({ x: 0.1, y: 0.1, w: 0.8, h: 0.8 }) ?? undefined} />
               </>
             )}
-            <span className="spacer" />
-            <button type="button" className="button ghost" onClick={() => setDraft(null)}>
-              Cancel
-            </button>
-            <button type="button" className="button primary" disabled={full} onClick={add}>
-              Add mark
-            </button>
+            {marks.map((mark, i) =>
+              mark.end === undefined && Math.abs(mark.t - t) <= NEAR ? (
+                <div key={i} className={`mark${lit === i ? ' lit' : ''}`} style={place(mark.box) ?? undefined}>
+                  <span className="number">{i + 1}</span>
+                </div>
+              ) : null,
+            )}
+            {drag && (
+              <div
+                className="mark drawing"
+                style={
+                  place({
+                    x: Math.min(drag.x0, drag.x1),
+                    y: Math.min(drag.y0, drag.y1),
+                    w: Math.abs(drag.x1 - drag.x0),
+                    h: Math.abs(drag.y1 - drag.y0),
+                  }) ?? undefined
+                }
+              />
+            )}
+            {draft && (
+              <div className="mark drawing" style={place(draft.box) ?? undefined}>
+                <span className="number">{marks.length + 1}</span>
+              </div>
+            )}
           </div>
-        </div>
-      )}
-      <div className="tools">
+        )}
+        {draft && (
+          <div
+            ref={ask}
+            className="mark-ask"
+            role="dialog"
+            aria-label={`Mark ${marks.length + 1}`}
+            style={askAt ?? { left: 0, top: 0, visibility: 'hidden' }}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <textarea
+              ref={askField}
+              value={note}
+              rows={2}
+              maxLength={MARK_NOTE}
+              aria-label="What should change here"
+              placeholder="What should change here? (optional)"
+              onChange={(e) => setNote(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  e.stopPropagation();
+                  setDraft(null);
+                } else if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                  e.preventDefault();
+                  add();
+                }
+              }}
+            />
+            <span className="found">
+              {draft.element ? `${elementName(draft.element)}${draft.element.layer ? ` · ${draft.element.layer}` : ''}` : 'A region of the frame'} ·{' '}
+              {timecode(draft.t)}
+            </span>
+            <div className="ask-actions">
+              {draft.picked && draft.picked.levels > 1 && (
+                <>
+                  <button
+                    type="button"
+                    className="icon-button"
+                    aria-label="The element around it"
+                    data-tip="The element around it"
+                    disabled={draft.picked.depth >= draft.picked.levels - 1}
+                    onClick={() => step(1)}
+                  >
+                    <ChevronsUp size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    className="icon-button"
+                    aria-label="The element inside"
+                    data-tip="The element inside"
+                    disabled={draft.picked.depth === 0}
+                    onClick={() => step(-1)}
+                  >
+                    <ChevronsDown size={15} />
+                  </button>
+                </>
+              )}
+              <span className="spacer" />
+              <button type="button" className="button ghost" onClick={() => setDraft(null)}>
+                Cancel
+              </button>
+              <button type="button" className="button primary" disabled={full} onClick={add}>
+                Add mark
+              </button>
+            </div>
+          </div>
+        )}
+        {player.solo && (
+          <span className="stage-solo" role="status">
+            Solo · {player.solo}
+            <button type="button" className="icon-button" aria-label="Draw every layer again" data-tip="Draw every layer" onClick={player.endSolo}>
+              <X size={12} />
+            </button>
+          </span>
+        )}
+        {working && (
+          <span className="stage-working" role="status">
+            <Loader size={13} className="spin" />
+            The agent is working on the film
+          </span>
+        )}
+        {!build && <p className="waiting">Building the film…</p>}
+        {build && !build.ok && (
+          <div className="callout build-error" role="alert">
+            <strong>{lastGood ? 'Showing the last successful preview' : 'The film does not build'}</strong>
+            <pre>{build.errors.join('\n')}</pre>
+            {!working && (
+              <button type="button" className="button" onClick={() => onFix('The film does not build', build.errors.join('\n'))}>
+                Ask the agent to fix it
+              </button>
+            )}
+          </div>
+        )}
+        {build?.ok && player.error && (
+          <div className="callout build-error" role="alert">
+            <strong>The film stopped drawing</strong>
+            <pre>{player.error}</pre>
+            {!working && (
+              <button type="button" className="button" onClick={() => onFix('The film stopped drawing', player.error!)}>
+                Ask the agent to fix it
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+      <Controls
+        player={player}
+        tool={tool}
+        full={full}
+        disabled={disabled}
+        guides={guides}
+        onGuides={onGuides}
+        fullscreen={fullscreen}
+        onFullscreen={() => {
+          const done = fullscreen ? document.exitFullscreen() : root.current?.requestFullscreen();
+          // Refused only when the window cannot go full screen; the stage stays as it was, and the reason is logged.
+          done?.catch((e: unknown) => console.error('Full screen was refused:', e));
+        }}
+      />
+    </div>
+  );
+}
+
+/**
+ * The stage's foot: play and step on the left; the tools that point at the picture, the film's size and full screen
+ * on the right.
+ */
+function Controls({
+  player,
+  tool,
+  full,
+  disabled,
+  guides,
+  onGuides,
+  fullscreen,
+  onFullscreen,
+}: {
+  player: Player;
+  tool: Tool;
+  full: boolean;
+  disabled: boolean;
+  guides: boolean;
+  onGuides(): void;
+  fullscreen: boolean;
+  onFullscreen(): void;
+}) {
+  const { film, t, playing } = player;
+  const fullTip = `A message carries at most ${MAX_MARKS} marks`;
+  return (
+    <div className="stage-bar">
+      <button
+        type="button"
+        className="icon-button"
+        aria-label="Previous frame"
+        data-tip="Previous frame"
+        data-key="←"
+        disabled={!film}
+        onClick={() => player.step(-1)}
+      >
+        <SkipBack size={15} />
+      </button>
+      <button
+        type="button"
+        className="play"
+        aria-label={playing ? 'Pause' : 'Play'}
+        data-tip={playing ? 'Pause' : 'Play'}
+        data-key="Space"
+        disabled={!film}
+        onClick={player.toggle}
+      >
+        {playing ? <Pause size={15} fill="currentColor" /> : <Play size={15} fill="currentColor" />}
+      </button>
+      <button
+        type="button"
+        className="icon-button"
+        aria-label="Next frame"
+        data-tip="Next frame"
+        data-key="→"
+        disabled={!film}
+        onClick={() => player.step(1)}
+      >
+        <SkipForward size={15} />
+      </button>
+      <span className="timecode" aria-label="Time">
+        {timecode(t)} <span>/ {timecode(film?.seconds ?? 0)}</span>
+      </span>
+      <button
+        type="button"
+        className="icon-button"
+        aria-pressed={player.loop}
+        aria-label="Loop"
+        data-tip="Loop"
+        disabled={!film}
+        onClick={() => player.setLoop(!player.loop)}
+        style={{ marginLeft: 6 }}
+      >
+        <Repeat size={15} />
+      </button>
+      <span className="spacer" />
+      <span className="pointing" role="group" aria-label="Point at the picture">
         <button
           type="button"
-          className="icon-button"
+          aria-pressed={tool === 'pick'}
+          aria-label="Pick an element"
+          data-tip={full ? fullTip : 'Pick an element'}
+          data-key={full ? undefined : 'C'}
+          disabled={!film || full || disabled}
+          onClick={() => player.setTool(tool === 'pick' ? null : 'pick')}
+        >
+          <Crosshair size={14} />
+          <span>Pick</span>
+        </button>
+        <button
+          type="button"
+          aria-pressed={tool === 'region'}
+          aria-label="Mark a region"
+          data-tip={full ? fullTip : 'Mark a region'}
+          data-key={full ? undefined : 'C'}
+          disabled={!film || full || disabled}
+          onClick={() => player.setTool(tool === 'region' ? null : 'region')}
+        >
+          <SquareDashed size={14} />
+          <span>Region</span>
+        </button>
+        <button
+          type="button"
           aria-pressed={guides}
           aria-label="Safe-area guides"
           data-tip="Safe-area guides: action 90%, titles 80%"
@@ -533,189 +707,25 @@ export function Stage({
           disabled={!film}
           onClick={onGuides}
         >
-          <Frame size={16} />
+          <Frame size={14} />
+          <span>Guides</span>
         </button>
-        <button
-          type="button"
-          className="icon-button"
-          aria-pressed={tool === 'pick'}
-          aria-label="Pick an element"
-          data-tip={full ? `A message carries at most ${MAX_MARKS} marks` : 'Pick an element'}
-          data-key={full ? undefined : 'C'}
-          disabled={!film || full || disabled}
-          onClick={() => player.setTool(tool === 'pick' ? null : 'pick')}
-        >
-          <Crosshair size={16} />
-        </button>
-        <button
-          type="button"
-          className="icon-button"
-          aria-pressed={tool === 'region'}
-          aria-label="Mark a region"
-          data-tip={full ? `A message carries at most ${MAX_MARKS} marks` : 'Mark a region'}
-          data-key={full ? undefined : 'C'}
-          disabled={!film || full || disabled}
-          onClick={() => player.setTool(tool === 'region' ? null : 'region')}
-        >
-          <SquareDashed size={16} />
-        </button>
-      </div>
-      {player.solo && (
-        <span className="stage-solo" role="status">
-          Solo · {player.solo}
-          <button type="button" className="icon-button" aria-label="Draw every layer again" data-tip="Draw every layer" onClick={player.endSolo}>
-            <X size={12} />
-          </button>
+      </span>
+      {film && (
+        <span className="spec">
+          {film.width}×{film.height} · {Math.round(film.fps * 100) / 100} fps
         </span>
       )}
-      {working && (
-        <span className="stage-working" role="status">
-          <Loader size={13} className="spin" />
-          The agent is working on the film
-        </span>
-      )}
-      {!build && <p className="waiting">Building the film…</p>}
-      {build && !build.ok && (
-        <div className="callout build-error" role="alert">
-          <strong>{lastGood ? 'Showing the last successful preview' : 'The film does not build'}</strong>
-          <pre>{build.errors.join('\n')}</pre>
-          {!working && (
-            <button type="button" className="button" onClick={() => onFix('The film does not build', build.errors.join('\n'))}>
-              Ask the agent to fix it
-            </button>
-          )}
-        </div>
-      )}
-      {build?.ok && player.error && (
-        <div className="callout build-error" role="alert">
-          <strong>The film stopped drawing</strong>
-          <pre>{player.error}</pre>
-          {!working && (
-            <button type="button" className="button" onClick={() => onFix('The film stopped drawing', player.error!)}>
-              Ask the agent to fix it
-            </button>
-          )}
-        </div>
-      )}
+      <button
+        type="button"
+        className="icon-button"
+        aria-label={fullscreen ? 'Leave full screen' : 'Full screen'}
+        data-tip={fullscreen ? 'Leave full screen' : 'Full screen'}
+        data-key={fullscreen ? 'Esc' : undefined}
+        onClick={onFullscreen}
+      >
+        {fullscreen ? <Minimize size={15} /> : <Maximize size={15} />}
+      </button>
     </div>
-  );
-}
-
-export function Transport({
-  player,
-  marks,
-  folded,
-  onFold,
-  selected,
-  onSelect,
-  onRange,
-  lit,
-  fresh,
-  issues,
-  onIssue,
-}: {
-  player: Player;
-  marks: Mark[];
-  folded: boolean;
-  onFold(folded: boolean): void;
-  selected: Reference | null;
-  onSelect(ref: Reference): void;
-  /** Marks a stretch of the film, dragged out on the timeline. */
-  onRange(start: number, end: number): void;
-  lit: number | null;
-  /** What the agent's last turn changed, lit for a moment. */
-  fresh: Set<string>;
-  /** The last check's issues with a moment, for the build on screen. */
-  issues: FilmIssue[];
-  onIssue(issue: FilmIssue): void;
-}) {
-  const { film, t, playing } = player;
-  return (
-    <>
-      <div className="transport">
-        <button
-          type="button"
-          className="icon-button"
-          aria-label="Previous frame"
-          data-tip="Previous frame"
-          data-key="←"
-          disabled={!film}
-          onClick={() => player.step(-1)}
-        >
-          <SkipBack size={15} />
-        </button>
-        <button
-          type="button"
-          className="play"
-          aria-label={playing ? 'Pause' : 'Play'}
-          data-tip={playing ? 'Pause' : 'Play'}
-          data-key="Space"
-          disabled={!film}
-          onClick={player.toggle}
-        >
-          {playing ? <Pause size={15} fill="currentColor" /> : <Play size={15} fill="currentColor" />}
-        </button>
-        <button
-          type="button"
-          className="icon-button"
-          aria-label="Next frame"
-          data-tip="Next frame"
-          data-key="→"
-          disabled={!film}
-          onClick={() => player.step(1)}
-        >
-          <SkipForward size={15} />
-        </button>
-        <span className="timecode" aria-label="Time">
-          {timecode(t)} <span>/ {timecode(film?.seconds ?? 0)}</span>
-        </span>
-        <button
-          type="button"
-          className="icon-button"
-          aria-pressed={player.loop}
-          aria-label="Loop"
-          data-tip="Loop"
-          disabled={!film}
-          onClick={() => player.setLoop(!player.loop)}
-          style={{ marginLeft: 6 }}
-        >
-          <Repeat size={15} />
-        </button>
-        <span className="spacer" />
-        {film && (
-          <span className="spec">
-            {film.width}×{film.height} · {Math.round(film.fps * 100) / 100} fps
-          </span>
-        )}
-        <button
-          type="button"
-          className="icon-button"
-          aria-label={folded ? 'Show the timeline' : 'Fold the timeline'}
-          data-tip={folded ? 'Show the timeline' : 'Fold the timeline'}
-          onClick={() => onFold(!folded)}
-        >
-          {folded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-        </button>
-      </div>
-      {!folded && film && (
-        <Timeline
-          film={film}
-          t={t}
-          marks={marks}
-          lit={lit}
-          fresh={fresh}
-          issues={issues}
-          onIssue={onIssue}
-          playing={player.playing}
-          onRange={onRange}
-          onSeek={(at) => {
-            player.tell({ type: 'oms:pause' });
-            player.seek(at);
-          }}
-          selected={selected}
-          onSelect={onSelect}
-        />
-      )}
-    </>
   );
 }

@@ -46,6 +46,7 @@ import tokens from './motions/@iamsuosi/plumb-line/tokens.json';
 import {Heading} from './motions/@iamsuosi/plumb-line/react/parts/heading.tsx';
 ```
 
+- A motion's own faces (its `react/fonts/`) are loaded for you before the film draws: set type with its `var(--font-<name>)`, never by a family name of your own.
 - A component's `progress` parameter runs from 0 to 1: drive it with `interpolate` on the time it should happen.
 - A motion's `react/reel.tsx` shows how its components move. Read it for technique; never copy its story, words or layout.
 
