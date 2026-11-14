@@ -3,6 +3,15 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-13 — What is typed while a project opens is kept
+
+- **What:** The assistant is no longer drawn again once the project's agent is found, a few seconds after the project
+  opens; only a switch of agent starts it afresh.
+- **Why:** Words typed into the composer in those first seconds, and stills opened, were dropped.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/project-view.tsx`.
+
 ## 2026-11-13 — The stills an agent looked at take one row
 
 - **What:** The stills under a run of the agent's tools are one row of four small thumbnails; past four, the row shows

@@ -215,9 +215,15 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
     : agents.current !== 'built-in'
       ? agents.harnesses.find((h) => h.kind === agents.current)?.state === 'ready'
       : !!active?.ready;
+  /**
+   * Counts the person's switches of agent, each of which starts a new conversation the assistant loads afresh. Not the
+   * agent itself: finding it out when the project opens must not draw the assistant again and drop what is in it.
+   */
+  const [switches, setSwitches] = useState(0);
   async function useAgent(kind: AgentKind) {
     try {
       setAgents(await window.studio.useAgent(kind));
+      setSwitches((n) => n + 1);
       setRefs([]);
       setMarks([]);
     } catch (e) {
@@ -519,7 +525,7 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
         >
           <section className="sheet assistant" aria-label="Assistant" style={{ display: layout.assistant ? undefined : 'none' }}>
             <Assistant
-              key={`${project.path}:${historyRevision}:${agents?.current ?? ''}`}
+              key={`${project.path}:${historyRevision}:${switches}`}
               active={active}
               agents={agents}
               onUseAgent={(kind) => void useAgent(kind)}
