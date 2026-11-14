@@ -100,8 +100,10 @@ describe('what a turn changed', () => {
     height: 1080,
     fps: 30,
     layers: [{ id: 'logo', x: 0, y: 0, w: 100, h: 100, z: 0 }],
+    sounds: [],
+    captions: false,
     scenes: [
-      { id: 'intro', start: 0, duration: 4, layers: [{ id: 'title', x: 0, y: 0, w: 1920, h: 200, z: 0 }], lines: [{ id: 'l1', text: 'Hello' }] },
+      { id: 'intro', start: 0, duration: 4, layers: [{ id: 'title', x: 0, y: 0, w: 1920, h: 200, z: 0 }], lines: [{ id: 'l1', text: 'Hello', start: 0, end: 4 }] },
       { id: 'outro', start: 4, duration: 3, layers: [], lines: [] },
     ],
   };
@@ -117,7 +119,7 @@ describe('what a turn changed', () => {
           { id: 'title', x: 0, y: 100, w: 1920, h: 200, z: 0 },
           { id: 'subtitle', x: 0, y: 400, w: 1920, h: 100, z: 1 },
         ],
-        lines: [{ id: 'l1', text: 'Hello there' }],
+        lines: [{ id: 'l1', text: 'Hello there', start: 0, end: 4 }],
       },
       { id: 'end', start: 5, duration: 3, layers: [], lines: [] },
     ],

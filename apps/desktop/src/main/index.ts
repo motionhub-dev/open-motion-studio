@@ -44,7 +44,8 @@ import { type MessageParam, caller, failure } from './agent/model';
 import { testProvider } from './agent/test-connection';
 import { TOOLS, type ToolContext, projectPath } from './agent/tools';
 import type { BuildContext } from 'esbuild';
-import { exportFrames, openStage, sceneStills, serveRenders } from './film/capture';
+import { exportFrames, ffmpegPath, openStage, sceneStills, serveRenders } from './film/capture';
+import { soundPeaks } from './film/mix';
 import { EXAMPLES, openExample } from './examples';
 import { ASSET_EXTENSIONS, importAssets, projectAssets } from './assets';
 import { reviewBuild } from './film/review';
@@ -425,9 +426,9 @@ function registerHandlers(): void {
     try {
       const window = BrowserWindow.fromWebContents(event.sender);
       const options: OpenDialogOptions = {
-        title: 'Bring images and fonts into your film',
+        title: 'Bring images, fonts and sounds into your film',
         properties: ['openFile', 'multiSelections'],
-        filters: [{ name: 'Images and fonts', extensions: ASSET_EXTENSIONS }],
+        filters: [{ name: 'Images, fonts and sounds', extensions: ASSET_EXTENSIONS }],
       };
       const chosen = window ? await dialog.showOpenDialog(window, options) : await dialog.showOpenDialog(options);
       if (chosen.canceled) return projectAssets(state.project.path);
@@ -562,6 +563,10 @@ function registerHandlers(): void {
     });
     stillsQueue = run.catch(() => {});
     return run;
+  });
+  ipcMain.handle(CHANNELS.soundPeaks, (_event, src: unknown) => {
+    if (typeof src !== 'string') throw new Error('Name a sound of the film.');
+    return soundPeaks(requireOpen().project.path, ffmpegPath(), src);
   });
 
   ipcMain.handle(CHANNELS.projectMotions, () => projectMotions(requireOpen().project.path));
@@ -794,7 +799,7 @@ function registerHandlers(): void {
       controller.signal.throwIfAborted();
       if (open !== state || state.build?.version !== build.version)
         throw new Error('The film changed before export. Review the latest preview and export again.');
-      await exportFrames(build.version, result.filePath, (done) => send(EVENTS.exportProgress, done), controller.signal);
+      await exportFrames(state.project.path, build.version, result.filePath, (done) => send(EVENTS.exportProgress, done), controller.signal);
       exported = result.filePath;
       return result.filePath;
     } finally {
@@ -858,6 +863,8 @@ function createWindow(): void {
       contextIsolation: true,
       sandbox: true,
       nodeIntegration: false,
+      // The preview's sound starts with Play, a click in the window, but in the film's frame (ADR 0010).
+      autoplayPolicy: 'no-user-gesture-required',
     },
   });
   mainWindow = window;

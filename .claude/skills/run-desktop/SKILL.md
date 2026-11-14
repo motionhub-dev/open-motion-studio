@@ -45,6 +45,8 @@ Then **read the screenshots**. A blank or launcher-only shot means it did not re
 | `agent:<kind>` | make the project talk to `built-in`, `claude` or `codex` (its `agent.json`) and open it again |
 | `send:<text>` | send a message and wait for the turn to end: **a real turn**, on the person's own sign-in or key, which spends their tokens; keep it to a one-word reply unless more is needed |
 | `file:<path>` | print a file of the open project, such as `.motion-studio/usage.jsonl` (the run's profile, and the project in it, go when it ends) |
+| `put:<from>=<to>` | copy a local file into the open project at `<to>`, such as a sound into `media/` or a `film.tsx` to try; a new `film.tsx` is built before the next step |
+| `export:<file>` | export the film as an MP4 to `<file>` (the save dialog is answered by the step) and wait for it; then read it with the shipped ffmpeg (`ffmpeg -i`, `astats`) |
 
 To look at the assistant without a model: `stills:9 ss:folded "click:.work-stills .more" ss:open`.
 

@@ -3,6 +3,29 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-14 — A film's lines are timed, shown as captions and exported as subtitles
+
+- **What:** A `<Line>` can say when it is said (`at`, `dur`); lines that do not share their scene evenly.
+  `<Film captions>` shows the line being said at the foot of the picture, in the preview and the export alike. Every
+  MP4 export carries the lines as a subtitle track and writes them beside it as an `.srt` file. The timeline shows the
+  lines on a Lines row.
+- **Why:** A film's script had no timing and could not be read with the sound off.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `docs/tech/sound-and-captions.md`, `apps/desktop/src/main/film/captions.ts`, `apps/desktop/src/renderer/src/timeline.tsx`.
+
+## 2026-11-14 — A film plays music and sound effects, and exports with sound
+
+- **What:** A film's `<Sound>` elements (`@motionhub/runtime` 0.7.0; ADR 0010) play in the preview, in step with the
+  picture, and are mixed into the exported MP4 as AAC; a film with none exports picture only, as before. Assets take
+  MP3, WAV, M4A and OGG files and play them; the timeline shows each sound on a Sound row with its waveform; the stage
+  bar turns the preview's sound off; the export dialog says what is mixed; the agent learns `<Sound>`, and its `check`
+  lists the sounds and fails on a missing file. Each file's waveform is kept in `.motion-studio/peaks/`.
+- **Why:** A film had no way to carry sound.
+- **Breaking:** None.
+- **Upgrade:** Nothing; `@motionhub/runtime` moves from 0.5.0 to 0.7.0.
+- **Refs:** ADR 0010, `docs/tech/sound-and-captions.md`, `apps/desktop/src/main/film/mix.ts`, `apps/desktop/src/preview/sound.ts`.
+
 ## 2026-11-14 — Questions take the composer's place, failures say what to do, a new start
 
 - **What:** A question the agent asks with answers now stands where the composer was, the conversation dimmed behind

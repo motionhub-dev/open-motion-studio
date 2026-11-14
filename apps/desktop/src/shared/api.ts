@@ -352,7 +352,7 @@ export interface Example {
 export interface Asset {
   path: string;
   name: string;
-  kind: 'image' | 'font';
+  kind: 'image' | 'font' | 'audio';
   bytes: number;
 }
 
@@ -394,6 +394,11 @@ export interface StudioApi {
    * null when that build is no longer the open project's latest good one.
    */
   sceneStills(version: number): Promise<SceneStills | null>;
+  /**
+   * A <Sound>'s file for the timeline: its length in seconds and its peaks, 50 a second from 0 to 1. `src` is the
+   * sound's as the film gives it; only a file in the open project is read.
+   */
+  soundPeaks(src: string): Promise<{ seconds: number; peaks: number[] }>;
 
   /** The motions the open project holds. */
   projectMotions(): Promise<ProjectMotion[]>;
@@ -476,6 +481,7 @@ export const CHANNELS = {
   closeProject: 'project:close',
   lastBuild: 'film:last-build',
   sceneStills: 'film:scene-stills',
+  soundPeaks: 'film:sound-peaks',
   projectMotions: 'motions:project',
   searchMotions: 'motions:search',
   useMotion: 'motions:use',

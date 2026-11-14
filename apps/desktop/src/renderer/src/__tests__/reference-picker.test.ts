@@ -11,9 +11,11 @@ const film: FilmInfo = {
   height: 1080,
   fps: 30,
   layers: [{ ...box, id: 'grain' }],
+  sounds: [],
+  captions: false,
   scenes: [
-    { id: 'open', start: 0, duration: 4, layers: [{ ...box, id: 'artwork' }], lines: [{ id: 'title', text: 'MAKE IT MOVE' }, { id: 'sub', text: 'A few words.' }] },
-    { id: 'close', start: 4, duration: 3, layers: [{ ...box, id: 'closing' }], lines: [{ id: 'end', text: 'Make it yours.' }] },
+    { id: 'open', start: 0, duration: 4, layers: [{ ...box, id: 'artwork' }], lines: [{ id: 'title', text: 'MAKE IT MOVE', start: 0, end: 2 }, { id: 'sub', text: 'A few words.', start: 2, end: 4 }] },
+    { id: 'close', start: 4, duration: 3, layers: [{ ...box, id: 'closing' }], lines: [{ id: 'end', text: 'Make it yours.', start: 4, end: 7 }] },
   ],
 };
 const assets: Asset[] = [{ path: 'assets/logo.png', name: 'logo.png', kind: 'image', bytes: 10 }];

@@ -1,6 +1,6 @@
 # The creator's workflow
 
-> **Status:** Current · **Updated:** 2026-11-13
+> **Status:** Current · **Updated:** 2026-11-14
 
 How a creator explores a film, points at a change, checks the result and returns to earlier source.
 
@@ -28,10 +28,10 @@ The Motions panel can preview a catalogue reel before adding it. The main proces
 `.motion-studio/reels/`, capped at 50 MB, and the renderer plays the local preview URL. HTML players use an opaque sandbox and a separate catalogue host/CSP
 that cannot fetch project files; all remote asset requests remain in the main process. A film reaches only the film
 host, by fetch or by navigation, so it can never have the main process fetch a URL it wrote. A missing reel is explained.
-The Assets panel lists images and fonts under `media/`, imports through the native file picker, and attaches their
+The Assets panel lists images, fonts and sounds (MP3, WAV, M4A, OGG, played in place) under `media/`, imports through the native file picker, and attaches their
 project-relative paths to messages. Imports keep originals, avoid overwriting names, and are capped at 50 MB per file.
-A font is listed, not installed into the operating system. Audio, video playback and media generation are outside
-this slice; exported films remain picture-only.
+A font is listed, not installed into the operating system. A film's sounds are `<Sound>` elements
+(see the architecture, "Sound"); video playback and media generation are outside this slice.
 
 ## Make a precise request
 

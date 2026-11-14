@@ -1,6 +1,9 @@
 // The preview bridge protocol: the messages between the Studio and a film's preview frame
 // (docs/tech/architecture.md, "The film").
 
+import type { FilmLine } from '@motionhub/runtime';
+import type { FilmSound } from './sound';
+
 export interface FilmInfo {
   seconds: number;
   width: number;
@@ -10,6 +13,10 @@ export interface FilmInfo {
   scenes: SceneInfo[];
   /** The film's own layers, drawn across every scene. */
   layers: LayerBox[];
+  /** Every <Sound> it plays, the film's own and its scenes', in the film's seconds (shared/sound.ts). */
+  sounds: FilmSound[];
+  /** Whether it draws its lines as captions (<Film captions>). */
+  captions: boolean;
 }
 
 /** A box of the frame a <Layer> draws in, in the film's pixels. */
@@ -29,7 +36,8 @@ export interface SceneInfo {
   start: number;
   duration: number;
   layers: LayerBox[];
-  lines: { id: string; text: string }[];
+  /** What it says, each line with when it is said, in the film's seconds. */
+  lines: FilmLine[];
 }
 
 /** A box on the frame, in fractions of its width and height. */
@@ -60,6 +68,8 @@ export type ToPreview =
   | { type: 'oms:pause' }
   | { type: 'oms:play-range'; start: number; end: number }
   | { type: 'oms:seek'; t: number }
+  /** Whether the preview's sound is off. */
+  | { type: 'oms:mute'; muted: boolean }
   /** The element drawn at a point, in fractions of the frame, or the one `depth` elements around it (studio/pick.js answers). */
   | { type: 'oms:pick'; x: number; y: number; depth?: number }
   /** Draws one layer alone, every other <Layer> hidden; null draws them all again (studio/pick.js). */

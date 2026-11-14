@@ -34,7 +34,18 @@ export function ExportDialog({
         <Download size={20} />
         <div>
           <strong>MP4 video</strong>
-          <p>H.264 · picture only · original film size</p>
+          <p>
+            H.264 ·{' '}
+            {review?.film?.sounds.length
+              ? `AAC sound, ${review.film.sounds.length} ${review.film.sounds.length === 1 ? 'sound' : 'sounds'} mixed`
+              : 'picture only'}{' '}
+            · original film size
+          </p>
+          {review?.film && review.film.scenes.some((scene) => scene.lines.length > 0) && (
+            <p>
+              {review.film.captions ? 'Captions in the picture, and the lines' : 'The lines'} as subtitles: a track in the video and an .srt file beside it
+            </p>
+          )}
           {review?.film && (
             <span className="mono">
               {review.film.width} × {review.film.height} · {review.film.fps} fps · {review.film.seconds.toFixed(1)} s

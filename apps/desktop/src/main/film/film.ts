@@ -49,6 +49,7 @@ const ASSETS = [
   '.mp3',
   '.wav',
   '.ogg',
+  '.m4a',
 ];
 
 /** Whether a folder holds a film. */

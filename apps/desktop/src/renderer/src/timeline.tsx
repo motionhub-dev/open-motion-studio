@@ -1,5 +1,6 @@
 // Read-only scene and layer timing. The declared spans explain structure, not pixel visibility.
 // The marks lane shows the marks for the next message; dragging along it marks a stretch of the film.
+// A film's sounds are bands on their own lane, each drawn as its waveform through its volume and fades.
 // Ctrl (⌘) and the wheel zoom about the pointer; while the film plays the view follows the playhead
 // a page at a time, until the person scrolls it themselves; a playhead out of view is a chip at the
 // edge that brings it back. The check's issues sit on the ruler at their moments.
@@ -10,6 +11,62 @@ import type { FilmInfo, LayerBox } from '../../shared/preview';
 import { timecode } from './preview';
 import { type Hovered, sameHovered, sceneTitle } from './outline';
 import { changeKey } from './activity';
+import { type FilmSound, soundGain, soundRegion, soundSpan } from '../../shared/sound';
+import { reason } from './reason';
+
+type Waveform = { seconds: number; peaks: number[] };
+
+/** Each sound's file read for its waveform, by src: null while it is read, a string for why it could not be. */
+function useWaveforms(sounds: FilmSound[]): Map<string, Waveform | string | null> {
+  const [waves, setWaves] = useState(new Map<string, Waveform | string | null>());
+  const srcs = [...new Set(sounds.map((sound) => sound.src))].join('\n');
+  useEffect(() => {
+    let live = true;
+    for (const src of srcs ? srcs.split('\n') : []) {
+      setWaves((now) => new Map(now).set(src, now.get(src) ?? null));
+      window.studio.soundPeaks(src).then(
+        (wave) => live && setWaves((now) => new Map(now).set(src, wave)),
+        (error) => live && setWaves((now) => new Map(now).set(src, reason(error))),
+      );
+    }
+    return () => {
+      live = false;
+    };
+  }, [srcs]);
+  return waves;
+}
+
+/** How many decibels below full scale a waveform shows, as an audio editor draws it: quiet sounds still have a shape. */
+const FLOOR_DB = 48;
+
+/**
+ * A sound's waveform as `points` heights from 0 to 1 across its span, on a decibel scale: its file's peaks where it
+ * plays them (its region again and again when looped), through its gain, so its volume and fades show in its shape.
+ */
+export function soundShape(sound: FilmSound, wave: Waveform, points: number): number[] {
+  const span = soundSpan(sound, wave.seconds);
+  const region = soundRegion(sound, wave.seconds);
+  return Array.from({ length: points }, (_, i) => {
+    const u = ((i + 0.5) / points) * span;
+    const into = sound.trim + (sound.loop && region > 0 ? u % region : u);
+    const peak = wave.peaks[Math.min(wave.peaks.length - 1, Math.floor(into * (wave.peaks.length / wave.seconds)))] ?? 0;
+    const level = peak * soundGain(sound, span, u);
+    return level > 0 ? Math.min(1, Math.max(0, 1 + (20 * Math.log10(level)) / FLOOR_DB)) : 0;
+  });
+}
+
+/** The sounds laid on rows: each on the first row where it overlaps no other, so a hit never covers the bed under it. */
+export function soundRows<T extends { start: number; end: number }>(spans: T[]): T[][] {
+  const rows: T[][] = [];
+  for (const span of [...spans].sort((a, b) => a.start - b.start)) {
+    const row = rows.find((sounds) => sounds.every((other) => other.end <= span.start || other.start >= span.end));
+    if (row) row.push(span);
+    else rows.push([span]);
+  }
+  return rows;
+}
+
+const fileName = (src: string) => src.split('/').pop() ?? src;
 
 function stepFor(seconds: number): number {
   return [0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600].find((step) => seconds / step <= 10) ?? Math.ceil(seconds / 10);
@@ -117,6 +174,17 @@ export function Timeline({
   /** A stretch being dragged out on the marks lane, in seconds. */
   const [range, setRange] = useState<{ from: number; to: number } | null>(null);
   const seconds = film.seconds || 1;
+  const waves = useWaveforms(film.sounds);
+  /** Every line, with its scene, when it is said. */
+  const lines = film.scenes.flatMap((scene) => scene.lines.filter((line) => line.end > line.start).map((line) => ({ line, scene: scene.id })));
+  // Each sound where it plays: as long as its file makes it once read, and until then as long as it may play.
+  const soundLanes = soundRows(
+    film.sounds.flatMap((sound, index) => {
+      const wave = waves.get(sound.src);
+      const span = wave && typeof wave === 'object' ? soundSpan(sound, wave.seconds) : sound.until - sound.at;
+      return span > 0 ? [{ sound, index, start: sound.at, end: sound.at + span }] : [];
+    }),
+  );
   const at = (s: number) => `${Math.min(100, Math.max(0, (s / seconds) * 100))}%`;
   const step = stepFor(seconds / zoom);
   const ticks = Array.from({ length: Math.ceil(seconds / step) }, (_, i) => i * step);
@@ -269,6 +337,16 @@ export function Timeline({
             <span title={full ? `A message carries at most ${MAX_MARKS} marks` : 'Drag along this lane to mark a stretch of the film'}>
               Marks
             </span>
+            {soundLanes.map((_, r) => (
+              <span key={`sound-${r}`} title="The film's music and sound effects">
+                {r === 0 ? 'Sound' : ''}
+              </span>
+            ))}
+            {lines.length > 0 && (
+              <span title={film.captions ? 'What the film says, shown as captions' : 'What the film says: its script, and its subtitles in an export'}>
+                Lines
+              </span>
+            )}
             {[...rows].map(([id, row]) => (
               <span key={id} title={row.label}>
                 {row.label}
@@ -393,6 +471,60 @@ export function Timeline({
                   />
                 )}
               </div>
+              {soundLanes.map((row, r) => (
+                <div key={r} className="lane sound-lane">
+                  {row.map(({ sound, start, end, index }) => {
+                    const wave = waves.get(sound.src);
+                    const span = end - start;
+                    const shape = wave && typeof wave === 'object' ? soundShape(sound, wave, Math.max(8, Math.min(600, Math.round(span * 20 * zoom)))) : [];
+                    const failed = typeof wave === 'string' ? wave : null;
+                    return (
+                      <button
+                        key={index}
+                        type="button"
+                        className={`sound-span${failed ? ' failed' : ''}`}
+                        style={{ left: at(sound.at), width: at(Math.min(span, seconds - sound.at)) }}
+                        aria-label={`${fileName(sound.src)}, ${timecode(sound.at)} to ${timecode(sound.at + span)}`}
+                        title={
+                          failed ??
+                          `${sound.src} · ${timecode(sound.at)}–${timecode(sound.at + span)} · ${sound.volume} dB${sound.loop ? ' · looped' : ''}${
+                            sound.fadeIn ? ` · fades in ${sound.fadeIn} s` : ''
+                          }${sound.fadeOut ? ` · fades out ${sound.fadeOut} s` : ''}`
+                        }
+                        onClick={() => onSeek(sound.at)}
+                      >
+                        {shape.length > 0 && (
+                          <svg viewBox={`0 0 ${shape.length} 2`} preserveAspectRatio="none" aria-hidden="true">
+                            <path
+                              d={`M0 1 ${shape.map((h, x) => `L${x + 0.5} ${1 - h}`).join(' ')} L${shape.length} 1 ${shape
+                                .map((h, x) => `L${shape.length - x - 0.5} ${1 + shape[shape.length - 1 - x]!}`)
+                                .join(' ')} Z`}
+                            />
+                          </svg>
+                        )}
+                        <span>{fileName(sound.src)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+              {lines.length > 0 && (
+                <div className="lane lines-lane">
+                  {lines.map(({ line, scene }) => (
+                    <button
+                      key={line.id}
+                      type="button"
+                      className={`line-span${t >= line.start && t < line.end ? ' current' : ''}${selected?.kind === 'line' && selected.line === line.id ? ' selected' : ''}`}
+                      style={{ left: at(line.start), width: at(line.end - line.start) }}
+                      aria-label={`${line.text}, ${timecode(line.start)} to ${timecode(line.end)}`}
+                      title={`“${line.text}” · ${timecode(line.start)}–${timecode(line.end)}`}
+                      onClick={() => onSelect({ kind: 'line', label: line.text, scene, line: line.id, time: line.start })}
+                    >
+                      {line.text}
+                    </button>
+                  ))}
+                </div>
+              )}
               {[...rows].map(([id, row]) => (
                 <div key={id} className="lane layer-lane">
                   {row.spans.map((span, i) => (

@@ -15,6 +15,8 @@ import {
   Pause,
   Play,
   Repeat,
+  Volume2,
+  VolumeX,
   SkipBack,
   SkipForward,
   SquareDashed,
@@ -46,6 +48,9 @@ export interface Player {
   setTool(tool: Tool): void;
   loop: boolean;
   setLoop(loop: boolean): void;
+  /** Whether the film's sounds are off in the preview (never in an export). */
+  muted: boolean;
+  setMuted(muted: boolean): void;
   tell(message: ToPreview): void;
   toggle(): void;
   seek(t: number): void;
@@ -71,10 +76,11 @@ export function usePlayer(build: BuildResult | null): Player {
   const [error, setError] = useState<string | null>(null);
   const [tool, setTool] = useState<Tool>(null);
   const [loop, setLoop] = useState(false);
+  const [muted, setMuted] = useState(false);
   const [solo, setSolo] = useState<string | null>(null);
   const picked = useRef<((message: Picked) => void) | null>(null);
-  const now = useRef({ t: 0, playing: false, loop: false, film: null as FilmInfo | null });
-  now.current = { t, playing, loop, film };
+  const now = useRef({ t: 0, playing: false, loop: false, muted: false, film: null as FilmInfo | null });
+  now.current = { t, playing, loop, muted, film };
 
   const tell = (message: ToPreview) => frame.current?.contentWindow?.postMessage(message, '*');
 
@@ -85,8 +91,9 @@ export function usePlayer(build: BuildResult | null): Player {
       if (message?.type === 'oms:ready') {
         setFilm(message.film);
         setError(null);
-        // a rebuilt film opens where the last one was
+        // a rebuilt film opens where the last one was, as loud as it was
         tell({ type: 'oms:seek', t: Math.min(now.current.t, message.film.seconds) });
+        tell({ type: 'oms:mute', muted: now.current.muted });
       } else if (message?.type === 'oms:time') {
         const { film: shown, playing: was, loop: looping } = now.current;
         // A film that played to its end starts again when looping.
@@ -136,6 +143,11 @@ export function usePlayer(build: BuildResult | null): Player {
     },
     loop,
     setLoop,
+    muted,
+    setMuted: (next) => {
+      setMuted(next);
+      tell({ type: 'oms:mute', muted: next });
+    },
     tell,
     toggle: () => {
       if (!playing) endSolo();
@@ -688,6 +700,18 @@ function Controls({
       >
         <Repeat size={15} />
       </button>
+      {film && film.sounds.length > 0 && (
+        <button
+          type="button"
+          className="icon-button"
+          aria-pressed={player.muted}
+          aria-label={player.muted ? 'Sound off' : 'Sound on'}
+          data-tip={player.muted ? 'Turn the sound on' : 'Turn the sound off'}
+          onClick={() => player.setMuted(!player.muted)}
+        >
+          {player.muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+        </button>
+      )}
       <span className="spacer" />
       <span className="pointing" role="group" aria-label="Point at the picture">
         <button

@@ -1,6 +1,6 @@
 # Sound, narration and captions
 
-> **Status:** Plan · **Updated:** 2026-11-14
+> **Status:** Plan, slices A and B built · **Updated:** 2026-11-14
 
 How a film gets sound, a spoken narration and captions, in three slices: music and effects that play and export, captions
 drawn from a film's lines, and a narration synthesized line by line whose word times time the captions.
@@ -25,6 +25,12 @@ changes land in `motionhub-dev/motions` (`packages/runtime`) before the Studio u
 
 ## Slice A: sound in and out
 
+*Built*, as below (`@motionhub/runtime` 0.7.0 gives `<Sound>`), with three differences:
+- The Inspector does not show a sound: a click on its band seeks to it, and hovering shows its level, loop and fades.
+- The Remotion export has no sound yet, and a film that imports `<Sound>` does not render there: `@motionhub/remotion` 0.4
+  takes runtime 0.6 only, so the export pins it. A binding that takes 0.7, and then plays `<Sound>`, comes next.
+- Overlapping sounds take rows of their own on the timeline, and the waveform is drawn on a decibel scale.
+
 Music and effects the person brings, heard in the preview and mixed into the MP4.
 
 - **Assets** take `mp3`, `wav`, `m4a` and `ogg` (50 MB each, as now), each with its duration read by the Studio's
@@ -42,6 +48,10 @@ Music and effects the person brings, heard in the preview and mixed into the MP4
   sound report.
 
 ## Slice B: captions from lines
+
+*Built*, as below (`@motionhub/runtime` 0.7.0). The runtime times the lines and draws the captions, so the preview and
+the export agree. A line that overlaps the one before it, or that is left no time, is an error. Every export carries
+the lines as subtitles, whether or not the picture shows captions.
 
 Captions without any audio: a line's words, shown while it is said.
 

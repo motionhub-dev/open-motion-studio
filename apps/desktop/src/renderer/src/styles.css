@@ -2998,6 +2998,12 @@ kbd {
   font-size: 10px;
   width: 100%;
 }
+.asset-audio {
+  display: block;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
 .asset-large {
   display: block;
   width: 100%;
@@ -3976,4 +3982,73 @@ kbd {
 
 .composer[hidden] {
   display: none;
+}
+
+/* A film's sounds on their own lane: each a band from where it starts for as long as it plays, its waveform drawn
+   through its volume and fades. */
+.sound-span {
+  position: absolute;
+  top: 4px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--annotate) 45%, var(--line));
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--annotate) 10%, var(--bg));
+  color: var(--text2);
+  overflow: hidden;
+}
+.sound-span:hover {
+  border-color: var(--annotate);
+}
+.sound-span svg {
+  position: absolute;
+  inset: 2px 0;
+  width: 100%;
+  height: calc(100% - 4px);
+}
+.sound-span path {
+  fill: color-mix(in srgb, var(--annotate) 55%, transparent);
+}
+.sound-span span {
+  position: relative;
+  display: block;
+  padding: 0 6px;
+  font: 10px/20px var(--font-mono);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 0 3px var(--bg);
+}
+.sound-span.failed {
+  border-style: dashed;
+  border-color: var(--bad);
+}
+
+/* What the film says, each line a band while it is said: its script, its captions and its subtitles. */
+.line-span {
+  position: absolute;
+  top: 6px;
+  height: 18px;
+  padding: 0 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--sheet);
+  color: var(--text2);
+  font-size: 11px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.line-span:hover {
+  border-color: var(--text);
+}
+.line-span.current {
+  border-color: var(--text);
+  color: var(--text);
+}
+.line-span.selected {
+  border-color: var(--annotate);
+  background: color-mix(in srgb, var(--annotate) 12%, var(--sheet));
 }
