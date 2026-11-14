@@ -8,7 +8,8 @@ drawn from a film's lines, and a narration synthesized line by line whose word t
 A film exported today is picture only: ffmpeg is given frames and nothing else (`main/film/capture.ts`), Assets take
 images and fonts, and `<Line>` is a scene's script that nothing speaks or shows. The decisions are
 [ADR 0010](../adr/0010-a-films-sound-is-sound-elements-mixed-on-export.md) (sound) and
-[ADR 0011](../adr/0011-narration-is-synthesized-per-line-and-times-the-captions.md) (narration and captions). The
+[ADR 0011](../adr/0011-narration-is-synthesized-per-line-and-times-the-captions.md) (narration and captions) with
+[ADR 0012](../adr/0012-a-narration-speaks-through-the-persons-own-voice-provider.md) (which voices). The
 comparison with HyperFrames, VisoTalk and Remotion that led here is the
 [sound and captions artifact](https://claude.ai/artifact/2epF46yfcLmf7DUH9koNAC).
 
@@ -67,12 +68,13 @@ Captions without any audio: a line's words, shown while it is said.
 A voice says each line; its words time the captions.
 
 - **Voices in Models**, beside the providers, kept in `settings.json` (`voices`), keys sealed in `keys.json` as a
-  provider's are:
-  - Microsoft Edge read-aloud, the default, with no key: its WebSocket gives audio and word boundaries. Models says it
-    is unofficial and may stop working; when it fails, the card says to set up another voice.
-  - Microsoft Azure (official, with a free tier, the same voices), offered first, with how to get its key and region.
-  - ElevenLabs (`with-timestamps`), MiniMax (`t2a_v2`, word subtitles) and OpenAI (`/audio/speech`, its words from
-    `/audio/transcriptions` with the same key).
+  provider's are ([ADR 0012](../adr/0012-a-narration-speaks-through-the-persons-own-voice-provider.md)). There is no
+  default: the first narration asks the person to set one up, with a guide for each:
+  - Azure (Microsoft's Speech service, with a free tier): key and region; its WebSocket gives audio and word boundaries.
+  - ElevenLabs (`with-timestamps`, each character's time, read into words).
+  - MiniMax (`t2a_v2` with word subtitles): key and group id.
+  - OpenAI (`/audio/speech`, its words from one `/audio/transcriptions` call with word timestamps): a key many already
+    have.
   - Each with its voice, speed and model, and a sample to hear.
 - **Synthesis** is asked for, never automatic, since it may cost money: Voice the film in the stage bar and the agent's
   `voice_lines` tool. Each line is synthesized once per text, voice, speed and provider, into the project's `voice/`
@@ -85,7 +87,7 @@ A voice says each line; its words time the captions.
 - **Usage**: each synthesis is logged in `usage.jsonl` with its characters and seconds, and shown with the turn's
   tokens.
 - **Tests**: each provider's words read into one shape (fixtures); the clip's name from its inputs; line and scene
-  times from clips; ducking in the filter graph; the Edge failure's card.
+  times from clips; ducking in the filter graph; the card that asks for a voice before the first narration.
 
 Later: a narration from the person's own recording, its words from a provider's transcription, through the same
 captions.

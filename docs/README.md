@@ -26,4 +26,5 @@ Read [positioning](prd/positioning.md) first, then [the architecture](tech/archi
 - [0008 The person's own coding agent, through its own headless protocol](adr/0008-the-persons-own-coding-agent.md) — Claude Code or Codex as a second way in, with the person's sign-in.
 - [0009 Each turn is logged with its tokens and time](adr/0009-each-turn-is-logged-with-its-tokens-and-time.md) — one line a turn in `.motion-studio/usage.jsonl`, tokens on one footing.
 - [0010 A film's sound is `<Sound>` elements, mixed on export](adr/0010-a-films-sound-is-sound-elements-mixed-on-export.md) — dB and seconds in the scene tree; one ffmpeg filter graph, AAC.
-- [0011 Narration is synthesized per line, and times the captions](adr/0011-narration-is-synthesized-per-line-and-times-the-captions.md) — Edge by default, voices in Models, speech in `voice/`, captions from word times; amends 0006.
+- [0011 Narration is synthesized per line, and times the captions](adr/0011-narration-is-synthesized-per-line-and-times-the-captions.md) — voices in Models, speech in `voice/`, captions from word times; amends 0006; amended by 0012.
+- [0012 A narration speaks through the person's own voice provider](adr/0012-a-narration-speaks-through-the-persons-own-voice-provider.md) — no default voice: Azure, ElevenLabs, MiniMax or OpenAI, set up at the first narration; not Edge's guarded service.

@@ -1,6 +1,6 @@
 # 11. Narration is synthesized per line, and times the captions
 
-> **Status:** Accepted · **Date:** 2026-11-14
+> **Status:** Accepted, amended by [0012](0012-a-narration-speaks-through-the-persons-own-voice-provider.md) (no default voice; no Edge) · **Date:** 2026-11-14
 
 Whether the Studio speaks a film's lines, through which voices, where the speech is kept, and how captions are timed.
 
