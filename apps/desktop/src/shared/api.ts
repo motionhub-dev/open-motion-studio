@@ -358,6 +358,11 @@ export interface StudioApi {
   sendMessage(text: string, marks: Mark[], refs: Reference[], version: number): Promise<{ ok: boolean }>;
   /** Stops the agent's turn. */
   stopAgent(): Promise<void>;
+  /**
+   * Sends words into the turn that runs, for an agent that takes them mid-turn (Claude Code); false when no such turn
+   * runs, and the words should wait for the turn's end.
+   */
+  steerAgent(text: string): Promise<boolean>;
   /** Forgets the open project's conversation. */
   clearConversation(): Promise<void>;
   /** Calls `listener` with what the agent does; returns the unsubscribe. */
@@ -410,6 +415,7 @@ export const CHANNELS = {
   conversation: 'agent:conversation',
   sendMessage: 'agent:send',
   stopAgent: 'agent:stop',
+  steerAgent: 'agent:steer',
   clearConversation: 'agent:clear',
   exportFilm: 'film:export',
   cancelExport: 'film:cancel-export',

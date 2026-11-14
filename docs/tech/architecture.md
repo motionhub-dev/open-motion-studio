@@ -237,8 +237,11 @@ src/main/agent/
   as the built-in agent's does; a protected file that changed anyway is put back from the note and reported.
   `undoTurn` restores the files; the agent's memory of the turn stays, and the panel says so.
 - **While it works**: a message sent during a turn goes into it (a further user line for Claude Code, which takes it
-  mid-turn; for Codex, it waits for the turn as for the built-in agent). Stop interrupts (`turn/interrupt`; Claude Code's
-  process is ended and resumed from its session for the next message).
+  mid-turn; for Codex, it waits for the turn as for the built-in agent). Claude Code runs with `--replay-user-messages`,
+  so each message is echoed (`isReplay`) when it is taken in: one taken in before the turn's `result` joins that turn,
+  one taken in after runs as a turn of its own, and the Studio's turn ends at the first `result` by which every message
+  written has been echoed. Words only: a message with marks or references waits. Stop interrupts (`turn/interrupt`;
+  Claude Code's process is ended and resumed from its session for the next message).
 - **Permissions**: Claude Code's tools are fixed at start, reading, searching, editing and writing in the project
   and the Studio's MCP tools, with edits to `.motion-studio/`, `motions/@*/`, `node_modules/` and `.git/` disallowed and
   no shell or web tool. Codex's approval requests (`item/commandExecution/requestApproval`,
@@ -319,8 +322,9 @@ Each step is a vertical slice that runs end to end before the next begins.
    3. *Its work is recoverable*: the turn's checkpoint from the files that changed, the change summary, Undo this turn,
       protected paths declined, approval cards. *Built*, the checkpoint with 7.1; driven on Codex 0.167.0: a command
       that needed the network asked for, shown as a card, denied, and Codex told so.
-   4. *Claude Code*: the same three on `claude -p` stream-json, its fixed tool set, and steering mid-turn. *Built*,
-      but for steering (a message sent during a turn waits for it, as for the other agents): found in
+   4. *Claude Code*: the same three on `claude -p` stream-json, its fixed tool set, and steering mid-turn. *Built*:
+      steering probed on a signed-in Claude Code 2.1.325, a message written after a tool call answered in the same
+      turn and one written during the final answer run as a second turn, both told apart by their echoes; found in
       `~/.local/bin`, its sign-in read from `claude auth status` (signed in only with `claude auth login` in a
       terminal), one process per project with Read, Glob, Grep, Edit and Write, edits accepted, the Studio's MCP
       server allowed, and no setting sources; Stop ends the process and the next message resumes the session. Its

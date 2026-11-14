@@ -1,6 +1,6 @@
 # Design
 
-> **Status:** Current · **Updated:** 2026-11-13
+> **Status:** Current · **Updated:** 2026-11-14
 
 The Studio's visual system: its identity, colour, type, shape, icons, the workspace's layout and the rules components follow.
 
@@ -123,7 +123,8 @@ recent projects with their path (`~` for the home folder), and a banner while no
   and its answers as buttons, the recommended one primary. What an outside agent asks leave to do is a sheet card with
   a `--bad` edge: its title, the command or paths in mono, its reason, and Allow once, Allow for this session and Deny,
   Deny primary; once answered, the answer in muted words. A message waiting for the turn sits above the composer on a
-  dashed outline. Items the last turn changed are ringed in green in the outline and the timeline for four seconds, and
+  dashed outline; on Claude Code, Enter adds a message of words to the turn instead, as a bubble in the conversation
+  where it was sent. Items the last turn changed are ringed in green in the outline and the timeline for four seconds, and
   the stage says the agent is working in a dark pill over its top left. The composer grows with its text up to 180px; Enter
   sends, Shift+Enter breaks the line. The agent picker sits inside the composer below the text, opposite Send;
   it shows the built-in agent's model, or Codex when the project talks to the person's own (ADR 0008), keeps the full

@@ -3,6 +3,18 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-14 — Words sent to Claude Code while it works go into its turn
+
+- **What:** On a project that talks to the person's own Claude Code, Enter during a turn sends the words into that
+  turn at once, shown where they were sent, instead of keeping them for the turn's end; Ctrl+Enter still stops the turn
+  and sends. A message with marks or references, and every message to Codex or the built-in agent, still waits. The
+  Studio starts Claude Code with `--replay-user-messages`, to tell a message taken into the turn from one Claude Code
+  runs after it.
+- **Why:** Claude Code takes a message mid-turn, so a correction reaches it before it goes further the wrong way.
+- **Breaking:** None.
+- **Upgrade:** Nothing; a running Claude Code session gets the new flag when it is next started.
+- **Refs:** `apps/desktop/src/main/agent/claude.ts`, `docs/tech/architecture.md`, ADR 0008.
+
 ## 2026-11-14 — A film is set in its motions' own faces
 
 - **What:** The faces a motion carries (`react/fonts/fonts.json` and its WOFF2 files) are loaded in the preview before
