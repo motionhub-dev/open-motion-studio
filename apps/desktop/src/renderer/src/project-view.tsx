@@ -60,7 +60,7 @@ const SHORTCUTS: [group: string, keys: string[], what: string][] = [
   ['Pointing', ['Esc'], 'Let a mark go, then put the tool down, then clear the selection'],
   ['Timeline', ['+', '−'], 'Zoom in or out (Ctrl and the wheel, about the pointer)'],
   ['Timeline', ['Shift', 'Z'], 'Fit the whole film'],
-  ['Message', ['Enter'], 'Send the message, or keep it until the turn ends'],
+  ['Message', ['Enter'], 'Send the message; during a turn, add it to the turn (Claude Code) or keep it until the turn ends'],
   ['Message', ['Ctrl', 'Enter'], 'Stop the turn and send'],
   ['Message', ['Shift', 'Enter'], 'A new line in the message'],
   ['Workspace', ['['], 'Show or hide the assistant'],

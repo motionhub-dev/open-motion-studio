@@ -101,4 +101,40 @@ describe('a Claude Code session', () => {
     stop.abort();
     expect(await hanging).toEqual({ ok: false, notice: { text: 'Stopped.', error: false } });
   });
+
+  it('takes a message sent mid-turn into the turn, whether Claude Code takes it in before its result or after', async () => {
+    const script = join(__dirname, 'fixtures', 'fake-claude.mjs');
+    const session = new ClaudeSession(process.execPath, __dirname, [script]);
+    const signal = new AbortController().signal;
+    const until = async (seen: () => boolean) => {
+      for (let i = 0; i < 200 && !seen(); i++) await new Promise((done) => setTimeout(done, 10));
+    };
+    try {
+      expect(session.steer([{ type: 'text', text: 'too soon' }])).toBe(false);
+
+      // Taken in before the turn's result: one turn, which answers it.
+      const joined: AgentEvent[] = [];
+      const slow = session.turn([{ type: 'text', text: 'slow' }], (e) => joined.push(e), signal);
+      await until(() => joined.some((e) => e.type === 'tool'));
+      expect(session.steer([{ type: 'text', text: 'and blue' }])).toBe(true);
+      expect(await slow).toEqual({ ok: true, notice: undefined });
+      expect(joined).toContainEqual({ type: 'text', text: 'Took in: and blue' });
+
+      // Taken in after it: Claude Code runs it as a turn of its own, which the Studio's turn waits for.
+      const ran: AgentEvent[] = [];
+      const late = session.turn([{ type: 'text', text: 'late' }], (e) => ran.push(e), signal);
+      await until(() => ran.some((e) => e.type === 'tool'));
+      expect(session.steer([{ type: 'text', text: 'and red' }])).toBe(true);
+      expect(await late).toEqual({ ok: true, notice: undefined });
+      expect(ran).toContainEqual({ type: 'text', text: 'Turn 3: and red' });
+
+      // The next turn is its own: no result of the last one is left to end it early.
+      const after: AgentEvent[] = [];
+      expect(await session.turn([{ type: 'text', text: 'next' }], (e) => after.push(e), signal)).toEqual({ ok: true, notice: undefined });
+      expect(after).toContainEqual({ type: 'text', text: 'Turn 4: next' });
+      expect(session.steer([{ type: 'text', text: 'between turns' }])).toBe(false);
+    } finally {
+      session.close();
+    }
+  });
 });

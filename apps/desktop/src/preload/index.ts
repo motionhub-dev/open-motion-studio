@@ -44,6 +44,7 @@ const api: StudioApi = {
   conversation: () => ipcRenderer.invoke(CHANNELS.conversation),
   sendMessage: (text, marks, refs, version) => ipcRenderer.invoke(CHANNELS.sendMessage, text, marks, refs, version),
   stopAgent: () => ipcRenderer.invoke(CHANNELS.stopAgent),
+  steerAgent: (text) => ipcRenderer.invoke(CHANNELS.steerAgent, text),
   clearConversation: () => ipcRenderer.invoke(CHANNELS.clearConversation),
   onAgentEvent: (listener) => subscribe(EVENTS.agent, listener),
   exportFilm: () => ipcRenderer.invoke(CHANNELS.exportFilm),

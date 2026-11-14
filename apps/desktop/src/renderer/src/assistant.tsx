@@ -280,8 +280,21 @@ export function Assistant({
     if (working) {
       // Marks and references belong to the preview on screen, which the turn is changing.
       if (!text || marks.length || sending.length || queued) return;
-      setQueued({ text, steer });
       setDraft('');
+      // Claude Code takes words mid-turn: they go in at once, and wait only when its turn has just ended.
+      if (!steer && current === 'claude') {
+        try {
+          if (await window.studio.steerAgent(text)) {
+            setItems((items) => [...items, { kind: 'user', text, marks: [] }]);
+            return;
+          }
+        } catch (e) {
+          setDraft((current) => current || text);
+          setItems((items) => [...items, { kind: 'notice', text: reason(e), error: true }]);
+          return;
+        }
+      }
+      setQueued({ text, steer });
       if (steer) window.studio.stopAgent().catch((e) => setItems((items) => [...items, { kind: 'notice', text: reason(e), error: true }]));
       return;
     }
@@ -695,7 +708,9 @@ export function Assistant({
             working
               ? marks.length || sending.length
                 ? 'Marks and references wait until the turn ends'
-                : 'Enter sends when the turn ends; Ctrl+Enter stops it and sends'
+                : current === 'claude'
+                  ? 'Enter adds to the turn; Ctrl+Enter stops it and sends'
+                  : 'Enter sends when the turn ends; Ctrl+Enter stops it and sends'
               : marks.length
                 ? 'Anything else? Refer to marks by number (1, 2…)'
                 : 'Ask for a film, or a change to this one'

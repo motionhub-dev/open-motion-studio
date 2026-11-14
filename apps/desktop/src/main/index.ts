@@ -580,6 +580,15 @@ function registerHandlers(): void {
     }
   });
   ipcMain.handle(CHANNELS.stopAgent, () => working?.abort());
+  // Words into the turn that runs, for Claude Code alone, which takes a message mid-turn; else they wait for its end.
+  ipcMain.handle(CHANNELS.steerAgent, async (_event, text: unknown) => {
+    const state = requireOpen();
+    if (typeof text !== 'string' || !text.trim()) throw new Error('Write a message first.');
+    const agent = await agentOf(state);
+    if (!working || agent.kind !== 'claude' || !state.claude?.steer([{ type: 'text', text: text.trim() }])) return false;
+    agent.items = [...agent.items, { kind: 'user', text: text.trim(), marks: [] }];
+    return true;
+  });
   ipcMain.handle(CHANNELS.sendMessage, async (_event, text: unknown, rawMarks: unknown, rawRefs: unknown, version: unknown) => {
     const state = requireOpen();
     const marks = readMarks(rawMarks);

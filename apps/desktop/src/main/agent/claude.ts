@@ -34,6 +34,8 @@ export function claudeArgs(skill: string, studioUrl: string, session: { id: stri
     'stream-json',
     '--verbose',
     '--include-partial-messages',
+    // Each message is echoed (isReplay) when Claude Code takes it in, which says whether one sent mid-turn joined it.
+    '--replay-user-messages',
     '--setting-sources',
     '',
     '--strict-mcp-config',
@@ -52,11 +54,19 @@ export function claudeArgs(skill: string, studioUrl: string, session: { id: stri
   ];
 }
 
-/** A running `claude -p` session: its turns, one at a time, as the panel's events. */
+/**
+ * A running `claude -p` session: its turns, one at a time, as the panel's events. A message sent while a turn runs
+ * (steer) goes to Claude Code at once: taken in before the turn's end, it joins that turn; taken in after, Claude Code
+ * runs it as a turn of its own, which the Studio counts as the rest of this one. So a turn ends at the first `result`
+ * by which every message written has been echoed back (`isReplay`), not merely at the first `result`.
+ */
 export class ClaudeSession {
   private child: ChildProcess;
   private listener: ((event: Event) => void) | null = null;
   private stderr = '';
+  /** Messages written to Claude Code in the running turn, and how many it has echoed as taken in. */
+  private written = 0;
+  private takenIn = 0;
   readonly ended: Promise<void>;
 
   constructor(bin: string, dir: string, args: string[]) {
@@ -91,16 +101,28 @@ export class ClaudeSession {
     const reading: ClaudeReading = { said: false, tools: new Map() };
     let finished!: (notice: Notice | undefined) => void;
     const over = new Promise<Notice | undefined>((done) => (finished = done));
+    this.written = 0;
+    this.takenIn = 0;
+    // The last error a result reported, kept when a message sent mid-turn runs on after it.
+    let failed: Notice | undefined;
     this.listener = (event) => {
+      if (event.type === 'user' && event.isReplay === true) this.takenIn++;
       for (const out of translateClaude(event, reading)) emit(out);
-      if (event.type === 'result') finished(resultNotice(event));
+      if (event.type === 'result') {
+        failed = resultNotice(event) ?? failed;
+        if (this.takenIn >= this.written) {
+          // No more messages join this turn: one sent from here on waits for the next.
+          this.listener = null;
+          finished(failed);
+        }
+      }
     };
     const stop = () => this.close();
     signal.addEventListener('abort', stop);
     emit({ type: 'phase', phase: 'thinking' });
     let notice: Notice | undefined;
     try {
-      this.child.stdin!.write(`${JSON.stringify({ type: 'user', message: { role: 'user', content } })}\n`);
+      this.write(content);
       notice = await Promise.race([
         over,
         this.ended.then(() =>
@@ -114,6 +136,18 @@ export class ClaudeSession {
       signal.removeEventListener('abort', stop);
     }
     return { ok: !notice?.error && !signal.aborted, notice };
+  }
+
+  /** Sends the person's message into the running turn; false when no turn runs, so the message waits for the next. */
+  steer(content: Block[]): boolean {
+    if (!this.listener) return false;
+    this.write(content);
+    return true;
+  }
+
+  private write(content: Block[]): void {
+    this.written++;
+    this.child.stdin!.write(`${JSON.stringify({ type: 'user', message: { role: 'user', content } })}\n`);
   }
 
   close(): void {
