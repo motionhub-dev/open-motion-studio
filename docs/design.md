@@ -82,8 +82,10 @@ A top bar over a grid of panels (`project-view.tsx`):
   has: it takes whatever the stage leaves (handles take the arrow keys too). The timeline folds to its head, and the
   stage then takes the rest; `layout.tsx` keeps the sizes in the app's local storage.
 - The timeline (`timeline.tsx`) is a head (its zoom, fit, follow and fold), a ruler, a Scenes lane for a film of scenes (each scene a block named by its id, the
-  one under the playhead inked, its lines on hover), the Marks lane (a flag for each mark, a cobalt band for a stretch,
-  dragged out along the lane) and the playhead through them. The check's issues are small triangles on the ruler
+  one under the playhead inked, its lines on hover; a selected scene ringed in cobalt, the scene of a selected layer
+  ringed thinly), the Marks lane (a flag for each mark, a cobalt band for a stretch, dragged out along the lane; empty,
+  it says so in muted words, and it tints on hover), a dashed span for each layer (selected, solid cobalt on a cobalt
+  tint; changed by the last turn, a green ring on a green tint) and the playhead through them. The check's issues are small triangles on the ruler
   (`--bad` for an error, muted for a warning), and the moment under the pointer is an ink label on it
   with its scene. Ctrl and the wheel zoom about the pointer (1× to 32×); a playhead out of view is a chip at the edge
   it went past.

@@ -307,7 +307,7 @@ export function Timeline({
                 {film.scenes.map((scene) => (
                   <button
                     key={scene.id}
-                    className={`scene${t >= scene.start && t < scene.start + scene.duration ? ' current' : ''}${selected?.scene === scene.id ? ' selected' : ''}${fresh.has(changeKey({ kind: 'scene', scene: scene.id })) ? ' fresh' : ''}`}
+                    className={`scene${t >= scene.start && t < scene.start + scene.duration ? ' current' : ''}${selected?.scene === scene.id ? (selected.kind === 'scene' ? ' selected' : ' holds-selected') : ''}${fresh.has(changeKey({ kind: 'scene', scene: scene.id })) ? ' fresh' : ''}`}
                     aria-pressed={selected?.kind === 'scene' && selected.scene === scene.id}
                     style={{ left: at(scene.start), width: at(scene.duration) }}
                     title={`${sceneTitle(scene)} · ${timecode(scene.start)}–${timecode(scene.start + scene.duration)}`}
@@ -329,6 +329,7 @@ export function Timeline({
                 onPointerUp={endRange}
                 onPointerCancel={() => setRange(null)}
               >
+                {!marks.length && !range && <span className="hint">Drag here to mark a stretch of the film</span>}
                 {marks.map((mark, i) =>
                   mark.end !== undefined ? (
                     <button

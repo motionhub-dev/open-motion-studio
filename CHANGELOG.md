@@ -3,6 +3,16 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-13 — The timeline shows what is selected and what changed
+
+- **What:** A selected scene has a heavier cobalt ring, and the scene of a selected layer a thin one; a selected layer
+  span is solid cobalt on a cobalt tint, and a span the last turn changed is tinted green as well as ringed. The empty
+  Marks lane says that dragging along it marks a stretch.
+- **Why:** Selection and change were faint on the timeline, and marking a stretch was found only by trying.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/timeline.tsx`, `docs/design.md`.
+
 ## 2026-11-13 — A turn says how long it took, and the agent's steps step back
 
 - **What:** The card where a turn ends opens with how long it took (`Worked for 1m 12s`). The line for a run of the

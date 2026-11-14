@@ -988,9 +988,25 @@ button.status:hover {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--annotate) 30%, transparent);
 }
 
-/* Dragging along the marks lane marks a stretch of the film. */
+/* Dragging along the marks lane marks a stretch of the film; empty, it says so. */
 .marks-lane {
   cursor: text;
+  border-radius: 4px;
+}
+
+.marks-lane:not(.full):hover {
+  background: color-mix(in srgb, var(--annotate) 6%, transparent);
+}
+
+.marks-lane .hint {
+  position: absolute;
+  top: 0;
+  left: 8px;
+  line-height: 30px;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .marks-lane.full {
@@ -2288,6 +2304,7 @@ kbd {
   border: 1px dashed var(--line);
   border-radius: 4px;
   background: var(--bg);
+  color: var(--text2);
   font: 10px var(--font-mono);
   text-align: left;
   padding: 0 6px;
@@ -2295,11 +2312,20 @@ kbd {
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+.layer-span:hover {
+  border-color: var(--muted);
+}
 .layer-span.selected {
-  background: var(--s2);
-  border-color: var(--annotate);
+  background: color-mix(in srgb, var(--annotate) 14%, var(--sheet));
+  border: 1px solid var(--annotate);
+  color: var(--text);
 }
 .timeline .scene.selected {
+  outline: 2px solid var(--annotate);
+  outline-offset: 1px;
+}
+/* The scene a selected layer or line is in. */
+.timeline .scene.holds-selected {
   outline: 1px solid var(--annotate);
   outline-offset: 1px;
 }
@@ -3147,6 +3173,9 @@ kbd {
 .timeline .layer-span.fresh {
   box-shadow: 0 0 0 2px var(--good);
   transition: box-shadow 0.6s;
+}
+.timeline .layer-span.fresh {
+  background: color-mix(in srgb, var(--good) 16%, var(--sheet));
 }
 
 /* The check's issues on the ruler, at their moments. */
