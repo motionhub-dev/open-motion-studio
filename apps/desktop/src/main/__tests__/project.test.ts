@@ -1,7 +1,12 @@
 import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { join, resolve } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+// The home folder the module sees: by default one the temporary folders are not in (on many machines the real one
+// holds them, and a project there is shown with ~), and the test's own folder where ~ is what is tested.
+const home = vi.hoisted(() => ({ dir: '' }));
+vi.mock('node:os', async (original) => ({ ...(await original<typeof import('node:os')>()), homedir: () => home.dir }));
 import {
   MAX_RECENTS,
   createProject,
@@ -17,6 +22,7 @@ let root: string;
 
 beforeEach(async () => {
   root = await mkdtemp(join(tmpdir(), 'oms-project-'));
+  home.dir = resolve('/oms-no-such-home');
 });
 
 afterEach(async () => {
@@ -24,14 +30,14 @@ afterEach(async () => {
 });
 
 describe('openProject', () => {
-  it('shows a folder under the home folder with ~', async () => {
-    const { homedir } = await import('node:os');
-    const inside = await mkdtemp(join(homedir(), '.oms-display-'));
-    try {
-      expect((await openProject(inside)).display).toBe(`~${inside.slice(homedir().length)}`);
-    } finally {
-      await rm(inside, { recursive: true, force: true });
-    }
+  it('shows a folder under the home folder with ~, and others as they are', async () => {
+    home.dir = root;
+    const inside = join(root, 'films', 'one');
+    await mkdir(inside, { recursive: true });
+    expect((await openProject(inside)).display).toBe(join('~', 'films', 'one'));
+    expect((await openProject(root)).display).toBe('~');
+    home.dir = join(root, 'films', 'on');
+    expect((await openProject(inside)).display).toBe(inside);
   });
 
   it('opens a folder without writing to it', async () => {
