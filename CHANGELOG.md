@@ -3,6 +3,15 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-13 — The stills an agent looked at take one row
+
+- **What:** The stills under a run of the agent's tools are one row of four small thumbnails; past four, the row shows
+  three and a count of the rest, which opens them all.
+- **Why:** A turn that checked many frames filled the assistant with pictures and pushed its answer out of view.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/assistant.tsx`, `docs/design.md`.
+
 ## 2026-11-13 — The workspace gives the film and the timeline the room
 
 - **What:** The stage is no taller than its film where there is room, and its foot carries play, the time, loop and the

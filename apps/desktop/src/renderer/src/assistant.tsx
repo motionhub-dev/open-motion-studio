@@ -48,11 +48,25 @@ const same = (a: Reference, b: Reference) => JSON.stringify(a) === JSON.stringif
 
 type Tool = Extract<Row, { kind: 'tool' }>;
 
-/** A run of tool calls: one line saying what was done, or what is being done now, and the stills beside it. */
+/** How many stills a run of tool calls shows in its row before the rest fold behind a count. */
+const STILLS_SHOWN = 4;
+
+/**
+ * The stills a run shows, and how many it folds: all of them when they fit in the row or the person opened them,
+ * else one fewer than the row, whose last place is the count of the rest.
+ */
+function shownStills<T>(stills: T[], open: boolean): { shown: T[]; folded: number } {
+  if (open || stills.length <= STILLS_SHOWN) return { shown: stills, folded: 0 };
+  return { shown: stills.slice(0, STILLS_SHOWN - 1), folded: stills.length - (STILLS_SHOWN - 1) };
+}
+
+/** A run of tool calls: one line saying what was done, or what is being done now, and the stills beside it in a row. */
 function Work({ tools, live, onStill }: { tools: Tool[]; live: boolean; onStill(tool: Tool): void }) {
   const now = live ? running(tools) : undefined;
   const failed = tools.some((tool) => tool.result && !tool.result.ok);
   const stills = tools.filter((tool) => tool.result?.image);
+  const [open, setOpen] = useState(false);
+  const { shown, folded } = shownStills(stills, open);
   return (
     <div className="work">
       <details className={`tool${failed && !now ? ' failed' : ''}`}>
@@ -76,7 +90,7 @@ function Work({ tools, live, onStill }: { tools: Tool[]; live: boolean; onStill(
       </details>
       {stills.length > 0 && (
         <div className="work-stills">
-          {stills.map((tool) => (
+          {shown.map((tool) => (
             <button
               key={tool.id}
               type="button"
@@ -87,6 +101,16 @@ function Work({ tools, live, onStill }: { tools: Tool[]; live: boolean; onStill(
               <img src={tool.result!.image} alt={tool.result!.text} />
             </button>
           ))}
+          {folded > 0 && (
+            <button type="button" className="still more" aria-label={`Show ${folded} more stills`} onClick={() => setOpen(true)}>
+              +{folded}
+            </button>
+          )}
+          {open && (
+            <button type="button" className="still more" onClick={() => setOpen(false)}>
+              Fewer
+            </button>
+          )}
         </div>
       )}
     </div>

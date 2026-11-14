@@ -35,7 +35,12 @@ Then **read the screenshots**. A blank or launcher-only shot means it did not re
 | `click:<css>` | click the first match, through the DOM |
 | `wait:<ms>` | wait |
 | `size:<w>x<h>` | resize the window (it opens at 1600×960) |
+| `eval:<js>` | evaluate an expression in the window, print it as JSON |
 | `boxes` | print the panels' boxes (assistant, stage, picture, stage bar, frame, side, timeline) as JSON |
+| `session:<file>` | put a conversation (built-in agent messages, as `.motion-studio/session.json` holds them) in the project and reopen it |
+| `stills:<n>` | the same with a made-up turn that looked at `n` stills of the film, for the assistant panel |
+
+To look at the assistant without a model: `stills:9 ss:folded "click:.work-stills .more" ss:open`.
 
 Examples in the launcher: `kinetic`, `product`, `data`.
 
@@ -43,5 +48,9 @@ Examples in the launcher: `kinetic`, `product`, `data`.
 
 - **Build first.** The script runs `apps/desktop/out/`; `pnpm dev` is the human path and does not leave a build.
 - **No model is set up** in the throwaway profile, so the assistant cannot send. Layout, playback, marks, the timeline
-  and the panels all work.
+  and the panels all work; `session:` and `stills:` fill the conversation.
+- **The assistant is drawn again once the project's agent is known** (a few seconds after opening), which drops
+  anything done in it before. The script waits for "Finding the agent…" to go before it runs the steps.
+- **The app's CSP refuses eval**, so `page.waitForFunction` fails at once; poll `page.evaluate` instead. `eval:` steps
+  work, since an expression passed to `page.evaluate` is not run through eval.
 - Verified on Windows. On Linux it adds `--no-sandbox`; a headless machine needs `xvfb-run -a node ...`.
