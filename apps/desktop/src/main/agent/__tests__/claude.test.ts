@@ -95,13 +95,17 @@ describe('a Claude Code session', () => {
 
   it('says plainly when Claude Code is not signed in', () => {
     expect(resultNotice({ type: 'result', is_error: false })).toBeUndefined();
-    expect(resultNotice({ type: 'result', is_error: true, result: 'Not logged in. Please run /login' })?.text).toMatch(/claude auth login/);
+    expect(resultNotice({ type: 'result', is_error: true, result: 'Not logged in. Please run /login' })).toMatchObject({
+      text: expect.stringMatching(/claude auth login/),
+      need: 'sign-in',
+    });
     expect(resultNotice({ type: 'result', is_error: true, result: 'Rate limited' })).toEqual({ text: 'Rate limited', error: true });
     // As Claude Code 2.1 ends a turn at its --max-budget-usd: no result, the reason in `errors`.
     expect(
       resultNotice({ type: 'result', is_error: true, subtype: 'error_max_budget_usd', errors: ['Reached maximum budget ($0.0001)'] })?.text,
     ).toBe('The turn stopped at its cap: Reached maximum budget ($0.0001). Raise or remove the cap per turn in Models to go on.');
-    expect(resultNotice({ type: 'result', is_error: true, errors: ['Overloaded'] })?.text).toBe('Overloaded');
+    expect(resultNotice({ type: 'result', is_error: true, subtype: 'error_max_budget_usd', errors: [] })?.need).toBe('cap');
+    expect(resultNotice({ type: 'result', is_error: true, errors: ['Overloaded'] })).toEqual({ text: 'Overloaded', error: true });
   });
 
   it('runs turns one after another on one process, and Stop ends it', async () => {

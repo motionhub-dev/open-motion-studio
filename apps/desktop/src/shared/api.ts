@@ -204,6 +204,19 @@ export const MAX_MARKS = 5;
 /** What a connection test found. */
 export type ProviderTest = { ok: true; ms: number; calledTool: boolean } | { ok: false; error: string };
 
+/**
+ * What the person needs to do about a failed turn, when the agent can tell: sign in to their own agent, set it (or the
+ * built-in agent's model) up, or raise the cap per turn. The panel's card offers it.
+ */
+export type NoticeNeed = 'sign-in' | 'setup' | 'cap';
+
+/** How a turn ended, when there is something to say: an error, or a stop. */
+export interface Notice {
+  text: string;
+  error: boolean;
+  need?: NoticeNeed;
+}
+
 /** One entry of the conversation, as the assistant panel shows it. */
 export type ChatItem =
   | { kind: 'user'; text: string; marks: SentMark[]; refs?: Reference[]; version?: number }
@@ -218,7 +231,7 @@ export type ChatItem =
       ask?: Question;
       result?: { ok: boolean; text: string; image?: string };
     }
-  | { kind: 'notice'; text: string; error: boolean }
+  | ({ kind: 'notice' } & Notice)
   /** What an outside agent asked leave to do, and what the person answered. */
   | { kind: 'approval'; approval: Approval; answer?: ApprovalAnswer };
 
@@ -235,7 +248,7 @@ export type AgentEvent =
    * `checkpoint` is the History entry of the files the turn wrote, if it wrote any, and `files` how many it changed;
    * `usage`, what the turn took.
    */
-  | { type: 'end'; notice?: { text: string; error: boolean }; checkpoint?: string; files?: number; usage?: TurnUsage };
+  | { type: 'end'; notice?: Notice; checkpoint?: string; files?: number; usage?: TurnUsage };
 
 /**
  * The tokens an agent reported for a turn, on one footing for every agent: `input` excludes what was read from or

@@ -7,8 +7,7 @@ export function Brief({ onUse }: { onUse(text: string): void }) {
   const [duration, setDuration] = useState('15');
   const [ratio, setRatio] = useState('16:9');
   return (
-    <details className="brief">
-      <summary>Start with a brief</summary>
+    <div className="brief">
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -63,6 +62,6 @@ export function Brief({ onUse }: { onUse(text: string): void }) {
         </button>
         <p className="note">Review your message before sending.</p>
       </form>
-    </details>
+    </div>
   );
 }

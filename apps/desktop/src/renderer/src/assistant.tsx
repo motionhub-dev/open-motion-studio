@@ -210,11 +210,12 @@ const PHASES: [Phase, string][] = [
   ['reviewing', 'Looking'],
 ];
 
-/** Ways to begin, for an empty conversation. */
-const STARTS = [
-  'A 30-second explainer on how a heat pump works',
-  'A 15-second title sequence for a podcast episode',
-  'Find a motion for a data story and show me three',
+/** Ways to begin, for an empty conversation: each puts the start of a message in the box, or opens the brief. */
+const STARTS: { title: string; line: string; draft?: string }[] = [
+  { title: 'Explain an idea', line: 'How something works, step by step', draft: 'A 30-second explainer on how ' },
+  { title: 'Introduce something', line: 'A product, a person, an event', draft: 'A 15-second introduction to ' },
+  { title: 'Start from a look', line: 'A motion from motionhub to build on', draft: 'Find three motions that look ' },
+  { title: 'Write a brief', line: 'What, for whom, how long, what shape' },
 ];
 
 /**
@@ -229,8 +230,14 @@ function AgentChip({
   onRefreshAgents,
   onAgentSettings,
   onSettings,
-}: Pick<Props, 'active' | 'agents' | 'onUseAgent' | 'onRefreshAgents' | 'onAgentSettings' | 'onSettings'> & { disabled: boolean }) {
+  openRequest,
+}: Pick<Props, 'active' | 'agents' | 'onUseAgent' | 'onRefreshAgents' | 'onAgentSettings' | 'onSettings'> & { disabled: boolean; openRequest: number }) {
   const [picking, setPicking] = useState(false);
+  useEffect(() => {
+    if (!openRequest) return;
+    onRefreshAgents();
+    setPicking(true);
+  }, [openRequest]);
   useEffect(() => {
     if (!picking) return;
     const close = (event: PointerEvent) => {
@@ -442,6 +449,12 @@ export function Assistant({
     window.studio.projectUsage().then(setUsage, (e) => setItems((items) => [...items, { kind: 'notice', text: reason(e), error: true }]));
   useEffect(() => void refreshUsage(), []);
   const [draft, setDraft] = useState('');
+  /** The question (its tool id) the person chose to answer in their own words. */
+  const [answeringOwn, setAnsweringOwn] = useState<string | null>(null);
+  /** Asks the agent menu to open, from an error card's Use another agent. */
+  const [agentMenu, setAgentMenu] = useState(0);
+  /** Whether the empty conversation shows the brief. */
+  const [briefing, setBriefing] = useState(false);
   /** The @ being typed in the draft (where it starts, what follows it), while the picker is open; the match in hand. */
   const [mention, setMention] = useState<{ start: number; query: string } | null>(null);
   const [pickAt, setPickAt] = useState(0);
@@ -669,6 +682,16 @@ export function Assistant({
   const firstShown = showEarlier || asked.length <= RECENT_TURNS ? 0 : asked[asked.length - RECENT_TURNS]!;
   const earlier = asked.filter((b) => b < firstShown).length;
   const failing = working ? failingRun(items) : null;
+  /** The agent's question still waiting for its answer: the last one, open while nothing but the turn's end follows it. */
+  const askAt = drawn.findLastIndex((block) => block.kind === 'ask');
+  const pendingAsk =
+    askAt >= 0 && !working && drawn.slice(askAt + 1).every((next) => next.kind === 'item' && (next.item.kind === 'turn' || next.item.kind === 'notice'))
+      ? (drawn[askAt] as Extract<(typeof drawn)[number], { kind: 'ask' }>)
+      : null;
+  /** Whether the person chose to write their own answer to it, which brings the composer back. */
+  const ownAnswer = !!pendingAsk && answeringOwn === pendingAsk.tool.id;
+  /** The question's options stand in the composer's place, the conversation dimmed behind them. */
+  const asking = !!pendingAsk && pendingAsk.tool.ask.options.length > 0 && !ownAnswer;
 
   async function clear() {
     try {
@@ -695,6 +718,7 @@ export function Assistant({
           onRefreshAgents={onRefreshAgents}
           onAgentSettings={onAgentSettings}
           onSettings={onSettings}
+          openRequest={agentMenu}
         />
         {usage && usage.turns > 0 && (
           <span
@@ -720,7 +744,7 @@ export function Assistant({
         </button>
       </div>
       <div
-        className="log"
+        className={`log${asking ? ' dimmed' : ''}`}
         ref={log}
         aria-live="polite"
         onScroll={(event) => {
@@ -730,30 +754,49 @@ export function Assistant({
       >
         {items.length === 0 && (
           <div className="starts">
-            <p className="note">
-              Give the film a direction, or point at a detail to refine it.
-              {!ready && (
-                <>
-                  {' '}
-                  First,{' '}
-                  <button type="button" className="link" onClick={() => onSettings()}>
-                    set up a model
-                  </button>
-                  .
-                </>
-              )}
+            <h3>What should this film do?</h3>
+            {!ready && (
+              <p className="note">
+                First,{' '}
+                <button type="button" className="link" onClick={() => onSettings()}>
+                  set up a model
+                </button>
+                , or pick your own agent above.
+              </p>
+            )}
+            <div className="start-grid">
+              {STARTS.map((start) => (
+                <button
+                  key={start.title}
+                  type="button"
+                  className={`start${start.draft === undefined && briefing ? ' selected' : ''}`}
+                  onClick={() => {
+                    if (start.draft === undefined) return setBriefing(!briefing);
+                    setDraft(start.draft);
+                    requestAnimationFrame(() => {
+                      composer.current?.focus();
+                      composer.current?.setSelectionRange(start.draft!.length, start.draft!.length);
+                    });
+                  }}
+                >
+                  <strong>{start.title}</strong>
+                  <span>{start.line}</span>
+                </button>
+              ))}
+            </div>
+            {briefing && (
+              <Brief
+                onUse={(text) => {
+                  setDraft(text);
+                  setBriefing(false);
+                  composer.current?.focus();
+                }}
+              />
+            )}
+            <p className="hint point-hint">
+              Point at the picture: <kbd>C</kbd> picks a thing on it, and a drag along the timeline's Marks row marks a
+              stretch. @ in the box points at a scene, a layer, a line, an asset or a motion.
             </p>
-            <Brief
-              onUse={(text) => {
-                setDraft(text);
-                composer.current?.focus();
-              }}
-            />
-            {STARTS.slice(0, 1).map((start) => (
-              <button key={start} type="button" className="start" onClick={() => setDraft(start)}>
-                {start}
-              </button>
-            ))}
           </div>
         )}
         {earlier > 0 && (
@@ -777,28 +820,17 @@ export function Assistant({
               />
             );
           if (block.kind === 'ask') {
-            // Answered by any message after it; open while nothing but the turn's end follows it.
-            const open = !working && drawn.slice(b + 1).every((next) => next.kind === 'item' && (next.item.kind === 'turn' || next.item.kind === 'notice'));
+            // Answered by the person's next message; until then its options take the composer's place.
+            const reply = drawn.slice(b + 1).find((next) => next.kind === 'item' && next.item.kind === 'user');
             return (
               <div key={block.tool.id} className="ask-card" role="group" aria-label="The agent asks">
                 <span className="eyebrow">The agent asks</span>
                 <p>{block.tool.ask.question}</p>
-                {block.tool.ask.options.length > 0 && (
-                  <div className="ask-options">
-                    {block.tool.ask.options.map((option, n) => (
-                      <button
-                        key={option}
-                        type="button"
-                        className={`button${n === 0 ? ' primary' : ''}`}
-                        disabled={!open || !ready || disabled}
-                        onClick={() => void sendText(option, [], [])}
-                      >
-                        {option}
-                      </button>
-                    ))}
-                  </div>
+                {reply?.kind === 'item' && reply.item.kind === 'user' ? (
+                  <small>Answered: {reply.item.text}</small>
+                ) : (
+                  block === pendingAsk && <small>{ownAnswer ? 'Write your answer below.' : 'Answer below.'}</small>
                 )}
-                {open && <small>Or write your own answer below.</small>}
               </div>
             );
           }
@@ -912,8 +944,39 @@ export function Assistant({
               </div>
             );
           }
+          if (item.kind === 'notice' && item.error) {
+            // Only the last turn's failure offers what to do (its outcome card may follow); an earlier one is history.
+            const last = !working && items.slice(i + 1).every((row) => row.kind === 'turn');
+            const returned = last && draft.trim() !== '';
+            const models = item.need !== undefined || current === 'built-in';
+            return (
+              <div key={i} className="error-card" role="alert">
+                <p>{item.text}</p>
+                {returned && <small>Your message is back in the box below.</small>}
+                {last && (
+                  <div className="ask-options">
+                    {models && (
+                      <button type="button" className="button primary" onClick={() => onSettings(current === 'built-in' ? undefined : current)}>
+                        {item.need === 'sign-in' && current === 'codex' ? 'Sign in' : item.need === 'cap' ? 'Change the cap' : 'Open Models'}
+                      </button>
+                    )}
+                    {(item.need === 'sign-in' || item.need === 'setup') && (
+                      <button type="button" className="button" onClick={() => setAgentMenu((n) => n + 1)}>
+                        Use another agent
+                      </button>
+                    )}
+                    {returned && (
+                      <button type="button" className={`button${models ? '' : ' primary'}`} disabled={!ready || disabled} onClick={() => void send()}>
+                        Try again
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          }
           return (
-            <p key={i} className={`message ${item.kind}${item.kind === 'notice' && item.error ? ' error' : ''}`}>
+            <p key={i} className={`message ${item.kind}`}>
                 {item.text}
                 {item.kind === 'user' &&
                   item.refs?.map((ref, n) => (
@@ -1087,7 +1150,31 @@ export function Assistant({
           </button>
         </div>
       )}
-      <form className="composer" onSubmit={send}>
+      {asking && pendingAsk && (
+        <div className="question-sheet" role="group" aria-label="The agent asks">
+          <span className="eyebrow">The agent asks</span>
+          <p>{pendingAsk.tool.ask.question}</p>
+          <div className="question-options">
+            {pendingAsk.tool.ask.options.map((option, n) => (
+              <button key={option} type="button" disabled={!ready || disabled} onClick={() => void sendText(option, [], [])}>
+                <span>{option}</span>
+                {n === 0 && <small>Recommended</small>}
+              </button>
+            ))}
+            <button
+              type="button"
+              className="own"
+              onClick={() => {
+                setAnsweringOwn(pendingAsk.tool.id);
+                requestAnimationFrame(() => composer.current?.focus());
+              }}
+            >
+              <span>Something else…</span>
+            </button>
+          </div>
+        </div>
+      )}
+      <form className="composer" onSubmit={send} hidden={asking}>
         {mention && (
           <ReferencePicker
             matches={matches}

@@ -17,6 +17,7 @@ import {
   type BuildResult,
   type ChatItem,
   type HarnessView,
+  type Notice,
   type Project,
   type TurnUsage,
   applyEvent,
@@ -35,7 +36,7 @@ import {
   startCodex,
 } from './agent/codex';
 import { type StudioMcp, startStudioMcp } from './agent/studio-mcp';
-import { CLAUDE_INSTALL, CODEX_INSTALL, findClaude, findCodex } from './agent/harness';
+import { AgentProblem, CLAUDE_INSTALL, CODEX_INSTALL, findClaude, findCodex } from './agent/harness';
 import { CLAUDE_MODELS, ClaudeSession, claudeArgs, newClaudeSession } from './agent/claude';
 import { runTurn, transcript } from './agent/loop';
 import { markedMessage, readMarks } from './agent/marks';
@@ -310,7 +311,7 @@ async function outsideTurn(
   const start = agent.items.length;
   agent.items = [...agent.items, { kind: 'user', text, marks: marks.map(({ t, end, note }) => ({ t, ...(end !== undefined ? { end } : {}), note })), refs }];
   state.lastTurn = undefined;
-  let outcome: { ok: boolean; notice?: { text: string; error: boolean }; spent?: Spent };
+  let outcome: { ok: boolean; notice?: Notice; spent?: Spent };
   let checkpoint: string | undefined;
   const name = agent.kind === 'claude' ? 'Claude Code' : 'Codex';
   // What Codex asks leave to do is a card in the panel; its answer comes back through answerApproval.
@@ -347,11 +348,12 @@ async function outsideTurn(
     );
     const studioUrl = state.studioMcp.url;
     // The agent, started for the project if it is not: its session, and how a turn of it runs.
-    let run: (signal: AbortSignal) => Promise<{ ok: boolean; notice?: { text: string; error: boolean }; spent: Spent }>;
+    let run: (signal: AbortSignal) => Promise<{ ok: boolean; notice?: Notice; spent: Spent }>;
     if (agent.kind === 'claude') {
       const found = await findClaude();
-      if (found.state !== 'found') throw new Error(found.state === 'old' ? 'Claude Code is too old for the Studio. Update it to go on.' : 'Claude Code is not installed on this computer.');
-      if (!found.signedIn) throw new Error('Claude Code is not signed in. Run `claude auth login` in a terminal, then send again.');
+      if (found.state !== 'found')
+        throw new AgentProblem(found.state === 'old' ? 'Claude Code is too old for the Studio. Update it to go on.' : 'Claude Code is not installed on this computer.', 'setup');
+      if (!found.signedIn) throw new AgentProblem('Claude Code is not signed in. Run `claude auth login` in a terminal, then send again.', 'sign-in');
       if (!state.claude) {
         const resume = !!agent.thread;
         agent.thread ??= newClaudeSession();
@@ -367,7 +369,8 @@ async function outsideTurn(
       run = (signal) => session.turn(content, emit, signal);
     } else {
       const found = await findCodex();
-      if (found.state !== 'found') throw new Error(found.state === 'old' ? 'Codex is too old for the Studio. Update it to go on.' : 'Codex is not installed on this computer.');
+      if (found.state !== 'found')
+        throw new AgentProblem(found.state === 'old' ? 'Codex is too old for the Studio. Update it to go on.' : 'Codex is not installed on this computer.', 'setup');
       state.codex ??= await startCodex(found.bin, dir, app.getVersion());
       const thread = (agent.thread = await openThread(state.codex, dir, FILM_SKILL, studioUrl, agent.thread));
       const codex = state.codex;
@@ -394,7 +397,8 @@ async function outsideTurn(
       });
     }
   } catch (error) {
-    outcome = { ok: false, notice: { text: error instanceof Error ? error.message : String(error), error: true } };
+    const text = error instanceof Error ? error.message : String(error);
+    outcome = { ok: false, notice: { text, error: true, ...(error instanceof AgentProblem ? { need: error.need } : {}) } };
   }
   const spent = outcome.spent ?? { tokens: NO_TOKENS, calls: 0 };
   const usage: TurnUsage = { ...spent.tokens, calls: spent.calls, seconds: (Date.now() - began) / 1000, ...(spent.model ? { model: spent.model } : {}) };
@@ -727,7 +731,8 @@ function registerHandlers(): void {
       if (refs.length) content.push({ type: 'text', text: describeReferences(refs, typeof version === 'number' ? version : 0, locate) });
       if (!provider) {
         const outcome = await outsideTurn(state, agent, history, content, text.trim(), marks, refs, controller.signal);
-        tellWhenAway(outcome.ok ? 'Codex finished its turn.' : 'Codex stopped. See the conversation.');
+        const name = agent.kind === 'claude' ? 'Claude Code' : 'Codex';
+        tellWhenAway(outcome.ok ? `${name} finished its turn.` : `${name} stopped. See the conversation.`);
         return outcome;
       }
       const messages = await conversation(state);

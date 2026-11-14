@@ -7,7 +7,17 @@ import { execFile } from 'node:child_process';
 import { access } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import type { HarnessState } from '../../shared/api';
+import type { HarnessState, NoticeNeed } from '../../shared/api';
+
+/** Why an agent cannot take a message, with what the person needs to do about it. */
+export class AgentProblem extends Error {
+  constructor(
+    message: string,
+    readonly need: NoticeNeed,
+  ) {
+    super(message);
+  }
+}
 
 /** The versions of `codex app-server` the Studio was written and tested against: an older one may lack what it uses. */
 export const CODEX_MIN = '0.167.0';

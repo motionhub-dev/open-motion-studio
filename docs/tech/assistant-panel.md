@@ -1,8 +1,8 @@
 # The assistant panel
 
-> **Status:** Plan · **Updated:** 2026-11-14
+> **Status:** Current · **Updated:** 2026-11-14
 
-How the assistant panel is rebuilt around turns: what each turn did, what it cost and how long it took, a composer that gathers what the next message carries, and the settings of the person's own coding agent, in five slices.
+How the assistant panel was rebuilt around turns, in five slices, each its own pull request driven in the app: what each turn did, what it cost and how long it took, a composer that gathers what the next message carries, and the settings of the person's own coding agent. How it looks now is in `design.md`, how it works in `architecture.md`.
 
 The mock agreed with the developer is the
 [Assistant redesign artifact](https://claude.ai/artifact/1HkW2zkafeyP94Jco5KCXF) (five states: a finished turn, a
@@ -98,6 +98,12 @@ the tray holds the two kinds of card as before, under one head), and Send reads 
 
 ## Slice 5: questions, errors and the empty conversation
 
+*Built*, as below. A failed turn's notice carries what the person needs (`need`: sign in, set up, or the cap), from
+Claude Code's result or the Studio's own checks; the card offers Open Models (Sign in on Codex, Change the cap for a
+cap) for those and for any built-in failure, Use another agent (it opens the agent menu) for sign-in and setup, and Try
+again while the message is back in the box. Only the last turn's failure offers them. A question without options
+leaves the composer as it is. The brief is the fourth start's card, no longer a fold of its own.
+
 - **A question** from the agent takes the composer's place, the conversation behind it dimmed: its options, the
   recommended one marked, "Something else…" back to the box; answered, it stays in the conversation as a dashed card
   with the answer.
@@ -105,19 +111,3 @@ the tray holds the two kinds of card as before, under one head), and Send reads 
   message stays in the box and the card says so. The header's dot shows a signed-out agent before a message is sent.
 - **An empty conversation**: a title, four starts (explain an idea, introduce something, start from a look, write a
   brief, which takes today's Brief), and how to point at the picture (C, a stretch on the timeline).
-
-## Order and what each slice changes
-
-1 first, since 2's card and 3's header show its account; then 2, 3, 4, 5, each its own pull request, driven in the app
-with the run-desktop skill (a turn's card from a recorded session; a real turn on each agent for 1 and 3).
-
-| Slice | Main | Shared / IPC | Renderer | Docs |
-| --- | --- | --- | --- | --- |
-| 1 | `agent/loop.ts`, `claude.ts`, `codex.ts`, `index.ts`; new `usage.ts` | `end` gains `usage`; `conversation` returns turns' accounts | `assistant.tsx` turn card | ADR 0009, `architecture.md`, CHANGELOG |
-| 2 | `index.ts` (files, check result on `end`) | `end` gains `files`, `check` | `assistant.tsx`, `activity.ts`, `styles.css` | `design.md`, CHANGELOG |
-| 3 | `claude.ts`, `codex.ts`, `providers.ts` or a new settings module | agent settings in `StudioApi` | `settings.tsx`, `assistant.tsx` header | `architecture.md`, ADR 0008 note, CHANGELOG |
-| 4 | none (assets import as today) | none | `assistant.tsx`, new picker | `design.md`, CHANGELOG |
-| 5 | `index.ts` (error kinds) | `notice` gains a kind | `assistant.tsx` | `design.md`, CHANGELOG |
-
-When the slices land, this document is rewritten to describe what was built, or folded into `architecture.md` and
-`design.md` and deleted.

@@ -3,6 +3,20 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-14 — Questions take the composer's place, failures say what to do, a new start
+
+- **What:** A question the agent asks with answers now stands where the composer was, the conversation dimmed behind
+  it, with its recommended answer marked and "Something else…" back to the box; answered, it stays as a dashed card
+  with the answer. A failed turn is a card that offers what to do: Open Models (or Sign in, or Change the cap), Use
+  another agent, and Try again with the message that is back in the box. An empty conversation offers four ways to
+  start, the brief among them, and how to point at the picture.
+- **Why:** A question was easy to miss in the conversation, a failure left the person to work out the next step, and
+  the empty conversation said little.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/assistant.tsx`, `apps/desktop/src/main/agent/claude.ts`,
+  `apps/desktop/src/shared/api.ts`, `docs/design.md`, `docs/tech/assistant-panel.md`.
+
 ## 2026-11-14 — Point at anything with @, import with +, one tray for the next message
 
 - **What:** Typing @ in the composer (or its @ button) opens a picker over the film's scenes, layers and lines and the
