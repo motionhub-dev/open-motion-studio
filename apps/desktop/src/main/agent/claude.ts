@@ -12,6 +12,7 @@ import type Anthropic from '@anthropic-ai/sdk';
 import type { AgentEvent } from '../../shared/api';
 import { claudeEnv } from './harness';
 import { moment, question, summary } from './loop';
+import { NO_TOKENS, type Spent, addSpent, claudeResult } from '../usage';
 
 /** The name the Studio's MCP server has in a Claude Code session, and so the prefix of its tools there. */
 export const CLAUDE_STUDIO_SERVER = 'open_motion_studio';
@@ -97,7 +98,7 @@ export class ClaudeSession {
   }
 
   /** Runs one turn: the person's message in, its events out through `emit`, until the turn's result. Never throws. */
-  async turn(content: Block[], emit: (event: AgentEvent) => void, signal: AbortSignal): Promise<{ ok: boolean; notice?: Notice }> {
+  async turn(content: Block[], emit: (event: AgentEvent) => void, signal: AbortSignal): Promise<{ ok: boolean; notice?: Notice; spent: Spent }> {
     const reading: ClaudeReading = { said: false, tools: new Map() };
     let finished!: (notice: Notice | undefined) => void;
     const over = new Promise<Notice | undefined>((done) => (finished = done));
@@ -105,11 +106,14 @@ export class ClaudeSession {
     this.takenIn = 0;
     // The last error a result reported, kept when a message sent mid-turn runs on after it.
     let failed: Notice | undefined;
+    // What the turn took, from each of its results (more than one when a message sent mid-turn ran after one).
+    let spent: Spent = { tokens: NO_TOKENS, calls: 0 };
     this.listener = (event) => {
       if (event.type === 'user' && event.isReplay === true) this.takenIn++;
       for (const out of translateClaude(event, reading)) emit(out);
       if (event.type === 'result') {
         failed = resultNotice(event) ?? failed;
+        spent = addSpent(spent, claudeResult(event));
         if (this.takenIn >= this.written) {
           // No more messages join this turn: one sent from here on waits for the next.
           this.listener = null;
@@ -135,7 +139,7 @@ export class ClaudeSession {
       this.listener = null;
       signal.removeEventListener('abort', stop);
     }
-    return { ok: !notice?.error && !signal.aborted, notice };
+    return { ok: !notice?.error && !signal.aborted, notice, spent };
   }
 
   /** Sends the person's message into the running turn; false when no turn runs, so the message waits for the next. */

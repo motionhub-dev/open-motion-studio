@@ -17,19 +17,20 @@ import {
   type Reference,
   type ProviderView,
   type SentMark,
+  type UsageTotals,
   applyEvent,
 } from '../../shared/api';
 import type { FilmInfo } from '../../shared/preview';
-import { type Row, blocks, changeKey, changeLine, failingRun, filmChanges, running, workLine, workedFor } from './activity';
+import { type Row, allTokens, blocks, changeKey, changeLine, failingRun, filmChanges, running, tokenCount, tokenParts, workLine, workedFor } from './activity';
 import { Brief } from './brief';
 import { Markdown } from './markdown';
 import { elementName, timecode } from './preview';
 import { reason } from './reason';
 
-function apply(items: Row[], event: AgentEvent, before: FilmInfo | null, seconds?: number): Row[] {
+function apply(items: Row[], event: AgentEvent, before: FilmInfo | null): Row[] {
   // The turn rows stay where they are; the transcript's own items take the event as everywhere else.
   if (event.type === 'end')
-    return [...applyEvent(items as ChatItem[], event), { kind: 'turn', before, checkpoint: event.checkpoint, seconds }];
+    return [...applyEvent(items as ChatItem[], event), { kind: 'turn', before, checkpoint: event.checkpoint, usage: event.usage }];
   if (event.type === 'tool-result' || event.type === 'approval-done')
     return items.map((item) => (item.kind === 'turn' ? item : applyEvent([item], event)[0]!));
   const last = items[items.length - 1];
@@ -218,8 +219,11 @@ export function Assistant({
   const [undoing, setUndoing] = useState(false);
   /** The film when the last message went, which the turn's end keeps. */
   const filmAtSend = useRef<FilmInfo | null>(null);
-  /** When the last message went, which the turn's end measures from. */
-  const sentAt = useRef<number | null>(null);
+  /** The project's turns added up, from its usage log, for the header. */
+  const [usage, setUsage] = useState<UsageTotals | null>(null);
+  const refreshUsage = () =>
+    window.studio.projectUsage().then(setUsage, (e) => setItems((items) => [...items, { kind: 'notice', text: reason(e), error: true }]));
+  useEffect(() => void refreshUsage(), []);
   const [draft, setDraft] = useState('');
   const [following, setFollowing] = useState(true);
   const [working, setWorking] = useState(false);
@@ -269,8 +273,7 @@ export function Assistant({
     const stop = window.studio.onAgentEvent((event) => {
       events++;
       const before = filmAtSend.current;
-      const seconds = event.type === 'end' && sentAt.current !== null ? (Date.now() - sentAt.current) / 1000 : undefined;
-      setItems((current) => apply(current, event, before, seconds));
+      setItems((current) => apply(current, event, before));
       if (event.type === 'end') setWorking(false);
       if (event.type === 'phase') setPhase(event.phase);
     });
@@ -340,7 +343,6 @@ export function Assistant({
     if (working || !ready || disabled) return;
     const shown: SentMark[] = sent.map(({ t, end, note }) => ({ t, ...(end !== undefined ? { end } : {}), note }));
     filmAtSend.current = film;
-    sentAt.current = Date.now();
     setFollowing(true);
     setPhase('thinking');
     setWorking(true);
@@ -351,6 +353,7 @@ export function Assistant({
     try {
       const outcome = await window.studio.sendMessage(text, sent, refsSent, version);
       setWorking(false);
+      void refreshUsage();
       if (outcome.ok) onSent();
       else giveBack();
     } catch (e) {
@@ -408,6 +411,14 @@ export function Assistant({
           <PanelLeftClose size={15} />
         </button>
         <h2>Assistant</h2>
+        {usage && usage.turns > 0 && (
+          <span
+            className="usage-total"
+            title={`This project, ${usage.turns} ${usage.turns === 1 ? 'turn' : 'turns'}: ${tokenParts(usage)}`}
+          >
+            {tokenCount(allTokens(usage))} tokens
+          </span>
+        )}
         <span className="spacer" />
         <button type="button" className="icon-button" aria-label="History" data-tip="History: go back to before a turn" onClick={onHistory}>
           <History size={15} />
@@ -501,10 +512,15 @@ export function Assistant({
             const latest = item === lastTurn;
             // Only the last turn can be undone from here, and not while another is changing the film: History has the rest.
             const undoable = latest && !working && item.checkpoint;
-            if ((latest && working) || (!changes.length && !undoable)) return null;
+            // Every turn says what it took; one that changed nothing and cannot be undone says only that.
+            if ((latest && working) || (!changes.length && !undoable && !item.usage)) return null;
             return (
               <div key={`turn-${i}`} className="turn-card">
-                {item.seconds !== undefined && <span className="turn-took">{workedFor(item.seconds)}</span>}
+                {item.usage && (
+                  <span className="turn-took" title={tokenParts(item.usage)}>
+                    {workedFor(item.usage.seconds)} · {tokenCount(allTokens(item.usage))} tokens
+                  </span>
+                )}
                 {changes.length > 0 && (
                   <>
                     <span className="eyebrow">{changeLine(changes)}</span>

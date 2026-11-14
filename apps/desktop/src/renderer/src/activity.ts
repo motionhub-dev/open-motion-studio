@@ -2,20 +2,45 @@
 // one line of plain words, what it is doing now, whether it keeps failing at the same thing, and how
 // the film changed over a turn.
 
-import type { ChatItem, Reference } from '../../shared/api';
+import type { ChatItem, Reference, Tokens, TurnUsage } from '../../shared/api';
 import type { FilmInfo, LayerBox } from '../../shared/preview';
 
 type Tool = Extract<ChatItem, { kind: 'tool' }>;
 
 /**
  * Where a turn of the agent ended, as the panel keeps it while the project is open: the film as it was when the
- * person sent the message, the History entry of the files the turn wrote, and how long the turn took in seconds.
+ * person sent the message, the History entry of the files the turn wrote, and what the turn took.
  */
 export interface TurnEnd {
   kind: 'turn';
   before: FilmInfo | null;
   checkpoint?: string;
-  seconds?: number;
+  usage?: TurnUsage;
+}
+
+/** Every token a turn's account counts. */
+export const allTokens = (t: Tokens): number => t.input + t.cacheRead + t.cacheWrite + t.output;
+
+/** A count of tokens as the panel says it: `840`, `18.4k`, `1.2M`. */
+export function tokenCount(n: number): string {
+  if (n < 1000) return String(Math.round(n));
+  if (n < 1_000_000) return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0).replace(/\.0$/, '')}k`;
+  return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+}
+
+/** What a turn's tokens were, part by part, for a tooltip. */
+export function tokenParts(t: Tokens & { calls?: number; model?: string }): string {
+  const n = (v: number) => Math.round(v).toLocaleString('en');
+  return [
+    t.model,
+    t.calls ? `${t.calls} model ${t.calls === 1 ? 'call' : 'calls'}` : undefined,
+    `Input ${n(t.input)}`,
+    t.cacheRead ? `cached ${n(t.cacheRead)}` : undefined,
+    t.cacheWrite ? `cache written ${n(t.cacheWrite)}` : undefined,
+    `output ${n(t.output)}${t.reasoning ? ` (reasoning ${n(t.reasoning)})` : ''}`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 }
 
 /** How long a turn took, as the panel says it: `Worked for 8s`, `Worked for 1m 12s`. */

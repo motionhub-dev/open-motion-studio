@@ -45,5 +45,14 @@ for (;;) {
     }
   }
   if (words === 'late') await pause(300);
-  out({ type: 'result', subtype: 'success', is_error: words === 'fail', result: words === 'fail' ? 'Not logged in. Please run /login' : 'done' });
+  out({
+    type: 'result',
+    subtype: 'success',
+    is_error: words === 'fail',
+    result: words === 'fail' ? 'Not logged in. Please run /login' : 'done',
+    num_turns: 1,
+    usage: { input_tokens: 100, cache_read_input_tokens: 1000, cache_creation_input_tokens: 0, output_tokens: 20 },
+    modelUsage: { 'claude-sonnet-5-5': { outputTokens: 20 } },
+    total_cost_usd: 0.01,
+  });
 }

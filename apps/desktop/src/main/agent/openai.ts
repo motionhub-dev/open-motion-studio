@@ -7,6 +7,7 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import type { Provider } from '../providers';
 import type { Call, Message, MessageParam } from './model';
+import { chatTokens } from '../usage';
 
 type Tool = Anthropic.Beta.BetaTool;
 
@@ -85,7 +86,7 @@ interface Chunk {
     };
     finish_reason?: string | null;
   }[];
-  usage?: { prompt_tokens?: number; completion_tokens?: number } | null;
+  usage?: Record<string, unknown> | null;
   error?: { message?: string };
 }
 
@@ -93,7 +94,8 @@ interface Chunk {
 export async function readStream(body: ReadableStream<Uint8Array>, model: string, onText: (text: string) => void): Promise<Message> {
   let text = '';
   let finish: string | null = null;
-  const usage = { input_tokens: 0, output_tokens: 0 };
+  // In the Messages shape, the cached prompt apart (usage.ts chatTokens).
+  let usage = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, reasoning_tokens: 0 };
   const calls = new Map<number, { id: string; name: string; args: string }>();
   const decoder = new TextDecoder();
   let pending = '';
@@ -105,8 +107,8 @@ export async function readStream(body: ReadableStream<Uint8Array>, model: string
     const chunk = JSON.parse(data) as Chunk;
     if (chunk.error) throw new ProviderError(500, chunk.error.message ?? 'The provider reported an error mid-answer.');
     if (chunk.usage) {
-      usage.input_tokens = chunk.usage.prompt_tokens ?? usage.input_tokens;
-      usage.output_tokens = chunk.usage.completion_tokens ?? usage.output_tokens;
+      const tokens = chatTokens(chunk.usage);
+      usage = { input_tokens: tokens.input, output_tokens: tokens.output, cache_read_input_tokens: tokens.cacheRead, reasoning_tokens: tokens.reasoning };
     }
     for (const choice of chunk.choices ?? []) {
       const delta = choice.delta ?? {};

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { STUDIO_SERVER, approvalFor, codexInput, sessionConfig, signInCodex, translate, turnEnd, type Reading } from '../codex';
+import { STUDIO_SERVER, approvalFor, codexInput, codexTurn, sessionConfig, signInCodex, translate, turnEnd, type Reading } from '../codex';
 import { atLeast, codexPlaces, versionOf } from '../harness';
 
 vi.mock('electron', () => ({}));
@@ -147,5 +147,34 @@ describe('signing in to Codex', () => {
     const odd = fake('file:///etc/passwd', null);
     await expect(signInCodex(odd.server, odd.open)).rejects.toThrow('sign-in page');
     expect(odd.open).not.toHaveBeenCalled();
+  });
+});
+
+describe('what a Codex turn took', () => {
+  it('adds up the model calls Codex reports under the turn, and no other turn’s', async () => {
+    let listener: (method: string, params: Record<string, unknown>) => void = () => {};
+    const call = (turnId: string, input: number, cached: number, output: number, reasoning: number) =>
+      listener('thread/tokenUsage/updated', {
+        threadId: 'th',
+        turnId,
+        tokenUsage: { last: { inputTokens: input, cachedInputTokens: cached, cacheWriteInputTokens: 0, outputTokens: output, reasoningOutputTokens: reasoning } },
+      });
+    const server = {
+      on: (l: typeof listener) => ((listener = l), () => undefined),
+      request: async () => {
+        setTimeout(() => {
+          call('an-earlier-turn', 5000, 0, 50, 0);
+          // As Codex 0.167 reported them: its input includes the cached part, its output the reasoning.
+          call('t1', 16784, 0, 54, 0);
+          call('t1', 16866, 16640, 31, 6);
+          listener('turn/completed', { threadId: 'th', turn: { id: 't1', status: 'completed' } });
+        });
+        return { turn: { id: 't1' } };
+      },
+      ended: new Promise<void>(() => undefined),
+      lastWords: () => '',
+    } as never;
+    const outcome = await codexTurn(server, 'th', [], () => undefined, new AbortController().signal, async () => 'deny', () => 'project');
+    expect(outcome.spent).toEqual({ tokens: { input: 17010, cacheRead: 16640, cacheWrite: 0, output: 85, reasoning: 6 }, calls: 2 });
   });
 });

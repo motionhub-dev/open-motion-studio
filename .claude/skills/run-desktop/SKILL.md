@@ -42,6 +42,9 @@ Then **read the screenshots**. A blank or launcher-only shot means it did not re
 | `boxes` | print the panels' boxes (assistant, stage, picture, stage bar, frame, side, timeline) as JSON |
 | `session:<file>` | put a conversation (built-in agent messages, as `.motion-studio/session.json` holds them) in the project and reopen it |
 | `stills:<n>` | the same with a made-up turn that looked at `n` stills of the film, for the assistant panel |
+| `agent:<kind>` | make the project talk to `built-in`, `claude` or `codex` (its `agent.json`) and open it again |
+| `send:<text>` | send a message and wait for the turn to end: **a real turn**, on the person's own sign-in or key, which spends their tokens; keep it to a one-word reply unless more is needed |
+| `file:<path>` | print a file of the open project, such as `.motion-studio/usage.jsonl` (the run's profile, and the project in it, go when it ends) |
 
 To look at the assistant without a model: `stills:9 ss:folded "click:.work-stills .more" ss:open`.
 

@@ -11,6 +11,7 @@ import { type ChildProcess, spawn } from 'node:child_process';
 import type Anthropic from '@anthropic-ai/sdk';
 import type { AgentEvent, Approval, ApprovalAnswer } from '../../shared/api';
 import { moment, question, summary } from './loop';
+import { NO_TOKENS, type Spent, addSpent, codexTokens } from '../usage';
 
 /** The name the Studio's MCP server has in a Codex session. */
 export const STUDIO_SERVER = 'open_motion_studio';
@@ -387,8 +388,10 @@ export async function codexTurn(
   signal: AbortSignal,
   ask: (approval: Omit<Approval, 'id'>) => Promise<ApprovalAnswer>,
   place: (path: string) => Place,
-): Promise<{ ok: boolean; notice?: Notice }> {
+): Promise<{ ok: boolean; notice?: Notice; spent: Spent }> {
   const reading: Reading = { said: false };
+  // Codex says what each of its model calls took (`last`, under the turn's id); the turn took their sum.
+  let spent: Spent = { tokens: NO_TOKENS, calls: 0 };
   /** The files of each file change under way, by item, for the approval it may ask. */
   const changing = new Map<string, string[]>();
   let turnId: string | undefined;
@@ -397,6 +400,8 @@ export async function codexTurn(
   const stop = server.on((method, params) => {
     if (params.threadId !== undefined && params.threadId !== thread) return;
     if (method === 'turn/started') turnId = (params.turn as { id?: string } | undefined)?.id ?? turnId;
+    if (method === 'thread/tokenUsage/updated' && (!turnId || params.turnId === turnId))
+      spent = addSpent(spent, { tokens: codexTokens((params.tokenUsage as { last?: unknown } | undefined)?.last), calls: 1 });
     const item = params.item as Item | undefined;
     if (method === 'item/started' && item?.type === 'fileChange')
       changing.set(item.id, ((item.changes as { path: string }[] | undefined) ?? []).map((c) => c.path));
@@ -434,5 +439,5 @@ export async function codexTurn(
     signal.removeEventListener('abort', interrupt);
   }
   if (signal.aborted && !notice) notice = { text: 'Stopped.', error: false };
-  return { ok: !notice?.error && !signal.aborted, notice };
+  return { ok: !notice?.error && !signal.aborted, notice, spent };
 }

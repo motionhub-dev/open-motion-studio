@@ -91,7 +91,12 @@ describe('a Claude Code session', () => {
     const session = new ClaudeSession(process.execPath, __dirname, [script]);
     const events: AgentEvent[] = [];
     const first = await session.turn([{ type: 'text', text: 'hello' }], (e) => events.push(e), new AbortController().signal);
-    expect(first).toEqual({ ok: true, notice: undefined });
+    // What the turn took, from its result.
+    expect(first).toEqual({
+      ok: true,
+      notice: undefined,
+      spent: { tokens: { input: 100, cacheRead: 1000, cacheWrite: 0, output: 20, reasoning: 0 }, calls: 1, model: 'claude-sonnet-5-5', costUsd: 0.01 },
+    });
     expect(events).toContainEqual({ type: 'text', text: 'Turn 1: hello' });
     expect(events).toContainEqual({ type: 'tool-result', id: 't1', ok: true, text: 'export default' });
     const second = await session.turn([{ type: 'text', text: 'fail' }], () => undefined, new AbortController().signal);
@@ -99,7 +104,7 @@ describe('a Claude Code session', () => {
     const stop = new AbortController();
     const hanging = session.turn([{ type: 'text', text: 'hang' }], () => undefined, stop.signal);
     stop.abort();
-    expect(await hanging).toEqual({ ok: false, notice: { text: 'Stopped.', error: false } });
+    expect(await hanging).toMatchObject({ ok: false, notice: { text: 'Stopped.', error: false } });
   });
 
   it('takes a message sent mid-turn into the turn, whether Claude Code takes it in before its result or after', async () => {
@@ -117,7 +122,7 @@ describe('a Claude Code session', () => {
       const slow = session.turn([{ type: 'text', text: 'slow' }], (e) => joined.push(e), signal);
       await until(() => joined.some((e) => e.type === 'tool'));
       expect(session.steer([{ type: 'text', text: 'and blue' }])).toBe(true);
-      expect(await slow).toEqual({ ok: true, notice: undefined });
+      expect(await slow).toMatchObject({ ok: true, notice: undefined, spent: { calls: 1 } });
       expect(joined).toContainEqual({ type: 'text', text: 'Took in: and blue' });
 
       // Taken in after it: Claude Code runs it as a turn of its own, which the Studio's turn waits for.
@@ -125,12 +130,13 @@ describe('a Claude Code session', () => {
       const late = session.turn([{ type: 'text', text: 'late' }], (e) => ran.push(e), signal);
       await until(() => ran.some((e) => e.type === 'tool'));
       expect(session.steer([{ type: 'text', text: 'and red' }])).toBe(true);
-      expect(await late).toEqual({ ok: true, notice: undefined });
+      // Two results, one turn: their accounts added up.
+      expect(await late).toMatchObject({ ok: true, notice: undefined, spent: { calls: 2, tokens: { input: 200, output: 40 }, costUsd: 0.02 } });
       expect(ran).toContainEqual({ type: 'text', text: 'Turn 3: and red' });
 
       // The next turn is its own: no result of the last one is left to end it early.
       const after: AgentEvent[] = [];
-      expect(await session.turn([{ type: 'text', text: 'next' }], (e) => after.push(e), signal)).toEqual({ ok: true, notice: undefined });
+      expect(await session.turn([{ type: 'text', text: 'next' }], (e) => after.push(e), signal)).toMatchObject({ ok: true, notice: undefined, spent: { calls: 1 } });
       expect(after).toContainEqual({ type: 'text', text: 'Turn 4: next' });
       expect(session.steer([{ type: 'text', text: 'between turns' }])).toBe(false);
     } finally {

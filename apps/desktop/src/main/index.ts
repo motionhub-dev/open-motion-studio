@@ -17,6 +17,7 @@ import {
   type ChatItem,
   type HarnessView,
   type Project,
+  type TurnUsage,
   applyEvent,
 } from '../shared/api';
 import { type AppServer, type Place, codexInput, codexTurn, openThread, signInCodex, signedIn, startCodex } from './agent/codex';
@@ -40,6 +41,7 @@ import { motionDetail, motionReel, projectMotions, searchMotions, useMotion } fr
 import { STATE_DIR, createProject, isRecent, openProject, projectAt, recentProjects, rememberProject } from './project';
 import { describeReferences, filmSpans, readReferences } from './agent/references';
 import { ProjectHistory, changesBetween, noteFiles, putBack } from './history';
+import { NO_TOKENS, type Spent, readTurns, recordTurn, totals } from './usage';
 import { randomUUID } from 'node:crypto';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { ProviderStore } from './providers';
@@ -243,6 +245,26 @@ function placeIn(dir: string, path: string): Place {
   }
 }
 
+/** Adds a turn's account to the project's usage log; a log that cannot be written is said, and the turn goes on. */
+async function logTurn(
+  dir: string,
+  turn: { agent: AgentKind; usage: TurnUsage; notice?: { error: boolean }; stopped: boolean; tools: number; checkpoint?: string; costUsd?: number },
+): Promise<void> {
+  try {
+    await recordTurn(dir, {
+      at: new Date().toISOString(),
+      agent: turn.agent,
+      outcome: turn.stopped ? 'stopped' : turn.notice?.error ? 'failed' : 'done',
+      ...turn.usage,
+      tools: turn.tools,
+      ...(turn.costUsd !== undefined ? { costUsd: turn.costUsd } : {}),
+      ...(turn.checkpoint ? { checkpoint: turn.checkpoint } : {}),
+    });
+  } catch (error) {
+    console.error('The turn could not be added to the usage log:', error);
+  }
+}
+
 /**
  * A turn on the person's own Codex (ADR 0008): its app-server started for the project if it is not, the project's
  * thread opened, the turn run with its events sent to the panel and kept as the panel's items, and the files that
@@ -259,14 +281,17 @@ async function outsideTurn(
   signal: AbortSignal,
 ): Promise<{ ok: boolean }> {
   const dir = state.project.path;
+  const began = Date.now();
+  let toolCalls = 0;
   const emit = (event: AgentEvent) => {
+    if (event.type === 'tool') toolCalls++;
     agent.items = applyEvent(agent.items, event);
     if (open === state) send(EVENTS.agent, event);
   };
   const start = agent.items.length;
   agent.items = [...agent.items, { kind: 'user', text, marks: marks.map(({ t, end, note }) => ({ t, ...(end !== undefined ? { end } : {}), note })), refs }];
   state.lastTurn = undefined;
-  let outcome: { ok: boolean; notice?: { text: string; error: boolean } };
+  let outcome: { ok: boolean; notice?: { text: string; error: boolean }; spent?: Spent };
   let checkpoint: string | undefined;
   const name = agent.kind === 'claude' ? 'Claude Code' : 'Codex';
   // What Codex asks leave to do is a card in the panel; its answer comes back through answerApproval.
@@ -303,7 +328,7 @@ async function outsideTurn(
     );
     const studioUrl = state.studioMcp.url;
     // The agent, started for the project if it is not: its session, and how a turn of it runs.
-    let run: (signal: AbortSignal) => Promise<{ ok: boolean; notice?: { text: string; error: boolean } }>;
+    let run: (signal: AbortSignal) => Promise<{ ok: boolean; notice?: { text: string; error: boolean }; spent: Spent }>;
     if (agent.kind === 'claude') {
       const found = await findClaude();
       if (found.state !== 'found') throw new Error(found.state === 'old' ? 'Claude Code is too old for the Studio. Update it to go on.' : 'Claude Code is not installed on this computer.');
@@ -345,7 +370,11 @@ async function outsideTurn(
   } catch (error) {
     outcome = { ok: false, notice: { text: error instanceof Error ? error.message : String(error), error: true } };
   }
-  emit({ type: 'end', notice: outcome.notice, checkpoint });
+  const spent = outcome.spent ?? { tokens: NO_TOKENS, calls: 0 };
+  const usage: TurnUsage = { ...spent.tokens, calls: spent.calls, seconds: (Date.now() - began) / 1000, ...(spent.model ? { model: spent.model } : {}) };
+  // Logged before the turn ends, so the panel reads it with the turn.
+  await logTurn(dir, { agent: agent.kind, usage, notice: outcome.notice, stopped: signal.aborted, tools: toolCalls, checkpoint, costUsd: spent.costUsd });
+  emit({ type: 'end', notice: outcome.notice, checkpoint, usage });
   if (checkpoint) state.lastTurn = { checkpoint, start };
   await saveAgent(dir, agent);
   return { ok: outcome.ok };
@@ -593,6 +622,7 @@ function registerHandlers(): void {
     }
   });
   ipcMain.handle(CHANNELS.stopAgent, () => working?.abort());
+  ipcMain.handle(CHANNELS.projectUsage, async () => totals(await readTurns(requireOpen().project.path)));
   // Words into the turn that runs, for Claude Code alone, which takes a message mid-turn; else they wait for its end.
   ipcMain.handle(CHANNELS.steerAgent, async (_event, text: unknown) => {
     const state = requireOpen();
@@ -655,6 +685,8 @@ function registerHandlers(): void {
       }
       const messages = await conversation(state);
       const start = messages.length;
+      let toolCalls = 0;
+      let logged: Promise<void> = Promise.resolve();
       state.lastTurn = undefined;
       const outcome = await runTurn(
         {
@@ -663,6 +695,12 @@ function registerHandlers(): void {
           call: caller(provider, FILM_SKILL, TOOLS),
           tools,
           emit: (event: AgentEvent) => {
+            if (event.type === 'tool') toolCalls++;
+            if (event.type === 'end' && event.usage) {
+              // The model is the provider's; the turn is logged as it ends.
+              event = { ...event, usage: { ...event.usage, model: provider.model } };
+              logged = logTurn(dir, { agent: 'built-in', usage: event.usage!, notice: event.notice, stopped: controller.signal.aborted, tools: toolCalls, checkpoint: event.checkpoint });
+            }
             if (open === state) send(EVENTS.agent, event);
           },
           save: (messages) => saveConversation(dir, messages),
@@ -671,6 +709,8 @@ function registerHandlers(): void {
         },
         (error) => failure(error, provider.name),
       );
+      // The message is answered once its turn is in the log.
+      await logged;
       const checkpoint = history.checkpoint;
       if (checkpoint) state.lastTurn = { checkpoint, start };
       tellWhenAway(outcome.ok ? 'The agent finished its turn.' : 'The agent stopped. See the conversation.');
