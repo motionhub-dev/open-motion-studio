@@ -5,7 +5,7 @@
 // providers, the person's own coding agents (ADR 0008), each with where it stands and the one
 // thing to do about it: install or update it from its vendor's page, or sign in through it.
 
-import { Check, ExternalLink, KeyRound, Loader, Plus, RefreshCw, X } from 'lucide-react';
+import { Check, ExternalLink, KeyRound, Loader, Plus, RefreshCw, Volume2, X } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 import type {
   AgentModel,
@@ -17,6 +17,10 @@ import type {
   ProviderTest,
   Providers,
   ProviderView,
+  VoiceChoice,
+  VoiceInput,
+  VoiceKind,
+  VoiceView,
 } from '../../shared/api';
 import { reason } from './reason';
 
@@ -45,6 +49,246 @@ const initials = (name: string) =>
     .join('')
     .slice(0, 2)
     .toUpperCase();
+
+/** How each voice provider is set up: where its key is, what else it needs, and its default model. */
+const VOICE_GUIDES: Record<VoiceKind, { name: string; steps: string[]; link: string; linkLabel: string; model: string }> = {
+  azure: {
+    name: 'Azure',
+    steps: [
+      'In the Azure portal, create a Speech resource. Its free tier speaks a monthly allowance at no cost.',
+      'Open the resource’s Keys and Endpoint page: copy Key 1, and its Location, as eastasia.',
+    ],
+    link: 'https://portal.azure.com/#create/Microsoft.CognitiveServicesSpeechServices',
+    linkLabel: 'Create a Speech resource',
+    model: '',
+  },
+  elevenlabs: {
+    name: 'ElevenLabs',
+    steps: ['Sign in to ElevenLabs; its free plan speaks a monthly allowance.', 'Under API Keys, create a key with Text to Speech and Voices allowed.'],
+    link: 'https://elevenlabs.io/app/settings/api-keys',
+    linkLabel: 'Open API Keys',
+    model: 'eleven_multilingual_v2',
+  },
+  minimax: {
+    name: 'MiniMax',
+    steps: [
+      'Sign in to MiniMax’s platform: minimax.io, or minimaxi.com in mainland China. Pick the same site below.',
+      'Create a key under API Keys, and copy the group id from the account’s page.',
+    ],
+    link: 'https://www.minimax.io/platform/user-center/basic-information/interface-key',
+    linkLabel: 'Open MiniMax’s keys',
+    model: 'speech-2.8-hd',
+  },
+  openai: {
+    name: 'OpenAI',
+    steps: [
+      'Already have an OpenAI key? Paste it: it speaks, and one transcription of each line gives its words’ times.',
+      'Otherwise create one under API keys.',
+    ],
+    link: 'https://platform.openai.com/api-keys',
+    linkLabel: 'Open API keys',
+    model: 'gpt-4o-mini-tts',
+  },
+};
+
+const VOICE_KINDS = Object.keys(VOICE_GUIDES) as VoiceKind[];
+const SAMPLE = { zh: '热量从高处流向低处，除非你推它一把。', en: 'Heat moves downhill, unless you push it.' };
+
+/** A voice provider: how to get its key, the key and what else it needs, a voice to hear, and what a film writes for it. */
+function VoicePane({
+  kind,
+  view,
+  onVoices,
+  onClose,
+}: {
+  kind: VoiceKind;
+  view: VoiceView | undefined;
+  onVoices(voices: VoiceView[]): void;
+  onClose(): void;
+}) {
+  const guide = VOICE_GUIDES[kind];
+  const [draft, setDraft] = useState<VoiceInput>({
+    kind,
+    region: view?.region ?? (kind === 'minimax' ? 'global' : ''),
+    groupId: view?.groupId ?? '',
+    model: view?.model ?? '',
+    key: '',
+  });
+  const [choices, setChoices] = useState<VoiceChoice[] | null>(null);
+  const [voice, setVoice] = useState('');
+  const [sample, setSample] = useState<string | null>(null);
+  const [busy, setBusy] = useState<'saving' | 'listing' | 'speaking' | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const edit = (change: Partial<VoiceInput>) => {
+    setDraft((d) => ({ ...d, ...change }));
+    setSaved(false);
+  };
+  async function act<T>(what: 'saving' | 'listing' | 'speaking', work: () => Promise<T>): Promise<T | null> {
+    setBusy(what);
+    setError(null);
+    try {
+      return await work();
+    } catch (e) {
+      setError(reason(e));
+      return null;
+    } finally {
+      setBusy(null);
+    }
+  }
+  const chosen = choices?.find((c) => c.id === voice);
+  const sampleText = (chosen?.language ?? voice).toLowerCase().startsWith('zh') ? SAMPLE.zh : SAMPLE.en;
+  return (
+    <div className="provider-form agent-pane voice-pane">
+      <div className="panel-head">
+        <h2>{guide.name}</h2>
+        <button type="button" className="icon-button" aria-label="Close" onClick={onClose}>
+          <X size={16} />
+        </button>
+      </div>
+      <p className="note">Speaks a film’s lines into the project’s voice/, kept with the film; a line is spoken again only when its words change.</p>
+      <ol className="guide">
+        {guide.steps.map((step) => (
+          <li key={step}>{step}</li>
+        ))}
+      </ol>
+      <div className="fields">
+        {kind === 'azure' && (
+          <label>
+            Region
+            <input type="text" className="mono" value={draft.region ?? ''} placeholder="eastasia" onChange={(e) => edit({ region: e.target.value })} />
+          </label>
+        )}
+        {kind === 'minimax' && (
+          <>
+            <label>
+              Site
+              <select value={draft.region ?? 'global'} onChange={(e) => edit({ region: e.target.value })}>
+                <option value="global">minimax.io</option>
+                <option value="china">minimaxi.com (mainland China)</option>
+              </select>
+            </label>
+            <label>
+              Group id
+              <input type="text" className="mono" value={draft.groupId ?? ''} onChange={(e) => edit({ groupId: e.target.value })} />
+            </label>
+          </>
+        )}
+        {guide.model && (
+          <label>
+            Model
+            <input type="text" className="mono" value={draft.model ?? ''} placeholder={guide.model} onChange={(e) => edit({ model: e.target.value })} />
+          </label>
+        )}
+        <label className="wide">
+          Key
+          <input
+            type="password"
+            value={draft.key ?? ''}
+            autoComplete="off"
+            placeholder={view?.hasKey ? 'Stored: leave empty to keep it' : `Your ${guide.name} key`}
+            onChange={(e) => edit({ key: e.target.value })}
+          />
+          <span className="hint">
+            <KeyRound size={12} /> Sealed with this computer’s keychain. The Studio never shows it again.
+          </span>
+        </label>
+        <label className="wide">
+          Voice
+          <span className="voice-pick">
+            <input
+              type="text"
+              className="mono"
+              list={`${kind}-voices`}
+              value={voice}
+              placeholder={choices ? `${choices.length} voices: type to search` : 'List the voices first'}
+              onChange={(e) => {
+                setVoice(e.target.value);
+                setSample(null);
+              }}
+            />
+            <button
+              type="button"
+              className="button"
+              disabled={busy !== null}
+              onClick={() => void act('listing', () => window.studio.voiceChoices(draft)).then((found) => found && setChoices(found))}
+            >
+              {busy === 'listing' && <Loader size={14} className="spin" />}
+              List voices
+            </button>
+          </span>
+          <datalist id={`${kind}-voices`}>
+            {choices?.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.language ? `${c.name} · ${c.language}` : c.name}
+              </option>
+            ))}
+          </datalist>
+        </label>
+      </div>
+      {voice && (
+        <div className="voice-sample">
+          <button
+            type="button"
+            className="button"
+            disabled={busy !== null}
+            onClick={() => void act('speaking', () => window.studio.sampleVoice(draft, voice, sampleText)).then((url) => url && setSample(url))}
+          >
+            {busy === 'speaking' ? <Loader size={14} className="spin" /> : <Volume2 size={14} />}
+            Hear it
+          </button>
+          {sample && <audio src={sample} controls autoPlay />}
+          <p className="hint">
+            For a film, ask the agent to give its &lt;Film&gt; <code className="mono">voice="{kind}:{voice}"</code>.
+          </p>
+        </div>
+      )}
+      {saved && (
+        <p className="test good" role="status">
+          Saved. Voice a film from the stage once it names a {guide.name} voice.
+        </p>
+      )}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="actions">
+        {view && (
+          <button
+            type="button"
+            className="quiet"
+            disabled={busy !== null}
+            onClick={() => void act('saving', () => window.studio.removeVoice(kind)).then((next) => next && onVoices(next))}
+          >
+            Remove
+          </button>
+        )}
+        <a className="button" href={guide.link} target="_blank" rel="noreferrer">
+          <ExternalLink size={14} />
+          {guide.linkLabel}
+        </a>
+        <span className="spacer" />
+        <button
+          type="button"
+          className="button primary"
+          disabled={busy !== null}
+          onClick={() =>
+            void act('saving', () => window.studio.saveVoice(draft)).then((next) => {
+              if (!next) return;
+              onVoices(next);
+              setDraft((d) => ({ ...d, key: '' }));
+              setSaved(true);
+            })
+          }
+        >
+          {busy === 'saving' && <Loader size={14} className="spin" />}
+          Save
+        </button>
+      </div>
+    </div>
+  );
+}
 
 /** What each state of a coding agent is called. */
 const STATES: Record<HarnessState, string> = { missing: 'Not installed', old: 'Needs an update', 'signed-out': 'Not signed in', ready: 'Ready' };
@@ -298,22 +542,32 @@ function AgentPane({
 export function Settings({
   providers,
   agent,
+  voice,
   onChange,
   onClose,
 }: {
   providers: Providers;
   /** The coding agent to open Models on, rather than the providers. */
   agent?: OutsideKind;
+  /** The voice provider to open Models on. */
+  voice?: VoiceKind;
   onChange(p: Providers): void;
   onClose(): void;
 }) {
   /** The person's own coding agents, and which one is open in the right pane, if any. */
   const [agents, setAgents] = useState<Agents | null>(null);
   const [shown, setShown] = useState<OutsideKind | null>(agent ?? null);
+  /** The voice providers set up, and which one is open in the right pane, if any. */
+  const [voices, setVoices] = useState<VoiceView[]>([]);
+  const [voiceShown, setVoiceShown] = useState<VoiceKind | null>(voice ?? null);
   useEffect(() => {
     let live = true;
     window.studio.agents().then(
       (found) => live && setAgents(found),
+      () => undefined,
+    );
+    window.studio.voices().then(
+      (found) => live && setVoices(found),
       () => undefined,
     );
     return () => {
@@ -329,6 +583,7 @@ export function Settings({
 
   function select(next: ProviderInput) {
     setShown(null);
+    setVoiceShown(null);
     setForm(next);
     setError(null);
     setTest(null);
@@ -389,7 +644,7 @@ export function Settings({
           <ul>
             {providers.providers.map((p) => (
               <li key={p.id}>
-                <button type="button" className={`provider-row${p.id === form.id && !shown ? ' selected' : ''}`} onClick={() => select(fromView(p))}>
+                <button type="button" className={`provider-row${p.id === form.id && !shown && !voiceShown ? ' selected' : ''}`} onClick={() => select(fromView(p))}>
                   <span className="avatar" aria-hidden="true">
                     {initials(p.name)}
                   </span>
@@ -404,7 +659,7 @@ export function Settings({
           </ul>
           <button
             type="button"
-            className={`provider-row add${form.id || shown ? '' : ' selected'}`}
+            className={`provider-row add${form.id || shown || voiceShown ? '' : ' selected'}`}
             onClick={() => {
               setPreset(0);
               select(fromPreset(PRESETS[0]!));
@@ -422,7 +677,14 @@ export function Settings({
             <ul>
               {agents.harnesses.map((h) => (
                 <li key={h.kind}>
-                  <button type="button" className={`provider-row${shown === h.kind ? ' selected' : ''}`} onClick={() => setShown(h.kind)}>
+                  <button
+                    type="button"
+                    className={`provider-row${shown === h.kind ? ' selected' : ''}`}
+                    onClick={() => {
+                      setVoiceShown(null);
+                      setShown(h.kind);
+                    }}
+                  >
                     <span className="avatar" aria-hidden="true">
                       {initials(h.name)}
                     </span>
@@ -436,9 +698,39 @@ export function Settings({
               ))}
             </ul>
           )}
+          <h3 className="label agents-label">Voices</h3>
+          <p className="note">Speaks a film’s lines, with each word’s time for its captions.</p>
+          <ul>
+            {VOICE_KINDS.map((kind) => {
+              const set = voices.find((v) => v.kind === kind);
+              return (
+                <li key={kind}>
+                  <button
+                    type="button"
+                    className={`provider-row${voiceShown === kind ? ' selected' : ''}`}
+                    onClick={() => {
+                      setShown(null);
+                      setVoiceShown(kind);
+                    }}
+                  >
+                    <span className="avatar" aria-hidden="true">
+                      {initials(VOICE_GUIDES[kind].name)}
+                    </span>
+                    <span className="who">
+                      <strong>{VOICE_GUIDES[kind].name}</strong>
+                      <span className="mono">{set ? (set.region ?? set.model ?? 'Set up') : 'Not set up'}</span>
+                    </span>
+                    <span className={`state-dot${set ? ' ready' : ''}`} aria-hidden="true" />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         </div>
 
-        {harness ? (
+        {voiceShown ? (
+          <VoicePane key={voiceShown} kind={voiceShown} view={voices.find((v) => v.kind === voiceShown)} onVoices={setVoices} onClose={onClose} />
+        ) : harness ? (
           <AgentPane key={harness.kind} harness={harness} settings={agents!.settings} onAgents={setAgents} onClose={onClose} />
         ) : (
         <form className="provider-form" onSubmit={save}>

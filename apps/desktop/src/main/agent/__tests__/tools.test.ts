@@ -17,6 +17,9 @@ beforeEach(async () => {
     stage: vi.fn(),
     searchMotions: vi.fn(),
     useMotion: vi.fn(),
+    voiceKinds: vi.fn(),
+    voiceChoices: vi.fn(),
+    voiceFilm: vi.fn(),
   };
 });
 
@@ -134,5 +137,59 @@ describe('runTool', () => {
     ]);
     ctx.stage = vi.fn().mockResolvedValue(film(sounds.slice(0, 1)));
     expect((await runTool('check', {}, ctx)).ok).toBe(true);
+  });
+
+  it('says which lines are not yet spoken in the film’s voice, and which are cut short', async () => {
+    const lines = [
+      { id: 'l1', text: 'Heat moves uphill.', start: 0.4, end: 2, voiced: true as const, words: [], over: 0.62 },
+      { id: 'l2', text: 'If you push it.', start: 2, end: 4 },
+    ];
+    const scenes = [{ id: 'intro', start: 0, duration: 4, layers: [], lines }];
+    ctx.build = vi.fn().mockResolvedValue({ ok: true, version: 2, errors: [] });
+    ctx.stage = vi.fn().mockResolvedValue({
+      film: { seconds: 4, width: 1920, height: 1080, fps: 30, scenes, layers: [], sounds: [], voice: 'azure:en-US-AvaNeural' },
+      frame: vi.fn(),
+      close: vi.fn(),
+    });
+    const outcome = await runTool('check', {}, ctx);
+    expect(outcome.ok).toBe(true);
+    expect(outcome.text.split('\n').slice(1)).toEqual([
+      '- intro, 0 to 4 s: no layers; says "Heat moves uphill." (0.4–2 s, voiced) "If you push it." (2–4 s)',
+      'Narration:',
+      '- Not yet spoken in azure:en-US-AvaNeural: "If you push it.". voice_lines speaks them.',
+      '- "Heat moves uphill." is cut 0.6 s short by what follows it: give it more room, or fewer words.',
+    ]);
+  });
+});
+
+describe('voices', () => {
+  it('lists the voices of the providers set up, narrowed to a language, as a film names them', async () => {
+    ctx.voiceKinds = vi.fn().mockResolvedValue(['azure', 'openai']);
+    ctx.voiceChoices = vi.fn(async (kind) =>
+      kind === 'azure'
+        ? [
+            { id: 'zh-CN-XiaoxiaoNeural', name: '晓晓 · Female', language: 'zh-CN' },
+            { id: 'en-US-AvaNeural', name: 'Ava · Female', language: 'en-US' },
+          ]
+        : [{ id: 'nova', name: 'Nova' }],
+    );
+    const outcome = await runTool('list_voices', { language: 'zh' }, ctx);
+    expect(outcome.text.split('\n')).toEqual(['azure: 1 voice', '- azure:zh-CN-XiaoxiaoNeural (晓晓 · Female, zh-CN)', 'openai: 1 voice', '- openai:nova (Nova)']);
+    expect((await runTool('list_voices', { provider: 'minimax' }, ctx)).ok).toBe(false);
+  });
+
+  it('asks for a provider to be set up before any voice is listed', async () => {
+    ctx.voiceKinds = vi.fn().mockResolvedValue([]);
+    const outcome = await runTool('list_voices', {}, ctx);
+    expect(outcome.ok).toBe(false);
+    expect(outcome.text).toContain('Models, under Voices');
+    expect(ctx.voiceChoices).not.toHaveBeenCalled();
+  });
+
+  it('voices the film and says what it spoke, or why it could not', async () => {
+    ctx.voiceFilm = vi.fn().mockResolvedValueOnce({ spoken: 2, kept: 1, characters: 33, seconds: 3.42 });
+    expect((await runTool('voice_lines', {}, ctx)).text).toBe('Spoke 2 lines (33 characters, 3.4 s); kept 1. The film is built again with them: check it.');
+    ctx.voiceFilm = vi.fn().mockRejectedValue(new Error('Azure is not set up: add it in Models, under Voices.'));
+    expect(await runTool('voice_lines', {}, ctx)).toMatchObject({ ok: false, text: 'Azure is not set up: add it in Models, under Voices.' });
   });
 });

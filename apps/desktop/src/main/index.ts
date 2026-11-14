@@ -20,6 +20,7 @@ import {
   type Notice,
   type Project,
   type TurnUsage,
+  type VoicedFilm,
   applyEvent,
   ofPicture,
 } from '../shared/api';
@@ -244,6 +245,28 @@ async function chooseFolder(sender: WebContents, options: OpenDialogOptions): Pr
   return result.canceled ? null : (result.filePaths[0] ?? null);
 }
 
+/**
+ * Speaks the open film's lines in its voice into voice/ (only what changed), from its latest build, then builds it again
+ * so the preview and the agent's check time each line by its speech.
+ */
+async function voiceOpenFilm(state: NonNullable<typeof open>): Promise<VoicedFilm> {
+  if (state.watcher) await state.watcher.rebuild();
+  const build = state.build;
+  if (!build?.ok) throw new Error('The film does not build: fix its errors before voicing it.');
+  const stage = await openStage(build.version);
+  let film: FilmInfo;
+  try {
+    film = stage.film;
+  } finally {
+    stage.close();
+  }
+  const voiced = await voiceFilm(state.project.path, film, (kind) => providers().voiceSetup(kind), ffmpegPath(), (done, of) =>
+    send(EVENTS.voiceProgress, { done, of }),
+  );
+  if (open === state && state.watcher) await state.watcher.rebuild();
+  return voiced;
+}
+
 function requireOpen(): NonNullable<typeof open> {
   if (!open) throw new Error('No project is open.');
   return open;
@@ -347,6 +370,9 @@ async function outsideTurn(
         stage: (version) => openStage(version),
         searchMotions: (words) => searchMotions(words),
         useMotion: (id) => useMotion(dir, id),
+        voiceKinds: async () => (await providers().voices()).map((v) => v.kind),
+        voiceChoices: async (kind) => voicesOf(await providers().voiceSetup(kind)),
+        voiceFilm: () => voiceOpenFilm(state),
       },
       app.getVersion(),
     );
@@ -584,24 +610,11 @@ function registerHandlers(): void {
   // The film's lines spoken in its voice into voice/, then the film built again, so the preview times them by their speech.
   ipcMain.handle(CHANNELS.voiceFilm, async () => {
     const state = requireOpen();
-    const build = state.build;
-    if (!build?.ok) throw new Error('The film does not build: fix its errors before voicing it.');
     if (working || exporting) throw new Error('Finish the current task before voicing the film.');
     const controller = new AbortController();
     working = controller;
     try {
-      const stage = await openStage(build.version);
-      let film: FilmInfo;
-      try {
-        film = stage.film;
-      } finally {
-        stage.close();
-      }
-      const voiced = await voiceFilm(state.project.path, film, (kind) => providers().voiceSetup(kind), ffmpegPath(), (done, of) =>
-        send(EVENTS.voiceProgress, { done, of }),
-      );
-      if (open === state && state.watcher) await state.watcher.rebuild();
-      return voiced;
+      return await voiceOpenFilm(state);
     } finally {
       if (working === controller) working = null;
     }
@@ -761,6 +774,9 @@ function registerHandlers(): void {
         stage: (version) => openStage(version),
         searchMotions: (words) => searchMotions(words),
         useMotion: (id) => useMotion(dir, id),
+        voiceKinds: async () => (await providers().voices()).map((v) => v.kind),
+        voiceChoices: async (kind) => voicesOf(await providers().voiceSetup(kind)),
+        voiceFilm: () => voiceOpenFilm(state),
       };
       // Where film.tsx writes each marked or referenced scene, layer and line, for the agent to read first.
       const locate = filmSpans(await readFile(join(dir, FILM), 'utf8'));
