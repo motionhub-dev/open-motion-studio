@@ -126,8 +126,16 @@ recent projects with their path (`~` for the home folder), and a banner while no
   parts on hover; the files it changed; its last check's result; the film's new length), what changed as small pills
   (a removed one struck through), and Go back to before this (the last turn's) and Copy (its answer); for turns run
   while the project is open. While a turn runs, the progress card shows its phases as a row (Thinking, Editing,
-  Checking, Looking; those passed ticked, the current inked), what it is doing and the clock, and Send is a red Stop; a question the agent asks is a sheet card with an ink edge
-  and its answers as buttons, the recommended one primary. What an outside agent asks leave to do is a sheet card with
+  Checking, Looking; those passed ticked, the current inked), what it is doing and the clock, and Send is a red Stop. A question the agent asks with
+  answers takes the composer's place as a floating sheet with an ink edge, the conversation dimmed to 45% behind it:
+  the question, each answer as a row (the first marked Recommended in green), and a dashed "Something else…" that
+  brings the composer back; in the conversation it is a dashed card, "Answer below" until answered, then "Answered:"
+  and the answer. A failed turn is a sheet card with a `--bad` edge: what went wrong and, on the last turn only, what to
+  do (Open Models, or Sign in, or Change the cap, primary; Use another agent; Try again while the message is back in
+  the box, which the card says). An empty conversation is "What should this film do?", four start cards in two
+  columns (Explain an idea, Introduce something, Start from a look, each putting the start of a message in the box;
+  Write a brief, which opens the brief under them), and a line on pointing at the picture (C, a drag on the Marks
+  row, @). What an outside agent asks leave to do is a sheet card with
   a `--bad` edge: its title, the command or paths in mono, its reason, and Allow once, Allow for this session and Deny,
   Deny primary; once answered, the answer in muted words. A message waiting for the turn sits above the composer on a
   dashed outline; on Claude Code, Enter adds a message of words to the turn instead, as a bubble in the conversation

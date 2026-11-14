@@ -9,7 +9,7 @@
 import { type ChildProcess, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import type Anthropic from '@anthropic-ai/sdk';
-import type { AgentEvent, AgentModel, AgentSettings } from '../../shared/api';
+import type { AgentEvent, AgentModel, AgentSettings, NoticeNeed } from '../../shared/api';
 import { CLAUDE_EFFORTS, claudeEnv } from './harness';
 import { moment, question, summary } from './loop';
 import { NO_TOKENS, type Spent, addSpent, claudeResult } from '../usage';
@@ -22,7 +22,7 @@ const STUDIO_PREFIX = `mcp__${CLAUDE_STUDIO_SERVER}__`;
 export const CLAUDE_TOOLS = ['Read', 'Glob', 'Grep', 'Edit', 'Write'];
 
 type Block = Anthropic.Beta.BetaContentBlockParam;
-type Notice = { text: string; error: boolean };
+type Notice = { text: string; error: boolean; need?: NoticeNeed };
 type Event = { type: string; subtype?: string; [key: string]: unknown };
 
 /** Claude Code's aliases for the latest model of each family; a full model name works as well. */
@@ -266,8 +266,8 @@ export function resultNotice(event: Event): Notice | undefined {
   const errors = Array.isArray(event.errors) ? event.errors.filter((e): e is string => typeof e === 'string') : [];
   const said = typeof event.result === 'string' && event.result ? event.result : errors.join(' ');
   if (event.subtype === 'error_max_budget_usd') {
-    return { text: `The turn stopped at its cap${said ? `: ${said}` : ''}. Raise or remove the cap per turn in Models to go on.`, error: true };
+    return { text: `The turn stopped at its cap${said ? `: ${said}` : ''}. Raise or remove the cap per turn in Models to go on.`, error: true, need: 'cap' };
   }
-  if (/not logged in/i.test(said)) return { text: 'Claude Code is not signed in. Sign in with `claude auth login`, then send again.', error: true };
+  if (/not logged in/i.test(said)) return { text: 'Claude Code is not signed in. Sign in with `claude auth login`, then send again.', error: true, need: 'sign-in' };
   return { text: said || 'Claude Code could not finish the turn.', error: true };
 }
