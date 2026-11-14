@@ -20,9 +20,11 @@ import {
   type Notice,
   type Project,
   type TurnUsage,
+  type VoicedFilm,
   applyEvent,
   ofPicture,
 } from '../shared/api';
+import type { FilmInfo } from '../shared/preview';
 import {
   type AppServer,
   type Place,
@@ -46,6 +48,8 @@ import { TOOLS, type ToolContext, projectPath } from './agent/tools';
 import type { BuildContext } from 'esbuild';
 import { exportFrames, ffmpegPath, openStage, sceneStills, serveRenders } from './film/capture';
 import { soundPeaks } from './film/mix';
+import { voiceFilm } from './narration';
+import { speak, voicesOf } from './voice';
 import { EXAMPLES, openExample } from './examples';
 import { ASSET_EXTENSIONS, importAssets, projectAssets } from './assets';
 import { reviewBuild } from './film/review';
@@ -56,7 +60,7 @@ import { motionDetail, motionReel, projectMotions, searchMotions, useMotion } fr
 import { STATE_DIR, createProject, isRecent, openProject, projectAt, recentProjects, rememberProject } from './project';
 import { describeReferences, filmSpans, readReferences } from './agent/references';
 import { ProjectHistory, changesBetween, inProject, noteFiles, putBack } from './history';
-import { NO_TOKENS, type Spent, readTurns, recordTurn, totals } from './usage';
+import { NO_TOKENS, type Spent, readUsage, recordUsage, totals } from './usage';
 import { randomUUID } from 'node:crypto';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { ProviderStore } from './providers';
@@ -241,6 +245,37 @@ async function chooseFolder(sender: WebContents, options: OpenDialogOptions): Pr
   return result.canceled ? null : (result.filePaths[0] ?? null);
 }
 
+/**
+ * Speaks the open film's lines in its voice into voice/ (only what changed), from its latest build, then builds it again
+ * so the preview and the agent's check time each line by its speech.
+ */
+async function voiceOpenFilm(state: NonNullable<typeof open>): Promise<VoicedFilm> {
+  if (state.watcher) await state.watcher.rebuild();
+  const build = state.build;
+  if (!build?.ok) throw new Error('The film does not build: fix its errors before voicing it.');
+  const stage = await openStage(build.version);
+  let film: FilmInfo;
+  try {
+    film = stage.film;
+  } finally {
+    stage.close();
+  }
+  const voiced = await voiceFilm(state.project.path, film, (kind) => providers().voiceSetup(kind), ffmpegPath(), (done, of) =>
+    send(EVENTS.voiceProgress, { done, of }),
+  );
+  if (voiced.spoken) {
+    await recordUsage(state.project.path, {
+      at: new Date().toISOString(),
+      voice: film.voice!,
+      lines: voiced.spoken,
+      characters: voiced.characters,
+      speech: Math.round(voiced.seconds * 100) / 100,
+    });
+  }
+  if (open === state && state.watcher) await state.watcher.rebuild();
+  return voiced;
+}
+
 function requireOpen(): NonNullable<typeof open> {
   if (!open) throw new Error('No project is open.');
   return open;
@@ -268,7 +303,7 @@ async function logTurn(
   turn: { agent: AgentKind; usage: TurnUsage; notice?: { error: boolean }; stopped: boolean; tools: number; checkpoint?: string; costUsd?: number },
 ): Promise<void> {
   try {
-    await recordTurn(dir, {
+    await recordUsage(dir, {
       at: new Date().toISOString(),
       agent: turn.agent,
       outcome: turn.stopped ? 'stopped' : turn.notice?.error ? 'failed' : 'done',
@@ -344,6 +379,9 @@ async function outsideTurn(
         stage: (version) => openStage(version),
         searchMotions: (words) => searchMotions(words),
         useMotion: (id) => useMotion(dir, id),
+        voiceKinds: async () => (await providers().voices()).map((v) => v.kind),
+        voiceChoices: async (kind) => voicesOf(await providers().voiceSetup(kind)),
+        voiceFilm: () => voiceOpenFilm(state),
       },
       app.getVersion(),
     );
@@ -564,6 +602,32 @@ function registerHandlers(): void {
     stillsQueue = run.catch(() => {});
     return run;
   });
+  ipcMain.handle(CHANNELS.voices, () => providers().voices());
+  ipcMain.handle(CHANNELS.saveVoice, (_event, input: unknown) => providers().saveVoice(input));
+  ipcMain.handle(CHANNELS.removeVoice, (_event, kind: unknown) => providers().removeVoice(kind));
+  ipcMain.handle(CHANNELS.voiceChoices, async (_event, input: unknown) => {
+    const draft = input as { kind?: unknown } | null;
+    return voicesOf(await providers().voiceSetup(draft?.kind, input));
+  });
+  ipcMain.handle(CHANNELS.sampleVoice, async (_event, input: unknown, voice: unknown, text: unknown) => {
+    if (typeof voice !== 'string' || !/^[\w.:-]{1,120}$/.test(voice)) throw new Error('Choose a voice to hear.');
+    if (typeof text !== 'string' || !text.trim() || text.length > 300) throw new Error('A sample is a sentence of up to 300 characters.');
+    const draft = input as { kind?: unknown } | null;
+    const speech = await speak(await providers().voiceSetup(draft?.kind, input), voice, text.trim());
+    return `data:audio/mpeg;base64,${speech.audio.toString('base64')}`;
+  });
+  // The film's lines spoken in its voice into voice/, then the film built again, so the preview times them by their speech.
+  ipcMain.handle(CHANNELS.voiceFilm, async () => {
+    const state = requireOpen();
+    if (working || exporting) throw new Error('Finish the current task before voicing the film.');
+    const controller = new AbortController();
+    working = controller;
+    try {
+      return await voiceOpenFilm(state);
+    } finally {
+      if (working === controller) working = null;
+    }
+  });
   ipcMain.handle(CHANNELS.soundPeaks, (_event, src: unknown) => {
     if (typeof src !== 'string') throw new Error('Name a sound of the film.');
     return soundPeaks(requireOpen().project.path, ffmpegPath(), src);
@@ -678,7 +742,7 @@ function registerHandlers(): void {
     }
   });
   ipcMain.handle(CHANNELS.stopAgent, () => working?.abort());
-  ipcMain.handle(CHANNELS.projectUsage, async () => totals(await readTurns(requireOpen().project.path)));
+  ipcMain.handle(CHANNELS.projectUsage, async () => totals(await readUsage(requireOpen().project.path)));
   // Words into the turn that runs, for Claude Code alone, which takes a message mid-turn; else they wait for its end.
   ipcMain.handle(CHANNELS.steerAgent, async (_event, text: unknown) => {
     const state = requireOpen();
@@ -719,6 +783,9 @@ function registerHandlers(): void {
         stage: (version) => openStage(version),
         searchMotions: (words) => searchMotions(words),
         useMotion: (id) => useMotion(dir, id),
+        voiceKinds: async () => (await providers().voices()).map((v) => v.kind),
+        voiceChoices: async (kind) => voicesOf(await providers().voiceSetup(kind)),
+        voiceFilm: () => voiceOpenFilm(state),
       };
       // Where film.tsx writes each marked or referenced scene, layer and line, for the agent to read first.
       const locate = filmSpans(await readFile(join(dir, FILM), 'utf8'));

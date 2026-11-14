@@ -27,6 +27,9 @@ function setup(replies: Message[]) {
     stage: vi.fn(),
     searchMotions: vi.fn().mockResolvedValue([]),
     useMotion: vi.fn(),
+    voiceKinds: vi.fn(),
+    voiceChoices: vi.fn(),
+    voiceFilm: vi.fn(),
   };
   const controller = new AbortController();
   const turn = {

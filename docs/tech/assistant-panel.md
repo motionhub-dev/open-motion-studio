@@ -39,10 +39,11 @@ sees what a turn cost.
 - **On disk**: each turn's account is appended to `.motion-studio/usage.jsonl`, one JSON line: the time, the agent, the
   model, the account, whether the turn finished, failed or was stopped, its checkpoint id, the number of tool calls,
   and Claude Code's reported cost. A line is never rewritten; a project's log is the project's (git ignores it with the
-  rest of `.motion-studio/`). ADR 0009 fixes the line's format.
+  rest of `.motion-studio/`). ADR 0009 fixes the line's format. Voicing the film adds a line of its own (ADR 0012):
+  `{at, voice, lines, characters, speech}`, the characters a provider bills and the seconds of speech; it is not a turn.
 - **Shown**: tokens, never money (the developer's choice): the turn's card reads `Worked for 1m 12s · 18.4k tokens`,
   its parts on hover (model, calls, input, cached, cache written, output, reasoning); the project's total sits beside
-  the assistant's title. A reopened project's earlier turns keep no card (they are not rows of the transcript).
+  the assistant's title, with what voicing spoke on hover. A reopened project's earlier turns keep no card (they are not rows of the transcript).
 - **Tests**: what reaches `usage.jsonl` and where, for each agent's events (the stand-in Claude Code process, a Codex
   notification fixture, the built-in loop with scripted replies); a Claude Code turn that ran on after its `result`.
 

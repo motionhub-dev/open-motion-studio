@@ -103,6 +103,47 @@ export interface AgentSettings {
   codex: { model: string; effort: string };
 }
 
+/** The voice providers a film's lines can be spoken through (ADR 0012). */
+export type VoiceKind = 'azure' | 'elevenlabs' | 'minimax' | 'openai';
+
+/** A voice provider as Models shows it: what is set, never its key, only whether one is. */
+export interface VoiceView {
+  kind: VoiceKind;
+  hasKey: boolean;
+  /** Azure: its region; MiniMax: `global` or `china`. */
+  region?: string;
+  /** MiniMax: the account's group id. */
+  groupId?: string;
+  /** The provider's model, where it has several. */
+  model?: string;
+}
+
+/** A voice provider as the form gives it; a key, when given, replaces the stored one. */
+export interface VoiceInput {
+  kind: VoiceKind;
+  key?: string;
+  region?: string;
+  groupId?: string;
+  model?: string;
+}
+
+/** A voice a provider offers. */
+export interface VoiceChoice {
+  /** The provider's own name for it: what a film writes after `provider:`. */
+  id: string;
+  name: string;
+  /** Its language, as `zh-CN`, where the provider says. */
+  language?: string;
+}
+
+/** What voicing a film did: the lines spoken now, those kept from before, and what the speaking took. */
+export interface VoicedFilm {
+  spoken: number;
+  kept: number;
+  characters: number;
+  seconds: number;
+}
+
 /** A model a coding agent offers, and the efforts it takes. */
 export interface AgentModel {
   id: string;
@@ -274,6 +315,9 @@ export interface TurnUsage extends Tokens {
 export interface UsageTotals extends Tokens {
   turns: number;
   seconds: number;
+  /** What voicing the film spoke (ADR 0012): the characters a provider bills, and the speech they made, in seconds. */
+  voicedCharacters: number;
+  voicedSeconds: number;
 }
 
 /** The conversation with one more of the agent's events in it: its words joined, each tool call and then its result. */
@@ -455,6 +499,20 @@ export interface StudioApi {
   exportFilm(): Promise<string | null>;
   /** Calls `listener` with the running export's progress (0 to 1); returns the unsubscribe. */
   onExportProgress(listener: (done: number) => void): () => void;
+
+  /** The voice providers set up (ADR 0012), without their keys. */
+  voices(): Promise<VoiceView[]>;
+  /** Sets a voice provider up or changes it; a key, when given, replaces the stored one. */
+  saveVoice(input: VoiceInput): Promise<VoiceView[]>;
+  removeVoice(kind: VoiceKind): Promise<VoiceView[]>;
+  /** The voices a provider offers: the one the form describes (its key typed, or the stored one). */
+  voiceChoices(input: VoiceInput): Promise<VoiceChoice[]>;
+  /** A sentence spoken in `voice` through the provider the form describes, as an MP3 data URL to hear. */
+  sampleVoice(input: VoiceInput, voice: string, text: string): Promise<string>;
+  /** Speaks the open film's lines in its voice into voice/ (only what changed), then builds the film again to time them. */
+  voiceFilm(): Promise<VoicedFilm>;
+  /** Calls `listener` with the voicing's progress, lines done of all; returns the unsubscribe. */
+  onVoiceProgress(listener: (progress: { done: number; of: number }) => void): () => void;
   /** Stops the running export, if any. */
   cancelExport(): Promise<void>;
   /** Asks for an empty (or new) folder, then writes the film there as a Remotion project; the folder, or null when the person cancels. */
@@ -482,6 +540,12 @@ export const CHANNELS = {
   lastBuild: 'film:last-build',
   sceneStills: 'film:scene-stills',
   soundPeaks: 'film:sound-peaks',
+  voices: 'voices:list',
+  saveVoice: 'voices:save',
+  removeVoice: 'voices:remove',
+  voiceChoices: 'voices:choices',
+  sampleVoice: 'voices:sample',
+  voiceFilm: 'film:voice',
   projectMotions: 'motions:project',
   searchMotions: 'motions:search',
   useMotion: 'motions:use',
@@ -514,5 +578,6 @@ export const CHANNELS = {
 export const EVENTS = {
   build: 'film:built',
   exportProgress: 'film:export-progress',
+  voiceProgress: 'film:voice-progress',
   agent: 'agent:event',
 } as const;

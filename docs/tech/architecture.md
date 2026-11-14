@@ -42,6 +42,9 @@ apps/desktop/
       mix.ts           a film's sounds for the export: each <Sound>'s file found in the project, read by ffmpeg, and
                        one filter graph that mixes them (ADR 0010); and each file's waveform for the timeline
       remotion-export.ts  the film written as a Remotion project
+    voice.ts           a line spoken through Azure, ElevenLabs, MiniMax or OpenAI, with its words' times, and the
+                       voices each offers (ADR 0012)
+    narration.ts       a film's lines voiced into the project's voice/, each clip once per voice, model and words
       review.ts        the sampled check before an export: build errors, a size MP4 refuses, layers past the frame,
                        and a draw of the start, each scene's middle and the end
     agent/
@@ -123,7 +126,17 @@ One engine, the Studio's own ([ADR 0005](../adr/0005-the-studio-has-one-engine-i
   reports its `start` and `end`; `<Film captions>` makes the runtime draw the line being said as a `<Caption>`, so the
   preview and the export show it alike. Every export also carries the lines as subtitles (`film/captions.ts`): SubRip
   written beside the MP4 under its name and embedded as a soft `mov_text` track. The timeline draws them on a Lines
-  row; `check` gives each line's times. A motion's reel plays as a film inside one scene. The timeline's scene frames are six small JPEGs
+  row; `check` gives each line's times.
+- **Narration** ([ADR 0011](../adr/0011-narration-is-synthesized-per-line-and-times-the-captions.md),
+  [ADR 0012](../adr/0012-a-narration-speaks-through-the-persons-own-voice-provider.md)): `<Film voice="provider:name">`
+  names the voice; the person sets the providers up in Models (`settings.json` `voices`, keys sealed in `keys.json` as
+  `voice:<kind>`). Voicing is asked for, by the stage's Voice or the agent's `voice_lines`: each line with words is
+  spoken once per voice, model and words into `voice/<key>.mp3` (levelled to −16 LUFS) with `voice/<key>.json` (its
+  words' times), and `voice/lines.json` says which clip each line is; clips no line uses are removed, and only names the
+  Studio gave. The preview core reads `voice/` and gives the runtime each line's speech whose words and voice still
+  match, so a voiced line lasts as long as its speech and `<Film captions="words">` lights each word; the preview plays
+  the clips with the sounds, and the export mixes them, ducking every `<Sound duck>` under them (attack 0.12 s,
+  release 0.5 s). `check` marks voiced lines, names those not yet spoken and speech cut short (`over`). A motion's reel plays as a film inside one scene. The timeline's scene frames are six small JPEGs
   a scene, evenly through it, photographed once a build has stood for a moment and kept in
   `.motion-studio/thumbs/<hash of the build>.json`, one file, replaced when the film changes.
 - **A motion is taken into a project the way `@motionhub/cli get` takes it** (built, through the CLI's own library): the

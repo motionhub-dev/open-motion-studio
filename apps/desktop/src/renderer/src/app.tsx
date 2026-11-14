@@ -3,7 +3,7 @@
 
 import { Folder, Info, Plus, ArrowUpRight, Play } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import type { Example, HarnessView, Project, Providers } from '../../shared/api';
+import type { Example, HarnessView, Project, Providers, VoiceKind } from '../../shared/api';
 import { Logo } from './logo';
 import { ProjectView } from './project-view';
 import { reason } from './reason';
@@ -17,7 +17,7 @@ export function App() {
   const [providers, setProviders] = useState<Providers | null>(null);
   const [examples, setExamples] = useState<Example[]>([]);
   /** Models, when open: on the providers, or on one of the person's own coding agents. */
-  const [settings, setSettings] = useState<false | { agent?: HarnessView['kind'] }>(false);
+  const [settings, setSettings] = useState<false | { agent?: HarnessView['kind']; voice?: VoiceKind }>(false);
   /** Counts the times Models closed, so the open project asks again how its agent runs. */
   const [modelsClosed, setModelsClosed] = useState(0);
 
@@ -48,6 +48,7 @@ export function App() {
     <Settings
       providers={providers}
       agent={settings.agent}
+      voice={settings.voice}
       onChange={setProviders}
       onClose={() => {
         setSettings(false);
@@ -63,6 +64,7 @@ export function App() {
           project={project}
           providers={providers}
           onSettings={(agent) => setSettings(agent ? { agent } : {})}
+          onVoiceSettings={(voice) => setSettings({ voice })}
           modelsClosed={modelsClosed}
           onChange={setProject}
           onClose={() => {

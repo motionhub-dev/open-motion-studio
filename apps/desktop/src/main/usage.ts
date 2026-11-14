@@ -1,5 +1,5 @@
 // What each turn of an agent took, on one footing for every agent, and the project's log of it: one JSON line a turn
-// appended to .motion-studio/usage.jsonl (ADR 0009), never rewritten. Each agent counts its tokens its own way; the
+// appended to .motion-studio/usage.jsonl (ADR 0009), never rewritten, and one for each voicing of the film (ADR 0012). Each agent counts its tokens its own way; the
 // readers here put them as the Messages API does, the input apart from what the prompt cache read or wrote.
 
 import { appendFile, mkdir, readFile } from 'node:fs/promises';
@@ -119,16 +119,25 @@ export interface UsageLine extends TurnUsage {
   checkpoint?: string;
 }
 
+/** One voicing of the film in the log: its voice, the lines it spoke, their characters and their speech in seconds. */
+export interface VoicingLine {
+  at: string;
+  voice: string;
+  lines: number;
+  characters: number;
+  speech: number;
+}
+
 export const usageFile = (dir: string): string => join(dir, STATE_DIR, 'usage.jsonl');
 
-/** Adds a turn to the project's log. */
-export async function recordTurn(dir: string, line: UsageLine): Promise<void> {
+/** Adds a turn, or a voicing, to the project's log. */
+export async function recordUsage(dir: string, line: UsageLine | VoicingLine): Promise<void> {
   await mkdir(join(dir, STATE_DIR), { recursive: true });
   await appendFile(usageFile(dir), `${JSON.stringify(line)}\n`);
 }
 
-/** The project's turns, from its log; a line that does not read (a write cut short) is left out and said. */
-export async function readTurns(dir: string): Promise<UsageLine[]> {
+/** The project's turns and voicings, from its log; a line that does not read (a write cut short) is left out and said. */
+export async function readUsage(dir: string): Promise<(UsageLine | VoicingLine)[]> {
   let text: string;
   try {
     text = await readFile(usageFile(dir), 'utf8');
@@ -136,11 +145,11 @@ export async function readTurns(dir: string): Promise<UsageLine[]> {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
     throw error;
   }
-  const lines: UsageLine[] = [];
+  const lines: (UsageLine | VoicingLine)[] = [];
   for (const [n, raw] of text.split('\n').entries()) {
     if (!raw.trim()) continue;
     try {
-      lines.push(JSON.parse(raw) as UsageLine);
+      lines.push(JSON.parse(raw) as UsageLine | VoicingLine);
     } catch {
       console.warn(`Line ${n + 1} of ${usageFile(dir)} does not read; it is left out of the totals.`);
     }
@@ -148,10 +157,13 @@ export async function readTurns(dir: string): Promise<UsageLine[]> {
   return lines;
 }
 
-/** The project's turns added up. */
-export function totals(lines: UsageLine[]): UsageTotals {
+/** The project's turns added up, and its voicings. */
+export function totals(lines: (UsageLine | VoicingLine)[]): UsageTotals {
   return lines.reduce<UsageTotals>(
-    (sum, line) => ({ ...addTokens(sum, { ...NO_TOKENS, ...line }), turns: sum.turns + 1, seconds: sum.seconds + count(line.seconds) }),
-    { ...NO_TOKENS, turns: 0, seconds: 0 },
+    (sum, line) =>
+      'voice' in line
+        ? { ...sum, voicedCharacters: sum.voicedCharacters + count(line.characters), voicedSeconds: sum.voicedSeconds + count(line.speech) }
+        : { ...sum, ...addTokens(sum, { ...NO_TOKENS, ...line }), turns: sum.turns + 1, seconds: sum.seconds + count(line.seconds) },
+    { ...NO_TOKENS, turns: 0, seconds: 0, voicedCharacters: 0, voicedSeconds: 0 },
   );
 }

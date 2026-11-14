@@ -17,6 +17,7 @@ import { STATE_DIR } from '../project';
 import { buildDir } from './film';
 import { srt } from './captions';
 import { soundInputs, soundMix } from './mix';
+import { spokenSound } from '../../shared/sound';
 
 export const RENDER_PARTITION = 'oms-render';
 
@@ -95,7 +96,8 @@ export async function openStage(version: number): Promise<Stage> {
           const error = await failed();
           if (error) throw new Error(error);
           const info = (await contents.executeJavaScript(
-            'window.__oms ? {seconds: __oms.seconds, width: __oms.width, height: __oms.height, fps: __oms.fps, scenes: __oms.scenes, layers: __oms.layers, sounds: __oms.sounds, captions: __oms.captions} : null',
+            // All the film is, but its seek, which is no data.
+            'window.__oms ? (({seek, ...film}) => film)(window.__oms) : null',
           )) as FilmInfo | null;
           if (info) return info;
           await new Promise((done) => setTimeout(done, 50));
@@ -207,7 +209,7 @@ export async function exportFrames(
     const { film } = stage;
     const frames = Math.round(film.seconds * film.fps);
     // The sounds come after the picture's input (0), then the subtitles; a film with neither is picture only.
-    const mix = soundMix(await soundInputs(dir, ffmpegPath(), film.sounds), frames / film.fps, 1);
+    const mix = soundMix(await soundInputs(dir, ffmpegPath(), [...film.sounds, ...film.narration.map(spokenSound)]), frames / film.fps, 1, film.narration);
     const subtitles = srt(film);
     if (subtitles) await writeFile(partialSubtitles, subtitles);
     const subtitleInput = 1 + (mix ? mix.inputs.length / 2 : 0);

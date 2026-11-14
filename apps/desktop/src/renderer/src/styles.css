@@ -3775,6 +3775,47 @@ kbd {
   text-decoration: none;
 }
 
+/* A voice provider in Models (ADR 0012): how to get its key, the form, and a voice to hear. */
+.voice-pane .guide {
+  margin: 0 0 12px;
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.voice-providers {
+  grid-template-columns: repeat(2, 1fr);
+  margin-top: 12px;
+}
+
+.voice-pick {
+  display: flex;
+  gap: 8px;
+}
+
+.voice-pick input {
+  flex: 1;
+  min-width: 0;
+}
+
+.voice-sample {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.voice-sample audio {
+  height: 32px;
+}
+
+.voice-sample .hint {
+  flex-basis: 100%;
+  margin: 0;
+}
+
 /* What the next message carries, in one tray over the box: its references, then its marks, with their count. */
 .tray {
   flex-shrink: 0;

@@ -3,10 +3,11 @@
 // right, the timeline along the bottom. A folder with no film yet is offered one. The keys are
 // SHORTCUTS, shown by ? or the keyboard button.
 
-import { ArrowLeft, ChevronDown, Download, Keyboard, PanelLeftOpen, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Download, Keyboard, Mic, PanelLeftOpen, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import {
   type AgentKind,
+  type VoiceKind,
   type AgentSettings,
   type Agents,
   type BuildResult,
@@ -23,6 +24,7 @@ import { Assistant } from './assistant';
 import { AssetsPanel } from './assets-panel';
 import { ReviewPanel } from './review-panel';
 import { ExportDialog } from './export-dialog';
+import { VoiceDialog } from './voice-dialog';
 import { type Hovered, Outline } from './outline';
 import { HistoryPanel } from './history-panel';
 import { Inspector } from './inspector';
@@ -108,19 +110,22 @@ interface Props {
   providers: Providers | null;
   /** Opens Models, on one of the person's own coding agents when one is named. */
   onSettings(agent?: Exclude<AgentKind, 'built-in'>): void;
+  /** Opens Models on a voice provider. */
+  onVoiceSettings(kind: VoiceKind): void;
   /** Changes each time Models closes, which may have changed how the agents run. */
   modelsClosed: number;
   onChange(project: Project): void;
   onClose(): void;
 }
 
-export function ProjectView({ project, providers, onSettings, modelsClosed, onChange, onClose }: Props) {
+export function ProjectView({ project, providers, onSettings, onVoiceSettings, modelsClosed, onChange, onClose }: Props) {
   const [build, setBuild] = useState<BuildResult | null>(null);
   const [review, setReview] = useState<FilmReview | null>(null);
   const [importing, setImporting] = useState(false);
   const [checking, setChecking] = useState(false);
   const [checkError, setCheckError] = useState('');
   const [exportOpen, setExportOpen] = useState(false);
+  const [voiceOpen, setVoiceOpen] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
   /** The places marked on the picture, and the stretches on the timeline, for the next message. */
@@ -533,6 +538,18 @@ export function ProjectView({ project, providers, onSettings, modelsClosed, onCh
         >
           <Keyboard size={16} />
         </button>
+        {player.film && (player.film.voice || player.film.scenes.some((scene) => scene.lines.length > 0)) && (
+          <button
+            type="button"
+            className="button"
+            data-tip={busy ? 'Voice the film when the agent has finished its turn' : 'Speak the film’s lines in its voice'}
+            disabled={!build?.ok || busy || importing || checking || progress !== null}
+            onClick={() => setVoiceOpen(true)}
+          >
+            <Mic size={15} />
+            Voice
+          </button>
+        )}
         {project.film &&
           (progress === null ? (
             <span className="export">
@@ -843,6 +860,16 @@ export function ProjectView({ project, providers, onSettings, modelsClosed, onCh
         />
       )}
       {shortcuts && <Shortcuts onClose={() => setShortcuts(false)} />}
+      {voiceOpen && player.film && (
+        <VoiceDialog
+          film={player.film}
+          onSetUp={(kind) => {
+            setVoiceOpen(false);
+            onVoiceSettings(kind);
+          }}
+          onClose={() => setVoiceOpen(false)}
+        />
+      )}
 
       {toast && (
         <div className={`toast${toast.error ? ' bad' : ''}`} role={toast.error ? 'alert' : 'status'}>

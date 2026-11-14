@@ -10,6 +10,9 @@ const tools: ToolContext = {
   stage: vi.fn(),
   searchMotions: vi.fn(async () => [{ id: '@hub/calm', name: 'Calm', line: 'Quiet type', fit: '' }]),
   useMotion: vi.fn(),
+  voiceKinds: vi.fn(),
+  voiceChoices: vi.fn(),
+  voiceFilm: vi.fn(),
 };
 
 describe('the Studio tools an outside agent gets', () => {

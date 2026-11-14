@@ -102,6 +102,9 @@ describe('what a turn changed', () => {
     layers: [{ id: 'logo', x: 0, y: 0, w: 100, h: 100, z: 0 }],
     sounds: [],
     captions: false,
+    voice: null,
+    narration: [],
+    speech: {},
     scenes: [
       { id: 'intro', start: 0, duration: 4, layers: [{ id: 'title', x: 0, y: 0, w: 1920, h: 200, z: 0 }], lines: [{ id: 'l1', text: 'Hello', start: 0, end: 4 }] },
       { id: 'outro', start: 4, duration: 3, layers: [], lines: [] },

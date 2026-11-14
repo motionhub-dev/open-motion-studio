@@ -1,9 +1,11 @@
 // The preview's sound: a film's <Sound>s played through Web Audio while the preview plays (ADR 0010). Each file is
 // fetched from the oms-preview: scheme and decoded once; playing from a time schedules every sound that is heard from
 // there, with its volume and fades as gain ramps, and the audio clock becomes the preview's clock, so the picture
-// follows what is heard. A file that does not load is said in the console and left silent.
+// follows what is heard. A file that does not load is said in the console and left silent. A narration's clips play as
+// sounds of their own, and a sound with `duck` goes down while they are heard (ADR 0011).
 
-import { type FilmSound, soundFades, soundGain, soundPlace, soundRegion, soundSpan } from '../shared/sound';
+import type { SpokenLine } from '../shared/preview';
+import { DUCK, type FilmSound, decibels, ducked, soundFades, soundGain, soundPlace, soundRegion, soundSpan, spokenSound } from '../shared/sound';
 
 export class FilmAudio {
   private context: AudioContext | null = null;
@@ -14,8 +16,14 @@ export class FilmAudio {
   private base: { t: number; clock: number } | null = null;
   private muted = false;
 
-  constructor(private readonly sounds: FilmSound[]) {
-    for (const sound of sounds) this.file(sound.src);
+  private readonly sounds: FilmSound[];
+
+  constructor(
+    sounds: FilmSound[],
+    private readonly narration: SpokenLine[] = [],
+  ) {
+    this.sounds = [...sounds, ...narration.map(spokenSound)];
+    for (const sound of this.sounds) this.file(sound.src);
   }
 
   get silent(): boolean {
@@ -83,12 +91,30 @@ export class FilmAudio {
       const turns = [0, fadeIn, span - fadeOut, span].filter((u) => u > into && u <= span);
       gain.gain.setValueAtTime(soundGain(sound, span, into), when);
       for (const u of turns) gain.gain.linearRampToValueAtTime(soundGain(sound, span, u), when + (u - into));
-      source.connect(gain).connect(master);
+      source.connect(gain).connect(this.duck(context, sound, start, t)).connect(master);
       const offset = sound.trim + (sound.loop && region > 0 ? into % region : into);
       source.start(when, offset);
       source.stop(when + (span - into));
       this.playing.push(source);
     });
+  }
+
+  /**
+   * A sound's ducking under the narration from film time `t` (played at `start` on the audio clock): a gain that goes down
+   * by its `duck` over DUCK.attack before each line is said and comes back over DUCK.release after. Without one, it passes.
+   */
+  private duck(context: AudioContext, sound: FilmSound, start: number, t: number): GainNode {
+    const node = context.createGain();
+    if (!sound.duck || !this.narration.length) return node;
+    const down = decibels(-sound.duck);
+    const level = (u: number) => 1 - (1 - down) * ducked(this.narration, u);
+    node.gain.setValueAtTime(level(t), start);
+    const turns = this.narration
+      .flatMap(({ at, until }) => [at - DUCK.attack, at, until, until + DUCK.release])
+      .filter((u) => u > t)
+      .sort((a, b) => a - b);
+    for (const u of turns) node.gain.linearRampToValueAtTime(level(u), start + (u - t));
+    return node;
   }
 
   /** The film's time on the audio clock while it plays, or null. */

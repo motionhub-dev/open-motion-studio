@@ -11,7 +11,7 @@ import type { AddressInfo } from 'node:net';
 import { TOOLS, type ToolContext, type ToolOutcome, runTool } from './tools';
 
 /** The tools an outside agent gets from the Studio: what only the Studio can do; files it reads and writes itself. */
-export const STUDIO_TOOLS = ['check', 'still', 'search_motions', 'use_motion', 'ask_person'];
+export const STUDIO_TOOLS = ['check', 'still', 'search_motions', 'use_motion', 'ask_person', 'list_voices', 'voice_lines'];
 
 /** The largest request the server reads. */
 const MAX_BODY = 1024 * 1024;
