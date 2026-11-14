@@ -3,6 +3,18 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-14 — A film plays music and sound effects, and exports with sound
+
+- **What:** A film's `<Sound>` elements (`@motionhub/runtime` 0.7.0; ADR 0010) play in the preview, in step with the
+  picture, and are mixed into the exported MP4 as AAC; a film with none exports picture only, as before. Assets take
+  MP3, WAV, M4A and OGG files and play them; the timeline shows each sound on a Sound row with its waveform; the stage
+  bar turns the preview's sound off; the export dialog says what is mixed; the agent learns `<Sound>`, and its `check`
+  lists the sounds and fails on a missing file. Each file's waveform is kept in `.motion-studio/peaks/`.
+- **Why:** A film had no way to carry sound.
+- **Breaking:** None.
+- **Upgrade:** Nothing; `@motionhub/runtime` moves from 0.5.0 to 0.7.0.
+- **Refs:** ADR 0010, `docs/tech/sound-and-captions.md`, `apps/desktop/src/main/film/mix.ts`, `apps/desktop/src/preview/sound.ts`.
+
 ## 2026-11-14 — Questions take the composer's place, failures say what to do, a new start
 
 - **What:** A question the agent asks with answers now stands where the composer was, the conversation dimmed behind

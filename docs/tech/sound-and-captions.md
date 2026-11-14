@@ -1,6 +1,6 @@
 # Sound, narration and captions
 
-> **Status:** Plan · **Updated:** 2026-11-14
+> **Status:** Plan, slice A built · **Updated:** 2026-11-14
 
 How a film gets sound, a spoken narration and captions, in three slices: music and effects that play and export, captions
 drawn from a film's lines, and a narration synthesized line by line whose word times time the captions.
@@ -24,6 +24,11 @@ changes land in `motionhub-dev/motions` (`packages/runtime`) before the Studio u
 - `<Caption line?>`: draws a line's words, styled by the motion's `caption.*` tokens.
 
 ## Slice A: sound in and out
+
+*Built*, as below (`@motionhub/runtime` 0.7.0 gives `<Sound>`), with three differences:
+- The Inspector does not show a sound: a click on its band seeks to it, and hovering shows its level, loop and fades.
+- The Remotion export has no sound yet: it waits for `@motionhub/remotion` to play `<Sound>`.
+- Overlapping sounds take rows of their own on the timeline, and the waveform is drawn on a decibel scale.
 
 Music and effects the person brings, heard in the preview and mixed into the MP4.
 

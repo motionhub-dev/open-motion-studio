@@ -98,7 +98,7 @@ describe('runTool', () => {
       { id: 'how', start: 4, duration: 6, layers: [], lines: [] },
     ];
     ctx.build = vi.fn().mockResolvedValue({ ok: true, version: 2, errors: [] });
-    ctx.stage = vi.fn().mockResolvedValue({ film: { seconds: 10, width: 1920, height: 1080, fps: 30, scenes, layers: [] }, frame, close });
+    ctx.stage = vi.fn().mockResolvedValue({ film: { seconds: 10, width: 1920, height: 1080, fps: 30, scenes, layers: [], sounds: [] }, frame, close });
     const outcome = await runTool('check', {}, ctx);
     expect(frame.mock.calls.map(([t]) => t)).toEqual([0, 2, 7, 10 - 1 / 30]);
     expect(outcome.text).toBe(
@@ -109,5 +109,30 @@ describe('runTool', () => {
       ].join('\n'),
     );
     expect(close).toHaveBeenCalled();
+  });
+
+  it('reports each sound, and fails while one plays a file the project does not have', async () => {
+    await mkdir(join(dir, 'media'));
+    await writeFile(join(dir, 'media', 'bed.mp3'), 'sound');
+    const sound = { at: 0, dur: null, until: 4, trim: 0, loop: false, volume: 0, fadeIn: 0, fadeOut: 0 };
+    const sounds = [
+      { ...sound, src: 'media/bed.mp3', loop: true, volume: -12, fadeIn: 1, fadeOut: 2 },
+      { ...sound, src: 'media/hit.wav', at: 1.5, dur: 0.5, volume: -6 },
+    ];
+    const scenes = [{ id: 'intro', start: 0, duration: 4, layers: [], lines: [] }];
+    ctx.build = vi.fn().mockResolvedValue({ ok: true, version: 2, errors: [] });
+    const film = (heard: typeof sounds) => ({ film: { seconds: 4, width: 1920, height: 1080, fps: 30, scenes, layers: [], sounds: heard }, frame: vi.fn(), close: vi.fn() });
+    ctx.stage = vi.fn().mockResolvedValue(film(sounds));
+    const failed = await runTool('check', {}, ctx);
+    expect(failed.ok).toBe(false);
+    expect(failed.text.split('\n').slice(2)).toEqual([
+      'Sounds:',
+      '- media/bed.mp3: 0 to 4 s, looped, at -12 dB, fading in over 1 s and out over 2 s',
+      '- media/hit.wav: 1.5 to 2 s, at -6 dB',
+      'But:',
+      '<Sound src="media/hit.wav">: no such file in the project. A sound\'s src is a path in the project, as media/music.mp3.',
+    ]);
+    ctx.stage = vi.fn().mockResolvedValue(film(sounds.slice(0, 1)));
+    expect((await runTool('check', {}, ctx)).ok).toBe(true);
   });
 });

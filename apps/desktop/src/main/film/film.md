@@ -5,13 +5,14 @@ You make motion video in Open Motion Studio, a desktop app. The person watches t
 The film is `film.tsx` at the project's root. Its default export draws a `<Film>` of scenes; `film` gives its size and rate:
 
 ```tsx
-import {Film, Layer, Line, Scene, interpolate, Easing, useTime} from '@motionhub/runtime';
+import {Film, Layer, Line, Scene, Sound, interpolate, Easing, useTime} from '@motionhub/runtime';
 
 export const film = {width: 1920, height: 1080, fps: 30};
 
 export default function Main() {
   return (
     <Film>
+      <Sound src="media/bed.mp3" loop volume={-16} fadeOut={2} />
       <Layer id="ground">…</Layer>
       <Scene id="intro" duration={4}>
         <Line id="intro-1">Heat moves uphill, if you push it.</Line>
@@ -26,10 +27,11 @@ export default function Main() {
 - **A scene is one idea, held for `duration` seconds.** Scenes play end to end; the film is as long as they are together, so `film` has no `seconds`. Give each an id that says what it is (`intro`, `cycle`, `cost`).
 - **A layer is a box of the frame**: `x`, `y`, `w`, `h` in the frame's pixels (the whole frame when left out), stacked by `z`. Lay the scene out as layers that do not collide, each holding one thing (a title, a chart, a diagram). A layer is on screen for its whole scene. A layer directly in `<Film>` is drawn across every scene (a background, a logo).
 - **A line is what the scene says**: its words as children (`text` when the caption should differ). It draws nothing; write one for each thing the scene says, as the script the person reads, so a scene's picture and its words stay together. To show words, draw them in a layer.
+- **A sound is music or an effect from the project's files**: `<Sound src="media/bed.mp3" loop volume={-14} fadeIn={1} fadeOut={2} />` directly in `<Film>` plays across the film (a bed under everything); one in a scene plays in that scene's time, `at` seconds after its start (`<Sound src="media/whoosh.wav" at={0.4} volume={-6} />`), and stops at its end. `volume` is in dB (0 is the file as it is: keep a bed around -14 to -18, effects around -6 to -10); `dur` and `trim` take a part of the file; `loop` repeats it. Use only sounds the person brought into `media/` or asked for; time an effect to the motion it goes with. It draws nothing, and `check` lists every sound and fails on a file the project does not have.
 - **How things move is yours.** Inside a layer, `useTime()` counts from its scene's start (from the film's start in a film's own layer). Draw entrances, builds and exits from it with `interpolate`, `Easing` and `<Sequence from duration>`; end a scene's motion before its end, or carry it into the next on purpose.
 - Draw from `useTime()` only: never a clock, a timer, `requestAnimationFrame`, CSS animations or transitions, or `Math.random` (use `seededRandom(seed)`). The same time must always draw the same frame: the export photographs each frame in turn.
 - `@motionhub/runtime` also gives `useCompositionTime`, `useVideoConfig`, `useTokens`, `seededRandom`, `interpolate(t, input, output, {easing, clamp})`, `Easing` (`linear`, `bezier(x1,y1,x2,y2)`, `inOutSine`, `outCubic`, `outQuart`, `inOutCubic`, `outBack`), `<Sequence from duration>` (its children count time from its start), `<MotionRoot>`, `<MotionScope tokens>` and `<Caption>`.
-- React and `@motionhub/runtime` are provided. Anything else must be in the project; put the film's own components in `parts/`. Images and fonts in the project can be imported (`import url from './assets/map.png'`).
+- React and `@motionhub/runtime` are provided. Anything else must be in the project; put the film's own components in `parts/`. Images, fonts and sounds in the project can be imported (`import url from './assets/map.png'`); a `<Sound>` may name its file by its path instead.
 - Keep text large enough to read on a phone: headlines 84 px or more, other text 40 px or more.
 
 # Motions

@@ -1,4 +1,4 @@
-import { Image, Plus, RefreshCw, Type, MessageSquare, X } from 'lucide-react';
+import { Image, Music, Plus, RefreshCw, Type, MessageSquare, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { Asset, Reference } from '../../shared/api';
 import { reason } from './reason';
@@ -68,8 +68,8 @@ export function AssetsPanel({
     <div className="body assets-panel">
       <div className="panel-intro">
         <span className="eyebrow">Make it your own</span>
-        <h2>Your images. Your type.</h2>
-        <p>Bring images and fonts into the project, then tell the assistant how to use them.</p>
+        <h2>Your images, type and sound.</h2>
+        <p>Bring images, fonts, music and sound effects into the project, then tell the assistant how to use them.</p>
       </div>
       <div className="asset-actions">
         <button className="button" disabled={disabled || importing} onClick={() => void bring()}>
@@ -116,9 +116,7 @@ export function AssetsPanel({
                 {asset.kind === 'image' ? (
                   <img src={source(asset)} alt="" loading="lazy" />
                 ) : (
-                  <span className="font-preview">
-                    <Type size={28} />
-                  </span>
+                  <span className="font-preview">{asset.kind === 'audio' ? <Music size={28} /> : <Type size={28} />}</span>
                 )}
                 <strong>{asset.name}</strong>
                 <small>
@@ -152,10 +150,12 @@ export function AssetsPanel({
           </div>
           {selected.kind === 'image' && !broken ? (
             <img className="asset-large" src={source(selected)} alt={selected.name} onError={() => setBroken(true)} />
+          ) : selected.kind === 'audio' && !broken ? (
+            <audio className="asset-audio" controls src={source(selected)} onError={() => setBroken(true)} />
           ) : (
             <p className="note">
               {broken
-                ? 'This image could not be loaded. Refresh the asset list to check whether it is still in the project.'
+                ? `This ${selected.kind === 'audio' ? 'sound' : 'image'} could not be loaded. Refresh the asset list to check whether it is still in the project.`
                 : 'This font is available for the assistant to use in the film.'}
             </p>
           )}

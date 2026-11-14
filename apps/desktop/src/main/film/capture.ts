@@ -1,8 +1,8 @@
 // Stills and export: the film's page opened with ?render=1 in an
 // offscreen window, moved to each frame's time and photographed. Export pipes the frames
 // to ffmpeg as H.264 (High, level 4.1, BT.709, a key frame every two seconds, the index
-// ahead of the frames), which any phone plays. Nothing in the film runs on a clock, so a
-// time always draws the same frame.
+// ahead of the frames), which any phone plays, with the film's sounds mixed beside them
+// as AAC (mix.ts). Nothing in the film runs on a clock, so a time always draws the same frame.
 
 import { BrowserWindow, app, session, type NativeImage } from 'electron';
 import { spawn } from 'node:child_process';
@@ -15,6 +15,7 @@ import type { Box, FilmInfo } from '../../shared/preview';
 import type { SceneStills } from '../../shared/api';
 import { STATE_DIR } from '../project';
 import { buildDir } from './film';
+import { soundInputs, soundMix } from './mix';
 
 export const RENDER_PARTITION = 'oms-render';
 
@@ -93,7 +94,7 @@ export async function openStage(version: number): Promise<Stage> {
           const error = await failed();
           if (error) throw new Error(error);
           const info = (await contents.executeJavaScript(
-            'window.__oms ? {seconds: __oms.seconds, width: __oms.width, height: __oms.height, fps: __oms.fps, scenes: __oms.scenes, layers: __oms.layers} : null',
+            'window.__oms ? {seconds: __oms.seconds, width: __oms.width, height: __oms.height, fps: __oms.fps, scenes: __oms.scenes, layers: __oms.layers, sounds: __oms.sounds} : null',
           )) as FilmInfo | null;
           if (info) return info;
           await new Promise((done) => setTimeout(done, 50));
@@ -183,16 +184,24 @@ const write = (stream: NodeJS.WritableStream, chunk: Buffer) =>
   });
 
 /**
- * Renders build `version` of the film to `file` as an MP4, reporting the share done (0 to 1).
- * The video is written beside `file` and moved into place only when it is whole, so a failed
- * or cancelled export leaves whatever was at `file` untouched.
+ * Renders build `version` of the film in `dir` to `file` as an MP4, its sounds mixed in, reporting the share done (0
+ * to 1). The video is written beside `file` and moved into place only when it is whole, so a failed or cancelled
+ * export leaves whatever was at `file` untouched.
  */
-export async function exportFrames(version: number, file: string, onProgress: (done: number) => void, signal: AbortSignal): Promise<void> {
+export async function exportFrames(
+  dir: string,
+  version: number,
+  file: string,
+  onProgress: (done: number) => void,
+  signal: AbortSignal,
+): Promise<void> {
   const stage = await openStage(version);
   const partial = `${file}.partial.mp4`;
   try {
     const { film } = stage;
     const frames = Math.round(film.seconds * film.fps);
+    // The sounds come after the picture's input (0); a film with none is picture only.
+    const mix = soundMix(await soundInputs(dir, ffmpegPath(), film.sounds), frames / film.fps, 1);
     const ffmpeg = spawn(
       ffmpegPath(),
       [
@@ -207,6 +216,7 @@ export async function exportFrames(version: number, file: string, onProgress: (d
         'png',
         '-i',
         '-',
+        ...(mix ? [...mix.inputs, '-filter_complex', mix.graph, '-map', '0:v', '-map', '[aout]', '-c:a', 'aac', '-b:a', '192k'] : []),
         ...VIDEO,
         '-g',
         String(film.fps * 2),

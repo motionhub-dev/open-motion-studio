@@ -7,6 +7,7 @@ const film = {
   fps: 30,
   seconds: 6,
   layers: [],
+  sounds: [],
   scenes: [
     { id: 'intro', start: 0, duration: 3, layers: [], lines: [] },
     { id: 'end', start: 3, duration: 3, layers: [], lines: [] },

@@ -74,7 +74,8 @@ A top bar over a grid of panels (`project-view.tsx`):
   along the bottom under the stage and the project tools. A shown panel hides from its own head (the assistant's left
   corner, the tools' right corner).
 - The **stage** is the film's height where there is room: its picture takes the film's shape with 16 px of ink around
-  the frame, and its foot is the controls (previous frame, play, next frame, the time, loop; then Pick, Region and
+  the frame, and its foot is the controls (previous frame, play, next frame, the time, loop, and sound on or off for a
+  film with sounds; then Pick, Region and
   Guides as one labelled group, the film's size and rate, and full screen). A narrow stage keeps the group's icons and
   drops the size. Full screen is the stage alone, picture and foot, with no corners; Esc or the button leaves it.
 - The **project tools** are four tabs, Outline, Inspector, Assets and Motions. History opens from the assistant's head
@@ -87,7 +88,10 @@ A top bar over a grid of panels (`project-view.tsx`):
   lane's name, its reason on hover, when they could not be made; the
   one under the playhead inked, its lines on hover; a selected scene ringed in cobalt, the scene of a selected layer
   ringed thinly), the Marks lane (a flag for each mark, a cobalt band for a stretch, dragged out along the lane; empty,
-  it says so in muted words, and it tints on hover), a dashed span for each layer (selected, solid cobalt on a cobalt
+  it says so in muted words, and it tints on hover), for a film with sounds a Sound row (each sound a cobalt-tinted
+  band from where it starts for as long as it plays, its file's name in mono over its waveform, filled cobalt on a
+  decibel scale through its volume and fades; overlapping sounds on rows of their own, named once; a file that will
+  not read dashed in `--bad`; a click seeks to it), a dashed span for each layer (selected, solid cobalt on a cobalt
   tint; changed by the last turn, a green ring on a green tint) and the playhead through them. The check's issues are small triangles on the ruler
   (`--bad` for an error, muted for a warning), and the moment under the pointer is an ink label on it
   with its scene. Ctrl and the wheel zoom about the pointer (1× to 32×); a playhead out of view is a chip at the edge
@@ -191,7 +195,7 @@ and return to their saved visibility on a wider window.
 History uses a vertical stack of request labels, timestamps and changed paths. Restore is an ink action, followed by
 a native modal explaining its scope and inverse checkpoint. Checks distinguish blockers from structural warnings;
 no passing sample is labelled as proof of complete visual correctness. Export's native modal shows the real film
-specification, the picture-only format and check outcome before the vermilion save action.
+specification, its sound (the sounds mixed, or picture only) and check outcome before the vermilion save action.
 
 The launcher introduces three starting-point cards in the same paper/ink palette. The assistant's brief is a compact
 optional form that prepares a message. Asset cards show real local images or a font icon, with an explicit message

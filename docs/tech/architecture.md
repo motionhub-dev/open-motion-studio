@@ -32,13 +32,15 @@ apps/desktop/
     history.ts         local checkpoints of the agent's source writes in .motion-studio/history.json, and restoring
                        one only when no file it touches was changed since (ADR 0007)
     examples.ts        the bundled starting films, each made once as an ordinary project in userData's Examples/
-    assets.ts          images and fonts the person picks, copied into the project's media/ without overwriting, and
-                       the list of what media/ holds
+    assets.ts          images, fonts and sounds the person picks, copied into the project's media/ without
+                       overwriting, and the list of what media/ holds
     film/
       film.ts          film.tsx: start one, bundle it with esbuild on every change; film.md is the agent's skill
       preview.ts       the oms-preview: scheme the film's page, the Studio's preview scripts, the film's bundle and
                        the project's own files are served on
       capture.ts       an offscreen window that photographs the film: stills, the timeline's scene frames, and export through ffmpeg
+      mix.ts           a film's sounds for the export: each <Sound>'s file found in the project, read by ffmpeg, and
+                       one filter graph that mixes them (ADR 0010); and each file's waveform for the timeline
       remotion-export.ts  the film written as a Remotion project
       review.ts        the sampled check before an export: build errors, a size MP4 refuses, layers past the frame,
                        and a draw of the start, each scene's middle and the end
@@ -53,8 +55,8 @@ apps/desktop/
       test-connection.ts  a provider's connection test: one call asking for a tool call, its time, never its key
     providers.ts       the providers, and their keys sealed with safeStorage
     motions.ts         the catalogue and a project's motions, through @motionhub/cli's library
-  src/preview/         the Studio's preview scripts: core.tsx (React, @motionhub/runtime and the film's player)
-                       and pick.ts (pointing at the picture)
+  src/preview/         the Studio's preview scripts: core.tsx (React, @motionhub/runtime and the film's player),
+                       sound.ts (its sounds through Web Audio) and pick.ts (pointing at the picture)
   src/preload/         the typed bridge the renderer calls (contextIsolation on, no Node in the renderer)
   src/shared/          what both sides agree on: StudioApi, and the preview bridge's messages
   src/renderer/        React UI
@@ -101,7 +103,20 @@ One engine, the Studio's own ([ADR 0005](../adr/0005-the-studio-has-one-engine-i
 - **Playing, stills and export**: the Studio plays the film on the core's own clock; a still or an export opens the page
   with `?render=1` in an offscreen window, moves it to each frame's time (`window.__oms.seek`) and photographs it, and
   export pipes the frames to ffmpeg (shipped with the app) as H.264 High at level 4.1, BT.709, a key frame every two
-  seconds, faststart. A motion's reel plays as a film inside one scene. The timeline's scene frames are six small JPEGs
+  seconds, faststart.
+- **Sound** ([ADR 0010](../adr/0010-a-films-sound-is-sound-elements-mixed-on-export.md)): `<Film>` reports each
+  `<Sound>` with the scenes, in the film's seconds (`FilmInfo.sounds`); `shared/sound.ts` says, once for the preview, the
+  export and the timeline, where its file is (a path in the project, or a file the film imported, under `build/`), how
+  long it plays and its gain through its fades. While the preview plays, the core fetches and decodes each file and
+  schedules it on an AudioContext, and its clock becomes the audio's, so the picture follows what is heard; a seek
+  while playing starts the sounds again there, and the stage bar mutes them (the main window plays sound without a
+  gesture, since Play is pressed in the window, not in the film's frame). Export adds each file as an input to the
+  same ffmpeg and one filter graph (`atrim`, `aloop` for a loop, `volume`, `afade`, `adelay`, then
+  `amix=normalize=0`, `alimiter` at -1 dBFS, padded or cut to the film's length), encoded AAC 192 kbit/s. `check`
+  lists every sound and fails on a file the project does not have. The timeline draws each sound on a Sound row
+  (overlapping ones on rows of their own), its waveform read once by ffmpeg (50 peaks a second, kept in
+  `.motion-studio/peaks/`) and drawn on a decibel scale through its volume and fades. A Remotion project exported from
+  the Studio has no sound yet: `@motionhub/remotion` does not play `<Sound>`. A motion's reel plays as a film inside one scene. The timeline's scene frames are six small JPEGs
   a scene, evenly through it, photographed once a build has stood for a moment and kept in
   `.motion-studio/thumbs/<hash of the build>.json`, one file, replaced when the film changes.
 - **A motion is taken into a project the way `@motionhub/cli get` takes it** (built, through the CLI's own library): the

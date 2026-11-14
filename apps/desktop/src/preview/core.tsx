@@ -13,11 +13,12 @@
 import * as runtime from '@motionhub/runtime';
 import { type FilmOutline, MotionRuntimeProvider } from '@motionhub/runtime';
 import * as React from 'react';
-import { type ComponentType, useEffect, useRef, useState } from 'react';
+import { type ComponentType, useEffect, useMemo, useRef, useState } from 'react';
 import * as jsxRuntime from 'react/jsx-runtime';
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import type { FilmInfo, FromPreview, ToPreview } from '../shared/preview';
+import { FilmAudio } from './sound';
 
 declare global {
   interface Window {
@@ -79,7 +80,8 @@ function info(module: FilmModule): FilmInfo {
   if ('seconds' in film) throw new Error(`film.tsx gives film.seconds, which a film no longer has: ${write}. Take seconds out of film.`);
   const outline = outlineOf(module.default, frame);
   if (!outline) throw new Error(`film.tsx draws no <Film>: ${write}.`);
-  return { ...frame, seconds: outline.seconds, scenes: outline.scenes, layers: outline.layers };
+  const sounds = [...outline.sounds, ...outline.scenes.flatMap((scene) => scene.sounds)];
+  return { ...frame, seconds: outline.seconds, scenes: outline.scenes, layers: outline.layers, sounds };
 }
 
 /** The structure the film's <Film> reports when it is drawn once, off the page, at its start; null when it draws none. */
@@ -140,6 +142,9 @@ function Player({ Film, film }: { Film: ComponentType; film: FilmInfo }) {
   const range = useRef<{ start: number; end: number } | null>(null);
   const tRef = useRef(0);
   tRef.current = t;
+  // The film's sounds; while they play, the audio clock is the preview's. A seek while playing starts them again there.
+  const audio = useMemo(() => new FilmAudio(film.sounds), [film]);
+  const [from, setFrom] = useState(0);
 
   useEffect(() => {
     const fit = () => setScale(Math.min(innerWidth / film.width, innerHeight / film.height));
@@ -156,9 +161,12 @@ function Player({ Film, film }: { Film: ComponentType; film: FilmInfo }) {
         range.current = null;
         setPlaying(true);
       } else if (message?.type === 'oms:pause') setPlaying(false);
+      else if (message?.type === 'oms:mute') audio.mute(message.muted === true);
       else if (message?.type === 'oms:seek') {
         range.current = null;
-        setT(Math.max(0, Math.min(film.seconds, message.t)));
+        tRef.current = Math.max(0, Math.min(film.seconds, message.t));
+        setT(tRef.current);
+        setFrom((n) => n + 1);
       } else if (
         message?.type === 'oms:play-range' &&
         Number.isFinite(message.start) &&
@@ -170,20 +178,23 @@ function Player({ Film, film }: { Film: ComponentType; film: FilmInfo }) {
         tRef.current = start;
         setT(start);
         setPlaying(true);
+        setFrom((n) => n + 1);
       }
     };
     addEventListener('message', onMessage);
     return () => removeEventListener('message', onMessage);
-  }, [film]);
+  }, [film, audio]);
 
   useEffect(() => {
     if (!playing) return;
     let id = 0;
     let last = performance.now();
+    void audio.play(tRef.current);
     const tick = (now: number) => {
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
-      const next = tRef.current + dt;
+      // With sounds, the picture keeps to the audio clock (held still until they start); without, to the page's.
+      const next = audio.silent ? tRef.current + dt : (audio.now() ?? tRef.current);
       const end = range.current?.end ?? film.seconds;
       if (next >= end) {
         setT(end);
@@ -195,8 +206,11 @@ function Player({ Film, film }: { Film: ComponentType; film: FilmInfo }) {
       id = requestAnimationFrame(tick);
     };
     id = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(id);
-  }, [playing, film]);
+    return () => {
+      cancelAnimationFrame(id);
+      audio.stop();
+    };
+  }, [playing, film, audio, from]);
 
   useEffect(() => post({ type: 'oms:time', t, playing }), [t, playing]);
 

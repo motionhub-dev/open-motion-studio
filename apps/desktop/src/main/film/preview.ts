@@ -86,6 +86,7 @@ const TYPES: Record<string, string> = {
   '.mp3': 'audio/mpeg',
   '.wav': 'audio/wav',
   '.ogg': 'audio/ogg',
+  '.m4a': 'audio/mp4',
 };
 
 /** Must run before the app is ready. */

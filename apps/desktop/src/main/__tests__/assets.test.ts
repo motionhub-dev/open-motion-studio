@@ -33,6 +33,18 @@ it('rejects unsupported files before importing any selection', async () => {
   const dir = join(root, 'project');
   const image = join(root, 'source', 'a.png');
   await writeFile(image, 'image');
-  await expect(importAssets(dir, [image, join(root, 'source', 'bad.exe')])).rejects.toThrow('not a supported');
+  await expect(importAssets(dir, [image, join(root, 'source', 'bad.exe')])).rejects.toThrow('the Studio takes');
   expect(await projectAssets(dir)).toEqual([]);
+});
+it('takes music and sound effects beside images and fonts', async () => {
+  const dir = join(root, 'project');
+  const files = ['bed.mp3', 'hit.WAV', 'voice.m4a', 'loop.ogg'].map((name) => join(root, 'source', name));
+  for (const file of files) await writeFile(file, 'sound');
+  const assets = await importAssets(dir, files);
+  expect(assets.map((a) => [a.path, a.kind])).toEqual([
+    ['media/bed.mp3', 'audio'],
+    ['media/hit.WAV', 'audio'],
+    ['media/loop.ogg', 'audio'],
+    ['media/voice.m4a', 'audio'],
+  ]);
 });

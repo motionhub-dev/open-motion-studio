@@ -17,6 +17,8 @@
 //   agent:<kind>     make the project talk to built-in, claude or codex (its agent.json), and open it again
 //   send:<text>      send a message and wait for the turn to end: a real turn, on the person's own sign-in or key
 //   file:<path>      print a file of the open project (e.g. .motion-studio/usage.jsonl)
+//   put:<from>=<to>  copy a local file into the open project at <to> (a new film.tsx is built), e.g. a sound into media/
+//   export:<file>    export the film as an MP4 to <file>, the save dialog answered by the step, and wait for it
 //   session:<file>   put a conversation (the built-in agent's messages, as .motion-studio/session.json holds them) in
 //                    the open project, then close it and open it again from the launcher's recents, so it shows
 //   stills:<n>       the same with a made-up conversation: one turn that looked at <n> stills of the film
@@ -169,6 +171,22 @@ try {
       await page.waitForSelector('.agent-progress', { timeout: 30_000 }).catch(() => undefined);
       await page.waitForSelector('.agent-progress', { state: 'detached', timeout: 300_000 });
       await page.waitForTimeout(500);
+    } else if (verb === 'put') {
+      // A file copied into the open project: put:<local file>=<path in the project>. A new film.tsx is built at once.
+      const [from, to] = arg.split('=');
+      const project = await page.getAttribute('.topbar .name', 'title');
+      fs.mkdirSync(path.dirname(path.join(project, to)), { recursive: true });
+      fs.copyFileSync(from, path.join(project, to));
+      await page.waitForTimeout(1500);
+      await settled(page);
+    } else if (verb === 'export') {
+      // An MP4 export to <file>: the save dialog answers with it, and the step waits for the export to end.
+      const file = path.resolve(arg);
+      await app.evaluate(({ dialog }, file) => {
+        dialog.showSaveDialog = async () => ({ canceled: false, filePath: file });
+      }, file);
+      const result = await page.evaluate(() => window.studio.exportFilm().then((f) => ({ file: f }), (e) => ({ error: String(e) })));
+      console.log('export:', JSON.stringify(result), fs.existsSync(file) ? `${fs.statSync(file).size} bytes` : 'no file');
     } else if (verb === 'session' || verb === 'stills') {
       const messages = verb === 'session' ? JSON.parse(fs.readFileSync(arg, 'utf8')) : await lookedAt(page, Number(arg) || 6);
       const project = await page.getAttribute('.topbar .name', 'title');

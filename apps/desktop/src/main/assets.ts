@@ -1,4 +1,4 @@
-// Local, creator-supplied images and fonts. Paths entering this module come only from
+// Local, creator-supplied images, fonts and sounds. Paths entering this module come only from
 // the native picker; the renderer can name only an asset already listed by the app.
 import { constants } from 'node:fs';
 import { copyFile, mkdir, readdir, realpath, stat } from 'node:fs/promises';
@@ -7,9 +7,13 @@ import type { Asset } from '../shared/api';
 import { writablePath } from './agent/tools';
 const IMAGES = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif', '.svg']);
 const FONTS = new Set(['.woff', '.woff2', '.ttf', '.otf']);
-export const ASSET_EXTENSIONS = [...IMAGES, ...FONTS].map((ext) => ext.slice(1));
-const kind = (file: string): Asset['kind'] | null =>
-  IMAGES.has(extname(file).toLowerCase()) ? 'image' : FONTS.has(extname(file).toLowerCase()) ? 'font' : null;
+/** What a <Sound> plays (ADR 0010), and what the preview's Web Audio and the export's ffmpeg both read. */
+const AUDIO = new Set(['.mp3', '.wav', '.m4a', '.ogg']);
+export const ASSET_EXTENSIONS = [...IMAGES, ...FONTS, ...AUDIO].map((ext) => ext.slice(1));
+const kind = (file: string): Asset['kind'] | null => {
+  const ext = extname(file).toLowerCase();
+  return IMAGES.has(ext) ? 'image' : FONTS.has(ext) ? 'font' : AUDIO.has(ext) ? 'audio' : null;
+};
 export async function projectAssets(dir: string): Promise<Asset[]> {
   const assets: Asset[] = [];
   const folder = await writablePath(dir, 'media');
@@ -40,7 +44,7 @@ export async function projectAssets(dir: string): Promise<Asset[]> {
 }
 export async function importAssets(dir: string, paths: string[]): Promise<Asset[]> {
   for (const path of paths) {
-    if (!kind(path)) throw new Error(`${basename(path)} is not a supported image or font.`);
+    if (!kind(path)) throw new Error(`${basename(path)} is not an image, a font or a sound the Studio takes (MP3, WAV, M4A, OGG).`);
     if (!(await stat(path)).isFile() || (await stat(path)).size > 50 * 1024 * 1024)
       throw new Error(`${basename(path)} must be a file smaller than 50 MB.`);
   }

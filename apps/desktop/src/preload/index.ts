@@ -34,6 +34,7 @@ const api: StudioApi = {
   lastBuild: () => ipcRenderer.invoke(CHANNELS.lastBuild),
   onBuild: (listener) => subscribe(EVENTS.build, listener),
   sceneStills: (version) => ipcRenderer.invoke(CHANNELS.sceneStills, version),
+  soundPeaks: (src) => ipcRenderer.invoke(CHANNELS.soundPeaks, src),
   projectMotions: () => ipcRenderer.invoke(CHANNELS.projectMotions),
   searchMotions: (words) => ipcRenderer.invoke(CHANNELS.searchMotions, words),
   useMotion: (id) => ipcRenderer.invoke(CHANNELS.useMotion, id),
