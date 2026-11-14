@@ -10,13 +10,14 @@ export interface Layout {
   side: boolean;
   right: number;
   bottom: number;
-  /** The timeline folded to its transport bar. */
+  /** The timeline folded to its head. */
   folded: boolean;
 }
 
 const KEY = 'oms.layout';
-const DEFAULT: Layout = { left: 360, right: 312, bottom: 240, folded: false, assistant: true, side: true };
-export const LIMITS = { left: [280, 560], right: [240, 480], bottom: [120, 420] } as const;
+const DEFAULT: Layout = { left: 360, right: 320, bottom: 240, folded: false, assistant: true, side: true };
+/** The right panel is never narrower than its four tabs. The timeline's height is the least it has: it takes what the stage leaves. */
+export const LIMITS = { left: [280, 560], right: [280, 480], bottom: [120, 420] } as const;
 
 function stored(): Layout {
   try {

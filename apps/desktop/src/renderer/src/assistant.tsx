@@ -6,7 +6,7 @@
 // stops it and goes in its place.
 
 import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react';
-import { AlertTriangle, ArrowUp, Check, ChevronDown, Clock, Loader, RotateCcw, Square, X } from 'lucide-react';
+import { AlertTriangle, ArrowUp, Check, ChevronDown, Clock, History, Loader, PanelLeftClose, RotateCcw, Square, X } from 'lucide-react';
 import {
   type AgentEvent,
   type AgentKind,
@@ -136,6 +136,10 @@ interface Props {
   onFresh(keys: string[]): void;
   /** The last turn was taken back: its files are as they were before it. */
   onUndone(): void;
+  /** Hides the assistant; the top bar and [ bring it back. */
+  onHide(): void;
+  /** Opens the project's history, the turns' checkpoints, in the project tools. */
+  onHistory(): void;
 }
 
 /** The composer grows with its text to about eight lines. */
@@ -162,6 +166,8 @@ export function Assistant({
   film,
   onFresh,
   onUndone,
+  onHide,
+  onHistory,
   onWorking,
   refs,
   version,
@@ -356,8 +362,14 @@ export function Assistant({
   return (
     <>
       <div className="head">
+        <button type="button" className="icon-button" aria-label="Hide assistant" data-tip="Hide assistant" data-key="[" onClick={onHide}>
+          <PanelLeftClose size={15} />
+        </button>
         <h2>Assistant</h2>
         <span className="spacer" />
+        <button type="button" className="icon-button" aria-label="History" data-tip="History: go back to before a turn" onClick={onHistory}>
+          <History size={15} />
+        </button>
         <button type="button" className="quiet" onClick={clear} disabled={working || items.length === 0}>
           New conversation
         </button>

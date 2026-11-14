@@ -1,25 +1,9 @@
 // An open project: the top bar, and the workspace's panels on the ground: the assistant down
-// the left, the stage in the middle, motions and the inspector on the right, the transport and
-// timeline along the bottom. A folder with no film yet is offered one. The keys are SHORTCUTS,
-// shown by ? or the keyboard button.
+// the left, the stage in the middle with its controls along its foot, the project tools on the
+// right, the timeline along the bottom. A folder with no film yet is offered one. The keys are
+// SHORTCUTS, shown by ? or the keyboard button.
 
-import {
-  ChevronDown,
-  Download,
-  Keyboard,
-  X,
-  ListTree,
-  Palette,
-  Crosshair,
-  History,
-  PanelLeftClose,
-  PanelLeftOpen,
-  PanelRightClose,
-  PanelRightOpen,
-  ShieldCheck,
-  FolderOpen,
-  Maximize2,
-} from 'lucide-react';
+import { ArrowLeft, ChevronDown, Download, Keyboard, PanelLeftOpen, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import {
   type AgentKind,
@@ -42,10 +26,14 @@ import { Inspector } from './inspector';
 import { LIMITS, Splitter, useLayout } from './layout';
 import { Logo } from './logo';
 import { MotionPanel } from './motion-panel';
-import { Stage, Transport, usePlayer } from './preview';
+import { Stage, usePlayer } from './preview';
+import { Fold, Timeline } from './timeline';
 import { reason } from './reason';
 
 type Toast = { text: string; error: boolean; file?: string };
+
+/** The height of the timeline folded to its head, in pixels. */
+const FOLDED = 38;
 
 /** Every key the workspace answers, by what it is for, as the shortcuts dialog lists them. */
 const SHORTCUTS: [group: string, keys: string[], what: string][] = [
@@ -154,6 +142,16 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
     return () => query.removeEventListener('change', change);
   }, []);
   const showSide = layout.side && (!compact || compactSide);
+  /** The timeline's height as drawn, which can be more than the layout's, so its handle drags from what is seen. */
+  const timelineSheet = useRef<HTMLElement>(null);
+  const [timelineHeight, setTimelineHeight] = useState<number | null>(null);
+  useEffect(() => {
+    const element = timelineSheet.current;
+    if (!element) return;
+    const observer = new ResizeObserver(() => setTimelineHeight(Math.round(element.getBoundingClientRect().height)));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [project.film]);
   const [selected, setSelected] = useState<Reference | null>(null);
   /** Whether the stage shows the safe-area guides. */
   const [guides, setGuides] = useState(false);
@@ -181,6 +179,18 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
       focusLayout.current = { assistant: layout.assistant, side: layout.side };
       setLayout({ assistant: false, side: false });
     } else setLayout(focusLayout.current);
+  }
+  /** Shows or hides the project tools; a compact window opens them only until it is resized. */
+  function showTools(show: boolean) {
+    if (compact) {
+      setCompactSide(show);
+      if (show && !layout.side) setLayout({ side: true });
+    } else setLayout({ side: show });
+  }
+  /** Opens one of the project tools, showing them if they are hidden. */
+  function openSide(panel: typeof side) {
+    setSide(panel);
+    if (!showSide) showTools(true);
   }
   const player = usePlayer(build);
   const active = providers?.providers.find((p) => p.id === providers.active);
@@ -268,10 +278,7 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
       } else if (event.key === '[') {
         setLayout({ assistant: !layout.assistant });
       } else if (event.key === ']') {
-        if (compact) {
-          setCompactSide(!showSide);
-          if (!layout.side) setLayout({ side: true });
-        } else setLayout({ side: !layout.side });
+        showTools(!showSide);
       } else if (event.key === '\\') {
         setLayout({ folded: !layout.folded });
       } else if (event.key === 'g' || event.key === 'G') {
@@ -351,12 +358,19 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
     player.seek(t);
   }
 
-  const status = !build ? (
-    <span className="status busy">Building…</span>
-  ) : build.ok ? (
-    <span className="status">Built</span>
-  ) : (
-    <span className="status bad">Does not build</span>
+  /** The last check's issues, while it is of the build on screen. */
+  const issues = review && review.version === build?.version ? review.issues : [];
+  const found = issues.length;
+  // The status opens the checks, where the build is looked at more closely.
+  const status = (
+    <button
+      type="button"
+      className={`status${!build ? ' busy' : !build.ok || issues.some((i) => i.severity === 'error') ? ' bad' : ''}`}
+      data-tip="Checks"
+      onClick={() => openSide('review')}
+    >
+      {!build ? 'Building…' : !build.ok ? 'Does not build' : found ? `Built · ${found} ${found === 1 ? 'issue' : 'issues'}` : 'Built'}
+    </button>
   );
 
   useEffect(() => {
@@ -398,7 +412,9 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
     setFocusRequest((n) => n + 1);
   }
 
-  const bottom = layout.folded ? 46 : layout.bottom;
+  // The timeline is at least its chosen height and takes whatever the stage, no taller than its film, leaves.
+  // Folded, it is its head and the stage takes the rest.
+  const rows = layout.folded ? `minmax(0, 1fr) ${FOLDED}px` : `minmax(0, auto) minmax(${layout.bottom}px, 1fr)`;
 
   return (
     <main className="project">
@@ -418,39 +434,27 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
         </span>
         {project.film && status}
         <span className="spacer" />
-        <div className="layout-tools">
-          <button
-            className="icon-button"
-            aria-label={layout.assistant ? 'Hide assistant' : 'Show assistant'}
-            data-tip={layout.assistant ? 'Hide assistant' : 'Show assistant'}
-            onClick={() => setLayout({ assistant: !layout.assistant })}
-          >
-            {layout.assistant ? <PanelLeftClose size={15} /> : <PanelLeftOpen size={15} />}
-          </button>
-          <button
-            className="icon-button"
-            aria-label={showSide ? 'Hide project tools' : 'Show project tools'}
-            data-tip={showSide ? 'Hide project tools' : 'Show project tools'}
-            onClick={() => {
-              if (compact) {
-                setCompactSide(!showSide);
-                if (!layout.side) setLayout({ side: true });
-              } else setLayout({ side: !layout.side });
-            }}
-          >
-            {showSide ? <PanelRightClose size={15} /> : <PanelRightOpen size={15} />}
-          </button>
-          <button
-            className="icon-button"
-            aria-label="Focus the film"
-            data-tip="Focus the film"
-            data-key="F"
-            aria-pressed={!layout.assistant && !showSide}
-            onClick={toggleFocus}
-          >
-            <Maximize2 size={15} />
-          </button>
-        </div>
+        {/* A hidden panel is brought back from here; a shown one hides from its own head. */}
+        {project.film && (!layout.assistant || !showSide) && (
+          <div className="layout-tools">
+            {!layout.assistant && (
+              <button
+                className="icon-button"
+                aria-label="Show assistant"
+                data-tip="Show assistant"
+                data-key="["
+                onClick={() => setLayout({ assistant: true })}
+              >
+                <PanelLeftOpen size={15} />
+              </button>
+            )}
+            {!showSide && (
+              <button className="icon-button" aria-label="Show project tools" data-tip="Show project tools" data-key="]" onClick={() => showTools(true)}>
+                <PanelRightOpen size={15} />
+              </button>
+            )}
+          </div>
+        )}
         <button
           type="button"
           className="icon-button"
@@ -508,14 +512,10 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
       {project.film ? (
         <div
           className="workspace"
-          style={
-            {
-              '--left': `${layout.left}px`,
-              '--right': `${layout.right}px`,
-              '--bottom': `${bottom}px`,
-              gridTemplateColumns: `${layout.assistant ? `${layout.left}px ` : ''}minmax(0, 1fr)${showSide ? ` ${layout.right}px` : ''}`,
-            } as React.CSSProperties
-          }
+          style={{
+            gridTemplateColumns: `${layout.assistant ? `${layout.left}px ` : ''}minmax(0, 1fr)${showSide ? ` ${layout.right}px` : ''}`,
+            gridTemplateRows: rows,
+          }}
         >
           <section className="sheet assistant" aria-label="Assistant" style={{ display: layout.assistant ? undefined : 'none' }}>
             <Assistant
@@ -556,6 +556,8 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
                 setMarks([]);
                 setInspected(null);
               }}
+              onHide={() => setLayout({ assistant: false })}
+              onHistory={() => openSide('history')}
             />
             <Splitter
               axis="x"
@@ -599,45 +601,43 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
             aria-label="Project tools"
             style={{ gridColumn: layout.assistant ? 3 : 2, display: showSide ? undefined : 'none' }}
           >
-            <nav className="side-tools" aria-label="Workspace panels">
-              {(
-                [
-                  { id: 'outline', label: 'Outline', icon: ListTree },
-                  { id: 'motions', label: 'Motions', icon: Palette },
-                  { id: 'assets', label: 'Assets', icon: FolderOpen },
-                  { id: 'inspector', label: 'Inspector', icon: Crosshair },
-                  { id: 'history', label: 'History', icon: History },
-                  { id: 'review', label: 'Checks', icon: ShieldCheck },
-                ] as const
-              ).map(({ id, label, icon: Icon }) => (
+            <div className="side-content">
+              {/* The four tools at hand are tabs; History opens from the assistant and Checks from the status. */}
+              <div className="side-tabs">
+                {side === 'history' || side === 'review' ? (
+                  <>
+                    <button type="button" className="icon-button" aria-label="Back to the outline" data-tip="Back" onClick={() => setSide('outline')}>
+                      <ArrowLeft size={15} />
+                    </button>
+                    <h2>{side === 'history' ? 'History' : 'Checks'}</h2>
+                  </>
+                ) : (
+                  <nav aria-label="Project tools">
+                    {(
+                      [
+                        { id: 'outline', label: 'Outline' },
+                        { id: 'inspector', label: 'Inspector' },
+                        { id: 'assets', label: 'Assets' },
+                        { id: 'motions', label: 'Motions' },
+                      ] as const
+                    ).map(({ id, label }) => (
+                      <button key={id} type="button" aria-pressed={side === id} onClick={() => setSide(id)}>
+                        {label}
+                      </button>
+                    ))}
+                  </nav>
+                )}
+                <span className="spacer" />
                 <button
-                  key={id}
                   type="button"
                   className="icon-button"
-                  aria-pressed={side === id}
-                  aria-label={label}
-                  data-tip={label}
-                  onClick={() => setSide(id)}
+                  aria-label="Hide project tools"
+                  data-tip="Hide project tools"
+                  data-key="]"
+                  onClick={() => showTools(false)}
                 >
-                  <Icon size={17} />
+                  <PanelRightClose size={15} />
                 </button>
-              ))}
-            </nav>
-            <div className="side-content">
-              <div className="head">
-                <h2>
-                  {side === 'outline'
-                    ? 'Outline'
-                    : side === 'motions'
-                      ? 'Motions'
-                      : side === 'history'
-                        ? 'History'
-                        : side === 'review'
-                          ? 'Checks'
-                          : side === 'assets'
-                            ? 'Assets'
-                            : 'Inspector'}
-                </h2>
               </div>
               {side === 'assets' ? (
                 <AssetsPanel disabled={busy || checking || progress !== null} onBusy={setImporting} onReference={reference} />
@@ -686,43 +686,54 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
             />
           </aside>
           <section
-            className="sheet transport-sheet"
-            aria-label="Transport and timeline"
+            ref={timelineSheet}
+            className="sheet timeline-sheet"
+            aria-label="Timeline"
             style={{ gridColumn: `${layout.assistant ? 2 : 1} / -1` }}
           >
             {!layout.folded && (
               <Splitter
                 axis="y"
                 sign={-1}
-                value={layout.bottom}
+                value={timelineHeight ?? layout.bottom}
                 limits={LIMITS.bottom}
                 onChange={(value) => setLayout({ bottom: value })}
                 label="Resize the timeline"
                 style={{ top: -7 }}
               />
             )}
-            <Transport
-              selected={selected}
-              onSelect={select}
-              player={player}
-              marks={marks}
-              lit={lit}
-              fresh={fresh}
-              issues={review && review.version === build?.version ? review.issues.filter((issue) => issue.time !== undefined) : []}
-              onIssue={(issue) => {
-                seek(issue.time!);
-                reference({
-                  kind: 'issue',
-                  label: issue.severity === 'warning' ? 'Review this layout' : 'Fix this issue',
-                  detail: issue.text,
-                  time: issue.time,
-                  scene: issue.scene,
-                });
-              }}
-              onRange={(start, end) => mark({ t: start, end, box: { x: 0, y: 0, w: 1, h: 1 }, element: null, note: '' })}
-              folded={layout.folded}
-              onFold={(folded) => setLayout({ folded })}
-            />
+            {player.film && !layout.folded ? (
+              <Timeline
+                film={player.film}
+                t={player.t}
+                playing={player.playing}
+                selected={selected}
+                onSelect={select}
+                marks={marks}
+                lit={lit}
+                fresh={fresh}
+                issues={issues.filter((issue) => issue.time !== undefined)}
+                onIssue={(issue) => {
+                  seek(issue.time!);
+                  reference({
+                    kind: 'issue',
+                    label: issue.severity === 'warning' ? 'Review this layout' : 'Fix this issue',
+                    detail: issue.text,
+                    time: issue.time,
+                    scene: issue.scene,
+                  });
+                }}
+                onRange={(start, end) => mark({ t: start, end, box: { x: 0, y: 0, w: 1, h: 1 }, element: null, note: '' })}
+                onSeek={seek}
+                onFold={(folded) => setLayout({ folded })}
+              />
+            ) : (
+              <div className="timeline-options">
+                <span className="eyebrow">Timeline</span>
+                <span className="spacer" />
+                <Fold folded={layout.folded} onFold={(folded) => setLayout({ folded })} />
+              </div>
+            )}
           </section>
         </div>
       ) : (
@@ -744,7 +755,7 @@ export function ProjectView({ project, providers, onSettings, onChange, onClose 
           onClose={() => setExportOpen(false)}
           onIssues={() => {
             setExportOpen(false);
-            setSide('review');
+            openSide('review');
           }}
           onExport={() => {
             setExportOpen(false);

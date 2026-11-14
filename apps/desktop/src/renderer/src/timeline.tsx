@@ -4,7 +4,7 @@
 // a page at a time, until the person scrolls it themselves; a playhead out of view is a chip at the
 // edge that brings it back. The check's issues sit on the ruler at their moments.
 import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent, type WheelEvent } from 'react';
-import { ChevronsLeft, ChevronsRight, Locate, Minus, Plus, Scan, TriangleAlert } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronsLeft, ChevronsRight, Locate, Minus, Plus, Scan, TriangleAlert } from 'lucide-react';
 import { MAX_MARKS, type FilmIssue, type Mark, type Reference } from '../../shared/api';
 import type { FilmInfo, LayerBox } from '../../shared/preview';
 import { timecode } from './preview';
@@ -30,6 +30,22 @@ export function scrollToKeep(scroll: number, x: number, width: number, from: num
   return Math.max(0, fraction * width * to - x);
 }
 
+/** Folds the timeline to its head, or opens it again. */
+export function Fold({ folded, onFold }: { folded: boolean; onFold(folded: boolean): void }) {
+  return (
+    <button
+      type="button"
+      className="icon-button"
+      aria-label={folded ? 'Show the timeline' : 'Fold the timeline'}
+      data-tip={folded ? 'Show the timeline' : 'Fold the timeline'}
+      data-key="\"
+      onClick={() => onFold(!folded)}
+    >
+      {folded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+    </button>
+  );
+}
+
 export function Timeline({
   film,
   t,
@@ -43,6 +59,7 @@ export function Timeline({
   onSeek,
   selected,
   onSelect,
+  onFold,
 }: {
   film: FilmInfo;
   t: number;
@@ -59,6 +76,8 @@ export function Timeline({
   onSeek(t: number): void;
   selected: Reference | null;
   onSelect(ref: Reference): void;
+  /** Folds the timeline to its head. */
+  onFold(folded: boolean): void;
 }) {
   const [zoom, setZoom] = useState(1);
   /** The zoom as last asked for, ahead of the render, so wheel steps that come together add up. */
@@ -178,7 +197,7 @@ export function Timeline({
   return (
     <div className="timeline-wrap">
       <div className="timeline-options">
-        <span className="eyebrow">Scene & layer timing</span>
+        <span className="eyebrow">Timeline</span>
         <span className="spacer" />
         <button
           className="icon-button"
@@ -215,6 +234,7 @@ export function Timeline({
         <button className="icon-button" aria-label="Fit timeline" data-tip="Fit the whole film" data-key="Shift Z" onClick={() => zoomTo(ZOOM.min)}>
           <Scan size={12} />
         </button>
+        <Fold folded={false} onFold={onFold} />
       </div>
       <div className="timeline" aria-label="Timeline">
         <div className="timeline-scroll">

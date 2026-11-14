@@ -3,6 +3,20 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-13 — The workspace gives the film and the timeline the room
+
+- **What:** The stage is no taller than its film where there is room, and its foot carries play, the time, loop and the
+  pointing tools as labelled buttons (Pick, Region, Guides); the timeline takes the height the stage leaves, with its
+  own head (zoom, fit, follow, fold). The project tools are four labelled tabs (Outline, Inspector, Assets, Motions);
+  History opens from the assistant's head and Checks from the status in the top bar, which counts the last check's
+  issues. Each panel hides from its own head and comes back from the top bar; the top bar's focus button is gone (F
+  stays). The right panel is at least 280 px wide.
+- **Why:** The picture sat in a tall dark box with its controls in another panel, and the side panel's rail and
+  headings pushed its content down; the space now goes to the film and the timeline.
+- **Breaking:** None.
+- **Upgrade:** Nothing. A stored right-panel width under 280 px opens at 280 px.
+- **Refs:** `docs/design.md`, `apps/desktop/src/renderer/src/project-view.tsx`, `apps/desktop/src/renderer/src/preview.tsx`.
+
 ## 2026-11-13 — A project can talk to the person's own Claude Code
 
 - **What:** The agent picker and Models also offer the person's own Claude Code, when it is installed where

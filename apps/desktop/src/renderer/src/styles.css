@@ -249,9 +249,17 @@ input[type='radio'] {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  padding: 3px 8px;
+  border: 0;
+  border-radius: var(--r-control);
+  background: transparent;
+  font: 12px var(--font-ui);
   color: var(--muted);
   white-space: nowrap;
+}
+
+button.status:hover {
+  background: var(--s2);
 }
 
 .status::before {
@@ -555,9 +563,8 @@ input[type='radio'] {
 .workspace {
   flex: 1;
   min-height: 0;
+  /* columns and rows are the layout's (project-view.tsx) */
   display: grid;
-  grid-template-columns: var(--left) minmax(0, 1fr) var(--right);
-  grid-template-rows: minmax(0, 1fr) var(--bottom);
   gap: 8px;
   padding: 0 8px 8px;
 }
@@ -624,8 +631,15 @@ input[type='radio'] {
   overflow: hidden;
 }
 
+.assistant > .head {
+  gap: 4px;
+  padding-left: 6px;
+}
+
+/* The side panel's content never sets the stage's row, which is the film's height (size containment). */
 .side {
   overflow: hidden;
+  contain: size;
 }
 
 .empty {
@@ -639,11 +653,127 @@ input[type='radio'] {
 /* The stage. */
 
 .stage {
-  position: relative;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
   border-radius: var(--r-panel);
   background: var(--stage);
   overflow: hidden;
+  container-type: inline-size;
+}
+
+/* The picture's height is the film's shape (its .fit) where there is room, and shrinks where there is not. */
+.picture {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.stage .fit {
+  width: 100%;
+}
+
+/* The stage's foot: play and step, then the tools that point at the picture. */
+.stage-bar {
+  height: 44px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px 4px;
+  color: rgb(255 255 255 / 0.78);
+}
+
+.stage-bar .icon-button {
+  color: inherit;
+}
+
+.stage-bar .icon-button:hover:not(:disabled) {
+  background: rgb(255 255 255 / 0.12);
+  color: #fff;
+}
+
+.stage-bar .icon-button[aria-pressed='true'] {
+  background: rgb(255 255 255 / 0.22);
+  color: #fff;
+}
+
+.stage-bar .play {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 0;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  color: var(--stage);
+}
+
+.stage-bar .play:hover:not(:disabled) {
+  background: rgb(255 255 255 / 0.85);
+}
+
+.stage-bar .timecode {
+  color: #fff;
+}
+
+.stage-bar .timecode span {
+  color: rgb(255 255 255 / 0.55);
+}
+
+.stage-bar .spacer {
+  flex: 1;
+}
+
+.stage-bar .spec {
+  margin-left: 8px;
+  font-size: 12px;
+  color: rgb(255 255 255 / 0.55);
+  white-space: nowrap;
+}
+
+.pointing {
+  display: flex;
+  padding: 2px;
+  gap: 2px;
+  border-radius: var(--r-button);
+  background: rgb(255 255 255 / 0.08);
+}
+
+.pointing button {
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: var(--r-control);
+  background: transparent;
+  color: inherit;
+  font: 500 12px var(--font-ui);
+}
+
+.pointing button:hover:not(:disabled) {
+  background: rgb(255 255 255 / 0.12);
+  color: #fff;
+}
+
+.pointing button[aria-pressed='true'] {
+  background: rgb(255 255 255 / 0.9);
+  color: var(--stage);
+}
+
+.pointing button:disabled {
+  opacity: 0.4;
+}
+
+/* A narrow stage keeps the tools' icons and lets the film's size go. */
+@container (max-width: 620px) {
+  .stage-bar .spec,
+  .pointing button span {
+    display: none;
+  }
 }
 
 .stage .plate {
@@ -664,32 +794,6 @@ input[type='radio'] {
   /* The film's page has no colour scheme; a frame whose scheme differs from the page it is in
      is painted opaque, so it keeps the page's own and the ink shows through in dark too. */
   color-scheme: normal;
-}
-
-.stage .tools {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 3;
-  display: flex;
-  gap: 2px;
-  padding: 3px;
-  border-radius: 9px;
-  background: var(--overlay);
-}
-
-.stage .tools .icon-button {
-  color: rgb(255 255 255 / 0.78);
-}
-
-.stage .tools .icon-button:hover:not(:disabled) {
-  background: rgb(255 255 255 / 0.12);
-  color: #fff;
-}
-
-.stage .tools .icon-button[aria-pressed='true'] {
-  background: rgb(255 255 255 / 0.22);
-  color: #fff;
 }
 
 .stage .waiting {
@@ -782,36 +886,10 @@ input[type='radio'] {
   gap: 4px;
 }
 
-/* The transport and the timeline. */
+/* The timeline. */
 
-.transport-sheet {
-  grid-column: 2 / span 2;
+.timeline-sheet {
   overflow: hidden;
-}
-
-.transport {
-  height: 44px;
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0 10px;
-  border-bottom: 1px solid var(--line);
-}
-
-.transport .play {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: 0;
-  display: grid;
-  place-items: center;
-  background: var(--text);
-  color: var(--bg);
-}
-
-.transport .play:hover:not(:disabled) {
-  background: var(--text2);
 }
 
 .timecode {
@@ -821,19 +899,6 @@ input[type='radio'] {
   white-space: nowrap;
 }
 
-.timecode span {
-  color: var(--muted);
-}
-
-.transport .spacer {
-  flex: 1;
-}
-
-.transport .spec {
-  font-size: 12px;
-  color: var(--muted);
-  white-space: nowrap;
-}
 
 .timeline {
   flex: 1;
@@ -1969,25 +2034,45 @@ kbd {
   display: flex;
   flex-direction: row;
 }
-.side-tools {
-  display: flex;
+.side-tabs {
   flex: none;
-  flex-direction: column;
-  gap: 8px;
-  width: 44px;
-  padding: 10px 5px;
-  border-right: 1px solid var(--line);
-  background: var(--bg);
+  height: 40px;
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  padding: 0 6px 0 4px;
+  border-bottom: 1px solid var(--line);
 }
-.side-tools .icon-button {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--r-button);
+.side-tabs > .icon-button {
+  align-self: center;
 }
-.side-tools [aria-pressed='true'] {
-  background: var(--s2);
+.side-tabs h2 {
+  align-self: center;
+  font-size: 13px;
+  font-weight: 600;
+}
+.side-tabs .spacer {
+  flex: 1;
+}
+.side-tabs nav {
+  display: flex;
+  min-width: 0;
+}
+.side-tabs nav button {
+  padding: 0 9px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: 500 12px var(--font-ui);
+  white-space: nowrap;
+}
+.side-tabs nav button:hover {
   color: var(--text);
-  box-shadow: inset 2px 0 var(--text);
+}
+.side-tabs nav button[aria-pressed='true'] {
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: inset 0 -2px var(--text);
 }
 .side-content {
   display: flex;
@@ -2005,21 +2090,14 @@ kbd {
   flex-direction: column;
   gap: 12px;
 }
-.side-content > .head {
-  flex: none;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  padding: 0 14px;
-  border-bottom: 1px solid var(--line);
-}
-.side-content > .head h2 {
-  font-size: 12px;
-  font-weight: 600;
-}
 .outline-scene {
   border-top: 1px solid var(--line);
   padding-top: 10px;
+}
+/* The tabs' rule is the first scene's. */
+.outline-scene:first-child {
+  border-top: 0;
+  padding-top: 0;
 }
 .outline-scene-head {
   display: flex;
@@ -2161,8 +2239,8 @@ kbd {
   align-items: center;
   flex: none;
   gap: 6px;
-  height: 28px;
-  padding: 0 10px;
+  height: 36px;
+  padding: 0 6px 0 12px;
   border-bottom: 1px solid var(--line);
   font-size: 10px;
   color: var(--muted);
