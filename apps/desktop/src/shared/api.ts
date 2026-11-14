@@ -103,6 +103,47 @@ export interface AgentSettings {
   codex: { model: string; effort: string };
 }
 
+/** The voice providers a film's lines can be spoken through (ADR 0012). */
+export type VoiceKind = 'azure' | 'elevenlabs' | 'minimax' | 'openai';
+
+/** A voice provider as Models shows it: what is set, never its key, only whether one is. */
+export interface VoiceView {
+  kind: VoiceKind;
+  hasKey: boolean;
+  /** Azure: its region; MiniMax: `global` or `china`. */
+  region?: string;
+  /** MiniMax: the account's group id. */
+  groupId?: string;
+  /** The provider's model, where it has several. */
+  model?: string;
+}
+
+/** A voice provider as the form gives it; a key, when given, replaces the stored one. */
+export interface VoiceInput {
+  kind: VoiceKind;
+  key?: string;
+  region?: string;
+  groupId?: string;
+  model?: string;
+}
+
+/** A voice a provider offers. */
+export interface VoiceChoice {
+  /** The provider's own name for it: what a film writes after `provider:`. */
+  id: string;
+  name: string;
+  /** Its language, as `zh-CN`, where the provider says. */
+  language?: string;
+}
+
+/** What voicing a film did: the lines spoken now, those kept from before, and what the speaking took. */
+export interface VoicedFilm {
+  spoken: number;
+  kept: number;
+  characters: number;
+  seconds: number;
+}
+
 /** A model a coding agent offers, and the efforts it takes. */
 export interface AgentModel {
   id: string;
