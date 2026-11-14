@@ -108,8 +108,8 @@ export async function openStage(version: number): Promise<Stage> {
       async frame(t, box) {
         await timeout(contents.executeJavaScript(`window.__oms.seek(${Number(t)})`), `The frame at ${t.toFixed(2)} s`);
         await timeout(
-          contents.executeJavaScript('Promise.all([...document.images].map(image => image.decode())).then(() => true)'),
-          'Loading image assets',
+          contents.executeJavaScript('Promise.all([...document.images].map(image => image.decode()).concat(document.fonts.ready)).then(() => true)'),
+          'Loading image assets and faces',
         );
         const error = await failed();
         if (error) throw new Error(error);

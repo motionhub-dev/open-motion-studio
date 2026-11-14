@@ -7,13 +7,14 @@
 //
 // The Studio bundles it with esbuild into .motion-studio/build/film.js, leaving React and
 // the runtime to the preview core (src/preview/core.tsx), and plays, stills and exports
-// it from there.
+// it from there; the faces of the project's motions go beside it in fonts.css.
 
 import { type BuildContext, type Message, type Plugin, context, formatMessages } from 'esbuild';
 import { existsSync } from 'node:fs';
 import { copyFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { BuildResult } from '../../shared/api';
+import { motionFaces } from '../motions';
 import { STATE_DIR } from '../project';
 import SKILL from './film.md?raw';
 
@@ -23,6 +24,9 @@ export const FILM_SKILL: string = SKILL;
 export const FILM = 'film.tsx';
 /** Where a project's film is bundled to. A function, so this module reads STATE_DIR only once it is defined. */
 export const buildDir = (dir: string): string => join(dir, STATE_DIR, 'build');
+
+/** The stylesheet of the project's motions' faces, beside the bundle (motions.ts motionFaces). */
+export const FACES = 'fonts.css';
 
 /** What the preview core provides; everything else a film imports is bundled. */
 const PROVIDED = ['react', 'react/jsx-runtime', '@motionhub/runtime'];
@@ -106,7 +110,13 @@ export function reporter(onBuilt: (result: BuildResult) => void, dir?: string): 
       build.onEnd(async (result) => {
         const errors = await formatted(result.errors);
         version++;
-        if (!errors.length && dir) await copyFile(join(buildDir(dir), 'film.js'), join(buildDir(dir), `film-${version}.js`));
+        if (!errors.length && dir) {
+          await copyFile(join(buildDir(dir), 'film.js'), join(buildDir(dir), `film-${version}.js`));
+          // The motions' faces, which the preview page loads before the film; a face that is not one is said, not loaded.
+          const faces = await motionFaces(dir);
+          for (const reason of faces.skipped) console.warn(`A motion's face was left out: ${reason}`);
+          await writeFile(join(buildDir(dir), FACES), faces.css);
+        }
         onBuilt({ ok: errors.length === 0, version, errors });
       });
     },

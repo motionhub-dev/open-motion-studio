@@ -235,11 +235,31 @@ function load(src: string): Promise<void> {
   });
 }
 
+/**
+ * The faces of the project's motions (build/fonts.css), loaded before the film draws, so its first frame is in them.
+ * A face that will not load leaves its text in the next face of its stack, and is said in the console.
+ */
+async function faces(): Promise<void> {
+  await new Promise<void>((done) => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'build/fonts.css';
+    link.onload = () => done();
+    // A build from before faces were kept has none.
+    link.onerror = () => done();
+    document.head.appendChild(link);
+  });
+  const loaded = await Promise.allSettled([...document.fonts].map((face) => face.load()));
+  for (const [i, result] of loaded.entries())
+    if (result.status === 'rejected') console.warn(`The face ${[...document.fonts][i]?.family} did not load:`, result.reason);
+}
+
 async function start(): Promise<void> {
   reportErrors();
   const render = new URLSearchParams(location.search).get('render') === '1';
   const version = new URLSearchParams(location.search).get('v') ?? '';
   try {
+    await faces();
     await load(`build/film-${Number(version)}.js`);
     const module = (globalThis as { __omsFilm?: FilmModule }).__omsFilm;
     if (!module) throw new Error('The film did not load.');

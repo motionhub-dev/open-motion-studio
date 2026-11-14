@@ -1,6 +1,6 @@
 # Architecture
 
-> **Status:** Plan — steps 1 to 3 and 6 built, 7 under way; signing waits for certificates · **Updated:** 2026-11-13
+> **Status:** Plan — steps 1 to 3 and 6 built, 7 under way; signing waits for certificates · **Updated:** 2026-11-14
 
 The components of the Studio and what each owns, the film, the agent and its providers, what is expensive to change, and the order of work.
 
@@ -108,6 +108,11 @@ One engine, the Studio's own ([ADR 0005](../adr/0005-the-studio-has-one-engine-i
   whole package, checked against the index's SHA-256, into `motions/@<scope>/<slug>/`, recorded in `motions.lock.json`.
   The copy is the project's and is never changed; a project's own motions are `motions/<name>/`. A film imports a
   motion's `tokens.json` and `react/parts/` directly and wraps itself in `<MotionScope tokens>`.
+- **A motion's faces** are the WOFF2 files its `react/fonts/fonts.json` names (`[{family, file, weight, style}]`). Each
+  build writes them, for every motion the project holds, as `@font-face` rules in `.motion-studio/build/fonts.css`, served
+  from the project on the preview's scheme; an entry that is not a WOFF2 beside its list is left out and logged. The
+  page loads them before the film draws, and a still or an export waits for them before each frame, so the film is set
+  in the motion's own type, not the system's.
 
 ## Export
 
@@ -288,8 +293,8 @@ Each step is a vertical slice that runs end to end before the next begins.
 2. **A film, one provider**: a film, a motion from motionhub, the agent on one Anthropic-protocol model, the preview,
    `still`, export to MP4. This is the whole product. *Built*, and driven end to end in the app:
    a motion taken from a local copy of the catalogue and its reel played as a film, a turn of the agent against a
-   scripted Messages server (write, check, still, reply), a 6 s film exported in about 13 s. Not yet: a turn on a real
-   model, and the first frame a motion's own faces need (they fall back to the system's).
+   scripted Messages server (write, check, still, reply), a 6 s film exported in about 13 s; a motion's own faces drawn
+   in the preview. Not yet: a turn on a real model.
 3. **Every provider**: the Chat Completions protocol, the presets, the keychain, the model picker; the same brief made on
    a Claude model, a DeepSeek model and a local model. *Built*, and a turn driven end to end in the app against a
    scripted Chat Completions server (write, check and a still sent back as a picture). Not yet: the same brief on real
@@ -349,8 +354,6 @@ What gates what: 2 gates everything; 3 gates nothing else; 7 needs nothing after
   another H.264 encoder (the platform's own, or OpenH264).
 - **Keys on Linux without a keyring**: kept today with Electron's fixed secret, which Models warns of. Whether to ask the
   person first, or refuse, is still open.
-- **Fonts**: a motion's faces (its `react/fonts/` or `CREDITS.md`) are not loaded yet in a film, so its type falls back
-  to the system's faces.
 - **Telemetry**: none is planned; crash reports, if any, opt-in.
 
 ## How done is verified
