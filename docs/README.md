@@ -11,6 +11,7 @@ Read [positioning](prd/positioning.md) first, then [the architecture](tech/archi
 - [Architecture](tech/architecture.md) — the components, the film, the agent, and the order of work.
 
 - [The creator’s workflow](tech/creator-workflow.md) — examples, structure, references, recovery, assets and checks.
+- [The assistant panel](tech/assistant-panel.md) — plan: each turn's tokens and time, turns as blocks, the coding agents' settings, the composer.
 
 ## Decisions
 
