@@ -47,9 +47,9 @@ function cleanVoice(input: unknown): VoiceInput {
   const region = text(given.region, kind === 'minimax' ? /^(global|china)$/ : /^[a-z0-9]{2,40}$/, kind === 'minimax' ? 'MiniMax’s site (global or china)' : 'an Azure region, as eastasia');
   const groupId = text(given.groupId, /^\d{1,40}$/, 'a MiniMax group id');
   const model = text(given.model, /^[\w.:-]{1,80}$/, 'a model');
+  const voiceId = text(given.voiceId, /^[^\s\x00-\x1f]{1,200}$/, 'a voice id');
   if (kind === 'azure' && !region) throw new Error('Azure needs its region, as eastasia: the resource’s Keys and Endpoint page shows it.');
-  if (kind === 'minimax' && !groupId) throw new Error('MiniMax needs its group id: the account page shows it.');
-  return { kind, ...(key ? { key } : {}), ...(region ? { region } : {}), ...(groupId ? { groupId } : {}), ...(model ? { model } : {}) };
+  return { kind, ...(key ? { key } : {}), ...(region ? { region } : {}), ...(groupId ? { groupId } : {}), ...(model ? { model } : {}), ...(voiceId ? { voiceId } : {}) };
 }
 
 const NO_AGENT_SETTINGS: AgentSettings = {
@@ -269,8 +269,8 @@ export class ProviderStore {
 
   /** A voice provider with its key opened, for one call; the form's own, not saved, when given (a sample before saving). */
   async voiceSetup(kind: unknown, draft?: unknown): Promise<VoiceSetup> {
-    if (draft !== undefined) {
-      const voice = cleanVoice(draft);
+    const voice = draft !== undefined ? cleanVoice(draft) : undefined;
+    if (voice) {
       if (voice.key) return { ...voice, key: voice.key };
       kind = voice.kind;
     }
@@ -278,7 +278,7 @@ export class ProviderStore {
     const saved = (await this.settings()).voices?.[kind as VoiceKind];
     const sealed = (await this.keys())[`voice:${kind}`];
     if (!saved || !sealed) throw new Error(`${VOICE_NAMES[kind as VoiceKind]} is not set up: add it in Models, under Voices.`);
-    return { kind: kind as VoiceKind, ...saved, ...(draft !== undefined ? cleanVoice(draft) : {}), key: safeStorage.decryptString(Buffer.from(sealed, 'base64')) };
+    return { kind: kind as VoiceKind, ...(voice ?? saved), key: safeStorage.decryptString(Buffer.from(sealed, 'base64')) };
   }
 
   /** The active provider with its key opened, for one call. */

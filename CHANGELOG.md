@@ -3,6 +3,40 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-15 — Saving a voice returns to narration, and local agent tools bypass proxies
+
+- **What:** Save in voice settings keeps the selected voice id and closes Models, returning to Voice when opened
+  there. Generation uses that selection. External agents bypass proxies for the Studio's loopback MCP server;
+  Codex must discover the Studio tools before a turn starts, with connection failures reported before a model call.
+- **Why:** The selected voice was only used for a sample, saving left the dialog open, and a system proxy could
+  send local tool discovery through a proxy that returned HTTP 502, leaving the agent without film or voice tools.
+- **Breaking:** None.
+- **Upgrade:** Select and save the voice once; earlier selections were not stored. Reopen the app for existing agent
+  processes to pick up the local proxy bypass.
+- **Refs:** `apps/desktop/src/renderer/src/settings.tsx`, `apps/desktop/src/main/agent/harness.ts`,
+  `apps/desktop/src/main/agent/codex.ts`.
+
+## 2026-11-15 — A film without a voice offers settings and generation with the agent
+
+- **What:** Voice offers Voice settings and Generate with agent when the film has no voice selected. Settings opens
+  the configured voice provider in Models; generation opens the assistant and asks the current agent to choose a
+  suitable voice, generate the narration and check it. Generation is available when the agent is connected and idle.
+- **Why:** The dialog explained how to ask for a voice but offered no way to act on it.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/voice-dialog.tsx`, `apps/desktop/src/renderer/src/project-view.tsx`,
+  `apps/desktop/src/renderer/src/assistant.tsx`.
+
+## 2026-11-15 — MiniMax's group id is optional
+
+- **What:** MiniMax's voice settings can be saved and sampled without a group id. The form labels it optional, and
+  speech requests include `GroupId` only when it is set; clearing it also clears it for a sample using a stored key.
+- **Why:** Requiring a group id blocked accounts that authenticate with their API key alone.
+- **Breaking:** None.
+- **Upgrade:** Nothing; an existing group id is still used when set.
+- **Refs:** `apps/desktop/src/main/providers.ts`, `apps/desktop/src/main/voice.ts`,
+  `apps/desktop/src/renderer/src/settings.tsx`.
+
 ## 2026-11-14 — A Remotion project exported from the Studio speaks the film's narration
 
 - **What:** The Remotion export writes `@motionhub/remotion` 0.6 and `@motionhub/runtime` 0.8, gives a narrated film's

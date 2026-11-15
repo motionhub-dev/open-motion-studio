@@ -109,10 +109,12 @@ export type VoiceKind = 'azure' | 'elevenlabs' | 'minimax' | 'openai';
 /** A voice provider as Models shows it: what is set, never its key, only whether one is. */
 export interface VoiceView {
   kind: VoiceKind;
+  /** The voice explicitly selected by the person, used when giving a film its first voice. */
+  voiceId?: string;
   hasKey: boolean;
   /** Azure: its region; MiniMax: `global` or `china`. */
   region?: string;
-  /** MiniMax: the account's group id. */
+  /** MiniMax: the account's optional group id. */
   groupId?: string;
   /** The provider's model, where it has several. */
   model?: string;
@@ -121,6 +123,7 @@ export interface VoiceView {
 /** A voice provider as the form gives it; a key, when given, replaces the stored one. */
 export interface VoiceInput {
   kind: VoiceKind;
+  voiceId?: string;
   key?: string;
   region?: string;
   groupId?: string;

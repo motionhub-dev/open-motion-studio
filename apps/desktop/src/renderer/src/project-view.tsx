@@ -126,6 +126,14 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
   const [checkError, setCheckError] = useState('');
   const [exportOpen, setExportOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const returnToVoice = useRef(false);
+  useEffect(() => {
+    if (returnToVoice.current) {
+      returnToVoice.current = false;
+      setVoiceOpen(true);
+    }
+  }, [modelsClosed]);
+  const assistant = useRef<{ send(text: string): void }>(null);
   const [progress, setProgress] = useState<number | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
   /** The places marked on the picture, and the stretches on the timeline, for the next message. */
@@ -604,6 +612,7 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
         >
           <section className="sheet assistant" aria-label="Assistant" style={{ display: layout.assistant ? undefined : 'none' }}>
             <Assistant
+              ref={assistant}
               key={`${project.path}:${historyRevision}:${switches}`}
               active={active}
               agents={agents}
@@ -863,7 +872,16 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
       {voiceOpen && player.film && (
         <VoiceDialog
           film={player.film}
+          canGenerate={ready && !busy && !importing && !checking && progress === null}
+          onGenerate={(voice) => {
+            setVoiceOpen(false);
+            setLayout({ assistant: true });
+            assistant.current?.send(
+              `Generate narration for this film. ${voice ? `Use my selected voice ${JSON.stringify(voice)}; do not choose a different voice.` : 'Choose a suitable voice from my configured voice providers, matching the script’s language and tone.'} Keep the existing script, adding narration lines only if needed. Apply the voice, generate the speech and check the result.`,
+            );
+          }}
           onSetUp={(kind) => {
+            returnToVoice.current = true;
             setVoiceOpen(false);
             onVoiceSettings(kind);
           }}

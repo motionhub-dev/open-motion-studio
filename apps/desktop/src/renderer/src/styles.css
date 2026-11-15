@@ -3789,6 +3789,18 @@ kbd {
   margin-top: 12px;
 }
 
+.voice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.voice-actions .spacer {
+  flex: 1;
+}
+
 .voice-pick {
   display: flex;
   gap: 8px;

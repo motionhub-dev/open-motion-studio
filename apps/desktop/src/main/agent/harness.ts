@@ -74,6 +74,12 @@ export const CODEX_INSTALL = 'https://developers.openai.com/codex';
 /** The version of Claude Code the Studio was written and tested against (`claude -p` with stream-json in and out). */
 export const CLAUDE_MIN = '2.1.71';
 
+/** Studio tools are on loopback. Keep the person's proxy for remote APIs, bypassing it for the local MCP server. */
+export function agentEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+  const bypass = [env.NO_PROXY, env.no_proxy, '127.0.0.1', 'localhost', '::1'].filter(Boolean).join(',');
+  return { ...env, NO_PROXY: bypass, no_proxy: bypass };
+}
+
 /** The efforts Claude Code takes (`claude --help`, 2.1). */
 export const CLAUDE_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
 
@@ -87,7 +93,7 @@ export function claudePlaces(platform: NodeJS.Platform = process.platform, home 
  * started from would pass on (CLAUDECODE and CLAUDE_CODE_*, its session and tokens), which `claude` refuses to run under.
  */
 export function claudeEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
-  return Object.fromEntries(Object.entries(env).filter(([key]) => !/^CLAUDE(CODE$|_)/i.test(key)));
+  return agentEnv(Object.fromEntries(Object.entries(env).filter(([key]) => !/^CLAUDE(CODE$|_)/i.test(key))));
 }
 
 /** Claude Code on this machine: not installed, too old, or found with whether it is signed in (`claude auth status`). */

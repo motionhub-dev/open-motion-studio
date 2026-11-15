@@ -73,7 +73,7 @@ const VOICE_GUIDES: Record<VoiceKind, { name: string; steps: string[]; link: str
     name: 'MiniMax',
     steps: [
       'Sign in to MiniMax’s platform: minimax.io, or minimaxi.com in mainland China. Pick the same site below.',
-      'Create a key under API Keys, and copy the group id from the account’s page.',
+      'Create a key under API Keys. Group id is optional; leave it empty unless your account needs it.',
     ],
     link: 'https://www.minimax.io/platform/user-center/basic-information/interface-key',
     linkLabel: 'Open MiniMax’s keys',
@@ -115,14 +115,12 @@ function VoicePane({
     key: '',
   });
   const [choices, setChoices] = useState<VoiceChoice[] | null>(null);
-  const [voice, setVoice] = useState('');
+  const [voice, setVoice] = useState(view?.voiceId ?? '');
   const [sample, setSample] = useState<string | null>(null);
   const [busy, setBusy] = useState<'saving' | 'listing' | 'speaking' | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
   const edit = (change: Partial<VoiceInput>) => {
     setDraft((d) => ({ ...d, ...change }));
-    setSaved(false);
   };
   async function act<T>(what: 'saving' | 'listing' | 'speaking', work: () => Promise<T>): Promise<T | null> {
     setBusy(what);
@@ -169,7 +167,7 @@ function VoicePane({
               </select>
             </label>
             <label>
-              Group id
+              Group id (optional)
               <input type="text" className="mono" value={draft.groupId ?? ''} onChange={(e) => edit({ groupId: e.target.value })} />
             </label>
           </>
@@ -239,14 +237,9 @@ function VoicePane({
           </button>
           {sample && <audio src={sample} controls autoPlay />}
           <p className="hint">
-            For a film, ask the agent to give its &lt;Film&gt; <code className="mono">voice="{kind}:{voice}"</code>.
+            Save this voice, then generate the film’s narration from Voice in the top bar.
           </p>
         </div>
-      )}
-      {saved && (
-        <p className="test good" role="status">
-          Saved. Voice a film from the stage once it names a {guide.name} voice.
-        </p>
       )}
       {error && (
         <p className="error" role="alert">
@@ -274,11 +267,10 @@ function VoicePane({
           className="button primary"
           disabled={busy !== null}
           onClick={() =>
-            void act('saving', () => window.studio.saveVoice(draft)).then((next) => {
+            void act('saving', () => window.studio.saveVoice({ ...draft, voiceId: voice.trim() })).then((next) => {
               if (!next) return;
               onVoices(next);
-              setDraft((d) => ({ ...d, key: '' }));
-              setSaved(true);
+              onClose();
             })
           }
         >
@@ -558,7 +550,8 @@ export function Settings({
   const [agents, setAgents] = useState<Agents | null>(null);
   const [shown, setShown] = useState<OutsideKind | null>(agent ?? null);
   /** The voice providers set up, and which one is open in the right pane, if any. */
-  const [voices, setVoices] = useState<VoiceView[]>([]);
+  const [voices, setVoices] = useState<VoiceView[] | null>(null);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
   const [voiceShown, setVoiceShown] = useState<VoiceKind | null>(voice ?? null);
   useEffect(() => {
     let live = true;
@@ -568,7 +561,7 @@ export function Settings({
     );
     window.studio.voices().then(
       (found) => live && setVoices(found),
-      () => undefined,
+      (e) => live && setVoiceError(reason(e)),
     );
     return () => {
       live = false;
@@ -702,7 +695,7 @@ export function Settings({
           <p className="note">Speaks a film’s lines, with each word’s time for its captions.</p>
           <ul>
             {VOICE_KINDS.map((kind) => {
-              const set = voices.find((v) => v.kind === kind);
+              const set = voices?.find((v) => v.kind === kind);
               return (
                 <li key={kind}>
                   <button
@@ -729,7 +722,23 @@ export function Settings({
         </div>
 
         {voiceShown ? (
-          <VoicePane key={voiceShown} kind={voiceShown} view={voices.find((v) => v.kind === voiceShown)} onVoices={setVoices} onClose={onClose} />
+          voices ? (
+            <VoicePane key={voiceShown} kind={voiceShown} view={voices.find((v) => v.kind === voiceShown)} onVoices={setVoices} onClose={onClose} />
+          ) : (
+            <div className="provider-form agent-pane">
+              <div className="panel-head">
+                <h2>{VOICE_GUIDES[voiceShown].name}</h2>
+                <button type="button" className="icon-button" aria-label="Close" onClick={onClose}>
+                  <X size={16} />
+                </button>
+              </div>
+              {voiceError ? (
+                <p className="error" role="alert">{voiceError}</p>
+              ) : (
+                <p className="note"><Loader size={12} className="spin" /> Loading voice settings…</p>
+              )}
+            </div>
+          )
         ) : harness ? (
           <AgentPane key={harness.kind} harness={harness} settings={agents!.settings} onAgents={setAgents} onClose={onClose} />
         ) : (

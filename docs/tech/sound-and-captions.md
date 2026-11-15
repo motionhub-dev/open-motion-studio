@@ -1,6 +1,6 @@
 # Sound, narration and captions
 
-> **Status:** Plan, slices A, B and C built · **Updated:** 2026-11-14
+> **Status:** Plan, slices A, B and C built · **Updated:** 2026-11-15
 
 How a film gets sound, a spoken narration and captions, in three slices: music and effects that play and export, captions
 drawn from a film's lines, and a narration synthesized line by line whose word times time the captions.
@@ -72,10 +72,12 @@ A voice says each line; its words time the captions.
   default: the first narration asks the person to set one up, with a guide for each:
   - Azure (Microsoft's Speech service, with a free tier): key and region; its WebSocket gives audio and word boundaries.
   - ElevenLabs (`with-timestamps`, each character's time, read into words).
-  - MiniMax (`t2a_v2` with word subtitles): key and group id.
+  - MiniMax (`t2a_v2` with word subtitles): key and optional group id. An empty group id is omitted from the request.
   - OpenAI (`/audio/speech`, its words from one `/audio/transcriptions` call with word timestamps): a key many already
     have.
   - Each with its model, its voices listed to search, and a sentence to hear in one.
+  - Save keeps the person's selected `voiceId` with the provider and closes Models. Opened from Voice, it returns
+    to that dialog; Generate with agent applies the saved voice to the film before synthesizing its lines.
 - **Synthesis** is asked for, never automatic, since it may cost money: Voice the film in the stage bar and the agent's
   `voice_lines` tool. Each line is synthesized once per text, voice, speed and provider, into the project's `voice/`
   (the clip and its words), which git keeps with the film; only changed lines are spoken again.

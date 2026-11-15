@@ -1,6 +1,6 @@
 # Design
 
-> **Status:** Current · **Updated:** 2026-11-14
+> **Status:** Current · **Updated:** 2026-11-15
 
 The Studio's visual system: its identity, colour, type, shape, icons, the workspace's layout and the rules components follow.
 
@@ -180,8 +180,13 @@ recent projects with their path (`~` for the home folder), and a banner while no
   one opened says what it is and offers the one action that fixes its state (Install or Update, a link to the
   vendor's page; Sign in, through the agent itself) beside Check again. Under them, **Voices** lists the four voice
   providers (ADR 0012), a filled dot for one set up; one opened gives its steps to a key and a link to the page, the
-  key and what else it needs (Azure's region, MiniMax's site and group id, a model), its voices to search once listed,
-  and Hear it, which speaks a sentence in the voice chosen and says what a film writes for it.
+  key and its settings (Azure's region, MiniMax's site and optional group id, a model), its voices to search once listed,
+  and Hear it, which speaks a sentence in the voice chosen. Save keeps that voice id with the provider and closes
+  Models; when opened from Voice, it returns to the film's voice dialog with the saved choice shown.
+  When Voice is opened for a film with no voice selected but a provider set up, the dialog offers **Voice settings**
+  to open that provider in Models and **Generate with agent** to apply the saved voice (or choose a suitable one when
+  none was selected) and synthesize the narration through the project's current agent. Generation requires a connected,
+  idle agent and opens the assistant.
 
 
 ## Exploration and recovery

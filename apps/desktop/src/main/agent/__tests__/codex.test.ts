@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { AgentModel } from '../../../shared/api';
 import {
   STUDIO_SERVER,
+  openThread,
   approvalFor,
   codexChoice,
   codexInput,
@@ -13,7 +14,8 @@ import {
   turnEnd,
   type Reading,
 } from '../codex';
-import { atLeast, codexPlaces, versionOf } from '../harness';
+import { agentEnv, atLeast, codexPlaces, versionOf } from '../harness';
+import { STUDIO_TOOLS } from '../studio-mcp';
 
 vi.mock('electron', () => ({}));
 
@@ -80,9 +82,39 @@ describe('finding Codex', () => {
 });
 
 describe('a Codex session with the Studio’s tools', () => {
+  it('bypasses proxies for the local tools while preserving the person’s remote proxy and exclusions', () => {
+    const env = { HTTPS_PROXY: 'http://proxy:8000', NO_PROXY: 'example.org', no_proxy: 'example.net', PATH: '/bin' };
+    expect(agentEnv(env)).toEqual({
+      ...env,
+      NO_PROXY: 'example.org,example.net,127.0.0.1,localhost,::1',
+      no_proxy: 'example.org,example.net,127.0.0.1,localhost,::1',
+    });
+    expect(env.NO_PROXY).toBe('example.org');
+  });
+
+  it.each([undefined, 'existing-thread'])('requires the Studio tools before using a new or resumed thread (%s)', async (thread) => {
+    const request = vi.fn(async (method: string) => {
+      if (method === 'config/read') return { config: {} };
+      if (method === 'mcpServerStatus/list') return { data: [{ name: STUDIO_SERVER, tools: Object.fromEntries(STUDIO_TOOLS.map((name) => [name, {}])) }] };
+      return { thread: { id: thread ?? 'new-thread' } };
+    });
+    expect(await openThread({ request } as never, '/project', 'skill', 'http://127.0.0.1:5/mcp/x', thread)).toBe(thread ?? 'new-thread');
+    expect(request).toHaveBeenLastCalledWith('mcpServerStatus/list', { threadId: thread ?? 'new-thread', serverName: STUDIO_SERVER, detail: 'toolsAndAuthOnly' });
+  });
+
+  it('reports missing tools before a turn and keeps the resumed thread instead of silently starting another', async () => {
+    const request = vi.fn(async (method: string) => {
+      if (method === 'config/read') return { config: {} };
+      if (method === 'mcpServerStatus/list') return { data: [{ name: STUDIO_SERVER, tools: {} }] };
+      return { thread: { id: 'existing' } };
+    });
+    await expect(openThread({ request } as never, '/project', 'skill', 'http://127.0.0.1:5/mcp/x', 'existing')).rejects.toThrow('voice_lines');
+    expect(request.mock.calls.map(([method]) => method)).toEqual(['config/read', 'thread/resume', 'mcpServerStatus/list']);
+  });
+
   it('switches off the person’s own servers, apps and plugins, and adds the Studio’s', () => {
     expect(sessionConfig(['pencil', 'node_repl'], 'http://127.0.0.1:5/mcp/x')).toEqual({
-      mcp_servers: { pencil: { enabled: false }, node_repl: { enabled: false }, [STUDIO_SERVER]: { url: 'http://127.0.0.1:5/mcp/x' } },
+      mcp_servers: { pencil: { enabled: false }, node_repl: { enabled: false }, [STUDIO_SERVER]: { url: 'http://127.0.0.1:5/mcp/x', enabled: true } },
       features: { apps: false, plugins: false },
     });
   });

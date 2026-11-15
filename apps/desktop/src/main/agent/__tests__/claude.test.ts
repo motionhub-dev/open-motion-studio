@@ -41,6 +41,8 @@ describe('a Claude Code session', () => {
     expect(claudeEnv({ PATH: '/bin', CLAUDECODE: '1', CLAUDE_CODE_SESSION_ID: 'x', CLAUDE_CODE_MESSAGING_TOKEN: 't', HOME: '/h' })).toEqual({
       PATH: '/bin',
       HOME: '/h',
+      NO_PROXY: '127.0.0.1,localhost,::1',
+      no_proxy: '127.0.0.1,localhost,::1',
     });
     expect(claudePlaces('win32', 'C:/Users/me')[0]).toMatch(/\.local.bin.claude\.exe$/);
   });

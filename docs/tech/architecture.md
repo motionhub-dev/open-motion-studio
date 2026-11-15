@@ -1,6 +1,6 @@
 # Architecture
 
-> **Status:** Plan — steps 1 to 3 and 6 built, 7 under way; signing waits for certificates · **Updated:** 2026-11-14
+> **Status:** Plan — steps 1 to 3 and 6 built, 7 under way; signing waits for certificates · **Updated:** 2026-11-15
 
 The components of the Studio and what each owns, the film, the agent and its providers, what is expensive to change, and the order of work.
 
@@ -266,7 +266,10 @@ src/main/agent/
   and out, `--strict-mcp-config` and `--mcp-config` naming only the Studio's server, `--setting-sources ""`, the skill
   as `--append-system-prompt`, its allowed and disallowed tools, and `--session-id` or `--resume`. Codex starts
   `app-server`, and the Studio sends `initialize`, then `thread/start` or `thread/resume` with the skill as its
-  instructions, its workspace sandbox and the Studio's MCP server in `-c` overrides.
+  instructions, its workspace sandbox and the Studio's MCP server in session configuration overrides. Each child
+  agent bypasses proxies for loopback (`NO_PROXY` and `no_proxy`), preserving the person's remote proxy settings.
+  Before starting a Codex turn, `mcpServerStatus/list` on that thread must report all Studio tools; a failed
+  connection is reported in the assistant before any model call.
 - **A turn**: the Studio notes the project's writable files (as `ProjectHistory` would write them), sends the person's
   words, the `<marks>` and `<references>` text and each marked frame as an image (a user line on Claude Code's stdin,
   `turn/start` on Codex), and turns the events into the panel's: text deltas into `text`, tool calls and their results
