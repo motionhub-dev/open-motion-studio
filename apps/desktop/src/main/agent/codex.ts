@@ -12,6 +12,8 @@ import type Anthropic from '@anthropic-ai/sdk';
 import type { AgentEvent, AgentModel, AgentSettings, Approval, ApprovalAnswer } from '../../shared/api';
 import { moment, question, summary } from './loop';
 import { NO_TOKENS, type Spent, addSpent, codexTokens } from '../usage';
+import { agentEnv } from './harness';
+import { STUDIO_TOOLS } from './studio-mcp';
 
 /** The name the Studio's MCP server has in a Codex session. */
 export const STUDIO_SERVER = 'open_motion_studio';
@@ -33,7 +35,7 @@ export class AppServer {
   readonly ended: Promise<void>;
 
   constructor(bin: string, dir: string) {
-    this.child = spawn(bin, ['app-server'], { cwd: dir, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, env: process.env });
+    this.child = spawn(bin, ['app-server'], { cwd: dir, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, env: agentEnv() });
     let buffer = '';
     this.child.stdout!.setEncoding('utf8');
     this.child.stdout!.on('data', (chunk: string) => {
@@ -182,7 +184,7 @@ export function sessionConfig(own: string[], studioUrl: string): Record<string, 
   return {
     mcp_servers: {
       ...Object.fromEntries(own.filter((name) => name !== STUDIO_SERVER).map((name) => [name, { enabled: false }])),
-      [STUDIO_SERVER]: { url: studioUrl },
+      [STUDIO_SERVER]: { url: studioUrl, enabled: true },
     },
     features: { apps: false, plugins: false },
   };
@@ -195,6 +197,7 @@ export function sessionConfig(own: string[], studioUrl: string): Record<string, 
 export async function openThread(server: AppServer, dir: string, instructions: string, studioUrl: string, thread?: string): Promise<string> {
   const read = await server.request<{ config: { mcp_servers?: Record<string, unknown> } }>('config/read', { cwd: dir });
   const config = sessionConfig(Object.keys(read.config.mcp_servers ?? {}), studioUrl);
+  let opened: string | undefined;
   if (thread) {
     try {
       const resumed = await server.request<{ thread: { id: string } }>('thread/resume', {
@@ -202,19 +205,35 @@ export async function openThread(server: AppServer, dir: string, instructions: s
         developerInstructions: instructions,
         config,
       });
-      return resumed.thread.id;
+      opened = resumed.thread.id;
     } catch {
       // A thread Codex no longer has starts again; the panel keeps what was said.
     }
   }
-  const started = await server.request<{ thread: { id: string } }>('thread/start', {
-    cwd: dir,
-    sandbox: 'workspace-write',
-    approvalPolicy: 'on-request',
-    developerInstructions: instructions,
-    config,
+  if (!opened) {
+    const started = await server.request<{ thread: { id: string } }>('thread/start', {
+      cwd: dir,
+      sandbox: 'workspace-write',
+      approvalPolicy: 'on-request',
+      developerInstructions: instructions,
+      config,
+    });
+    opened = started.thread.id;
+  }
+  // Wait for discovery before spending a turn: a failed local connection otherwise looks like missing tools to the model.
+  await requireStudioTools(server, opened);
+  return opened;
+}
+
+async function requireStudioTools(server: AppServer, threadId: string): Promise<void> {
+  const listed = await server.request<{ data: { name: string; tools: Record<string, unknown> }[] }>('mcpServerStatus/list', {
+    threadId,
+    serverName: STUDIO_SERVER,
+    detail: 'toolsAndAuthOnly',
   });
-  return started.thread.id;
+  const tools = listed.data.find((s) => s.name === STUDIO_SERVER)?.tools ?? {};
+  const missing = STUDIO_TOOLS.filter((name) => !tools[name]);
+  if (missing.length) throw new Error(`Codex could not connect to the Studio’s tools (${missing.join(', ')}). Reopen the project to reconnect, then try again.`);
 }
 
 /** A model in Codex's `model/list`, as far as the Studio reads it. */

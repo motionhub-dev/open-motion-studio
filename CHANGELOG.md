@@ -3,6 +3,81 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-15 — New films and template copies use a configurable workspace
+
+- **What:** New film creates a fresh project directory without a folder picker. Every template click makes a new
+  copy. Both use Documents/OpenMotionStudio by default; Home shows the workspace path and opens Settings → Workspace
+  to change it. Existing names get numeric suffixes, including simultaneous creations.
+- **Why:** Starting a film should not require choosing an empty folder, and template clicks should preserve prior work.
+- **Breaking:** Clicking a template creates a new project instead of reopening its userData/Examples copy.
+- **Upgrade:** Existing projects stay in place and can be reopened from Recent or Open folder. A chosen workspace is
+  saved in settings.json's optional `workspace` field and applies to future projects only.
+- **Refs:** ADR 0015, `apps/desktop/src/main/project.ts`, `apps/desktop/src/main/examples.ts`,
+  `apps/desktop/src/renderer/src/settings.tsx`.
+
+## 2026-11-15 — Projects keep working behind Home and dedicated editor windows
+
+- **What:** One main window switches between Home and retained project sessions; closing it hides it to the tray.
+  Home shows tasks, waits and progress, with Open here and Open in editor window. A project's existing editor view
+  moves into a dedicated window with Ctrl/Cmd+Shift+N, or back to the main window. Closing an editor or switching
+  projects keeps its agent and export running, while hidden previews pause playback. Explicit Quit ends background
+  tasks. Projects have isolated preview/render sessions; shared settings and recents use serialized atomic saves.
+- **Why:** The person should be able to leave an agent working, close its editor and return to its progress from Home.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** ADR 0014, `apps/desktop/src/main/workspace.ts`, `apps/desktop/src/main/index.ts`,
+  `apps/desktop/src/main/film/capture.ts`.
+
+## 2026-11-15 — The home screen uses the Studio icon and OpenMotionStudio name
+
+- **What:** The launcher shows the same icon as the packaged app and writes its heading as OpenMotionStudio.
+- **Why:** The home screen should identify the Studio with its own icon and joined name.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/app.tsx`, `apps/desktop/src/renderer/src/logo.tsx`.
+
+## 2026-11-15 — The editor has a Home button beside the project's name
+
+- **What:** The editor's top bar starts with a Home icon, a chevron and the project's name. Home returns to the launcher.
+- **Why:** The brand mark did not make the way back to the home screen clear.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/project-view.tsx`.
+
+## 2026-11-15 — Saving a voice returns to narration, and local agent tools bypass proxies
+
+- **What:** Save in voice settings keeps the selected voice id and closes Models, returning to Voice when opened
+  there. Generation uses that selection. External agents bypass proxies for the Studio's loopback MCP server;
+  Codex must discover the Studio tools before a turn starts, with connection failures reported before a model call.
+- **Why:** The selected voice was only used for a sample, saving left the dialog open, and a system proxy could
+  send local tool discovery through a proxy that returned HTTP 502, leaving the agent without film or voice tools.
+- **Breaking:** None.
+- **Upgrade:** Select and save the voice once; earlier selections were not stored. Reopen the app for existing agent
+  processes to pick up the local proxy bypass.
+- **Refs:** `apps/desktop/src/renderer/src/settings.tsx`, `apps/desktop/src/main/agent/harness.ts`,
+  `apps/desktop/src/main/agent/codex.ts`.
+
+## 2026-11-15 — A film without a voice offers settings and generation with the agent
+
+- **What:** Voice offers Voice settings and Generate with agent when the film has no voice selected. Settings opens
+  the configured voice provider in Models; generation opens the assistant and asks the current agent to choose a
+  suitable voice, generate the narration and check it. Generation is available when the agent is connected and idle.
+- **Why:** The dialog explained how to ask for a voice but offered no way to act on it.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/voice-dialog.tsx`, `apps/desktop/src/renderer/src/project-view.tsx`,
+  `apps/desktop/src/renderer/src/assistant.tsx`.
+
+## 2026-11-15 — MiniMax's group id is optional
+
+- **What:** MiniMax's voice settings can be saved and sampled without a group id. The form labels it optional, and
+  speech requests include `GroupId` only when it is set; clearing it also clears it for a sample using a stored key.
+- **Why:** Requiring a group id blocked accounts that authenticate with their API key alone.
+- **Breaking:** None.
+- **Upgrade:** Nothing; an existing group id is still used when set.
+- **Refs:** `apps/desktop/src/main/providers.ts`, `apps/desktop/src/main/voice.ts`,
+  `apps/desktop/src/renderer/src/settings.tsx`.
+
 ## 2026-11-14 — A Remotion project exported from the Studio speaks the film's narration
 
 - **What:** The Remotion export writes `@motionhub/remotion` 0.6 and `@motionhub/runtime` 0.8, gives a narrated film's

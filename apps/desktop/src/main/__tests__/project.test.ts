@@ -10,6 +10,7 @@ vi.mock('node:os', async (original) => ({ ...(await original<typeof import('node
 import {
   MAX_RECENTS,
   createProject,
+  createInWorkspace,
   ignore,
   isRecent,
   openProject,
@@ -84,6 +85,36 @@ describe('createProject', () => {
   });
 });
 
+describe('createInWorkspace', () => {
+  it('creates a workspace and an initialized project without reusing an existing folder or file', async () => {
+    const workspace = join(root, 'Workspace');
+    const first = await createInWorkspace(workspace);
+    await writeFile(join(first.path, 'film.tsx'), 'keep my film');
+    await writeFile(join(workspace, 'Untitled film 2'), 'keep my file');
+    const next = await createInWorkspace(workspace);
+    expect(next.path).toBe(join(workspace, 'Untitled film 3'));
+    expect((await stat(join(next.path, '.motion-studio'))).isDirectory()).toBe(true);
+    expect(await readFile(join(first.path, 'film.tsx'), 'utf8')).toBe('keep my film');
+    expect(await readFile(join(workspace, 'Untitled film 2'), 'utf8')).toBe('keep my file');
+  });
+
+  it('reserves different folders for simultaneous creations', async () => {
+    const projects = await Promise.all(Array.from({ length: 4 }, () => createInWorkspace(root, 'A film')));
+    expect(new Set(projects.map((p) => p.path)).size).toBe(4);
+    expect(projects.map((p) => p.name).sort()).toEqual(['A film', 'A film 2', 'A film 3', 'A film 4']);
+  });
+
+  it('rejects names that escape the workspace and a workspace that is a file', async () => {
+    for (const name of ['', '.', '..', '../outside', 'a/b', 'a\\b']) {
+      await expect(createInWorkspace(root, name)).rejects.toThrow('single folder name');
+    }
+    const file = join(root, 'file');
+    await writeFile(file, 'keep');
+    await expect(createInWorkspace(file)).rejects.toThrow();
+    expect(await readFile(file, 'utf8')).toBe('keep');
+  });
+});
+
 describe('ignore', () => {
   it('appends to an existing .gitignore on a line of its own', async () => {
     await writeFile(join(root, '.gitignore'), 'node_modules');
@@ -114,6 +145,12 @@ describe('the recent list', () => {
     await mkdir(path);
     return { name, path, display: path, film: false };
   }
+
+  it('keeps projects opened by several windows at the same time', async () => {
+    const projects = await Promise.all(['one', 'two', 'three'].map(folder));
+    await Promise.all(projects.map((project) => rememberProject(file(), project)));
+    expect((await recentProjects(file())).map((p) => p.name).sort()).toEqual(['one', 'three', 'two']);
+  });
 
   it('is empty when nothing was stored or the file is corrupt', async () => {
     expect(await recentProjects(file())).toEqual([]);

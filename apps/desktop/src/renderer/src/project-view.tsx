@@ -3,7 +3,7 @@
 // right, the timeline along the bottom. A folder with no film yet is offered one. The keys are
 // SHORTCUTS, shown by ? or the keyboard button.
 
-import { ArrowLeft, ChevronDown, Download, Keyboard, Mic, PanelLeftOpen, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
+import { AppWindow, ArrowLeft, ChevronDown, ChevronRight, Download, Home, Keyboard, Mic, PanelLeftOpen, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import {
   type AgentKind,
@@ -15,6 +15,7 @@ import {
   ofPicture,
   type Mark,
   type Project,
+  type ProjectTask,
   type Providers,
   type Reference,
   type FilmReview,
@@ -29,7 +30,6 @@ import { type Hovered, Outline } from './outline';
 import { HistoryPanel } from './history-panel';
 import { Inspector } from './inspector';
 import { LIMITS, Splitter, useLayout } from './layout';
-import { Logo } from './logo';
 import { MotionPanel } from './motion-panel';
 import { Stage, usePlayer } from './preview';
 import { Fold, Timeline } from './timeline';
@@ -61,6 +61,7 @@ const SHORTCUTS: [group: string, keys: string[], what: string][] = [
   ['Workspace', ['\\'], 'Fold or show the timeline'],
   ['Workspace', ['F'], 'Focus the film or restore panels'],
   ['Workspace', ['?'], 'Show these shortcuts'],
+  ['Workspace', ['Ctrl/⌘', 'Shift', 'N'], 'Open this film in an editor window'],
 ];
 
 function Shortcuts({ onClose }: { onClose(): void }) {
@@ -101,6 +102,45 @@ function Shortcuts({ onClose }: { onClose(): void }) {
   );
 }
 
+function ProjectSwitcher({ project, onError }: { project: Project; onError(error: unknown): void }) {
+  const [tasks, setTasks] = useState<ProjectTask[]>([]);
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const stop = window.studio.onTasks(setTasks);
+    window.studio.tasks().then(setTasks, onError);
+    return stop;
+  }, []);
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: globalThis.PointerEvent) => { if (!ref.current?.contains(event.target as Node)) setOpen(false); };
+    const key = (event: globalThis.KeyboardEvent) => { if (event.key === 'Escape') setOpen(false); };
+    window.addEventListener('pointerdown', close);
+    window.addEventListener('keydown', key);
+    return () => { window.removeEventListener('pointerdown', close); window.removeEventListener('keydown', key); };
+  }, [open]);
+  return (
+    <div className="project-switcher" ref={ref}>
+      <button type="button" className="project-switcher-button" aria-label="Switch project" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <span className="name" title={project.path}>{project.name}</span><ChevronDown size={13} />
+      </button>
+      {open && (
+        <div className="menu project-menu" role="menu">
+          <button type="button" role="menuitem" onClick={() => { setOpen(false); window.studio.closeProject().catch(onError); }}>Home</button>
+          {tasks.map((task) => (
+            <button type="button" role="menuitem" key={task.project.path} onClick={() => { setOpen(false); window.studio.openTask(task.project.path).catch(onError); }}>
+              <strong>{task.project.name}{task.project.path === project.path ? ' · Current' : ''}</strong>
+              <span className="note">{task.activity}</span>
+            </button>
+          ))}
+          <button type="button" role="menuitem" onClick={() => { setOpen(false); window.studio.openTask(project.path, false).catch(onError); }}>Open in main window</button>
+          <button type="button" role="menuitem" onClick={() => { setOpen(false); window.studio.openTask(project.path, true).catch(onError); }}>Open in editor window</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Whether a key press belongs to a field the person is typing in. */
 const typing = (target: EventTarget | null) =>
   target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
@@ -126,6 +166,14 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
   const [checkError, setCheckError] = useState('');
   const [exportOpen, setExportOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const returnToVoice = useRef(false);
+  useEffect(() => {
+    if (returnToVoice.current) {
+      returnToVoice.current = false;
+      setVoiceOpen(true);
+    }
+  }, [modelsClosed]);
+  const assistant = useRef<{ send(text: string): void }>(null);
   const [progress, setProgress] = useState<number | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
   /** The places marked on the picture, and the stretches on the timeline, for the next message. */
@@ -495,18 +543,26 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
         <button
           type="button"
           className="icon-button"
-          disabled={busy || importing || checking || progress !== null}
-          aria-label="Close the project"
-          data-tip="Close the project"
+          aria-label="Home"
+          data-tip="Back to home"
           onClick={onClose}
         >
-          <Logo />
+          <Home size={18} />
         </button>
-        <span className="name" title={project.path}>
-          {project.name}
-        </span>
+        <ChevronRight size={14} className="muted" aria-hidden="true" />
+        <ProjectSwitcher project={project} onError={(e) => setToast({ text: reason(e), error: true })} />
         {project.film && status}
         <span className="spacer" />
+        <button
+          type="button"
+          className="icon-button"
+          aria-label="Open in editor window"
+          data-tip="Open in editor window"
+          data-key="Ctrl/⌘ Shift N"
+          onClick={() => window.studio.newWindow().catch((e) => setToast({ text: reason(e), error: true }))}
+        >
+          <AppWindow size={16} />
+        </button>
         {/* A hidden panel is brought back from here; a shown one hides from its own head. */}
         {project.film && (!layout.assistant || !showSide) && (
           <div className="layout-tools">
@@ -604,6 +660,7 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
         >
           <section className="sheet assistant" aria-label="Assistant" style={{ display: layout.assistant ? undefined : 'none' }}>
             <Assistant
+              ref={assistant}
               key={`${project.path}:${historyRevision}:${switches}`}
               active={active}
               agents={agents}
@@ -863,7 +920,16 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
       {voiceOpen && player.film && (
         <VoiceDialog
           film={player.film}
+          canGenerate={ready && !busy && !importing && !checking && progress === null}
+          onGenerate={(voice) => {
+            setVoiceOpen(false);
+            setLayout({ assistant: true });
+            assistant.current?.send(
+              `Generate narration for this film. ${voice ? `Use my selected voice ${JSON.stringify(voice)}; do not choose a different voice.` : 'Choose a suitable voice from my configured voice providers, matching the script’s language and tone.'} Keep the existing script, adding narration lines only if needed. Apply the voice, generate the speech and check the result.`,
+            );
+          }}
           onSetUp={(kind) => {
+            returnToVoice.current = true;
             setVoiceOpen(false);
             onVoiceSettings(kind);
           }}

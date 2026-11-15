@@ -28,7 +28,7 @@ export interface VoiceSetup {
   key: string;
   /** Azure: its region (`eastasia`); MiniMax: `global` or `china`, which site the account is on. */
   region?: string;
-  /** MiniMax: the account's group id. */
+  /** MiniMax: the account's optional group id. */
   groupId?: string;
   /** The provider's model, where it has several (ElevenLabs, MiniMax, OpenAI). */
   model?: string;
@@ -221,9 +221,9 @@ export function miniMaxWords(subtitles: unknown): Word[] {
 }
 
 async function miniMax(setup: VoiceSetup, voice: string, text: string, speed: number, io: VoiceIo): Promise<Speech> {
-  if (!setup.groupId) throw new Error('MiniMax needs its group id: Models has it beside the key.');
   const base = setup.region === 'china' ? 'https://api.minimaxi.com' : 'https://api.minimax.io';
-  const response = await io.fetch(`${base}/v1/t2a_v2?GroupId=${encodeURIComponent(setup.groupId)}`, {
+  const group = setup.groupId ? `?GroupId=${encodeURIComponent(setup.groupId)}` : '';
+  const response = await io.fetch(`${base}/v1/t2a_v2${group}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${setup.key}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({

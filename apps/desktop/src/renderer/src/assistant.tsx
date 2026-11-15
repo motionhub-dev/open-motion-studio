@@ -5,7 +5,7 @@
 // whose answers send themselves. While the agent works, a message waits for its turn to end, or
 // stops it and goes in its place.
 
-import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react';
+import { type FormEvent, type KeyboardEvent, type Ref, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { AlertTriangle, ArrowUp, AtSign, Check, ChevronDown, Clock, Copy, History, Loader, PanelLeftClose, Plus, RotateCcw, Square, SquarePen, X } from 'lucide-react';
 import {
   type AgentEvent,
@@ -351,6 +351,7 @@ function AgentChip({
 const STATE_WORDS: Record<HarnessState, string> = { ready: 'ready', 'signed-out': 'not signed in', old: 'needs an update', missing: 'not installed' };
 
 interface Props {
+  ref?: Ref<{ send(text: string): void }>;
   active: ProviderView | undefined;
   /** The project's agent and the person's own coding agents (ADR 0008). */
   agents: Agents | null;
@@ -403,6 +404,7 @@ interface Props {
 const COMPOSER_MAX = 180;
 
 export function Assistant({
+  ref,
   active,
   agents,
   onUseAgent,
@@ -631,6 +633,9 @@ export function Assistant({
       setWorking(false);
     }
   }
+
+  // Workspace actions use the same conversation, progress and error handling as a message from the composer.
+  useImperativeHandle(ref, () => ({ send: (text: string) => void sendText(text, [], []) }));
 
   function onKey(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (mention && !event.nativeEvent.isComposing) {

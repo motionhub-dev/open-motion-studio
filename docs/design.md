@@ -1,14 +1,14 @@
 # Design
 
-> **Status:** Current · **Updated:** 2026-11-14
+> **Status:** Current · **Updated:** 2026-11-15
 
 The Studio's visual system: its identity, colour, type, shape, icons, the workspace's layout and the rules components follow.
 
 ## Identity
 
 The Studio is motionhub's workbench, so it wears motionhub's brand (`brand/BRAND.md` in `motionhub-dev/motions`):
-paper and ink, one ordinary type family, and the mark, a ball in flight rising up and to the right (`logo.tsx`, the
-brand's `logo/mark.svg`). The interface stays quiet so the film is loud: no colour on screen but the film's, the film
+paper and ink, one ordinary type family, and the mark, a ball in flight rising up and to the right (the
+brand's `logo/mark.svg`). The launcher uses the Studio's application icon (`logo.tsx`). The interface stays quiet so the film is loud: no colour on screen but the film's, the film
 sits on ink, and each colour has one job.
 
 - **Vermilion (`--accent`)** is Export, and nothing else: the one action a screen asks for.
@@ -22,8 +22,8 @@ icon is two vermilion balls on an ink tile: `apps/desktop/resources/icon.png` is
 electron-builder makes the Mac's and Linux's icons; `icon.ico` is Windows', its 16 px the one-ball `icon-16.svg` and
 its larger sizes `icon.svg`. The window takes the same files on Windows and Linux.
 
-The window has no menu bar on Windows and Linux; on a Mac the system's menu bar keeps the app's menu, Edit and
-Window, for their keys (Quit, copy and paste in text, minimise).
+The window has no menu bar on Windows and Linux; on a Mac the system's menu bar keeps the app's menu, File, Edit and
+Window, for their keys (Quit, New Window, copy and paste in text, minimise).
 
 ## Colour
 
@@ -65,7 +65,7 @@ key where it has one.
 
 A top bar over a grid of panels (`project-view.tsx`):
 
-- **Top bar**: the mark (it closes the project), the project's name (its path on hover) and its status (building,
+- **Top bar**: a Home icon (it closes the project and returns to the launcher), a chevron, the project's name (its path on hover) and its status (building,
   built with the last check's issue count, or does not build), which opens Checks; then a button for each hidden panel,
   keyboard shortcuts, Voice (when the film has lines or a voice) and Export, which shows progress and cancels while
   running, with a menu beside it for a Remotion project. Voice opens a dialog that goes one step at a time: with no voice
@@ -84,7 +84,7 @@ A top bar over a grid of panels (`project-view.tsx`):
   and Checks from the status; either shows its title with a way back to the tabs.
 - The assistant's and the right panel's widths are dragged at their edges, and the timeline's height is the least it
   has: it takes whatever the stage leaves (handles take the arrow keys too). The timeline folds to its head, and the
-  stage then takes the rest; `layout.tsx` keeps the sizes in the app's local storage.
+  stage then takes the rest; `layout.tsx` keeps the sizes in that window's session-local storage.
 - The timeline (`timeline.tsx`) is a head (its zoom, fit, follow and fold), a ruler, a Scenes lane for a film of scenes (each scene a block named by its title over a strip of its frames, as many
   40 px frames as its width holds, each the nearest in time; until they are made, the title alone; a triangle by the
   lane's name, its reason on hover, when they could not be made; the
@@ -116,8 +116,21 @@ A top bar over a grid of panels (`project-view.tsx`):
   short (a path, a mark's moment).
 - An export's result is a toast, with Show in folder.
 
-The launcher (`app.tsx`) is the mark and the title, Open folder and New film (which starts one in an empty folder), the
+The launcher (`app.tsx`) is the Studio application icon and the title **OpenMotionStudio**, Open folder and New film (which creates a fresh directory in the default workspace), the
 recent projects with their path (`~` for the home folder), and a banner while no model is set up.
+Its workspace path opens Settings → Workspace. The default is the operating system's Documents folder plus
+`OpenMotionStudio`; Change folder saves a new location for future projects without moving existing ones.
+Each template click copies its bundled source into a fresh workspace project. Repeated names get numeric suffixes.
+The main window is the single home and project-switching surface. Its close button hides it to the tray; the tray
+opens it, returns Home, or quits the app and its background tasks. Home's Your projects cards show each retained
+project's phase, actual frame/line progress when available, elapsed time, and whether it is working, waiting for the
+person, done, failed or stopped. Each offers Open here and Open in editor window.
+
+The editor's project-name menu switches projects or returns Home without stopping a task. Open in editor window,
+also Ctrl/Cmd+Shift+N, moves its existing view into a dedicated window for that project. Open in main window moves
+it back. Closing a dedicated window only detaches the view; reopening restores the same conversation, draft and
+pending requests. A project appears in one editing surface at a time. Hidden views pause preview playback while
+agents and exports continue. Sessions are retained for this app run; explicit Quit ends them.
 
 ## The panels and the models dialog
 
@@ -180,8 +193,13 @@ recent projects with their path (`~` for the home folder), and a banner while no
   one opened says what it is and offers the one action that fixes its state (Install or Update, a link to the
   vendor's page; Sign in, through the agent itself) beside Check again. Under them, **Voices** lists the four voice
   providers (ADR 0012), a filled dot for one set up; one opened gives its steps to a key and a link to the page, the
-  key and what else it needs (Azure's region, MiniMax's site and group id, a model), its voices to search once listed,
-  and Hear it, which speaks a sentence in the voice chosen and says what a film writes for it.
+  key and its settings (Azure's region, MiniMax's site and optional group id, a model), its voices to search once listed,
+  and Hear it, which speaks a sentence in the voice chosen. Save keeps that voice id with the provider and closes
+  Models; when opened from Voice, it returns to the film's voice dialog with the saved choice shown.
+  When Voice is opened for a film with no voice selected but a provider set up, the dialog offers **Voice settings**
+  to open that provider in Models and **Generate with agent** to apply the saved voice (or choose a suitable one when
+  none was selected) and synthesize the narration through the project's current agent. Generation requires a connected,
+  idle agent and opens the assistant.
 
 
 ## Exploration and recovery

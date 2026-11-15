@@ -1,9 +1,8 @@
-// Bundled films are ordinary projects: opened locally, editable, and never reset on reopen.
-import { mkdir, writeFile } from 'node:fs/promises';
+// Every click instantiates a bundled starting film in a fresh workspace project; existing films are never reused.
+import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { existsSync } from 'node:fs';
 import type { Example, Project } from '../shared/api';
-import { createProject, projectAt } from './project';
+import { createInWorkspace, projectAt } from './project';
 
 export const EXAMPLES: Example[] = [
   { id: 'kinetic', name: 'Kinetic type', line: 'A few words. A little momentum.', title: 'MAKE IT MOVE', seconds: 7 },
@@ -32,11 +31,7 @@ export default function Main() {
 export async function openExample(root: string, id: unknown): Promise<Project> {
   const example = EXAMPLES.find((e) => e.id === id);
   if (!example) throw new Error('Choose one of the starting points.');
-  const dir = join(root, 'Examples', example.name);
-  if (!existsSync(join(dir, 'film.tsx'))) {
-    await mkdir(join(root, 'Examples'), { recursive: true });
-    await createProject(dir);
-    await writeFile(join(dir, 'film.tsx'), exampleSource(example), { flag: 'wx' });
-  }
-  return projectAt(dir);
+  const project = await createInWorkspace(root, example.name);
+  await writeFile(join(project.path, 'film.tsx'), exampleSource(example), { flag: 'wx' });
+  return projectAt(project.path);
 }

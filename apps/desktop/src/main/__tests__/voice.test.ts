@@ -83,9 +83,19 @@ describe('speaking a line', () => {
     expect(calls[0]!.url).toBe('https://api.minimaxi.com/v1/t2a_v2?GroupId=g1');
     expect(speech.audio.toString()).toBe('MP3');
     expect(speech.words.map((w) => w.text)).toEqual(['你', '好']);
-    await expect(speak({ kind: 'minimax', key: 'mm' }, 'v', 'x', 1, { fetch } as unknown as VoiceIo)).rejects.toThrow('group id');
     const refused = answers({ base_resp: { status_code: 1004, status_msg: 'invalid api key' } });
     await expect(speak({ kind: 'minimax', key: 'bad', groupId: 'g' }, 'v', 'x', 1, refused as unknown as VoiceIo)).rejects.toThrow('invalid api key');
+  });
+
+  it.each(['global', 'china'])('through MiniMax without a group id on its %s site', async (region) => {
+    const { fetch, calls } = answers(
+      { base_resp: { status_code: 0 }, data: { audio: 'https://cdn.example/a.mp3' } },
+      bytes('MP3'),
+    );
+    const speech = await speak({ kind: 'minimax', key: 'mm', region }, 'v', 'Hi', 1, { fetch } as unknown as VoiceIo);
+    expect(calls[0]!.url).toBe(`https://${region === 'china' ? 'api.minimaxi.com' : 'api.minimax.io'}/v1/t2a_v2`);
+    expect((calls[0]!.init!.headers as Record<string, string>).Authorization).toBe('Bearer mm');
+    expect(speech.audio.toString()).toBe('MP3');
   });
 
   it('through OpenAI: its speech, then one transcription of it for the words', async () => {

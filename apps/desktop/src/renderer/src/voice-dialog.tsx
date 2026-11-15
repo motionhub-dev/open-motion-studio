@@ -2,7 +2,7 @@
 // Models; then the film's voice, which the agent writes (the Studio never edits film.tsx); then its lines, how many are
 // spoken already, and voicing the rest with its progress. Only lines whose words changed are spoken, and paid for, again.
 
-import { Loader, Mic, X } from 'lucide-react';
+import { Loader, Mic, Settings, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { VoicedFilm, VoiceKind, VoiceView } from '../../shared/api';
 import type { FilmInfo } from '../../shared/preview';
@@ -19,11 +19,16 @@ const PROVIDERS: { kind: VoiceKind; name: string; note: string }[] = [
 export function VoiceDialog({
   film,
   onSetUp,
+  onGenerate,
+  canGenerate,
   onClose,
 }: {
   film: FilmInfo;
   /** Opens Models on a voice provider. */
   onSetUp(kind: VoiceKind): void;
+  /** Asks the project's agent to choose a voice and synthesize the narration. */
+  onGenerate(voice?: string): void;
+  canGenerate: boolean;
   onClose(): void;
 }) {
   const [voices, setVoices] = useState<VoiceView[] | null>(null);
@@ -47,6 +52,7 @@ export function VoiceDialog({
   const kind = film.voice?.split(':')[0] as VoiceKind | undefined;
   const provider = PROVIDERS.find((p) => p.kind === kind);
   const ready = voices?.some((v) => v.kind === kind);
+  const selected = voices?.find((v) => v.hasKey && v.voiceId);
 
   async function voice() {
     setError(null);
@@ -86,11 +92,24 @@ export function VoiceDialog({
           </div>
         </>
       ) : !film.voice ? (
-        <p className="note">
-          The film names no voice yet. Ask the agent to give it one, as “Narrate the film in a warm Mandarin voice”: it writes{' '}
-          <code className="mono">&lt;Film voice="{voices[0]!.kind}:…"&gt;</code> from the voices {PROVIDERS.find((p) => p.kind === voices[0]!.kind)?.name}{' '}
-          offers.
-        </p>
+        <>
+          <p className="note">
+            {selected
+              ? `Your selected voice is ${selected.kind}:${selected.voiceId}. The agent will apply it to this film and generate the narration.`
+              : 'No narration voice is selected for this film. Choose one in Voice settings, or let the agent choose a voice that suits the script.'}
+            {' '}Generating speech may use your provider’s paid allowance.
+          </p>
+          {!canGenerate && <p className="note">The agent must be connected and idle to generate narration.</p>}
+          <div className="voice-actions">
+            <button type="button" className="button" onClick={() => onSetUp(selected?.kind ?? voices[0]!.kind)}>
+              <Settings size={14} /> Voice settings
+            </button>
+            <span className="spacer" />
+            <button type="button" className="button primary" onClick={() => onGenerate(selected ? `${selected.kind}:${selected.voiceId}` : undefined)} disabled={!canGenerate}>
+              <Mic size={14} /> Generate with agent
+            </button>
+          </div>
+        </>
       ) : !provider ? (
         <p className="error">
           The film’s voice, <code className="mono">{film.voice}</code>, is not one the Studio speaks through: ask the agent to choose an Azure, ElevenLabs,
@@ -101,7 +120,7 @@ export function VoiceDialog({
           <p className="note">
             The film speaks in <code className="mono">{film.voice}</code>; set {provider.name} up to voice it.
           </p>
-          <div className="actions">
+          <div className="voice-actions">
             <span className="spacer" />
             <button type="button" className="button primary" onClick={() => onSetUp(provider.kind)}>
               Set up {provider.name}
@@ -128,7 +147,7 @@ export function VoiceDialog({
               {voiced.kept ? ` Kept ${voiced.kept}.` : ''} The film plays with it now.
             </p>
           )}
-          <div className="actions">
+          <div className="voice-actions">
             <span className="spacer" />
             <button type="button" className="button primary" disabled={!!progress || !lines.length} onClick={() => void voice()}>
               {progress ? <Loader size={14} className="spin" /> : <Mic size={14} />}

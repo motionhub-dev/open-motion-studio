@@ -28,6 +28,36 @@ afterEach(async () => {
 });
 
 describe('ProviderStore', () => {
+  it('uses the default workspace until a choice is saved, and preserves it across settings saves and restarts', async () => {
+    const store = new ProviderStore(dir);
+    const fallback = join(dir, 'Documents', 'OpenMotionStudio');
+    expect(await store.workspace(fallback)).toEqual({ path: fallback });
+    const chosen = join(dir, 'My films');
+    await Promise.all([
+      store.setWorkspace(chosen),
+      store.save({ ...WIRE, name: 'A', baseUrl: 'https://a.example', model: 'a', key: KEY }),
+      store.saveVoice({ kind: 'minimax', key: 'voice-key' }),
+    ]);
+    const reopened = new ProviderStore(dir);
+    expect(await reopened.workspace(fallback)).toEqual({ path: chosen });
+    expect((await reopened.list()).providers[0]?.name).toBe('A');
+    expect(await reopened.voiceSetup('minimax')).toMatchObject({ key: 'voice-key' });
+    await reopened.setWorkspace(join(dir, 'Other films'));
+    expect((await reopened.list()).providers[0]?.name).toBe('A');
+    for (const path of ['', 'relative', 'bad\0path']) await expect(store.setWorkspace(path)).rejects.toThrow('absolute workspace');
+  });
+
+  it('keeps concurrent saves from separate windows, including their sealed keys', async () => {
+    const store = new ProviderStore(dir);
+    await Promise.all([
+      store.save({ ...WIRE, name: 'A', baseUrl: 'https://a.example', model: 'a', key: KEY }),
+      store.save({ ...WIRE, name: 'B', baseUrl: 'https://b.example', model: 'b', key: 'second-key' }),
+      store.saveVoice({ kind: 'minimax', key: 'voice-key', voiceId: 'female-tianmei' }),
+    ]);
+    expect((await store.list()).providers.map((p) => [p.name, p.hasKey])).toEqual([['A', true], ['B', true]]);
+    expect(await store.voiceSetup('minimax')).toMatchObject({ key: 'voice-key', voiceId: 'female-tianmei' });
+  });
+
   it('keeps the key sealed, out of the settings and out of what the renderer sees', async () => {
     const store = new ProviderStore(dir);
     const listed = await store.save({ ...WIRE, name: 'Anthropic', baseUrl: 'https://api.anthropic.com/', model: 'claude-opus-5-5', key: KEY });
@@ -123,6 +153,15 @@ describe('the coding agents’ settings', () => {
 });
 
 describe('the voice providers', () => {
+  it('keeps the selected voice across settings reloads, and lets the person clear it', async () => {
+    const store = new ProviderStore(dir);
+    await store.saveVoice({ kind: 'minimax', key: KEY, voiceId: ' female-tianmei ' });
+    expect(await new ProviderStore(dir).voices()).toEqual([{ kind: 'minimax', voiceId: 'female-tianmei', hasKey: true }]);
+    await store.saveVoice({ kind: 'minimax', voiceId: '' });
+    expect(await store.voices()).toEqual([{ kind: 'minimax', hasKey: true }]);
+    await expect(store.saveVoice({ kind: 'minimax', voiceId: 'bad\nvoice' })).rejects.toThrow('voice id');
+  });
+
   it('keep their keys sealed, out of the settings and out of what the renderer sees', async () => {
     const store = new ProviderStore(dir);
     const views = await store.saveVoice({ kind: 'azure', key: ` ${KEY} `, region: 'eastasia' });
@@ -145,11 +184,24 @@ describe('the voice providers', () => {
     await expect(store.saveVoice({ kind: 'openai' })).rejects.toThrow('needs its key');
     await expect(store.saveVoice({ kind: 'azure', key: KEY })).rejects.toThrow('region');
     await expect(store.saveVoice({ kind: 'azure', key: KEY, region: 'east.evil.example' })).rejects.toThrow('Azure region');
-    await expect(store.saveVoice({ kind: 'minimax', key: KEY, region: 'global' })).rejects.toThrow('group id');
+    await expect(store.saveVoice({ kind: 'minimax', key: KEY, groupId: 'invalid', region: 'global' })).rejects.toThrow('group id');
     await expect(store.saveVoice({ kind: 'minimax', key: KEY, groupId: '123', region: 'moon' })).rejects.toThrow('global or china');
     await expect(store.saveVoice({ kind: 'edge', key: KEY })).rejects.toThrow('Not a voice provider');
     expect(await store.saveVoice({ kind: 'minimax', key: KEY, groupId: '123', region: 'china', model: 'speech-2.8-hd' })).toEqual([
       { kind: 'minimax', groupId: '123', region: 'china', model: 'speech-2.8-hd', hasKey: true },
     ]);
+  });
+
+  it('saves MiniMax without a group id, and clears a saved group for a sample or a save', async () => {
+    const store = new ProviderStore(dir);
+    expect(await store.saveVoice({ kind: 'minimax', key: KEY, region: 'global' })).toEqual([
+      { kind: 'minimax', region: 'global', hasKey: true },
+    ]);
+    expect(await store.voiceSetup('minimax')).toEqual({ kind: 'minimax', region: 'global', key: KEY });
+    await store.saveVoice({ kind: 'minimax', groupId: '123', region: 'china' });
+    const draft = { kind: 'minimax' as const, groupId: '', region: 'china' };
+    expect(await store.voiceSetup('minimax', draft)).toEqual({ kind: 'minimax', region: 'china', key: KEY });
+    await store.saveVoice(draft);
+    expect(await new ProviderStore(dir).voiceSetup('minimax')).toEqual({ kind: 'minimax', region: 'china', key: KEY });
   });
 });
