@@ -28,3 +28,6 @@ Read [positioning](prd/positioning.md) first, then [the architecture](tech/archi
 - [0010 A film's sound is `<Sound>` elements, mixed on export](adr/0010-a-films-sound-is-sound-elements-mixed-on-export.md) — dB and seconds in the scene tree; one ffmpeg filter graph, AAC.
 - [0011 Narration is synthesized per line, and times the captions](adr/0011-narration-is-synthesized-per-line-and-times-the-captions.md) — voices in Models, speech in `voice/`, captions from word times; amends 0006; amended by 0012.
 - [0012 A narration speaks through the person's own voice provider](adr/0012-a-narration-speaks-through-the-persons-own-voice-provider.md) — no default voice: Azure, ElevenLabs, MiniMax or OpenAI, set up at the first narration; not Edge's guarded service.
+- [0013 Each window owns a project](adr/0013-each-window-owns-a-project.md) — independent tasks and preview sessions; superseded by 0014.
+- [0014 Project sessions outlive editor windows](adr/0014-project-sessions-outlive-editor-windows.md) — one tray-backed main window, movable dedicated editors, and background tasks on Home.
+- [0015 New projects live in a default workspace](adr/0015-new-projects-live-in-a-default-workspace.md) — a configurable Documents location and a fresh directory for every new film or template copy.

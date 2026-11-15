@@ -90,17 +90,39 @@ async function settled(page) {
 }
 
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'oms-profile-'));
+fs.writeFileSync(path.join(profile, 'settings.json'), JSON.stringify({ providers: [], active: null, workspace: path.join(profile, 'Workspace') }));
 const args = [appDir, `--user-data-dir=${profile}`];
 if (process.platform === 'linux') args.push('--no-sandbox');
-const app = await electron.launch({ executablePath: bin, args, timeout: 60_000 });
+let app = await electron.launch({ executablePath: bin, args, timeout: 60_000 });
 try {
-  const page = await app.firstWindow();
+  let home = await app.firstWindow();
+  let page;
+  const editorPage = async () => {
+    for (let i = 0; i < 300; i++) {
+      for (const candidate of app.windows()) {
+        if (candidate !== home && !candidate.isClosed() && await candidate.locator('.stage-bar').count().catch(() => 0)) return candidate;
+      }
+      await new Promise((done) => setTimeout(done, 100));
+    }
+    throw new Error('No project editor view opened.');
+  };
+  const restartProject = async (project) => {
+    // A project session outlives its native editor window. Fixture changes on disk need a cold app restart.
+    await app.close();
+    app = await electron.launch({ executablePath: bin, args, timeout: 60_000 });
+    home = await app.firstWindow();
+    await home.waitForSelector('.example-card', { timeout: 30_000 });
+    await home.evaluate((path) => window.studio.openRecent(path), project);
+    page = await editorPage();
+    await settled(page);
+  };
   const resize = (w, h) => app.evaluate(({ BrowserWindow }, [w, h]) => BrowserWindow.getAllWindows()[0]?.setSize(w, h), [w, h]);
   await resize(1600, 960);
-  await page.waitForSelector('.example-card', { timeout: 30_000 });
-  const card = await page.$(`.example-card.example-${example}`);
+  await home.waitForSelector('.example-card', { timeout: 30_000 });
+  const card = await home.$(`.example-card.example-${example}`);
   if (!card) throw new Error(`No example "${example}" in the launcher.`);
   await card.evaluate((el) => el.click());
+  page = await editorPage();
   await page.waitForSelector('.stage-bar', { timeout: 30_000 });
   await settled(page);
 
@@ -155,11 +177,7 @@ try {
       const project = await page.getAttribute('.topbar .name', 'title');
       fs.mkdirSync(path.join(project, '.motion-studio'), { recursive: true });
       fs.writeFileSync(path.join(project, '.motion-studio', 'agent.json'), JSON.stringify({ kind: arg, items: [] }));
-      await page.evaluate(() => document.querySelector('.topbar > .icon-button')?.click());
-      await page.waitForSelector('.recent', { timeout: 30_000 });
-      await page.evaluate(() => document.querySelector('.recent')?.click());
-      await page.waitForSelector('.stage-bar', { timeout: 30_000 });
-      await settled(page);
+      await restartProject(project);
     } else if (verb === 'file') {
       // A file of the open project, printed (the throwaway profile, and the project in it, go when the run ends).
       const project = await page.getAttribute('.topbar .name', 'title');
@@ -201,11 +219,7 @@ try {
       const project = await page.getAttribute('.topbar .name', 'title');
       fs.mkdirSync(path.join(project, '.motion-studio'), { recursive: true });
       fs.writeFileSync(path.join(project, '.motion-studio', 'session.json'), JSON.stringify(messages));
-      await page.evaluate(() => document.querySelector('.topbar > .icon-button')?.click());
-      await page.waitForSelector('.recent', { timeout: 30_000 });
-      await page.evaluate(() => document.querySelector('.recent')?.click());
-      await page.waitForSelector('.stage-bar', { timeout: 30_000 });
-      await settled(page);
+      await restartProject(project);
     } else console.log('unknown step:', step);
     await page.waitForTimeout(300);
   }

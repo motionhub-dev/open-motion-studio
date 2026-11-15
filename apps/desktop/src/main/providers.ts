@@ -4,10 +4,10 @@
 // opened only at the moment of a call, and never sent to the renderer, written to a log or
 // put in an error (CLAUDE.md, "Architecture rules").
 
-import { safeStorage } from 'electron';
+import { app, safeStorage } from 'electron';
 import { randomUUID } from 'node:crypto';
-import { readFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { isAbsolute, join, resolve } from 'node:path';
 import type { AgentSettings, Protocol, ProviderInput, ProviderView, Providers, VoiceInput, VoiceKind, VoiceView } from '../shared/api';
 import type { VoiceSetup } from './voice';
 import { CLAUDE_EFFORTS } from './agent/harness';
@@ -22,6 +22,7 @@ interface StoredProvider {
 }
 
 interface Settings {
+  workspace?: string;
   providers: StoredProvider[];
   active: string | null;
   agents?: Partial<AgentSettings>;
@@ -104,7 +105,15 @@ async function readJson<T>(file: string, empty: T): Promise<T> {
   }
 }
 
-const writeJson = (file: string, value: unknown) => writeFile(file, `${JSON.stringify(value, null, 2)}\n`);
+async function writeJson(file: string, value: unknown): Promise<void> {
+  const temporary = `${file}.${randomUUID()}.tmp`;
+  try {
+    await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`);
+    await rename(temporary, file);
+  } finally {
+    await rm(temporary, { force: true });
+  }
+}
 
 /** Whether this machine seals keys with a real secret. Linux without a keyring falls back to a fixed one. */
 export function weakKeyStorage(): boolean {
@@ -147,6 +156,15 @@ function cleanProvider(input: ProviderInput): StoredProvider {
 export class ProviderStore {
   constructor(private readonly dir: string) {}
 
+  private changes: Promise<unknown> = Promise.resolve();
+
+  /** All windows share this store; serialize read-modify-write operations so one save cannot erase another. */
+  private change<T>(work: () => Promise<T>): Promise<T> {
+    const next = this.changes.then(work);
+    this.changes = next.catch(() => {});
+    return next;
+  }
+
   private get settingsFile() {
     return join(this.dir, 'settings.json');
   }
@@ -163,6 +181,22 @@ export class ProviderStore {
     return readJson<Record<string, string>>(this.keysFile, {});
   }
 
+  async workspace(defaultPath: string): Promise<{ path: string }> {
+    const path = (await this.settings()).workspace ?? defaultPath;
+    if (typeof path !== 'string' || !isAbsolute(path) || path.includes('\0')) throw new Error('Choose an absolute workspace folder in Settings.');
+    return { path: resolve(path) };
+  }
+
+  async setWorkspace(path: string): Promise<{ path: string }> {
+    if (typeof path !== 'string' || !isAbsolute(path) || path.includes('\0')) throw new Error('Choose an absolute workspace folder.');
+    return this.change(async () => {
+      const settings = await this.settings();
+      settings.workspace = resolve(path);
+      await writeJson(this.settingsFile, settings);
+      return { path: settings.workspace };
+    });
+  }
+
   async list(): Promise<Providers> {
     const [settings, keys] = await Promise.all([this.settings(), this.keys()]);
     const providers: ProviderView[] = settings.providers.map((p) => ({
@@ -175,42 +209,48 @@ export class ProviderStore {
 
   /** Adds a provider (no id) or changes one; a key, when given, replaces the stored one. */
   async save(input: ProviderInput): Promise<Providers> {
-    const settings = await this.settings();
-    const provider = cleanProvider(input);
-    const at = settings.providers.findIndex((p) => p.id === provider.id);
-    if (input.id && at < 0) throw new Error('That provider no longer exists.');
-    if (at >= 0) settings.providers[at] = provider;
-    else settings.providers.push(provider);
-    settings.active ??= provider.id;
-    if (typeof input.key === 'string' && input.key.trim()) {
-      if (!safeStorage.isEncryptionAvailable()) throw new Error('This system has no keychain to keep a key in.');
-      const keys = await this.keys();
-      keys[provider.id] = safeStorage.encryptString(input.key.trim()).toString('base64');
-      await writeJson(this.keysFile, keys);
-    }
-    await writeJson(this.settingsFile, settings);
-    return this.list();
+    return this.change(async () => {
+      const settings = await this.settings();
+      const provider = cleanProvider(input);
+      const at = settings.providers.findIndex((p) => p.id === provider.id);
+      if (input.id && at < 0) throw new Error('That provider no longer exists.');
+      if (at >= 0) settings.providers[at] = provider;
+      else settings.providers.push(provider);
+      settings.active ??= provider.id;
+      if (typeof input.key === 'string' && input.key.trim()) {
+        if (!safeStorage.isEncryptionAvailable()) throw new Error('This system has no keychain to keep a key in.');
+        const keys = await this.keys();
+        keys[provider.id] = safeStorage.encryptString(input.key.trim()).toString('base64');
+        await writeJson(this.keysFile, keys);
+      }
+      await writeJson(this.settingsFile, settings);
+      return this.list();
+    });
   }
 
   async remove(id: unknown): Promise<Providers> {
-    const settings = await this.settings();
-    settings.providers = settings.providers.filter((p) => p.id !== id);
-    if (settings.active === id) settings.active = settings.providers[0]?.id ?? null;
-    const keys = await this.keys();
-    if (typeof id === 'string' && id in keys) {
-      delete keys[id];
-      await writeJson(this.keysFile, keys);
-    }
-    await writeJson(this.settingsFile, settings);
-    return this.list();
+    return this.change(async () => {
+      const settings = await this.settings();
+      settings.providers = settings.providers.filter((p) => p.id !== id);
+      if (settings.active === id) settings.active = settings.providers[0]?.id ?? null;
+      const keys = await this.keys();
+      if (typeof id === 'string' && id in keys) {
+        delete keys[id];
+        await writeJson(this.keysFile, keys);
+      }
+      await writeJson(this.settingsFile, settings);
+      return this.list();
+    });
   }
 
   async activate(id: unknown): Promise<Providers> {
-    const settings = await this.settings();
-    if (!settings.providers.some((p) => p.id === id)) throw new Error('That provider no longer exists.');
-    settings.active = id as string;
-    await writeJson(this.settingsFile, settings);
-    return this.list();
+    return this.change(async () => {
+      const settings = await this.settings();
+      if (!settings.providers.some((p) => p.id === id)) throw new Error('That provider no longer exists.');
+      settings.active = id as string;
+      await writeJson(this.settingsFile, settings);
+      return this.list();
+    });
   }
 
   /** How the person runs their own coding agents; what was never set is the agent's own default. */
@@ -220,11 +260,13 @@ export class ProviderStore {
   }
 
   async saveAgentSettings<K extends keyof AgentSettings>(kind: K, input: unknown): Promise<AgentSettings> {
-    const cleaned = cleanAgentSettings(kind, input);
-    const settings = await this.settings();
-    settings.agents = { ...settings.agents, [kind]: cleaned };
-    await writeJson(this.settingsFile, settings);
-    return this.agentSettings();
+    return this.change(async () => {
+      const cleaned = cleanAgentSettings(kind, input);
+      const settings = await this.settings();
+      settings.agents = { ...settings.agents, [kind]: cleaned };
+      await writeJson(this.settingsFile, settings);
+      return this.agentSettings();
+    });
   }
 
   /** The voice providers set up (ADR 0012), without their keys: only whether one is stored. */
@@ -238,33 +280,37 @@ export class ProviderStore {
 
   /** Sets a voice provider up, or changes it; a key, when given, replaces the stored one, sealed as a model provider's is. */
   async saveVoice(input: unknown): Promise<VoiceView[]> {
-    const voice = cleanVoice(input);
-    const settings = await this.settings();
-    const { kind, key, ...kept } = voice;
-    const keys = await this.keys();
-    if (key) {
-      if (!safeStorage.isEncryptionAvailable()) throw new Error('This system has no keychain to keep a key in.');
-      keys[`voice:${kind}`] = safeStorage.encryptString(key).toString('base64');
-      await writeJson(this.keysFile, keys);
-    } else if (!(`voice:${kind}` in keys)) {
-      throw new Error(`${VOICE_NAMES[kind]} needs its key.`);
-    }
-    settings.voices = { ...settings.voices, [kind]: kept };
-    await writeJson(this.settingsFile, settings);
-    return this.voices();
+    return this.change(async () => {
+      const voice = cleanVoice(input);
+      const settings = await this.settings();
+      const { kind, key, ...kept } = voice;
+      const keys = await this.keys();
+      if (key) {
+        if (!safeStorage.isEncryptionAvailable()) throw new Error('This system has no keychain to keep a key in.');
+        keys[`voice:${kind}`] = safeStorage.encryptString(key).toString('base64');
+        await writeJson(this.keysFile, keys);
+      } else if (!(`voice:${kind}` in keys)) {
+        throw new Error(`${VOICE_NAMES[kind]} needs its key.`);
+      }
+      settings.voices = { ...settings.voices, [kind]: kept };
+      await writeJson(this.settingsFile, settings);
+      return this.voices();
+    });
   }
 
   async removeVoice(kind: unknown): Promise<VoiceView[]> {
-    if (!VOICE_KINDS.includes(kind as VoiceKind)) throw new Error('Not a voice provider.');
-    const settings = await this.settings();
-    if (settings.voices) delete settings.voices[kind as VoiceKind];
-    await writeJson(this.settingsFile, settings);
-    const keys = await this.keys();
-    if (`voice:${kind}` in keys) {
-      delete keys[`voice:${kind}`];
-      await writeJson(this.keysFile, keys);
-    }
-    return this.voices();
+    return this.change(async () => {
+      if (!VOICE_KINDS.includes(kind as VoiceKind)) throw new Error('Not a voice provider.');
+      const settings = await this.settings();
+      if (settings.voices) delete settings.voices[kind as VoiceKind];
+      await writeJson(this.settingsFile, settings);
+      const keys = await this.keys();
+      if (`voice:${kind}` in keys) {
+        delete keys[`voice:${kind}`];
+        await writeJson(this.keysFile, keys);
+      }
+      return this.voices();
+    });
   }
 
   /** A voice provider with its key opened, for one call; the form's own, not saved, when given (a sample before saving). */
@@ -308,3 +354,7 @@ export class ProviderStore {
     throw new Error(`${provider.name} has no key: add one in Settings.`);
   }
 }
+
+/** One app-wide settings store serializes saves from the main window and every project view. */
+let sharedStore: ProviderStore | null = null;
+export const providers = (): ProviderStore => (sharedStore ??= new ProviderStore(app.getPath('userData')));

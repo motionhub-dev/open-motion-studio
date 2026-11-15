@@ -4,7 +4,7 @@ description: Build, launch and screenshot the Open Motion Studio desktop app wit
 ---
 
 The Studio is an Electron app. `drive.mjs` launches the built app with a throwaway profile (the person's recent
-projects and settings stay untouched), opens an example from the launcher, runs a list of steps (screenshots, keys,
+projects and settings stay untouched), seeds its workspace inside that temporary profile, opens an example from the launcher in its project editor view, runs a list of steps (screenshots, keys,
 clicks, window sizes) and exits. All commands run from the repository root.
 
 ## Once per machine
@@ -55,6 +55,7 @@ Examples in the launcher: `kinetic`, `product`, `data`.
 
 ## Gotchas
 
+- **The editor is a WebContentsView.** The driver selects its Page after the launcher opens a project; the main window keeps its home UI behind it. `agent:`, `session:` and `stills:` restart the throwaway app to load their on-disk fixtures, since closing an editor now keeps its project session alive.
 - **Build first.** The script runs `apps/desktop/out/`; `pnpm dev` is the human path and does not leave a build.
 - **No model is set up** in the throwaway profile, so the assistant cannot send. Layout, playback, marks, the timeline
   and the panels all work; `session:` and `stills:` fill the conversation.

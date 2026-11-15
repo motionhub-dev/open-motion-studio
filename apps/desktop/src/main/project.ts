@@ -3,7 +3,8 @@
 // recent-projects list in the app's userData. See docs/tech/architecture.md
 // ("Components").
 
-import { mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
 import { homedir } from 'node:os';
 import { basename, join, resolve, sep } from 'node:path';
 import type { Project } from '../shared/api';
@@ -53,6 +54,22 @@ export async function createProject(path: string): Promise<Project> {
   await mkdir(join(path, STATE_DIR), { recursive: true });
   await ignore(path, [`${STATE_DIR}/`]);
   return projectAt(path);
+}
+
+/** Reserves a fresh child directory atomically; existing files, directories and symlinks are never reused. */
+export async function createInWorkspace(workspace: string, name = 'Untitled film'): Promise<Project> {
+  if (!name.trim() || name === '.' || name === '..' || /[/\\\x00-\x1f]/.test(name)) throw new Error('A project name must be a single folder name.');
+  await mkdir(workspace, { recursive: true });
+  for (let number = 1; ; number++) {
+    const dir = join(workspace, number === 1 ? name : `${name} ${number}`);
+    try {
+      await mkdir(dir);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'EEXIST') continue;
+      throw error;
+    }
+    return createProject(dir);
+  }
 }
 
 /** Adds each entry (a folder, `name/`) to the folder's .gitignore unless a line already ignores it. */
@@ -105,7 +122,23 @@ export async function isRecent(file: string, path: string): Promise<boolean> {
 }
 
 /** Puts a project at the top of the recent list, once, keeping at most MAX_RECENTS. */
+const recentWrites = new Map<string, Promise<void>>();
+
 export async function rememberProject(file: string, project: Project): Promise<void> {
-  const paths = [project.path, ...(await readRecentPaths(file)).filter((path) => path !== project.path)];
-  await writeFile(file, `${JSON.stringify(paths.slice(0, MAX_RECENTS), null, 2)}\n`);
+  const next = (recentWrites.get(file) ?? Promise.resolve()).catch(() => {}).then(async () => {
+    const paths = [project.path, ...(await readRecentPaths(file)).filter((path) => path !== project.path)];
+    const temporary = `${file}.${randomUUID()}.tmp`;
+    try {
+      await writeFile(temporary, `${JSON.stringify(paths.slice(0, MAX_RECENTS), null, 2)}\n`);
+      await rename(temporary, file);
+    } finally {
+      await rm(temporary, { force: true });
+    }
+  });
+  recentWrites.set(file, next);
+  try {
+    await next;
+  } finally {
+    if (recentWrites.get(file) === next) recentWrites.delete(file);
+  }
 }

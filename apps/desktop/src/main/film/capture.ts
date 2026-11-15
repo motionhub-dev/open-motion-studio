@@ -4,13 +4,13 @@
 // ahead of the frames), which any phone plays, with the film's sounds mixed beside them
 // as AAC (mix.ts). Nothing in the film runs on a clock, so a time always draws the same frame.
 
-import { BrowserWindow, app, session, type NativeImage } from 'electron';
+import { BrowserWindow, app, type Session, type NativeImage } from 'electron';
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import ffmpegStatic from 'ffmpeg-static';
-import { keepFilmsInPlace, PREVIEW_URL, servePreview } from './preview';
+import { keepFilmsInPlace, PREVIEW_URL } from './preview';
 import type { Box, FilmInfo } from '../../shared/preview';
 import type { SceneStills } from '../../shared/api';
 import { STATE_DIR } from '../project';
@@ -18,8 +18,6 @@ import { buildDir } from './film';
 import { srt } from './captions';
 import { soundInputs, soundMix } from './mix';
 import { spokenSound } from '../../shared/sound';
-
-export const RENDER_PARTITION = 'oms-render';
 
 /** How long the page may take to load, or a frame to draw, before the render gives up. */
 const FRAME_MS = 60_000;
@@ -53,11 +51,6 @@ export function ffmpegPath(): string {
   return app.isPackaged ? ffmpegStatic.replace('app.asar', 'app.asar.unpacked') : ffmpegStatic;
 }
 
-/** Serves the render partition's oms-preview: scheme from the open project. Call once, when the app is ready. */
-export function serveRenders(film: () => string | null): void {
-  servePreview(session.fromPartition(RENDER_PARTITION), film);
-}
-
 function timeout<T>(promise: Promise<T>, what: string): Promise<T> {
   let timer: NodeJS.Timeout;
   return Promise.race([
@@ -77,12 +70,12 @@ export interface Stage {
 }
 
 /** Opens the film of build `version` for photographing. Rejects with the page's own error when it fails. */
-export async function openStage(version: number): Promise<Stage> {
+export async function openStage(version: number, session: Session): Promise<Stage> {
   const window = new BrowserWindow({
     show: false,
     width: 1920,
     height: 1080,
-    webPreferences: { offscreen: true, partition: RENDER_PARTITION, sandbox: true, contextIsolation: true },
+    webPreferences: { offscreen: true, session, sandbox: true, contextIsolation: true },
   });
   const contents = window.webContents;
   contents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -126,10 +119,10 @@ export async function openStage(version: number): Promise<Stage> {
         const size = image.getSize();
         return size.width === film.width && size.height === film.height ? image : image.resize({ width: film.width, height: film.height });
       },
-      close: () => window.destroy(),
+      close: () => { if (!window.isDestroyed()) window.destroy(); },
     };
   } catch (error) {
-    window.destroy();
+    if (!window.isDestroyed()) window.destroy();
     throw error;
   }
 }
@@ -201,8 +194,9 @@ export async function exportFrames(
   file: string,
   onProgress: (done: number) => void,
   signal: AbortSignal,
+  open: (version: number) => Promise<Stage>,
 ): Promise<void> {
-  const stage = await openStage(version);
+  const stage = await open(version);
   const partial = `${file}.partial.mp4`;
   const partialSubtitles = `${file}.partial.srt`;
   try {

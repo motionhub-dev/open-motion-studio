@@ -1,6 +1,6 @@
 # The creator's workflow
 
-> **Status:** Current · **Updated:** 2026-11-14
+> **Status:** Current · **Updated:** 2026-11-15
 
 How a creator explores a film, points at a change, checks the result and returns to earlier source.
 
@@ -12,9 +12,11 @@ person plays, seeks or steps. The stage's guides show the action-safe (90%) and 
 zooms about the pointer with Ctrl and the wheel, turns a page as the playhead nears its edge while the film plays (the
 person scrolling it takes it over), and shows the last check's issues on its ruler, each one click from the assistant.
 
-The launcher offers three bundled starting points. Each opens an ordinary local project under the app's userData
-`Examples/` folder; reopening keeps changes. No provider is needed to play, inspect, check or export one. A new film
-can instead start in a folder the person chooses. The assistant's brief prepares a message with the subject, audience,
+The launcher offers three bundled starting points. Each click creates a fresh ordinary project in the default
+workspace, copying the bundled source and preserving earlier projects. New film also creates its own workspace
+directory without a folder picker. The workspace defaults to Documents/OpenMotionStudio and can be changed in
+Settings → Workspace; existing projects stay where they are. Open folder and Recent reopen existing projects.
+No provider is needed to play, inspect, check or export a starting point. The assistant's brief prepares a message with the subject, audience,
 length and aspect ratio; it never sends a message or edits the film by itself.
 
 The Outline lists global layers, scenes, their layers and script lines. Picking one pauses and locates the preview;

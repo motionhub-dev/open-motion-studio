@@ -3,6 +3,47 @@
 Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-15 — New films and template copies use a configurable workspace
+
+- **What:** New film creates a fresh project directory without a folder picker. Every template click makes a new
+  copy. Both use Documents/OpenMotionStudio by default; Home shows the workspace path and opens Settings → Workspace
+  to change it. Existing names get numeric suffixes, including simultaneous creations.
+- **Why:** Starting a film should not require choosing an empty folder, and template clicks should preserve prior work.
+- **Breaking:** Clicking a template creates a new project instead of reopening its userData/Examples copy.
+- **Upgrade:** Existing projects stay in place and can be reopened from Recent or Open folder. A chosen workspace is
+  saved in settings.json's optional `workspace` field and applies to future projects only.
+- **Refs:** ADR 0015, `apps/desktop/src/main/project.ts`, `apps/desktop/src/main/examples.ts`,
+  `apps/desktop/src/renderer/src/settings.tsx`.
+
+## 2026-11-15 — Projects keep working behind Home and dedicated editor windows
+
+- **What:** One main window switches between Home and retained project sessions; closing it hides it to the tray.
+  Home shows tasks, waits and progress, with Open here and Open in editor window. A project's existing editor view
+  moves into a dedicated window with Ctrl/Cmd+Shift+N, or back to the main window. Closing an editor or switching
+  projects keeps its agent and export running, while hidden previews pause playback. Explicit Quit ends background
+  tasks. Projects have isolated preview/render sessions; shared settings and recents use serialized atomic saves.
+- **Why:** The person should be able to leave an agent working, close its editor and return to its progress from Home.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** ADR 0014, `apps/desktop/src/main/workspace.ts`, `apps/desktop/src/main/index.ts`,
+  `apps/desktop/src/main/film/capture.ts`.
+
+## 2026-11-15 — The home screen uses the Studio icon and OpenMotionStudio name
+
+- **What:** The launcher shows the same icon as the packaged app and writes its heading as OpenMotionStudio.
+- **Why:** The home screen should identify the Studio with its own icon and joined name.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/app.tsx`, `apps/desktop/src/renderer/src/logo.tsx`.
+
+## 2026-11-15 — The editor has a Home button beside the project's name
+
+- **What:** The editor's top bar starts with a Home icon, a chevron and the project's name. Home returns to the launcher.
+- **Why:** The brand mark did not make the way back to the home screen clear.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/project-view.tsx`.
+
 ## 2026-11-15 — Saving a voice returns to narration, and local agent tools bypass proxies
 
 - **What:** Save in voice settings keeps the selected voice id and closes Models, returning to Voice when opened

@@ -11,6 +11,14 @@ function subscribe<T>(channel: string, listener: (value: T) => void): () => void
 }
 
 const api: StudioApi = {
+  workspace: () => ipcRenderer.invoke(CHANNELS.workspace),
+  chooseWorkspace: () => ipcRenderer.invoke(CHANNELS.chooseWorkspace),
+  currentProject: () => ipcRenderer.invoke(CHANNELS.currentProject),
+  tasks: () => ipcRenderer.invoke(CHANNELS.tasks),
+  onTasks: (listener) => subscribe(EVENTS.tasks, listener),
+  onViewVisibility: (listener) => subscribe(EVENTS.viewVisibility, listener),
+  openTask: (path, separate) => ipcRenderer.invoke(CHANNELS.openTask, path, separate),
+  newWindow: () => ipcRenderer.invoke(CHANNELS.newWindow),
   examples: () => ipcRenderer.invoke(CHANNELS.examples),
   openExample: (id) => ipcRenderer.invoke(CHANNELS.openExample, id),
   projectAssets: () => ipcRenderer.invoke(CHANNELS.projectAssets),

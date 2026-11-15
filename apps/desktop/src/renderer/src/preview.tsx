@@ -83,6 +83,13 @@ export function usePlayer(build: BuildResult | null): Player {
   now.current = { t, playing, loop, muted, film };
 
   const tell = (message: ToPreview) => frame.current?.contentWindow?.postMessage(message, '*');
+  useEffect(() => window.studio.onViewVisibility((visible) => {
+    if (!visible) {
+      now.current.playing = false;
+      setPlaying(false);
+      tell({ type: 'oms:pause' });
+    }
+  }), []);
 
   useEffect(() => {
     const onMessage = (event: MessageEvent<FromPreview>) => {

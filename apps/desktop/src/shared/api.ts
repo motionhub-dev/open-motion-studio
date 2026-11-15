@@ -406,9 +406,39 @@ export interface Asset {
 /** Each scene's frames for the timeline, by scene id, as data URLs, evenly through the scene. */
 export type SceneStills = Record<string, string[]>;
 
+/** The folder in which new films and template copies are created. */
+export interface WorkspaceSettings {
+  path: string;
+}
+
+/** A task in this app run, including one whose editor was closed to the background. */
+export interface ProjectTask {
+  project: Project;
+  kind: 'agent' | 'export' | 'voice' | 'work';
+  status: 'idle' | 'running' | 'waiting' | 'done' | 'failed' | 'stopped';
+  title: string;
+  activity: string;
+  startedAt: number;
+  updatedAt: number;
+  progress?: number;
+  background: boolean;
+}
+
 export interface StudioApi {
+  workspace(): Promise<WorkspaceSettings>;
+  /** Chooses and saves a workspace through the native folder picker; null on cancel. */
+  chooseWorkspace(): Promise<WorkspaceSettings | null>;
+  /** Opens this project's dedicated editor window. */
+  newWindow(): Promise<void>;
+  currentProject(): Promise<Project | null>;
+  tasks(): Promise<ProjectTask[]>;
+  onTasks(listener: (tasks: ProjectTask[]) => void): () => void;
+  /** Pauses UI playback when an editor is detached or its host is hidden; background tasks are unaffected. */
+  onViewVisibility(listener: (visible: boolean) => void): () => void;
+  /** Opens or focuses the project of a task reported by the main process. */
+  openTask(path: string, separate?: boolean): Promise<void>;
   examples(): Promise<Example[]>;
-  openExample(id: string): Promise<Project>;
+  openExample(id: string): Promise<Project | null>;
   projectAssets(): Promise<Asset[]>;
   importAssets(): Promise<Asset[]>;
   reviewFilm(): Promise<FilmReview>;
@@ -423,10 +453,10 @@ export interface StudioApi {
   recentProjects(): Promise<Project[]>;
   /** Asks for a folder and opens it; null when the person cancels. */
   openProject(): Promise<Project | null>;
-  /** Asks for an empty (or new) folder and starts a film in it; null when the person cancels. */
+  /** Creates a fresh film folder in the configured workspace and opens it. */
   createProject(): Promise<Project | null>;
   /** Opens a folder from the recent list; any other path is refused. */
-  openRecent(path: string): Promise<Project>;
+  openRecent(path: string): Promise<Project | null>;
   /** Starts a film in the open project, which holds none yet. */
   startFilm(): Promise<Project>;
   /** Closes the open project. */
@@ -526,6 +556,12 @@ export interface StudioApi {
 
 /** Invoked channels, one per request method of StudioApi. */
 export const CHANNELS = {
+  workspace: 'workspace:get',
+  chooseWorkspace: 'workspace:choose',
+  currentProject: 'project:current',
+  tasks: 'tasks:list',
+  openTask: 'tasks:open',
+  newWindow: 'app:new-window',
   examples: 'examples:list',
   openExample: 'examples:open',
   projectAssets: 'assets:list',
@@ -579,6 +615,8 @@ export const CHANNELS = {
 
 /** Events the main process sends. */
 export const EVENTS = {
+  viewVisibility: 'view:visibility',
+  tasks: 'tasks:changed',
   build: 'film:built',
   exportProgress: 'film:export-progress',
   voiceProgress: 'film:voice-progress',

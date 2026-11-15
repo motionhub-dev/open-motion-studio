@@ -367,11 +367,59 @@ button.status:hover {
   gap: 14px;
 }
 
+.workspace-location {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  margin: 16px 0 0;
+}
+.workspace-location .mono {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.workspace-pane input {
+  margin-top: 8px;
+}
 .launcher-head h1 {
   font-size: 26px;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
+
+.project-tasks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.project-task {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  background: var(--sheet);
+  min-width: 0;
+}
+
+.task-heading, .task-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.task-heading > strong { flex: 1; }
+.task-title { overflow-wrap: anywhere; color: var(--text2); }
+.task-state { font-size: 11px; color: var(--muted); }
+.task-state.running, .task-state.waiting { color: var(--annotate); }
+.task-state.done { color: var(--good); }
+.task-state.failed { color: var(--bad); }
+.project-task progress { width: 100%; height: 5px; accent-color: var(--annotate); }
+.task-actions { margin-top: auto; padding-top: 8px; }
 
 .launcher section {
   display: flex;
@@ -467,6 +515,21 @@ button.status:hover {
   font-weight: 600;
   white-space: nowrap;
 }
+
+.project-switcher { position: relative; min-width: 0; }
+.project-switcher-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  padding: 6px 4px;
+  border-radius: var(--r-control);
+  cursor: pointer;
+}
+.project-switcher-button:hover { background: var(--s2); }
+.project-menu { left: 0; right: auto; max-height: 70vh; overflow-y: auto; }
 
 .topbar .spacer {
   flex: 1;

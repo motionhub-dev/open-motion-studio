@@ -5,7 +5,7 @@
 // providers, the person's own coding agents (ADR 0008), each with where it stands and the one
 // thing to do about it: install or update it from its vendor's page, or sign in through it.
 
-import { Check, ExternalLink, KeyRound, Loader, Plus, RefreshCw, Volume2, X } from 'lucide-react';
+import { Check, ExternalLink, Folder, KeyRound, Loader, Plus, RefreshCw, Volume2, X } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 import type {
   AgentModel,
@@ -21,6 +21,7 @@ import type {
   VoiceInput,
   VoiceKind,
   VoiceView,
+  WorkspaceSettings,
 } from '../../shared/api';
 import { reason } from './reason';
 
@@ -531,10 +532,55 @@ function AgentPane({
   );
 }
 
+function WorkspacePane({ onClose }: { onClose(): void }) {
+  const [workspace, setWorkspace] = useState<WorkspaceSettings | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    window.studio.workspace().then(setWorkspace, (e) => setError(reason(e)));
+  }, []);
+  async function choose() {
+    setBusy(true);
+    setError(null);
+    try {
+      const next = await window.studio.chooseWorkspace();
+      if (next) setWorkspace(next);
+    } catch (e) {
+      setError(reason(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="provider-form agent-pane workspace-pane">
+      <div className="panel-head">
+        <h2>Workspace</h2>
+        <button type="button" className="icon-button" aria-label="Close" onClick={onClose}><X size={16} /></button>
+      </div>
+      <p className="note">New films and copies of templates get their own folders here.</p>
+      <div className="fields">
+        <label className="wide">
+          Default workspace
+          <input type="text" className="mono" readOnly aria-label="Default workspace" value={workspace?.path ?? ''} placeholder="Loading…" title={workspace?.path} />
+        </label>
+      </div>
+      <div className="actions">
+        <button type="button" className="button" disabled={busy} onClick={() => void choose()}>
+          {busy ? <Loader size={14} className="spin" /> : <Folder size={14} />} Change folder
+        </button>
+      </div>
+      <p className="note">Changes are saved immediately and apply to new projects. Existing projects stay where they are.</p>
+      {error && <p className="error" role="alert">{error}</p>}
+      <div className="actions"><button type="button" className="button primary" onClick={onClose}>Done</button></div>
+    </div>
+  );
+}
+
 export function Settings({
   providers,
   agent,
   voice,
+  workspace,
   onChange,
   onClose,
 }: {
@@ -543,6 +589,7 @@ export function Settings({
   agent?: OutsideKind;
   /** The voice provider to open Models on. */
   voice?: VoiceKind;
+  workspace?: boolean;
   onChange(p: Providers): void;
   onClose(): void;
 }) {
@@ -553,6 +600,7 @@ export function Settings({
   const [voices, setVoices] = useState<VoiceView[] | null>(null);
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [voiceShown, setVoiceShown] = useState<VoiceKind | null>(voice ?? null);
+  const [workspaceShown, setWorkspaceShown] = useState(workspace ?? false);
   useEffect(() => {
     let live = true;
     window.studio.agents().then(
@@ -577,6 +625,7 @@ export function Settings({
   function select(next: ProviderInput) {
     setShown(null);
     setVoiceShown(null);
+    setWorkspaceShown(false);
     setForm(next);
     setError(null);
     setTest(null);
@@ -630,14 +679,20 @@ export function Settings({
 
   return (
     <div className="dialog-backdrop" role="presentation" onClick={onClose}>
-      <div className="dialog models" role="dialog" aria-modal="true" aria-label="Models" onClick={(e) => e.stopPropagation()}>
+      <div className="dialog models" role="dialog" aria-modal="true" aria-label="Settings" onClick={(e) => e.stopPropagation()}>
         <div className="models-list">
-          <h2>Models</h2>
+          <h2>Settings</h2>
+          <button type="button" className={`provider-row${workspaceShown ? ' selected' : ''}`} onClick={() => {
+            setShown(null);
+            setVoiceShown(null);
+            setWorkspaceShown(true);
+          }}><Folder size={18} /><span className="who"><strong>Workspace</strong><span>Where new projects live</span></span></button>
+          <h3 className="label agents-label">Models</h3>
           <p className="note">The agent runs on the one marked. Keys stay in this computer's keychain.</p>
           <ul>
             {providers.providers.map((p) => (
               <li key={p.id}>
-                <button type="button" className={`provider-row${p.id === form.id && !shown && !voiceShown ? ' selected' : ''}`} onClick={() => select(fromView(p))}>
+                <button type="button" className={`provider-row${p.id === form.id && !shown && !voiceShown && !workspaceShown ? ' selected' : ''}`} onClick={() => select(fromView(p))}>
                   <span className="avatar" aria-hidden="true">
                     {initials(p.name)}
                   </span>
@@ -652,7 +707,7 @@ export function Settings({
           </ul>
           <button
             type="button"
-            className={`provider-row add${form.id || shown || voiceShown ? '' : ' selected'}`}
+            className={`provider-row add${form.id || shown || voiceShown || workspaceShown ? '' : ' selected'}`}
             onClick={() => {
               setPreset(0);
               select(fromPreset(PRESETS[0]!));
@@ -675,6 +730,7 @@ export function Settings({
                     className={`provider-row${shown === h.kind ? ' selected' : ''}`}
                     onClick={() => {
                       setVoiceShown(null);
+                      setWorkspaceShown(false);
                       setShown(h.kind);
                     }}
                   >
@@ -703,6 +759,7 @@ export function Settings({
                     className={`provider-row${voiceShown === kind ? ' selected' : ''}`}
                     onClick={() => {
                       setShown(null);
+                      setWorkspaceShown(false);
                       setVoiceShown(kind);
                     }}
                   >
@@ -721,7 +778,7 @@ export function Settings({
           </ul>
         </div>
 
-        {voiceShown ? (
+        {workspaceShown ? <WorkspacePane onClose={onClose} /> : voiceShown ? (
           voices ? (
             <VoicePane key={voiceShown} kind={voiceShown} view={voices.find((v) => v.kind === voiceShown)} onVoices={setVoices} onClose={onClose} />
           ) : (

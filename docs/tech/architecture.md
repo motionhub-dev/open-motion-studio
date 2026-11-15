@@ -27,11 +27,12 @@ One Electron app. Packages are split out only when something is published on its
 ```
 apps/desktop/
   src/main/            Node: the only process that touches the disk, the network and child processes
-    index.ts           the window, the open project, and a handler for every StudioApi method
+    index.ts           the tray-backed main window, retained editor views, dedicated windows and IPC routing
+    workspace.ts       a project's handlers, bundler, agent sessions, tasks and outgoing events (ADR 0014)
     project.ts         open / create a folder, whether it holds a film, the recent list
     history.ts         local checkpoints of the agent's source writes in .motion-studio/history.json, and restoring
                        one only when no file it touches was changed since (ADR 0007)
-    examples.ts        the bundled starting films, each made once as an ordinary project in userData's Examples/
+    examples.ts        the bundled starting films, copied into a fresh project in the default workspace on each click
     assets.ts          images, fonts and sounds the person picks, copied into the project's media/ without
                        overwriting, and the list of what media/ holds
     film/
@@ -69,12 +70,33 @@ site/                  the introduction page at studio.motionhub.dev: static HTM
 
 | Component | Owns | Never does |
 | --- | --- | --- |
+| `workspace` | One project's tasks, conversation, approvals and capture stages; preview and render sessions serving only that project ([ADR 0014](../adr/0014-project-sessions-outlive-editor-windows.md)) | Read another project's files or stop its tasks |
 | `project` | The folder is the truth: files on disk, git if the person uses it. The Studio's own state for a project is `.motion-studio/` (the film's bundle in `build/`, the conversation in `session.json`, the checkpoints in `history.json`, the timeline's scene frames in `thumbs/`, each turn's tokens and time in `usage.jsonl` (ADR 0009)), which a new project's `.gitignore` leaves out | Keep a copy of the project elsewhere |
 | `film/*` | Turning `film.tsx` into a playable preview, a still at a time, and an MP4 | Know about the agent or the UI |
 | `agent` | The conversation, the tools, what the agent may do | Hold a key longer than a turn, or write the Studio's state, a motion from motionhub, dependencies or git |
 | `providers` | The providers in `settings.json` (userData); each key sealed with `safeStorage` in `keys.json`, opened for a call | Put a key in a reply to the renderer, a log, an error or a project |
 | `motions` | Reading the public catalogue and taking a motion into a project, the way `@motionhub/cli get` does | Publish; a person's motion reaches the catalogue as a pull request to `motionhub-dev/motions` |
 | renderer | Panels, selection, marks, settings | Reach the disk or network except through preload (posters from motionhub.dev are the one exception) |
+
+One main BrowserWindow hosts Home and switches between retained project WebContentsViews. A project's view can move
+to its own BaseWindow with Open in editor window or Ctrl/Cmd+Shift+N, preserving the same renderer and pending turn.
+Closing a dedicated window or returning Home detaches the view; the project session continues. Closing the main
+window hides it to the tray. Another app launch restores it. Home lists project tasks and real progress, with Open
+here and Open in editor window. Views pause playback when hidden; task events and approvals remain live.
+
+Each project retains separate in-memory UI/preview and offscreen-render sessions. Stills and exports receive its
+stage opener. IPC is routed by the calling view's webContents id and main frame, even when the view moves between
+native windows. Provider settings, keys and recents are shared, with queued atomic mutations. Explicit Quit aborts
+tasks, closes agents and MCP servers, settles pending writes, destroys retained views and exits; this is not a
+system background service. The app does not resume in-flight tasks across an app exit or machine restart.
+
+New film and template actions create fresh child directories in the default workspace, without a directory picker.
+The default is `app.getPath('documents')/OpenMotionStudio`; Settings → Workspace can persist a different absolute
+path in `settings.json`'s optional `workspace` field. Only the main process opens the native chooser and saves its
+canonical path. The shared ProviderStore serializes this write with model, agent and voice settings. Directory
+reservation uses exclusive `mkdir`, appending numeric suffixes on collisions, so simultaneous creations never reuse
+or overwrite a project. Existing projects and old `userData/Examples` copies are not moved
+([ADR 0015](../adr/0015-new-projects-live-in-a-default-workspace.md)).
 
 ## The film
 
