@@ -1,4 +1,5 @@
 // One tray-backed main window, with project-owned editor views that can move into dedicated windows.
+import './logging-startup';
 import { BaseWindow, BrowserWindow, Menu, Tray, app, dialog, ipcMain, nativeImage, session, shell, type Session, type WebContents } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { mkdir, realpath } from 'node:fs/promises';
@@ -11,6 +12,7 @@ import { createInWorkspace, isRecent, openProject, projectAt } from './project';
 import { providers } from './providers';
 import { createWorkspace, type WorkspaceHost } from './workspace';
 import { WebContentsView } from 'electron';
+import { log, logFailure } from './log';
 
 type Workspace = ReturnType<typeof createWorkspace>;
 interface Editor {
@@ -248,46 +250,57 @@ else {
   });
   void app.whenReady().then(async () => {
     for (const channel of Object.values(CHANNELS)) ipcMain.handle(channel, async (event, ...args) => {
-      const workspace = surfaces.get(event.sender.id);
-      if (quitting || !workspace || event.senderFrame !== event.sender.mainFrame) throw new Error('This view cannot call the Studio.');
-      const entry = [...editors.values()].find(e => e.view.webContents.id === event.sender.id);
-      if (channel === CHANNELS.workspace) return workspaceSettings();
-      if (channel === CHANNELS.chooseWorkspace) {
-        const result = await dialog.showOpenDialog(entry?.host ?? mainWindow, {
-          title: 'Choose your workspace folder', buttonLabel: 'Use workspace',
-          defaultPath: (await workspaceSettings()).path, properties: ['openDirectory', 'createDirectory'],
-        });
-        if (result.canceled || !result.filePaths[0]) return null;
-        await mkdir(result.filePaths[0], { recursive: true });
-        return providers().setWorkspace(await realpath(result.filePaths[0]));
-      }
-      if (channel === CHANNELS.tasks) return taskList();
-      if (channel === CHANNELS.openTask) return openKnown(args[0], args[1]);
-      if (channel === CHANNELS.newWindow) { if (entry) openSeparate(entry); else if (activeEditor) openSeparate(activeEditor); else showHome(); return; }
-      if (channel === CHANNELS.closeProject) {
-        if (entry?.window) entry.window.close();
-        showHome(); return;
-      }
-      if ([CHANNELS.openProject, CHANNELS.createProject, CHANNELS.openRecent, CHANNELS.openExample].includes(channel as never)) {
-        let project: Project;
-        if (channel === CHANNELS.openRecent) { await openKnown(args[0], false); return null; }
-        if (channel === CHANNELS.openExample) project = await openExample((await workspaceSettings()).path, args[0]);
-        else if (channel === CHANNELS.createProject) {
-          project = await createInWorkspace((await workspaceSettings()).path);
-          await startFilm(project.path);
-          project = projectAt(project.path);
-        } else {
+      const started = Date.now();
+      try {
+        const workspace = surfaces.get(event.sender.id);
+        if (quitting || !workspace || event.senderFrame !== event.sender.mainFrame) throw new Error('This view cannot call the Studio.');
+        const entry = [...editors.values()].find(e => e.view.webContents.id === event.sender.id);
+        if (channel === CHANNELS.showLogs) {
+          const error = await shell.openPath(app.getPath('logs'));
+          if (error) throw new Error(error);
+          return;
+        }
+        if (channel === CHANNELS.workspace) return await workspaceSettings();
+        if (channel === CHANNELS.chooseWorkspace) {
           const result = await dialog.showOpenDialog(entry?.host ?? mainWindow, {
-            title: 'Open a project folder', properties: ['openDirectory'],
+            title: 'Choose your workspace folder', buttonLabel: 'Use workspace',
+            defaultPath: (await workspaceSettings()).path, properties: ['openDirectory', 'createDirectory'],
           });
           if (result.canceled || !result.filePaths[0]) return null;
-          project = await openProject(result.filePaths[0]);
+          await mkdir(result.filePaths[0], { recursive: true });
+          return await providers().setWorkspace(await realpath(result.filePaths[0]));
         }
-        openInMain(await editorFor(project)); return null;
+        if (channel === CHANNELS.tasks) return taskList();
+        if (channel === CHANNELS.openTask) return await openKnown(args[0], args[1]);
+        if (channel === CHANNELS.newWindow) { if (entry) openSeparate(entry); else if (activeEditor) openSeparate(activeEditor); else showHome(); return; }
+        if (channel === CHANNELS.closeProject) {
+          if (entry?.window) entry.window.close();
+          showHome(); return;
+        }
+        if ([CHANNELS.openProject, CHANNELS.createProject, CHANNELS.openRecent, CHANNELS.openExample].includes(channel as never)) {
+          let project: Project;
+          if (channel === CHANNELS.openRecent) { await openKnown(args[0], false); return null; }
+          if (channel === CHANNELS.openExample) project = await openExample((await workspaceSettings()).path, args[0]);
+          else if (channel === CHANNELS.createProject) {
+            project = await createInWorkspace((await workspaceSettings()).path);
+            await startFilm(project.path);
+            project = projectAt(project.path);
+          } else {
+            const result = await dialog.showOpenDialog(entry?.host ?? mainWindow, {
+              title: 'Open a project folder', properties: ['openDirectory'],
+            });
+            if (result.canceled || !result.filePaths[0]) return null;
+            project = await openProject(result.filePaths[0]);
+          }
+          openInMain(await editorFor(project)); return null;
+        }
+        const handler = workspace.handlers.get(channel);
+        if (!handler) throw new Error('This Studio action is not available.');
+        return await handler(event, ...args);
+      } catch (error) {
+        logFailure('ipc.failed', error, { channel, elapsedMs: Date.now() - started });
+        throw error;
       }
-      const handler = workspace.handlers.get(channel);
-      if (!handler) throw new Error('This Studio action is not available.');
-      return handler(event, ...args);
     });
     Menu.setApplicationMenu(process.platform === 'darwin' ? Menu.buildFromTemplate([
       { role: 'appMenu' },
@@ -295,6 +308,7 @@ else {
       { role: 'editMenu' }, { role: 'windowMenu' },
     ]) : null);
     await createMain();
+    log('app.ready');
     app.on('activate', showMain);
   });
 }

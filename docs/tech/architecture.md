@@ -90,6 +90,13 @@ native windows. Provider settings, keys and recents are shared, with queued atom
 tasks, closes agents and MCP servers, settles pending writes, destroys retained views and exits; this is not a
 system background service. The app does not resume in-flight tasks across an app exit or machine restart.
 
+Runtime diagnostics initialize before the film bundler: `main.log` holds timestamped startup metadata, task
+boundaries, build failures, IPC errors, preload/load failures and renderer/child process exits. The folder is
+`~/Library/Logs/OpenMotionStudio` on macOS and `logs/` under userData on Windows/Linux. Settings → Workspace opens
+it through a fixed-path main-process action. Each log is limited to 5 MiB with one previous file; logging failures
+fall back to stderr without blocking project work. IPC arguments, model messages and environment variables are not
+recorded; credential fields and common secret patterns are redacted. Logs remain local.
+
 New film and template actions create fresh child directories in the default workspace, without a directory picker.
 The default is `app.getPath('documents')/OpenMotionStudio`; Settings → Workspace can persist a different absolute
 path in `settings.json`'s optional `workspace` field. Only the main process opens the native chooser and saves its
@@ -112,7 +119,9 @@ One engine, the Studio's own ([ADR 0005](../adr/0005-the-studio-has-one-engine-i
   are the film's length, so `film.seconds` is refused, and so is a film whose default export draws no `<Film>`. The preview core draws the film once, off the page, to learn its structure from what
   `<Film>` reports (`onFilm`), and sends it with the film (`FilmInfo.scenes`, `FilmInfo.layers`). esbuild bundles it into
   `.motion-studio/build/film.js` on every change of a file it imports, leaving React and the runtime to the preview core,
-  which provides them to the bundle as `require`.
+  which provides them to the bundle as `require`. In a packaged app the main process loads esbuild's API from
+  `app.asar.unpacked` as well as unpacking its binary: the API resolves the executable relative to its own entry,
+  and child processes cannot execute paths inside the virtual archive.
 - **The preview speaks one message protocol** (`src/shared/preview.ts`): the Studio sends `play`, `pause`, `seek`,
   `play-range`, `pick(x, y, depth)` and `solo(layer)` (every other `<Layer>` hidden, for a layer played alone), the page answers `ready` (the film's length, size, frame rate and scenes), `time`, `error` and `picked`. The core
   answers the first three and sets `window.__omsFrame` (the film's size); `studio/pick.js` answers `pick` with the

@@ -28,6 +28,21 @@ node .claude/skills/run-desktop/drive.mjs <shots-dir> data ss:open key:Backslash
 
 Then **read the screenshots**. A blank or launcher-only shot means it did not reach the workspace.
 
+## Check the packaged app
+
+A successful installer build does not prove the app can build a film. Set `OMS_EXECUTABLE` to the installed or
+unpacked app executable to run the same driver against its actual archive and native dependencies, still with an
+isolated profile and workspace. No repository app path is passed to the packaged executable.
+
+```powershell
+$env:OMS_EXECUTABLE = "$env:LOCALAPPDATA\Programs\OpenMotionStudio\OpenMotionStudio.exe"
+node .claude/skills/run-desktop/drive.mjs <shots-dir> kinetic ss:installed export:<output.mp4>
+Remove-Item Env:OMS_EXECUTABLE
+```
+
+Check that the preview draws and the MP4 plays. In particular, esbuild must launch from `app.asar.unpacked`;
+the developer build cannot expose an executable path incorrectly left inside `app.asar`.
+
 | step | does |
 | --- | --- |
 | `ss:<name>` | screenshot to `<shots-dir>/<name>.png` |

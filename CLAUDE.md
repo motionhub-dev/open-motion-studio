@@ -83,7 +83,8 @@ The shape is [`docs/tech/architecture.md`](docs/tech/architecture.md). What ever
   ([ADR 0004](docs/adr/0004-a-films-code-runs-in-a-sandboxed-frame-on-its-own-scheme.md)). The renderer's one network
   exception is posters from motionhub.dev.
 - **The folder is the truth.** The Studio's own state for a project is `.motion-studio/` inside it, ignored by git; the
-  app's own state (recent projects, settings) is in Electron's `userData`. Nothing else is written.
+  app's own state (recent projects, settings) is in Electron's `userData`; bounded runtime diagnostics are in
+  Electron's app log directory. Nothing else is written.
 - **A key is sealed with `safeStorage`** (the OS keychain's secret) and kept only as ciphertext in `keys.json` in
   userData, opened at the moment of a call. Never in plain text in a file, a log, an IPC reply, an error message or a
   project.

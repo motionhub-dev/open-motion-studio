@@ -11,6 +11,7 @@ function subscribe<T>(channel: string, listener: (value: T) => void): () => void
 }
 
 const api: StudioApi = {
+  showLogs: () => ipcRenderer.invoke(CHANNELS.showLogs),
   workspace: () => ipcRenderer.invoke(CHANNELS.workspace),
   chooseWorkspace: () => ipcRenderer.invoke(CHANNELS.chooseWorkspace),
   currentProject: () => ipcRenderer.invoke(CHANNELS.currentProject),

@@ -42,9 +42,10 @@ fs.mkdirSync(out, { recursive: true });
 const steps = given.length ? given : ['ss:workspace', 'boxes'];
 
 const appDir = path.resolve(import.meta.dirname, '../../../apps/desktop');
-if (!fs.existsSync(path.join(appDir, 'out', 'main'))) throw new Error('No build: run `pnpm build` at the repository root first.');
+const packagedExecutable = process.env.OMS_EXECUTABLE;
+if (!packagedExecutable && !fs.existsSync(path.join(appDir, 'out', 'main'))) throw new Error('No build: run `pnpm build` at the repository root first.');
 const dist = path.join(appDir, 'node_modules', 'electron', 'dist');
-const bin =
+const bin = packagedExecutable ? path.resolve(packagedExecutable) :
   process.platform === 'win32'
     ? path.join(dist, 'electron.exe')
     : process.platform === 'darwin'
@@ -91,7 +92,7 @@ async function settled(page) {
 
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'oms-profile-'));
 fs.writeFileSync(path.join(profile, 'settings.json'), JSON.stringify({ providers: [], active: null, workspace: path.join(profile, 'Workspace') }));
-const args = [appDir, `--user-data-dir=${profile}`];
+const args = [...(packagedExecutable ? [] : [appDir]), `--user-data-dir=${profile}`];
 if (process.platform === 'linux') args.push('--no-sandbox');
 let app = await electron.launch({ executablePath: bin, args, timeout: 60_000 });
 try {

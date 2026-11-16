@@ -425,6 +425,8 @@ export interface ProjectTask {
 }
 
 export interface StudioApi {
+  /** Opens the app's fixed local diagnostics folder. */
+  showLogs(): Promise<void>;
   workspace(): Promise<WorkspaceSettings>;
   /** Chooses and saves a workspace through the native folder picker; null on cancel. */
   chooseWorkspace(): Promise<WorkspaceSettings | null>;
@@ -556,6 +558,7 @@ export interface StudioApi {
 
 /** Invoked channels, one per request method of StudioApi. */
 export const CHANNELS = {
+  showLogs: 'app:show-logs',
   workspace: 'workspace:get',
   chooseWorkspace: 'workspace:choose',
   currentProject: 'project:current',
