@@ -17,7 +17,7 @@ function Picture({ closing = false }: { closing?: boolean }) {
   const enter = interpolate(t, [0, .8], [0, 1], { clamp: true });
   const count = Math.round(interpolate(t, [0, 3], [0, 84], { clamp: true }));
   return <div style={{ width: '100%', height: '100%', padding: 130, boxSizing: 'border-box', background: '#f3eee4', color: '#2a2622', fontFamily: 'system-ui, sans-serif', display: 'flex', flexDirection: 'column', justifyContent: 'center', overflow: 'hidden' }}>
-    <p style={{ fontSize: 24, letterSpacing: 7, margin: '0 0 50px' }}>{closing ? 'YOUR NEXT IDEA STARTS HERE' : 'OPEN MOTION STUDIO / ${example.id.toUpperCase()}'}</p>
+    <p style={{ fontSize: 24, letterSpacing: 7, margin: '0 0 50px' }}>{closing ? 'YOUR NEXT IDEA STARTS HERE' : 'OpenMotionStudio / ${example.id.toUpperCase()}'}</p>
     ${example.id === 'data' ? "{!closing && <div style={{ display: 'flex', gap: 24, alignItems: 'flex-end', height: 250, marginBottom: 50 }}>{[.3, .5, .7, 1].map((height, i) => <div key={i} style={{ width: 170, height: 250 * height * enter + 1, background: '#2a2622', opacity: .25 + i * .25 }} />)}<strong style={{ fontSize: 150, lineHeight: 1 }}>{count}%</strong></div>}" : ''}
     <h1 style={{ fontSize: ${example.id === 'product' ? 150 : 170}, lineHeight: 1.02, letterSpacing: -9, maxWidth: 1500, margin: 0, transform: 'translateY(' + (1-enter)*60 + 'px)', opacity: .2 + enter * .8 }}>{closing ? 'Make it yours.' : ${JSON.stringify(example.title)}}</h1>
     <p style={{ fontSize: 34, lineHeight: 1.5, margin: '50px 0 0', opacity: .65 }}>{closing ? 'Point at a detail. Ask for a change. Keep exploring.' : ${JSON.stringify(example.line)}}</p>

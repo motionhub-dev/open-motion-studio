@@ -2,7 +2,7 @@
 # that CI fills from secrets (CLAUDE.md, "Commands"); without them a build is unsigned.
 # macOS is notarised when APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD and APPLE_TEAM_ID are set.
 appId: dev.motionhub.studio
-productName: Open Motion Studio
+productName: OpenMotionStudio
 artifactName: open-motion-studio-${version}-${os}-${arch}.${ext}
 directories:
   output: dist

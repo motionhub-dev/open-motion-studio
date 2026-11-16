@@ -122,7 +122,7 @@ export async function startCodex(bin: string, dir: string, version: string): Pro
   try {
     await Promise.race([
       server.request('initialize', {
-        clientInfo: { name: 'open-motion-studio', title: 'Open Motion Studio', version },
+        clientInfo: { name: 'open-motion-studio', title: 'OpenMotionStudio', version },
         capabilities: { experimentalApi: false, requestAttestation: false },
       }),
       server.ended.then(() => {
