@@ -207,7 +207,7 @@ export function App() {
                   onClick={() => run(() => window.studio.openExample(example.id))}
                 >
                   <div className="example-poster">
-                    <span className="eyebrow">OPEN MOTION STUDIO / {example.id}</span>
+                    <span className="eyebrow">OpenMotionStudio / {example.id}</span>
                     {example.id === 'data' && (
                       <div className="example-bars" aria-hidden="true">
                         {[1, 2, 3, 4].map((n) => (

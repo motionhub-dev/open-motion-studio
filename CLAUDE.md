@@ -1,4 +1,4 @@
-# Open Motion Studio
+# OpenMotionStudio
 
 An open-source (Apache-2.0) desktop IDE for making motion video with an agent: a person opens a folder, picks a motion
 from motionhub.dev, talks to an agent on the model and provider of their choice, watches it play, points at what to

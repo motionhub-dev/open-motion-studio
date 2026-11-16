@@ -2,11 +2,11 @@
 
 > **Status:** Plan · **Updated:** 2026-11-15
 
-What Open Motion Studio is, who it is for, what it is instead of, what it will not do, and the smallest version worth shipping.
+What OpenMotionStudio is, who it is for, what it is instead of, what it will not do, and the smallest version worth shipping.
 
 ## What it is, and for whom
 
-**Open Motion Studio is an open-source desktop IDE for making motion video with an agent.** A person opens a folder, picks a
+**OpenMotionStudio is an open-source desktop IDE for making motion video with an agent.** A person opens a folder, picks a
 motion from [motionhub.dev](https://motionhub.dev) (or starts from none), talks to an agent running on the model and provider
 of their choice, watches the result play live, points at what is wrong on the picture, and exports an MP4.
 

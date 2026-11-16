@@ -1,7 +1,18 @@
 # Changelog
 
-Every key change to Open Motion Studio, newest first, by date. What counts as key and the entry format are in
+Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
+
+## 2026-11-15 — The app name is consistently OpenMotionStudio
+
+- **What:** Use OpenMotionStudio in application and installer metadata, UI, notifications, template branding,
+  agent prompts and client titles, exported project text, the website and documentation.
+- **Why:** The installer and several other surfaces still displayed the spaced form of the product name.
+- **Breaking:** The packaged product name changes, including its executable, application bundle, shortcuts and
+  Electron's default userData directory. Package identifiers, appId and repository URLs stay the same.
+- **Upgrade:** Existing project folders are unchanged. Development profiles under the previous product name can be
+  moved to the new userData location while the app is closed to keep their settings and recents.
+- **Refs:** `apps/desktop/package.json`, `apps/desktop/electron-builder.yml`, `site/index.html`.
 
 ## 2026-11-15 — New films and template copies use a configurable workspace
 

@@ -278,7 +278,7 @@ export function createWorkspace(host: WorkspaceHost, renderSession: Session, cha
   /** When the window is not in front, says so in a notification and flashes it in the taskbar. */
   function tellWhenAway(body: string): void {
     if (!host || host.isDestroyed() || host.isFocused()) return;
-    if (Notification.isSupported()) new Notification({ title: 'Open Motion Studio', body }).show();
+    if (Notification.isSupported()) new Notification({ title: 'OpenMotionStudio', body }).show();
     host.flashFrame(true);
   }
 

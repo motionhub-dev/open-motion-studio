@@ -40,7 +40,7 @@ const ROOT = (id: string, scenes: string[]) => {
   const sequences = scenes
     .map((scene) => `      <Series.Sequence name={${literal(scene)}} durationInFrames={frames[${literal(scene)}]}>{scene(${literal(scene)})}</Series.Sequence>`)
     .join('\n');
-  return `// The Remotion composition of the film in ../film.tsx, written by Open Motion Studio. Each scene of the film is drawn in a
+  return `// The Remotion composition of the film in ../film.tsx, written by OpenMotionStudio. Each scene of the film is drawn in a
 // Series.Sequence of its own, so the scenes are named clips on Remotion Studio's timeline; their lengths come from film.tsx.
 import {Composition, Series} from 'remotion';
 import {FilmScene} from '@motionhub/runtime';
@@ -107,7 +107,7 @@ const TSCONFIG = {
 
 const README = (name: string, id: string) => `# ${name}
 
-A film made in Open Motion Studio, as a Remotion project. Each scene is a \`Series.Sequence\` in \`src/Root.tsx\`, named by its id.
+A film made in OpenMotionStudio, as a Remotion project. Each scene is a \`Series.Sequence\` in \`src/Root.tsx\`, named by its id.
 
 \`\`\`bash
 npm install

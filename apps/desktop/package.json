@@ -1,6 +1,6 @@
 {
   "name": "open-motion-studio",
-  "productName": "Open Motion Studio",
+  "productName": "OpenMotionStudio",
   "version": "0.0.0",
   "private": true,
   "description": "An open-source desktop IDE for making motion video with an agent.",

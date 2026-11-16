@@ -1,6 +1,6 @@
 ---
 name: run-desktop
-description: Build, launch and screenshot the Open Motion Studio desktop app with an example film open. Use when asked to run the app, look at the workspace, or check a UI change in the real app rather than in tests.
+description: Build, launch and screenshot the OpenMotionStudio desktop app with an example film open. Use when asked to run the app, look at the workspace, or check a UI change in the real app rather than in tests.
 ---
 
 The Studio is an Electron app. `drive.mjs` launches the built app with a throwaway profile (the person's recent
