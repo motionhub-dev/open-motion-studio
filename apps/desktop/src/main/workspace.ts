@@ -2,6 +2,7 @@
 import { BrowserWindow, Notification, app, dialog, shell, type BaseWindow, type IpcMainInvokeEvent, type Session, type OpenDialogOptions, type WebContents } from 'electron';
 import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { log } from './log';
 import {
   CHANNELS,
   EVENTS,
@@ -95,6 +96,7 @@ export function createWorkspace(host: WorkspaceHost, renderSession: Session, cha
         activity: kind === 'agent' ? 'Thinking' : 'Starting',
         startedAt: Date.now(), updatedAt: Date.now(), background: false,
       };
+      log('task.started', { channel, kind, projectPath: tracked.project.path });
       changed();
     }
     let result: unknown;
@@ -116,7 +118,10 @@ export function createWorkspace(host: WorkspaceHost, renderSession: Session, cha
       }, (error) => {
         if (task) { task.status = 'failed'; task.activity = error.message; task.updatedAt = Date.now(); }
         throw error;
-      }).finally(() => { tasks.delete(pending); changed(); });
+      }).finally(() => {
+        if (task) log('task.finished', { channel, kind: task.kind, projectPath: task.project.path, status: task.status, elapsedMs: Date.now() - task.startedAt });
+        tasks.delete(pending); changed();
+      });
       tasks.add(pending);
       return pending;
     }
@@ -349,6 +354,7 @@ export function createWorkspace(host: WorkspaceHost, renderSession: Session, cha
         const watcher = await watchFilm(project.path, (result) => {
           if (open !== state) return;
           state.build = result;
+          log(result.ok ? 'film.built' : 'film.build-failed', { projectPath: project.path, version: result.version, errors: result.errors });
           send(EVENTS.build, result);
         });
         if (host.isDestroyed() || open !== state) {

@@ -120,6 +120,7 @@ The launcher (`app.tsx`) is the Studio application icon and the title **OpenMoti
 recent projects with their path (`~` for the home folder), and a banner while no model is set up.
 Its workspace path opens Settings → Workspace. The default is the operating system's Documents folder plus
 `OpenMotionStudio`; Change folder saves a new location for future projects without moving existing ones.
+The same pane offers Open logs folder under Troubleshooting, opening the app's fixed local diagnostics directory.
 Each template click copies its bundled source into a fresh workspace project. Repeated names get numeric suffixes.
 The main window is the single home and project-switching surface. Its close button hides it to the tray; the tray
 opens it, returns Home, or quits the app and its background tasks. Home's Your projects cards show each retained

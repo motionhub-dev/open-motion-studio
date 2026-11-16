@@ -571,6 +571,11 @@ function WorkspacePane({ onClose }: { onClose(): void }) {
       </div>
       <p className="note">Changes are saved immediately and apply to new projects. Existing projects stay where they are.</p>
       {error && <p className="error" role="alert">{error}</p>}
+      <h3 className="label">Troubleshooting</h3>
+      <p className="note">Local runtime logs help diagnose startup, build and export failures.</p>
+      <div className="actions"><button type="button" className="button" onClick={() => {
+        window.studio.showLogs().catch(e => setError(reason(e)));
+      }}><Folder size={14} /> Open logs folder</button></div>
       <div className="actions"><button type="button" className="button primary" onClick={onClose}>Done</button></div>
     </div>
   );

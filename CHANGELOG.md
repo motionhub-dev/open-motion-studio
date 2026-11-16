@@ -3,6 +3,28 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-15 — Runtime diagnostics stay in a fixed local log folder
+
+- **What:** Write structured startup, task, build, IPC failure and process-crash diagnostics to main.log in the
+  operating system's app log directory. Settings → Workspace offers Open logs folder. Keep one rotated previous
+  log, with each file capped at 5 MiB. Record technical context without IPC arguments or conversation payloads,
+  and redact credential fields and common secret patterns. Logging failures do not block normal app work.
+- **Why:** Packaged applications otherwise lose the terminal output needed to diagnose startup and spawn failures.
+- **Breaking:** None.
+- **Upgrade:** Nothing. On macOS the folder is ~/Library/Logs/OpenMotionStudio; Windows and Linux use logs/ under
+  Electron's userData folder. Logs stay on the computer and are not uploaded.
+- **Refs:** `apps/desktop/src/main/log.ts`, `apps/desktop/src/main/logging-startup.ts`.
+
+## 2026-11-15 — Packaged apps can start the film bundler
+
+- **What:** Load esbuild's JavaScript API from app.asar.unpacked so its native executable resolves beside it.
+  The desktop driver can now target an installed executable with OMS_EXECUTABLE, using an isolated profile.
+- **Why:** Installed builds tried to spawn esbuild inside the virtual app.asar archive when opening a new film or
+  template, despite the executable already being unpacked: ENOENT on Windows and ENOTDIR on macOS.
+- **Breaking:** None.
+- **Upgrade:** Reinstall the rebuilt app; project files and settings need no changes.
+- **Refs:** `apps/desktop/src/main/film/film.ts`, `.claude/skills/run-desktop/drive.mjs`.
+
 ## 2026-11-15 — The app name is consistently OpenMotionStudio
 
 - **What:** Use OpenMotionStudio in application and installer metadata, UI, notifications, template branding,

@@ -9,7 +9,8 @@
 // the runtime to the preview core (src/preview/core.tsx), and plays, stills and exports
 // it from there; the faces of the project's motions go beside it in fonts.css.
 
-import { type BuildContext, type Message, type Plugin, context, formatMessages } from 'esbuild';
+import type { BuildContext, Message, Plugin } from 'esbuild';
+import { createRequire } from 'node:module';
 import { existsSync } from 'node:fs';
 import { copyFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -17,6 +18,14 @@ import type { BuildResult } from '../../shared/api';
 import { motionFaces } from '../motions';
 import { STATE_DIR } from '../project';
 import SKILL from './film.md?raw';
+import { log, logFailure } from '../log';
+
+// Load the unpacked API as well as its executable: esbuild resolves its child relative to its own entry point.
+// A child process cannot execute a path inside app.asar, even when Electron can read that virtual path.
+const require = createRequire(__filename);
+const bundlerEntry = require.resolve('esbuild').replace(/([/\\])app\.asar([/\\])/, '$1app.asar.unpacked$2');
+log('bundler.load', { entry: bundlerEntry });
+const { context, formatMessages } = require(bundlerEntry) as typeof import('esbuild');
 
 /** What the agent is told about making a film (film.md). */
 export const FILM_SKILL: string = SKILL;
@@ -132,23 +141,29 @@ export const ASSET_LOADERS = Object.fromEntries(ASSETS.map((ext) => [ext, 'file'
  * and `onBuilt` hears each result. Returns the context, to dispose when the project closes.
  */
 export async function watchFilm(dir: string, onBuilt: (result: BuildResult) => void): Promise<BuildContext> {
-  const ctx = await context({
-    absWorkingDir: dir,
-    entryPoints: [FILM],
-    outfile: join(buildDir(dir), 'film.js'),
-    bundle: true,
-    format: 'iife',
-    globalName: '__omsFilm',
-    platform: 'browser',
-    target: 'chrome130',
-    jsx: 'automatic',
-    external: PROVIDED,
-    loader: ASSET_LOADERS,
-    publicPath: 'build',
-    sourcemap: 'inline',
-    logLevel: 'silent',
-    plugins: [reporter(onBuilt, dir)],
-  });
-  await ctx.watch();
-  return ctx;
+  log('film.build-start', { projectPath: dir });
+  try {
+    const ctx = await context({
+      absWorkingDir: dir,
+      entryPoints: [FILM],
+      outfile: join(buildDir(dir), 'film.js'),
+      bundle: true,
+      format: 'iife',
+      globalName: '__omsFilm',
+      platform: 'browser',
+      target: 'chrome130',
+      jsx: 'automatic',
+      external: PROVIDED,
+      loader: ASSET_LOADERS,
+      publicPath: 'build',
+      sourcemap: 'inline',
+      logLevel: 'silent',
+      plugins: [reporter(onBuilt, dir)],
+    });
+    await ctx.watch();
+    return ctx;
+  } catch (error) {
+    logFailure('film.bundler-failed', error, { projectPath: dir });
+    throw error;
+  }
 }
