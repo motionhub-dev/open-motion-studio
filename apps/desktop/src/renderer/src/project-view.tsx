@@ -5,7 +5,7 @@
 
 import { SystemMessage, Translated, usePreferences } from './preferences';
 import { translate } from '../../shared/i18n';
-import { Settings as SettingsIcon, AppWindow, ArrowLeft, ChevronDown, ChevronRight, Download, Home, Keyboard, Mic, PanelLeftOpen, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
+import { Settings as SettingsIcon, ArrowLeft, ChevronDown, ChevronRight, Download, Home, Keyboard, Mic, PanelLeftOpen, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import {
   type AgentKind,
@@ -13,6 +13,7 @@ import {
   type AgentSettings,
   type Agents,
   type BuildResult,
+  type LibraryProject,
   MAX_MARKS,
   ofPicture,
   type Mark,
@@ -33,9 +34,10 @@ import { HistoryPanel } from './history-panel';
 import { Inspector } from './inspector';
 import { LIMITS, Splitter, useLayout } from './layout';
 import { MotionPanel } from './motion-panel';
-import { Stage, usePlayer } from './preview';
+import { Stage, timecode, usePlayer } from './preview';
 import { Fold, Timeline } from './timeline';
 import { reason } from './reason';
+import type { FilmInfo } from '../../shared/preview';
 
 type Toast = { text: string; error: boolean; file?: string };
 
@@ -110,16 +112,28 @@ function Shortcuts({ onClose }: { onClose(): void }) {
   );
 }
 
-function ProjectSwitcher({ project, onError }: { project: Project; onError(error: unknown): void }) {
+/**
+ * The project's title and its menu. First what can be done to this project: rename it (a double-click on the title
+ * does too), show its folder, copy it as a new project, and move it between the main window and a window of its own;
+ * and its film's size, rate and length. Then the other projects to go to, those with a task running first and then
+ * those opened last, and Home.
+ */
+function ProjectMenu({ project, film, onError }: { project: Project; film: FilmInfo | null; onError(error: unknown): void }) {
   const { t: tr } = usePreferences();
   const [tasks, setTasks] = useState<ProjectTask[]>([]);
+  const [library, setLibrary] = useState<LibraryProject[]>([]);
   const [open, setOpen] = useState(false);
+  /** The name being typed while the title is being renamed. */
+  const [naming, setNaming] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const stop = window.studio.onTasks(setTasks);
     window.studio.tasks().then(setTasks, onError);
     return stop;
   }, []);
+  useEffect(() => {
+    if (open) window.studio.projectLibrary().then(setLibrary, onError);
+  }, [open]);
   useEffect(() => {
     if (!open) return;
     const close = (event: globalThis.PointerEvent) => { if (!ref.current?.contains(event.target as Node)) setOpen(false); };
@@ -128,22 +142,114 @@ function ProjectSwitcher({ project, onError }: { project: Project; onError(error
     window.addEventListener('keydown', key);
     return () => { window.removeEventListener('pointerdown', close); window.removeEventListener('keydown', key); };
   }, [open]);
+
+  const separate = tasks.find((task) => task.project.path === project.path)?.separate ?? false;
+  const working = tasks.filter((task) => task.project.path !== project.path && (task.status === 'running' || task.status === 'waiting'));
+  const recent = library
+    .filter((other) => other.path !== project.path && !other.missing && !working.some((task) => task.project.path === other.path))
+    .sort((a, b) => b.lastOpened - a.lastOpened)
+    .slice(0, 5);
+  /** Closes the menu and runs one of its actions, saying what went wrong. */
+  const act = (action: () => Promise<unknown>) => {
+    setOpen(false);
+    action().catch(onError);
+  };
+  /** Ends renaming: a new name renames the folder (main process), the same or an empty one changes nothing. */
+  function rename(name: string) {
+    if (naming === null) return;
+    setNaming(null);
+    const next = name.trim();
+    if (next && next !== project.name) window.studio.libraryAction(project.path, 'rename', next).catch(onError);
+  }
+
   return (
     <div className="project-switcher" ref={ref}>
-      <button type="button" className="project-switcher-button" aria-label={tr("Switch project")} aria-expanded={open} onClick={() => setOpen(!open)}>
-        <span className="name" title={project.path}>{project.name}</span><ChevronDown size={13} />
-      </button>
+      {naming !== null ? (
+        <input
+          className="project-rename"
+          aria-label={tr("Project name")}
+          value={naming}
+          autoFocus
+          onFocus={(event) => event.currentTarget.select()}
+          onChange={(event) => setNaming(event.target.value)}
+          onKeyDown={(event) => {
+            event.stopPropagation();
+            if (event.key === 'Enter') rename(naming);
+            if (event.key === 'Escape') setNaming(null);
+          }}
+          onBlur={() => rename(naming)}
+        />
+      ) : (
+        <button
+          type="button"
+          className="project-switcher-button"
+          aria-label={tr("Project menu")}
+          aria-haspopup="menu"
+          aria-expanded={open}
+          onClick={() => setOpen(!open)}
+          onDoubleClick={() => {
+            setOpen(false);
+            setNaming(project.name);
+          }}
+        >
+          <span className="name" title={project.path}>{project.name}</span>
+          <ChevronDown size={13} />
+        </button>
+      )}
       {open && (
         <div className="menu project-menu" role="menu">
-          <button type="button" role="menuitem" onClick={() => { setOpen(false); window.studio.closeProject().catch(onError); }}>{tr("Home")}</button>
-          {tasks.map((task) => (
-            <button type="button" role="menuitem" key={task.project.path} onClick={() => { setOpen(false); window.studio.openTask(task.project.path).catch(onError); }}>
-              <strong>{task.project.name}{task.project.path === project.path ? tr(" · Current") : ''}</strong>
-              <span className="note">{task.activity}</span>
+          <span className="menu-label">{tr("This project")}</span>
+          <button type="button" role="menuitem" onClick={() => { setOpen(false); setNaming(project.name); }}>
+            {tr("Rename…")}
+          </button>
+          <button type="button" role="menuitem" onClick={() => act(() => window.studio.libraryAction(project.path, 'show'))}>
+            {tr("Show in folder")}
+          </button>
+          <button type="button" role="menuitem" onClick={() => act(() => window.studio.libraryAction(project.path, 'duplicate'))}>
+            {tr("Duplicate as a new project")}
+          </button>
+          {separate ? (
+            <button type="button" role="menuitem" onClick={() => act(() => window.studio.openTask(project.path, false))}>
+              {tr("Move back to the main window")}
             </button>
-          ))}
-          <button type="button" role="menuitem" onClick={() => { setOpen(false); window.studio.openTask(project.path, false).catch(onError); }}>{tr("Open in main window")}</button>
-          <button type="button" role="menuitem" onClick={() => { setOpen(false); window.studio.openTask(project.path, true).catch(onError); }}><Translated text="Open in editor window" /></button>
+          ) : (
+            <button type="button" role="menuitem" className="with-key" onClick={() => act(() => window.studio.newWindow())}>
+              {tr("Open in its own window")}
+              <kbd>{'Ctrl/⌘ Shift N'}</kbd>
+            </button>
+          )}
+          {film && (
+            <p className="menu-note">
+              <span className="mono">
+                {film.width}×{film.height} · {Math.round(film.fps * 100) / 100} {tr("fps")} · {timecode(film.seconds)}
+              </span>
+              {tr("Ask the assistant to change them.")}
+            </p>
+          )}
+          {(working.length > 0 || recent.length > 0) && (
+            <>
+              <hr />
+              <span className="menu-label">{tr("Switch to")}</span>
+              {working.map((task) => (
+                <button type="button" role="menuitem" key={task.project.path} onClick={() => act(() => window.studio.openTask(task.project.path))}>
+                  <strong>{task.project.name}</strong>
+                  <span className={task.status === 'waiting' ? 'waiting' : undefined}>
+                    <SystemMessage text={task.status === 'waiting' ? 'Needs you' : task.activity} />
+                  </span>
+                </button>
+              ))}
+              {recent.map((other) => (
+                <button type="button" role="menuitem" key={other.path} onClick={() => act(() => window.studio.openRecent(other.path))}>
+                  <strong>{other.name}</strong>
+                  <span title={other.path}>{other.display}</span>
+                </button>
+              ))}
+            </>
+          )}
+          <hr />
+          <button type="button" role="menuitem" onClick={() => act(() => window.studio.closeProject())}>
+            {tr("Home")}
+          </button>
         </div>
       )}
     </div>
@@ -572,19 +678,9 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
           <Home size={18} />
         </button>
         <ChevronRight size={14} className="muted" aria-hidden="true" />
-        <ProjectSwitcher project={project} onError={(e) => setToast({ text: reason(e), error: true })} />
+        <ProjectMenu project={project} film={player.film} onError={(e) => setToast({ text: reason(e), error: true })} />
         {project.film && status}
         <span className="spacer" />
-        <button
-          type="button"
-          className="icon-button"
-          aria-label={t("Open in editor window")}
-          data-tip={t("Open in editor window")}
-          data-key="Ctrl/⌘ Shift N"
-          onClick={() => window.studio.newWindow().catch((e) => setToast({ text: reason(e), error: true }))}
-        >
-          <AppWindow size={16} />
-        </button>
         <button
           type="button"
           className="icon-button"
@@ -649,7 +745,10 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
               {tr("Exporting")} {Math.round(progress * 100)}%
             </button>
           ))}
-        <button className="icon-button" aria-label={t("Settings")} title={t("Settings")} onClick={onGlobalSettings}><SettingsIcon size={16} /></button>
+        <span className="topbar-divider" aria-hidden="true" />
+        <button className="icon-button" aria-label={t("OpenMotionStudio settings")} data-tip={t("OpenMotionStudio settings")} onClick={onGlobalSettings}>
+          <SettingsIcon size={16} />
+        </button>
       </header>
 
       {project.film ? (

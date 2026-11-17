@@ -3,10 +3,10 @@
 // project library in the app's userData. See docs/tech/architecture.md
 // ("Components").
 
-import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { cp, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { homedir } from 'node:os';
-import { basename, join, resolve, sep } from 'node:path';
+import { basename, dirname, join, resolve, sep } from 'node:path';
 import type { LibraryProject, Project } from '../shared/api';
 import { hasFilm } from './film/film';
 
@@ -76,9 +76,20 @@ export function filmName(brief: string): string {
   return name && !RESERVED.test(name) ? name : 'Untitled film';
 }
 
+/**
+ * A project's folder name as the person typed it, trimmed, or an error: one folder name that every system can hold, so
+ * no separator, no character Windows refuses, no device name, and no dot or space at its end.
+ */
+export function folderName(name: unknown): string {
+  const trimmed = typeof name === 'string' ? name.trim() : '';
+  if (!trimmed || trimmed === '.' || trimmed === '..' || /[/\\:*?"<>|\x00-\x1f]/.test(trimmed) || /[. ]$/.test(trimmed) || RESERVED.test(trimmed))
+    throw new Error('A project name must be a single folder name.');
+  return trimmed;
+}
+
 /** Reserves a fresh child directory atomically; existing files, directories and symlinks are never reused. */
 export async function createInWorkspace(workspace: string, name = 'Untitled film'): Promise<Project> {
-  if (!name.trim() || name === '.' || name === '..' || /[/\\\x00-\x1f]/.test(name)) throw new Error('A project name must be a single folder name.');
+  name = folderName(name);
   await mkdir(workspace, { recursive: true });
   for (let number = 1; ; number++) {
     const dir = join(workspace, number === 1 ? name : `${name} ${number}`);
@@ -90,6 +101,43 @@ export async function createInWorkspace(workspace: string, name = 'Untitled film
     }
     return createProject(dir);
   }
+}
+
+/**
+ * Renames a project's folder in place, refusing a name another folder or file there already has. Windows can hold a
+ * folder for a moment after the processes in it end, so a refused rename is tried again for a short while.
+ */
+export async function renameProject(path: string, name: unknown): Promise<Project> {
+  const from = resolve(path);
+  const to = join(dirname(from), folderName(name));
+  if (to === from) return projectAt(from);
+  // A rename that only changes letters' case is the same folder on Windows and macOS.
+  const sameFolder = to.toLowerCase() === from.toLowerCase();
+  if (!sameFolder && (await stat(to).then(() => true, () => false))) throw new Error(`There is already a folder named ${basename(to)} beside this project.`);
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await rename(from, to);
+      return projectAt(to);
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (attempt >= 15 || (code !== 'EBUSY' && code !== 'EPERM' && code !== 'EACCES')) throw error;
+      await new Promise((done) => setTimeout(done, 200));
+    }
+  }
+}
+
+/**
+ * Copies a project beside it as a new one, `<name> copy` (numbered when that is taken): every file of the person's,
+ * none of the Studio's own state, so the copy starts with its own conversation, history and build.
+ */
+export async function duplicateProject(path: string): Promise<Project> {
+  const from = resolve(path);
+  const copy = await createInWorkspace(dirname(from), `${basename(from)} copy`);
+  const state = join(from, STATE_DIR);
+  await cp(from, copy.path, { recursive: true, force: true, filter: (source) => source !== state && !source.startsWith(state + sep) });
+  // The copied .gitignore may be the person's own, without the Studio's state in it.
+  await ignore(copy.path, [`${STATE_DIR}/`]);
+  return projectAt(copy.path);
 }
 
 /** Adds each entry (a folder, `name/`) to the folder's .gitignore unless a line already ignores it. */

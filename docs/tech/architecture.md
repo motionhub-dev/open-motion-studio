@@ -117,7 +117,12 @@ once (`takeBrief`). The brief is never written to disk by the Studio; it reaches
 
 The project library is `projects.json` in userData: `[{path, lastOpened}]`, most recently opened first, every
 project ever opened until the person removes it. It is the only list of paths the renderer may name itself
-(`openRecent`, `openTask`, `libraryAction`). Removing an entry, or locating a moved folder, never touches files. A
+(`openRecent`, `openTask`, `libraryAction`). Removing an entry, or locating a moved folder, never touches files.
+`libraryAction` also renames a project's folder (`folderName`: one name every system can hold) and duplicates a project
+beside itself without `.motion-studio/`. Renaming an open project retires its editor first, since its watcher and its
+agent hold the folder, refuses while a task runs, and opens the editor again on the renamed folder in the window it
+was in; the library forgets the old path and remembers the new one. Each task the main process lists says whether its
+project is in a window of its own (`ProjectTask.separate`). A
 folder that is gone stays, marked missing. A project's cover is not in the library: it is the first scene's still,
 written to the project's own `.motion-studio/cover.jpg` when the timeline's stills are made, and read back as a data URL
 when Home lists the library.

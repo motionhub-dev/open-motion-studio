@@ -79,7 +79,8 @@ type Handler = (event: IpcMainInvokeEvent, ...args: unknown[]) => unknown;
 export function createWorkspace(host: WorkspaceHost, renderSession: Session, changed: () => void = () => {}) {
   const handlers = new Map<string, Handler>();
   const tasks = new Set<Promise<unknown>>();
-  let task: ProjectTask | null = null;
+  // Which window the project is in is the app's to say (index.ts taskList), not the project's.
+  let task: Omit<ProjectTask, 'separate'> | null = null;
   let needsInput = false;
   const taskChannels = new Set<string>([
     CHANNELS.sendMessage, CHANNELS.exportFilm, CHANNELS.exportRemotion, CHANNELS.voiceFilm,
@@ -1051,7 +1052,7 @@ export function createWorkspace(host: WorkspaceHost, renderSession: Session, cha
     previewSource,
     project: () => open?.project ?? null,
     busy: () => tasks.size > 0 || !!working || !!exporting,
-    task: (): ProjectTask | null => task ? { ...task, background: host.isDestroyed() || !host.isVisible() } : null,
+    task: (): Omit<ProjectTask, 'separate'> | null => task ? { ...task, background: host.isDestroyed() || !host.isVisible() } : null,
     async dispose() {
       await closeOpen(false);
       // A stopped turn still records its conversation, checkpoint and usage before the app exits.

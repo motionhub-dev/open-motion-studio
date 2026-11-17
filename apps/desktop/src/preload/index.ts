@@ -12,7 +12,7 @@ function subscribe<T>(channel: string, listener: (value: T) => void): () => void
 
 const api: StudioApi = {
   projectLibrary: () => ipcRenderer.invoke(CHANNELS.projectLibrary),
-  libraryAction: (path, action) => ipcRenderer.invoke(CHANNELS.libraryAction, path, action),
+  libraryAction: (path, action, name) => ipcRenderer.invoke(CHANNELS.libraryAction, path, action, name),
   validateWorkspace: () => ipcRenderer.invoke(CHANNELS.validateWorkspace),
   onPreferencesChanged: listener => subscribe(EVENTS.preferences, listener),
   preferences: () => ipcRenderer.invoke(CHANNELS.preferences),
