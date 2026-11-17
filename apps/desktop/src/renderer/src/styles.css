@@ -2528,7 +2528,11 @@ kbd {
   min-width: 0;
   overflow-y: auto;
 }
+/* The tracks are as tall as their lanes, and at least the timeline: the scroller around them moves names and tracks
+   together, so tracks stretched to its visible height would cut off every lane below it. */
 .timeline .tracks {
+  align-self: flex-start;
+  min-height: 100%;
   overflow-x: auto;
   overflow-y: hidden;
 }
@@ -2540,6 +2544,8 @@ kbd {
   position: sticky;
   left: 0;
   padding-top: 26px;
+  align-self: flex-start;
+  min-height: 100%;
 }
 .timeline .names span {
   overflow: hidden;
