@@ -3,6 +3,19 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-17 — Voice is a panel with every line
+
+- **What:** Voice opens a panel in the project tools instead of a dialog. It shows the film's voice, its provider and
+  how its captions show, with Voice settings and, when another voice is selected, a way to have the agent use it; every
+  line by scene, voiced (with its length) or waiting, each played in place in the film; and, at its foot, voicing the
+  lines waiting with how many characters that speaks, its progress and what it did. The setup steps (a provider, the
+  film's voice) are the same, and the panel stays open while Settings sets a provider up.
+- **Why:** The dialog said how many lines were spoken but not which, and could not play one; a modal dialog also hid
+  the film while voicing it.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/voice-panel.tsx`, `apps/desktop/src/renderer/src/project-view.tsx`.
+
 ## 2026-11-17 — The project's title menu holds what can be done to the project
 
 - **What:** The editor's title menu now renames the project (also a double-click on the title), shows its folder,

@@ -28,7 +28,7 @@ import { Assistant } from './assistant';
 import { AssetsPanel } from './assets-panel';
 import { ReviewPanel } from './review-panel';
 import { ExportDialog } from './export-dialog';
-import { VoiceDialog } from './voice-dialog';
+import { VoicePanel } from './voice-panel';
 import { type Hovered, Outline } from './outline';
 import { HistoryPanel } from './history-panel';
 import { Inspector } from './inspector';
@@ -283,14 +283,6 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
   const [checking, setChecking] = useState(false);
   const [checkError, setCheckError] = useState('');
   const [exportOpen, setExportOpen] = useState(false);
-  const [voiceOpen, setVoiceOpen] = useState(false);
-  const returnToVoice = useRef(false);
-  useEffect(() => {
-    if (returnToVoice.current) {
-      returnToVoice.current = false;
-      setVoiceOpen(true);
-    }
-  }, [modelsClosed]);
   const assistant = useRef<{ send(text: string): void }>(null);
   const [progress, setProgress] = useState<number | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
@@ -302,7 +294,7 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
   const [noteRequest, setNoteRequest] = useState({ index: -1, n: 0 });
   /** The element last picked, which the inspector shows; it stays after its mark is sent. */
   const [inspected, setInspected] = useState<Mark | null>(null);
-  const [side, setSide] = useState<'outline' | 'motions' | 'inspector' | 'history' | 'review' | 'assets'>('outline');
+  const [side, setSide] = useState<'outline' | 'motions' | 'inspector' | 'history' | 'review' | 'assets' | 'voice'>('outline');
   const [shortcuts, setShortcuts] = useState(false);
   /** Whether the menu of other ways to export is open. */
   const [menu, setMenu] = useState(false);
@@ -370,6 +362,13 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
       setCompactSide(show);
       if (show && !layout.side) setLayout({ side: true });
     } else setLayout({ side: show });
+  }
+  /** Asks the project's agent to give the film a voice (the selected one, or one it chooses) and speak its lines. */
+  function generateNarration(voice?: string) {
+    setLayout({ assistant: true });
+    assistant.current?.send(
+      `Generate narration for this film. ${voice ? `Use my selected voice ${JSON.stringify(voice)}; do not choose a different voice.` : 'Choose a suitable voice from my configured voice providers, matching the script’s language and tone.'} Keep the existing script, adding narration lines only if needed. Apply the voice, generate the speech and check the result.`,
+    );
   }
   /** Opens one of the project tools, showing them if they are hidden. */
   function openSide(panel: typeof side) {
@@ -695,9 +694,9 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
           <button
             type="button"
             className="button"
-            data-tip={busy ? tr("Voice the film when the agent has finished its turn") : tr("Speak the film’s lines in its voice")}
-            disabled={!build?.ok || busy || importing || checking || progress !== null}
-            onClick={() => setVoiceOpen(true)}
+            data-tip={tr("Speak the film’s lines in its voice")}
+            aria-pressed={showSide && side === 'voice'}
+            onClick={() => openSide('voice')}
           >
             <Mic size={15} />
             <Translated text="Voice" />
@@ -876,12 +875,12 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
             <div className="side-content">
               {/* The four tools at hand are tabs; History opens from the assistant and Checks from the status. */}
               <div className="side-tabs">
-                {side === 'history' || side === 'review' ? (
+                {side === 'history' || side === 'review' || side === 'voice' ? (
                   <>
                     <button type="button" className="icon-button" aria-label={tr("Back to the outline")} data-tip={tr("Back")} onClick={() => setSide('outline')}>
                       <ArrowLeft size={15} />
                     </button>
-                    <h2>{side === 'history' ? tr("History") : tr("Checks")}</h2>
+                    <h2>{side === 'history' ? tr("History") : side === 'voice' ? tr("Voice") : tr("Checks")}</h2>
                   </>
                 ) : (
                   <nav aria-label={tr("Project tools")}>
@@ -937,6 +936,15 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
                   onSelect={select}
                   onReference={reference}
                   onPlay={player.playRange}
+                />
+              ) : side === 'voice' && player.film ? (
+                <VoicePanel
+                  film={player.film}
+                  canGenerate={ready && !busy && !importing && !checking && progress === null}
+                  busy={!build?.ok || busy || importing || checking || progress !== null}
+                  onSetUp={onVoiceSettings}
+                  onGenerate={generateNarration}
+                  onPlay={(start, end) => player.playRange(start, end)}
                 />
               ) : side === 'history' ? (
                 <HistoryPanel
@@ -1046,25 +1054,6 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
         />
       )}
       {shortcuts && <Shortcuts onClose={() => setShortcuts(false)} />}
-      {voiceOpen && player.film && (
-        <VoiceDialog
-          film={player.film}
-          canGenerate={ready && !busy && !importing && !checking && progress === null}
-          onGenerate={(voice) => {
-            setVoiceOpen(false);
-            setLayout({ assistant: true });
-            assistant.current?.send(
-              `Generate narration for this film. ${voice ? `Use my selected voice ${JSON.stringify(voice)}; do not choose a different voice.` : 'Choose a suitable voice from my configured voice providers, matching the script’s language and tone.'} Keep the existing script, adding narration lines only if needed. Apply the voice, generate the speech and check the result.`,
-            );
-          }}
-          onSetUp={(kind) => {
-            returnToVoice.current = true;
-            setVoiceOpen(false);
-            onVoiceSettings(kind);
-          }}
-          onClose={() => setVoiceOpen(false)}
-        />
-      )}
 
       {toast && (
         <div className={`toast${toast.error ? ' bad' : ''}`} role={toast.error ? 'alert' : 'status'}>
