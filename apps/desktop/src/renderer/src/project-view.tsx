@@ -39,6 +39,8 @@ import { reason } from './reason';
 
 type Toast = { text: string; error: boolean; file?: string };
 
+/** The width of a side panel put away to its rail, in pixels. */
+const RAIL = 40;
 /** The height of the timeline folded to its head, in pixels. */
 const FOLDED = 38;
 
@@ -583,27 +585,6 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
         >
           <AppWindow size={16} />
         </button>
-        {/* A hidden panel is brought back from here; a shown one hides from its own head. */}
-        {project.film && (!layout.assistant || !showSide) && (
-          <div className="layout-tools">
-            {!layout.assistant && (
-              <button
-                className="icon-button"
-                aria-label={t("Show assistant")}
-                data-tip={t("Show assistant")}
-                data-key="["
-                onClick={() => setLayout({ assistant: true })}
-              >
-                <PanelLeftOpen size={15} />
-              </button>
-            )}
-            {!showSide && (
-              <button className="icon-button" aria-label={t("Show project tools")} data-tip={t("Show project tools")} data-key="]" onClick={() => showTools(true)}>
-                <PanelRightOpen size={15} />
-              </button>
-            )}
-          </div>
-        )}
         <button
           type="button"
           className="icon-button"
@@ -675,10 +656,25 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
         <div
           className="workspace"
           style={{
-            gridTemplateColumns: `${layout.assistant ? `${layout.left}px ` : ''}minmax(0, 1fr)${showSide ? ` ${layout.right}px` : ''}`,
+            // A panel put away keeps a rail in its column, as the folded timeline keeps its head.
+            gridTemplateColumns: `${layout.assistant ? layout.left : RAIL}px minmax(0, 1fr) ${showSide ? layout.right : RAIL}px`,
             gridTemplateRows: rows,
           }}
         >
+          {!layout.assistant && (
+            <button
+              type="button"
+              className="sheet rail rail-assistant"
+              aria-label={t("Show assistant")}
+              data-tip={t("Show assistant")}
+              data-key="["
+              onClick={() => setLayout({ assistant: true })}
+            >
+              <PanelLeftOpen size={15} />
+              <span>{t("Assistant")}</span>
+              {busy && <span className="rail-working" aria-hidden="true" />}
+            </button>
+          )}
           <section className="sheet assistant" aria-label={t("Assistant")} style={{ display: layout.assistant ? undefined : 'none' }}>
             <Assistant
               ref={assistant}
@@ -738,7 +734,6 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
           </section>
           <Stage
             player={player}
-            column={layout.assistant ? 2 : 1}
             build={build}
             marks={marks}
             lit={lit}
@@ -765,11 +760,20 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
               }
             }}
           />
-          <aside
-            className="sheet side"
-            aria-label={tr("Project tools")}
-            style={{ gridColumn: layout.assistant ? 3 : 2, display: showSide ? undefined : 'none' }}
-          >
+          {!showSide && (
+            <button
+              type="button"
+              className="sheet rail rail-side"
+              aria-label={t("Show project tools")}
+              data-tip={t("Show project tools")}
+              data-key="]"
+              onClick={() => showTools(true)}
+            >
+              <PanelRightOpen size={15} />
+              <span>{t("Project tools")}</span>
+            </button>
+          )}
+          <aside className="sheet side" aria-label={tr("Project tools")} style={{ display: showSide ? undefined : 'none' }}>
             <div className="side-content">
               {/* The four tools at hand are tabs; History opens from the assistant and Checks from the status. */}
               <div className="side-tabs">
@@ -861,7 +865,6 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
             ref={timelineSheet}
             className="sheet timeline-sheet"
             aria-label={t("Timeline")}
-            style={{ gridColumn: `${layout.assistant ? 2 : 1} / -1` }}
           >
             {!layout.folded && (
               <Splitter
@@ -904,7 +907,11 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
                 onHover={setHovered}
               />
             ) : (
-              <div className="timeline-options">
+              // Folded, its whole head brings the timeline back.
+              <div
+                className={`timeline-options${layout.folded ? ' folded' : ''}`}
+                onClick={layout.folded ? () => setLayout({ folded: false }) : undefined}
+              >
                 <span className="eyebrow"><Translated text="Timeline" /></span>
                 <span className="spacer" />
                 <Fold folded={layout.folded} onFold={(folded) => setLayout({ folded })} />

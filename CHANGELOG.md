@@ -3,6 +3,17 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-17 — A hidden panel leaves a rail
+
+- **What:** Hiding the assistant or the project tools leaves a narrow rail in its place, its icon and name written down
+  it, as the folded timeline leaves its head; clicking anywhere on the rail brings the panel back, and the whole folded
+  timeline head unfolds it too. The assistant's rail shows a pulsing dot while the agent works. The top bar's buttons
+  for hidden panels are gone; [ and ] still toggle them.
+- **Why:** A hidden panel was only findable from two small icons in the top bar, far from where it had been.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/project-view.tsx`, `apps/desktop/src/renderer/src/styles.css`.
+
 ## 2026-11-17 — A step's long command wraps inside the assistant
 
 - **What:** A step of the agent's work that names a long path or command (a coding agent running

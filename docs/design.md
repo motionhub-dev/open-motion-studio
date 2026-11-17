@@ -1,6 +1,6 @@
 # Design
 
-> **Status:** Current · **Updated:** 2026-11-16
+> **Status:** Current · **Updated:** 2026-11-17
 
 The Studio's visual system: its identity, colour, type, shape, icons, the workspace's layout and the rules components follow.
 
@@ -66,15 +66,16 @@ key where it has one.
 A top bar over a grid of panels (`project-view.tsx`):
 
 - **Top bar**: a Home icon (it returns to Home; the project keeps running), a chevron, the project's name (its path on hover) and its status (building,
-  built with the last check's issue count, or does not build), which opens Checks; then a button for each hidden panel,
-  keyboard shortcuts, Voice (when the film has lines or a voice) and Export, which shows progress and cancels while
+  built with the last check's issue count, or does not build), which opens Checks; then keyboard shortcuts, Voice (when the film has lines or a voice) and Export, which shows progress and cancels while
   running, with a menu beside it for a Remotion project. Voice opens a dialog that goes one step at a time: with no voice
   provider set up, the four as cards, each opening it in Models; with no `<Film voice>`, what to ask the agent; then the
   lines, how many are spoken, and Voice with its progress line by line. On a Mac the window has no title bar (`hiddenInset`): its buttons sit over the top bar, which
   leaves them room and moves the window; Home keeps a strip at its top to move it by. The top bar also opens Settings.
 - **Assistant** down the whole left, the **stage** in the middle, the **project tools** on the right, the **timeline**
   along the bottom under the stage and the project tools. A shown panel hides from its own head (the assistant's left
-  corner, the tools' right corner).
+  corner, the tools' right corner, the timeline's chevron) and leaves a 40 px rail in its place (the timeline its head),
+  its icon and name written down it; the whole rail, or head, brings it back, and a pulsing cobalt dot on the
+  assistant's rail says the agent is working.
 - The **stage** is the film's height where there is room: its picture takes the film's shape with 16 px of ink around
   the frame, and its foot is the controls (previous frame, play, next frame, the time, loop, and sound on or off for a
   film with sounds; then Pick, Region and
@@ -274,7 +275,7 @@ picker; typing @ at a word's start opens it too): a sheet over the composer, its
 Lines, Assets, Motions) with where each is in muted mono, the first five of each until something is typed, then
 every pick whose words or place hold what was typed; ↑↓ move, Enter or Tab adds, Esc closes, and the @ and what
 followed it leave the draft. A sent message shows each mark with a thumbnail of the frame the model saw. The timeline adds quiet dashed layer
-spans and fit/zoom controls. A panel hides from its head and comes back from the top bar, and F enters or leaves focus mode. On compact windows the project tools start folded, can be reopened explicitly,
+spans and fit/zoom controls. A panel hides from its head and comes back from its rail, and F enters or leaves focus mode. On compact windows the project tools start folded, can be reopened explicitly,
 and return to their saved visibility on a wider window.
 
 History uses a vertical stack of request labels, timestamps and changed paths. Restore is an ink action, followed by
