@@ -3694,20 +3694,14 @@ kbd {
 }
 
 .voice-providers {
-  grid-template-columns: repeat(2, 1fr);
-  margin-top: 12px;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .voice-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  margin-top: 16px;
-}
-
-.voice-actions .spacer {
-  flex: 1;
+  gap: 6px;
 }
 
 .voice-pick {
@@ -5271,4 +5265,111 @@ input.switch:disabled {
   .project-open:not(:disabled):hover .project-art img {
     transform: none;
   }
+}
+
+/* The film's voice in the project tools: its card, its lines by scene, and voicing those waiting at the panel's foot. */
+.voice-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.voice-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-button);
+  background: var(--bg);
+}
+
+.voice-card > strong {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.voice-card .note {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.voice-card .note svg {
+  color: var(--good);
+}
+
+.voice-summary {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.voice-lines,
+.voice-lines ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.voice-lines {
+  gap: 10px;
+}
+
+.voice-scene > .eyebrow {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.voice-line {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 6px;
+  padding: 4px 6px 4px 2px;
+  border-radius: var(--r-control);
+}
+
+.voice-line:hover {
+  background: var(--s2);
+}
+
+.voice-text {
+  padding-top: 4px;
+  color: var(--text2);
+  overflow-wrap: anywhere;
+}
+
+.voice-state {
+  padding-top: 5px;
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.voice-line.waiting .voice-state {
+  color: var(--annotate);
+}
+
+/* Voicing stays in reach at the panel's foot while the lines scroll above it. */
+.voice-footer {
+  position: sticky;
+  /* Over the body's 12 px bottom padding too, so no line shows beneath it. */
+  bottom: -12px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  margin: auto -12px -12px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--line);
+  background: var(--sheet);
+}
+
+.voice-footer p {
+  margin: 0;
 }

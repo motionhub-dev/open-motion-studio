@@ -70,9 +70,13 @@ A top bar over a grid of panels (`project-view.tsx`):
   status (building, built with the last check's issue count, or does not build), which opens Checks. On the right what
   to do with it: keyboard shortcuts, Voice (when the film has lines or a voice) and Export, which shows progress and
   cancels while running, with a menu beside it for a Remotion project; then, set apart by a rule, the gear, which is
-  OpenMotionStudio's settings, the same page as Home's, never the project's. Voice opens a dialog that goes one step at a time: with no voice
-  provider set up, the four as cards, each opening it in Models; with no `<Film voice>`, what to ask the agent; then the
-  lines, how many are spoken, and Voice with its progress line by line. On a Mac the window has no title bar (`hiddenInset`): its buttons sit over the top bar, which
+  OpenMotionStudio's settings, the same page as Home's, never the project's. Voice opens the Voice panel in the project
+  tools (a back arrow and its title, as History and Checks): with no voice provider set up, the four as cards, each
+  opening it in Settings; with no `<Film voice>`, Voice settings and Generate with agent; then a card with the film's
+  voice, its provider and how its captions show, with Voice settings and, when another voice is selected, Use that
+  voice instead (through the agent); the lines by scene, each with ▶ to play it in place in the film and its length,
+  or Waiting in cobalt; and at the panel's foot, which stays in reach, Voice N lines with the characters it will
+  speak, its progress line by line and what it did. On a Mac the window has no title bar (`hiddenInset`): its buttons sit over the top bar, which
   leaves them room and moves the window; Home keeps a strip at its top to move it by. The top bar also opens Settings.
 - **Assistant** down the whole left, the **stage** in the middle, the **project tools** on the right, the **timeline**
   along the bottom under the stage and the project tools. A shown panel hides from its own head (the assistant's left
@@ -262,8 +266,8 @@ agents and exports continue. Sessions are retained for this app run; explicit Qu
   providers (ADR 0012), a filled dot for one set up; one opened gives its steps to a key and a link to the page, the
   key and its settings (Azure's region, MiniMax's site and optional group id, a model), its voices to search once listed,
   and Hear it, which speaks a sentence in the voice chosen. Save keeps that voice id with the provider and closes
-  Models; when opened from Voice, it returns to the film's voice dialog with the saved choice shown.
-  When Voice is opened for a film with no voice selected but a provider set up, the dialog offers **Voice settings**
+  Settings; the Voice panel, which stays open under it, reads the providers again and shows the saved choice.
+  When Voice is opened for a film with no voice selected but a provider set up, the panel offers **Voice settings**
   to open that provider in Models and **Generate with agent** to apply the saved voice (or choose a suitable one when
   none was selected) and synthesize the narration through the project's current agent. Generation requires a connected,
   idle agent and opens the assistant.
