@@ -28,7 +28,12 @@ export function Inspector({ mark, film, onSeek }: { mark: Mark | null; film: Fil
     return (
       <div className="body inspector">
         <p className="note">
-          <Crosshair size={14} /> {tr("Pick an element on the picture (")}<kbd>C</kbd>{tr(") to see it here.")}
+          <Crosshair size={14} />
+          <span>
+            {tr("Pick an element on the picture (")}
+            <kbd>C</kbd>
+            {tr(") to see it here.")}
+          </span>
         </p>
       </div>
     );
