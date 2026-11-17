@@ -1,6 +1,6 @@
 # Architecture
 
-> **Status:** Plan — steps 1 to 3 and 6 built, 7 under way; signing waits for certificates · **Updated:** 2026-11-16
+> **Status:** Plan — steps 1 to 3 and 6 built, 7 under way; signing waits for certificates · **Updated:** 2026-11-17
 
 The components of the Studio and what each owns, the film, the agent and its providers, what is expensive to change, and the order of work.
 
@@ -356,6 +356,8 @@ src/main/agent/
   A permission is granted only as asked, for the turn or the session. Codex's ask before each MCP tool call (an
   elicitation) is granted for the Studio's own server and declined for any other. After the turn, the motions from
   motionhub (`motions/@*/`) are compared with a note taken before it, and whatever changed there is put back and said.
+  A motion the Studio's own `use_motion` takes during the turn joins that note as it was taken, so it is kept, and only
+  what the agent changed in it afterwards goes back.
 - **State** in `.motion-studio/agent.json`: which agent the project uses, its session or thread id, and the
   conversation as the panel showed it (the agent keeps its own record in its own form). Switching the agent starts
   the new one's conversation afresh; restoring History starts a new thread. Nothing of the person's sign-in is kept

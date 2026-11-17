@@ -3,6 +3,18 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-17 — A motion taken during a coding agent's turn is kept
+
+- **What:** When Codex or Claude Code took a motion from motionhub through the Studio's tools during a turn, the end of
+  the turn treated the new motion as the agent's edit and "put it back" to absent, deleting its files while the film
+  still imported them (`Could not resolve "../motions/@…"`). The motion is now kept as taken; an agent's edits to any
+  motion still go back.
+- **Why:** It deleted a motion's files from the person's project and broke the film's build.
+- **Breaking:** None.
+- **Upgrade:** A project hit by it keeps the motion's empty folders and its `motions.lock.json` entry: delete the empty
+  `motions/@<scope>/<slug>/` folder and take the motion again from the Motions panel, or ask the agent to.
+- **Refs:** `apps/desktop/src/main/workspace.ts` (`outsideTurn`), `apps/desktop/src/main/__tests__/outside-turn.test.ts`.
+
 ## 2026-11-17 — Templates draw in their own face
 
 - **What:** The templates set their type in Inter instead of the system's face: a template copy gets `media/Inter.woff2`

@@ -3,7 +3,7 @@
 import { studioTranslator } from './providers';
 import { BrowserWindow, Notification, app, dialog, shell, type BaseWindow, type IpcMainInvokeEvent, type Session, type OpenDialogOptions, type WebContents } from 'electron';
 import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 import { log } from './log';
 import {
   CHANNELS,
@@ -59,7 +59,7 @@ import { type ExportedSpeech, exportedSpeech, writeRemotionProject } from './fil
 import { motionDetail, motionReel, projectMotions, searchMotions, useMotion } from './motions';
 import { STATE_DIR, projectAt, rememberProject } from './project';
 import { describeReferences, filmSpans, readReferences } from './agent/references';
-import { ProjectHistory, changesBetween, inProject, noteFiles, putBack } from './history';
+import { type FileNote, ProjectHistory, changesBetween, inProject, noteFiles, putBack } from './history';
 import { NO_TOKENS, type Spent, readUsage, recordUsage, totals } from './usage';
 import { randomUUID } from 'node:crypto';
 import { isAbsolute, relative, resolve } from 'node:path';
@@ -172,6 +172,12 @@ export function createWorkspace(host: WorkspaceHost, renderSession: Session, cha
     claudeSettings?: string;
     /** The Studio's tools for the outside agent's session (studio-mcp.ts), ended with it. */
     studioMcp?: StudioMcp;
+    /**
+     * While an outside agent's turn runs, the project's motions as they stand published: as they were when the turn
+     * began, and each motion the Studio takes for the agent during it as it was taken. What differs at the turn's end
+     * is the agent's edit to a motion, and goes back.
+     */
+    published?: FileNote;
   } | null = null;
 
   /**
@@ -514,7 +520,15 @@ export function createWorkspace(host: WorkspaceHost, renderSession: Session, cha
           },
           stage: (version) => openStage(version),
           searchMotions: (words) => searchMotions(words),
-          useMotion: (id) => useMotion(dir, id),
+          useMotion: async (id) => {
+            const taken = await useMotion(dir, id);
+            // Taken by the Studio, so published as it is now: the turn's end must not put it back to absent.
+            if (state.published) {
+              const folder = taken.path.split(sep).join('/') + '/';
+              for (const [path, bytes] of await noteFiles(dir, true)) if (path.startsWith(folder)) state.published.set(path, bytes);
+            }
+            return taken;
+          },
           voiceKinds: async () => (await providers().voices()).map((v) => v.kind),
           voiceChoices: async (kind) => voicesOf(await providers().voiceSetup(kind)),
           voiceFilm: () => voiceOpenFilm(state),
@@ -565,8 +579,12 @@ export function createWorkspace(host: WorkspaceHost, renderSession: Session, cha
       }
       await saveAgent(dir, agent);
       const before = await noteFiles(dir);
-      const published = await noteFiles(dir, true);
-      outcome = await run(signal);
+      const published = (state.published = await noteFiles(dir, true));
+      try {
+        outcome = await run(signal);
+      } finally {
+        delete state.published;
+      }
       checkpoint = await history.record(changesBetween(before, await noteFiles(dir)));
       // A motion from motionhub is never changed in a project: whatever the agent changed there goes back, and is said.
       const touched = changesBetween(published, await noteFiles(dir, true));
