@@ -2,8 +2,12 @@
 // one line of plain words, what it is doing now, whether it keeps failing at the same thing, and how
 // the film changed over a turn.
 
+import { translate, type MessageValues } from '../../shared/i18n';
 import type { ChatItem, Reference, Tokens, TurnUsage } from '../../shared/api';
 import type { FilmInfo, LayerBox } from '../../shared/preview';
+
+type Translator = (text: string, values?: MessageValues) => string;
+const english: Translator = (text, values) => translate(text, false, values);
 
 type Tool = Extract<ChatItem, { kind: 'tool' }>;
 
@@ -32,25 +36,25 @@ export function tokenCount(n: number): string {
 }
 
 /** What a turn's tokens were, part by part, for a tooltip. */
-export function tokenParts(t: Tokens & { calls?: number; model?: string }): string {
+export function tokenParts(t: Tokens & { calls?: number; model?: string }, tr: Translator = english): string {
   const n = (v: number) => Math.round(v).toLocaleString('en');
   return [
     t.model,
-    t.calls ? `${t.calls} model ${t.calls === 1 ? 'call' : 'calls'}` : undefined,
-    `Input ${n(t.input)}`,
-    t.cacheRead ? `cached ${n(t.cacheRead)}` : undefined,
-    t.cacheWrite ? `cache written ${n(t.cacheWrite)}` : undefined,
-    `output ${n(t.output)}${t.reasoning ? ` (reasoning ${n(t.reasoning)})` : ''}`,
+    t.calls ? tr(t.calls === 1 ? '{0} model call' : '{0} model calls', {0: t.calls}) : undefined,
+    tr('Input {0}', {0: n(t.input)}),
+    t.cacheRead ? tr('cached {0}', {0: n(t.cacheRead)}) : undefined,
+    t.cacheWrite ? tr('cache written {0}', {0: n(t.cacheWrite)}) : undefined,
+    tr('output {0}{1}', {0: n(t.output), 1: t.reasoning ? tr(' (reasoning {0})', {0: n(t.reasoning)}) : ''}),
   ]
     .filter(Boolean)
     .join(' · ');
 }
 
 /** How long a turn took, as the panel says it: `Worked for 8s`, `Worked for 1m 12s`. */
-export function workedFor(seconds: number): string {
+export function workedFor(seconds: number, tr: Translator = english): string {
   const whole = Math.max(1, Math.round(seconds));
   const minutes = Math.floor(whole / 60);
-  return `Worked for ${minutes ? `${minutes}m ${whole % 60}s` : `${whole}s`}`;
+  return tr('Worked for {0}', {0: minutes ? tr('{0}m {1}s', {0: minutes, 1: whole % 60}) : tr('{0}s', {0: whole})});
 }
 
 /** A row of the conversation in the panel: what the transcript holds, and where turns ended. */
@@ -112,11 +116,9 @@ export function blocks(items: Row[]): Block[] {
 /** A path a tool call's summary names, for the calls that name one. */
 const pathOf = (tool: Tool) => /^(?:Writing|Editing|Reading) (.+?)(?: and \d+ more)?$/.exec(tool.summary)?.[1];
 
-const times = (n: number) => (n === 1 ? 'once' : n === 2 ? 'twice' : `${n} times`);
-const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`;
 
 /** A turn's work in a few words: `read 2 files · edited 3 files · checked twice · looked at 6 frames · 1 failed`. */
-export function turnLine(tools: Tool[]): string {
+export function turnLine(tools: Tool[], tr: Translator = english): string {
   const edited = new Set<string>();
   let read = 0;
   const counts = new Map<string, number>();
@@ -126,26 +128,26 @@ export function turnLine(tools: Tool[]): string {
     else counts.set(tool.name, (counts.get(tool.name) ?? 0) + 1);
   }
   const parts = [
-    read ? `read ${plural(read, 'file')}` : '',
-    edited.size ? `edited ${plural(edited.size, 'file')}` : '',
+    read ? tr(read === 1 ? 'read {0} file' : 'read {0} files', {0: read}) : '',
+    edited.size ? tr(edited.size === 1 ? 'edited {0} file' : 'edited {0} files', {0: edited.size}) : '',
     ...[...counts].map(([name, n]) =>
       name === 'check'
-        ? `checked ${times(n)}`
+        ? tr('checked {0}', {0: n === 1 ? tr('once') : n === 2 ? tr('twice') : tr('{0} times', {0: n})})
         : name === 'still'
-          ? `looked at ${plural(n, 'frame')}`
+          ? tr(n === 1 ? 'looked at {0} frame' : 'looked at {0} frames', {0: n})
           : name === 'shell'
-            ? `ran ${plural(n, 'command')}`
+            ? tr(n === 1 ? 'ran {0} command' : 'ran {0} commands', {0: n})
             : name === 'search_motions'
-              ? 'searched motionhub'
+              ? tr('searched motionhub')
               : name === 'use_motion'
-                ? `took ${plural(n, 'motion')}`
+                ? tr(n === 1 ? 'took {0} motion' : 'took {0} motions', {0: n})
                 : name === 'web_search'
-                  ? 'searched the web'
+                  ? tr('searched the web')
                   : name,
     ),
   ].filter(Boolean);
   const failed = tools.filter((t) => t.result && !t.result.ok).length;
-  return [...parts, failed ? `${failed} failed` : ''].filter(Boolean).join(' · ');
+  return [...parts, failed ? tr('{0} failed', {0: failed}) : ''].filter(Boolean).join(' · ');
 }
 
 /**
@@ -246,13 +248,13 @@ export function filmChanges(before: FilmInfo, after: FilmInfo): FilmChange[] {
 }
 
 /** A change summed up by kind: `+1 scene · ~2 layers · −1 line`. */
-export function changeLine(changes: FilmChange[]): string {
+export function changeLine(changes: FilmChange[], tr: Translator = english): string {
   const sign = { added: '+', changed: '~', removed: '−' } as const;
   const parts: string[] = [];
   for (const change of ['added', 'changed', 'removed'] as const)
     for (const kind of ['scene', 'layer', 'line'] as const) {
       const n = changes.filter((c) => c.change === change && c.ref.kind === kind).length;
-      if (n) parts.push(`${sign[change]}${n} ${kind}${n > 1 ? 's' : ''}`);
+      if (n) parts.push(`${sign[change]}${n} ${tr(n > 1 ? `${kind}s` : kind)}`);
     }
   return parts.join(' · ');
 }

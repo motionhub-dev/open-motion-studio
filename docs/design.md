@@ -1,6 +1,6 @@
 # Design
 
-> **Status:** Current · **Updated:** 2026-11-15
+> **Status:** Current · **Updated:** 2026-11-16
 
 The Studio's visual system: its identity, colour, type, shape, icons, the workspace's layout and the rules components follow.
 
@@ -8,7 +8,7 @@ The Studio's visual system: its identity, colour, type, shape, icons, the worksp
 
 The Studio is motionhub's workbench, so it wears motionhub's brand (`brand/BRAND.md` in `motionhub-dev/motions`):
 paper and ink, one ordinary type family, and the mark, a ball in flight rising up and to the right (the
-brand's `logo/mark.svg`). The launcher uses the Studio's application icon (`logo.tsx`). The interface stays quiet so the film is loud: no colour on screen but the film's, the film
+brand's `logo/mark.svg`). Home uses the Studio's application icon (`logo.tsx`). The interface stays quiet so the film is loud: no colour on screen but the film's, the film
 sits on ink, and each colour has one job.
 
 - **Vermilion (`--accent`)** is Export, and nothing else: the one action a screen asks for.
@@ -28,7 +28,7 @@ Window, for their keys (Quit, New Window, copy and paste in text, minimise).
 ## Colour
 
 Every colour is a custom property on `:root` in `apps/desktop/src/renderer/src/styles.css`, light and dark (the system's
-choice); nothing else in the stylesheet or a component names a colour.
+choice, or the one chosen in Settings → General, set as `data-theme` on `<html>`); nothing else in the stylesheet or a component names a colour.
 
 | Token | Light | Dark | Used for |
 | --- | --- | --- | --- |
@@ -51,7 +51,7 @@ choice); nothing else in the stylesheet or a component names a colour.
 - **Inter** (variable) for everything a person reads and **JetBrains Mono** for time, paths, ids and code, both OFL and
   shipped with the app (Fontsource, imported in `main.tsx`); the system's CJK faces follow for Chinese and Japanese.
 - Sizes: 11 and 12 (labels, tool steps), 13 (body), 14 (project name), 16 (card and dialog titles), 20, 26 (the
-  launcher's title). Times are always `mm:ss.cc` in mono (`timecode()`).
+  title on Home). Times are always `mm:ss.cc` in mono (`timecode()`).
 - Radius: 6 controls, 8 buttons, 12 panels, 16 dialogs. Spacing steps by 4: 4, 8, 12, 16, 24, 32.
 - Panels sit 8 px apart on the ground, separated by a line, not a shadow; only the dialog and toasts float. The film's
   frame carries the one other shadow, on the ink.
@@ -65,13 +65,13 @@ key where it has one.
 
 A top bar over a grid of panels (`project-view.tsx`):
 
-- **Top bar**: a Home icon (it closes the project and returns to the launcher), a chevron, the project's name (its path on hover) and its status (building,
+- **Top bar**: a Home icon (it returns to Home; the project keeps running), a chevron, the project's name (its path on hover) and its status (building,
   built with the last check's issue count, or does not build), which opens Checks; then a button for each hidden panel,
   keyboard shortcuts, Voice (when the film has lines or a voice) and Export, which shows progress and cancels while
   running, with a menu beside it for a Remotion project. Voice opens a dialog that goes one step at a time: with no voice
   provider set up, the four as cards, each opening it in Models; with no `<Film voice>`, what to ask the agent; then the
   lines, how many are spoken, and Voice with its progress line by line. On a Mac the window has no title bar (`hiddenInset`): its buttons sit over the top bar, which
-  leaves them room and moves the window; the launcher keeps a strip at its top to move it by.
+  leaves them room and moves the window; Home keeps a strip at its top to move it by. The top bar also opens Settings.
 - **Assistant** down the whole left, the **stage** in the middle, the **project tools** on the right, the **timeline**
   along the bottom under the stage and the project tools. A shown panel hides from its own head (the assistant's left
   corner, the tools' right corner).
@@ -116,16 +116,75 @@ A top bar over a grid of panels (`project-view.tsx`):
   short (a path, a mark's moment).
 - An export's result is a toast, with Show in folder.
 
-The launcher (`app.tsx`) is the Studio application icon and the title **OpenMotionStudio**, Open folder and New film (which creates a fresh directory in the default workspace), the
-recent projects with their path (`~` for the home folder), and a banner while no model is set up.
-Its workspace path opens Settings → Workspace. The default is the operating system's Documents folder plus
-`OpenMotionStudio`; Change folder saves a new location for future projects without moving existing ones.
-The same pane offers Open logs folder under Troubleshooting, opening the app's fixed local diagnostics directory.
-Each template click copies its bundled source into a fresh workspace project. Repeated names get numeric suffixes.
-The main window is the single home and project-switching surface. Its close button hides it to the tray; the tray
-opens it, returns Home, or quits the app and its background tasks. Home's Your projects cards show each retained
-project's phase, actual frame/line progress when available, elapsed time, and whether it is working, waiting for the
-person, done, failed or stopped. Each offers Open here and Open in editor window.
+## Home
+
+Home (`home.tsx`) is a header (the icon and **OpenMotionStudio**, Open project, New film, which creates a fresh
+directory in the default workspace, and Settings), a 176 px navigation rail (Home, My projects, Templates, each with
+its icon; at its foot the workspace folder's name, which opens Settings → Workspace, and Help, which lists the
+shortcuts) and the content.
+
+- **Home** asks what the person wants to make next, over a prompt: a field for the film in their own words, three
+  starts to finish (a launch teaser, an explainer, kinetic type) and **Start creating**. Enter sends it, Shift+Enter
+  is a new line, `/` goes to it. It creates a project named from the words' first line and opens it, and the words
+  are the assistant's first message, sent as soon as the agent and the film are ready; with no assistant connected,
+  the prompt says so and the words wait in the composer. The field keeps them until the project exists. Below it, while
+  tasks run in the background, a line counts those that need the person and those running and opens to a row per task.
+  Then Continue creating: the project opened last as a large card (its cover beside its name and **Continue
+  editing**), the next four in a row, and Start from a template.
+- **My projects** is every project in the library with search (`/` goes to it), a sort (recently opened, recently modified, name) and a
+  grid or a list. A card is the project's cover (a still of its film from `.motion-studio/cover.jpg`, else its
+  initials), its name and when it was last opened. A task over it is a badge: a ring filling with its progress (turning
+  while it has none) and Working, or a pulsing cobalt dot and Needs you; a running task with progress also draws a
+  line along the cover's foot. Home's task line takes the same cobalt dot while anything needs the person. Its ⋯ menu opens it in an editor
+  window, shows its folder, or removes it from the list, saying that the files stay. A project whose folder is gone
+  stays in the list, marked, with Locate project folder.
+- **Templates** are cards showing the film's poster frame, played from its start while the card is hovered or focused
+  (not with reduced motion). The picture is the template's film as the Studio's own export drew it, never a redrawing; a template sets its type in
+  Inter, which its copy carries in `media/`, so the copy looks as its video did. One opened plays on the stage as the editor's does (on ink, play, a seek, `mm:ss.cc`)
+  beside its description and **Use this template**, which copies it into a fresh workspace project; repeated names
+  get numeric suffixes. A template's film words are the film's and are
+  not translated.
+- **The first run**, with nothing in the library, is three steps (appearance, where films are saved, and a creative
+  assistant), with Explore templates first always beside Continue.
+
+While the library is read, Home draws its blocks (the title, the prompt, four cards) as quiet shimmering shapes, so
+nothing jumps when it arrives.
+
+The main window is the single home and project-switching surface. Its close button hides it to the tray; the first
+time, a native dialog says active tasks keep running and offers to keep the window open. The tray's tooltip counts the
+tasks that need the person and those running, its menu opens each project that needs them, and on a Mac the count is
+beside the tray icon and on the dock; the tray opens the window, returns Home, or quits the app and its background
+tasks, all in the interface's language.
+
+## Motion
+
+Motion says where something came from and stays out of the film's way: a Home page, a template opened, Settings and
+an editor come in with a 0.2 s rise (6 px, fading in); a card lifts 2 px with a soft shadow (`--lift-shadow`) under the
+pointer and its cover leans in to 103 %; a template card plays its film while hovered or focused. Nothing moves on
+the film's own picture, and with reduced motion nothing animates or plays by itself.
+
+## Settings
+
+Settings (`settings.tsx`) is a page over Home or the editor, which stays mounted under it (its film paused): a back
+arrow and **Settings**, then a rail of sections (General, Model Providers, Coding Agents, Voice Services, Workspace,
+Diagnostics) beside the open one. General's choices (theme, language, launch at login) save as they are made and reach
+every window; a choice that applies at once is a switch, ink when on. A provider's form is saved explicitly; leaving it with edits holds the click and offers Save and continue,
+Discard changes or Keep editing. A change made in another window is announced, never applied over the person's input.
+Workspace shows the default folder (the operating system's Documents folder plus `OpenMotionStudio`); Change folder
+saves a new location for future projects without moving existing ones. Diagnostics opens the app's local logs folder.
+
+Every pick list is the shared `Select` (`select.tsx`): a combobox whose popup is portalled to the body so no panel
+clips it, with a native select's keys, or an input with suggestions where any value is allowed (a model, a voice).
+
+## Language
+
+The interface is English or Chinese (Settings → General, following the system by default). English is the source:
+each message is looked up by its English text in `src/shared/translations.ts`. A film, a project's or a motion's
+names, a model's reply and every identifier (a model, a path, a key's name) are never translated. In Chinese, an
+English error the Studio has no translation for is summarized, with its exact text one click away.
+
+The Chinese keeps one word for each thing: a project (a folder) is 项目, a film (`film.tsx`) is 影片, the workspace is
+工作空间, a template is 模板, a motion is 动效, and an agent stays Agent.
 
 The editor's project-name menu switches projects or returns Home without stopping a task. Open in editor window,
 also Ctrl/Cmd+Shift+N, moves its existing view into a dedicated window for that project. Open in main window moves
@@ -133,7 +192,7 @@ it back. Closing a dedicated window only detaches the view; reopening restores t
 pending requests. A project appears in one editing surface at a time. Hidden views pause preview playback while
 agents and exports continue. Sessions are retained for this app run; explicit Quit ends them.
 
-## The panels and the models dialog
+## The panels
 
 - **Assistant** (`assistant.tsx`, `activity.ts`): the person's words in a bubble, the agent's as Markdown (`markdown.tsx`:
   drawn as React elements, never as HTML). A turn's work is one framed block: one muted line at 11 px ("How it got
@@ -185,7 +244,7 @@ agents and exports continue. Sessions are retained for this app run; explicit Qu
   moment (clicked, the stage goes there), the scene and layer it is in, its position and size in the film's pixels, its words, its look (font, size,
   weight, colour with a swatch, and background, opacity and transform where set) and its attributes. It stays after its
   mark is sent.
-- **Models** (`settings.tsx`): two panes. The providers down the left, an initial for each, the active one badged; the
+- **Model Providers** (Settings): two panes. The providers down the left, an initial for each, the active one badged; the
   selected one, or a new one, as a form on the right. A new one starts from a service card (each with its protocol);
   the address and model are in mono, the key field says it is sealed in the keychain and never shown again. **Test
   connection** makes one call as the form stands (the typed key, else the stored one) and says whether the model
@@ -224,7 +283,7 @@ no passing sample is labelled as proof of complete visual correctness. Export's 
 specification, its sound (the sounds mixed, or picture only), its subtitles (captions in the picture where the film
 draws them; the lines as a track and an .srt beside it) and check outcome before the vermilion save action.
 
-The launcher introduces three starting-point cards in the same paper/ink palette. The assistant's brief is a compact
+Home introduces three starting-point cards in the same paper/ink palette. The assistant's brief is a compact
 optional form that prepares a message. Asset cards show real local images or a font icon, with an explicit message
 action. Empty, loading, missing-media and error states use explanatory text and a next action. Motion-reel dialogs
 play locally cached MP4 footage or a sandboxed catalogue HTML player. New modal workflows contain keyboard focus and restore it to the invoking control;

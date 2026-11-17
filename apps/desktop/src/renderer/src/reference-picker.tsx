@@ -1,6 +1,7 @@
 // The composer's @ picker: what the next message can point at, the film's scenes, layers and lines and the project's
 // assets and motions, in groups, narrowed by what is typed after the @. A pick joins the message's tray.
 
+import { SystemMessage, usePreferences } from './preferences';
 import { useEffect, useState } from 'react';
 import type { Asset, ProjectMotion, Reference } from '../../shared/api';
 import type { FilmInfo } from '../../shared/preview';
@@ -111,11 +112,12 @@ export function ReferencePicker({
   onPick(pick: Pickable): void;
   onHover(index: number): void;
 }) {
+  const { t: tr } = usePreferences();
   return (
-    <div className="reference-picker" role="listbox" aria-label="Point the message at">
+    <div className="reference-picker" role="listbox" aria-label={tr("Point the message at")}>
       {matches.map((pick, i) => (
         <div key={`${pick.group}:${i}`} role="presentation">
-          {(i === 0 || matches[i - 1]!.group !== pick.group) && <div className="label picker-group">{pick.group}</div>}
+          {(i === 0 || matches[i - 1]!.group !== pick.group) && <div className="label picker-group">{tr(pick.group)}</div>}
           <button
             type="button"
             role="option"
@@ -127,12 +129,12 @@ export function ReferencePicker({
             onClick={() => onPick(pick)}
           >
             <span className="picker-label">{pick.label}</span>
-            {pick.where && <small className="mono">{pick.where}</small>}
+            {pick.where && <small className="mono">{pick.ref.kind === 'layer' && !pick.ref.scene && pick.where === 'the whole film' ? tr(pick.where) : pick.where}</small>}
           </button>
         </div>
       ))}
-      {!matches.length && <p className="note">{loading ? 'Looking through the project…' : error ?? 'Nothing here by that name.'}</p>}
-      <p className="hint picker-keys">↑↓ to move · Enter to add · Esc to close</p>
+      {!matches.length && <p className="note">{loading ? tr("Looking through the project…") : error ? <SystemMessage text={error} error /> : tr("Nothing here by that name.")}</p>}
+      <p className="hint picker-keys">{tr("↑↓ to move · Enter to add · Esc to close")}</p>
     </div>
   );
 }

@@ -3,7 +3,9 @@
 // right, the timeline along the bottom. A folder with no film yet is offered one. The keys are
 // SHORTCUTS, shown by ? or the keyboard button.
 
-import { AppWindow, ArrowLeft, ChevronDown, ChevronRight, Download, Home, Keyboard, Mic, PanelLeftOpen, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
+import { SystemMessage, Translated, usePreferences } from './preferences';
+import { translate } from '../../shared/i18n';
+import { Settings as SettingsIcon, AppWindow, ArrowLeft, ChevronDown, ChevronRight, Download, Home, Keyboard, Mic, PanelLeftOpen, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import {
   type AgentKind,
@@ -62,27 +64,31 @@ const SHORTCUTS: [group: string, keys: string[], what: string][] = [
   ['Workspace', ['F'], 'Focus the film or restore panels'],
   ['Workspace', ['?'], 'Show these shortcuts'],
   ['Workspace', ['Ctrl/⌘', 'Shift', 'N'], 'Open this film in an editor window'],
+  ['App', ['Ctrl/⌘', 'N'], 'Start a new film'],
+  ['App', ['Ctrl/⌘', 'O'], 'Open a project folder'],
+  ['App', ['Ctrl/⌘', ','], 'Open Settings'],
 ];
 
 function Shortcuts({ onClose }: { onClose(): void }) {
+  const { t: tr } = usePreferences();
   return (
     <div className="dialog-backdrop" role="presentation" onClick={onClose}>
       <div
         className="dialog shortcuts"
         role="dialog"
         aria-modal="true"
-        aria-label="Keyboard shortcuts"
+        aria-label={tr("Keyboard shortcuts")}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="panel-head">
-          <h2>Keyboard shortcuts</h2>
-          <button type="button" className="icon-button" aria-label="Close" data-tip="Close" data-key="Esc" onClick={onClose}>
+          <h2><Translated text="Keyboard shortcuts" /></h2>
+          <button type="button" className="icon-button" aria-label={tr("Close")} data-tip={tr("Close")} data-key="Esc" onClick={onClose}>
             <X size={16} />
           </button>
         </div>
         {[...new Set(SHORTCUTS.map(([group]) => group))].map((group) => (
           <section key={group}>
-            <h3 className="eyebrow">{group}</h3>
+            <h3 className="eyebrow">{tr(group)}</h3>
             <dl>
               {SHORTCUTS.filter(([g]) => g === group).map(([, keys, what]) => (
                 <div key={keys.join('+') + what}>
@@ -91,7 +97,7 @@ function Shortcuts({ onClose }: { onClose(): void }) {
                       <kbd key={key}>{key}</kbd>
                     ))}
                   </dt>
-                  <dd>{what}</dd>
+                  <dd>{tr(what)}</dd>
                 </div>
               ))}
             </dl>
@@ -103,6 +109,7 @@ function Shortcuts({ onClose }: { onClose(): void }) {
 }
 
 function ProjectSwitcher({ project, onError }: { project: Project; onError(error: unknown): void }) {
+  const { t: tr } = usePreferences();
   const [tasks, setTasks] = useState<ProjectTask[]>([]);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -121,20 +128,20 @@ function ProjectSwitcher({ project, onError }: { project: Project; onError(error
   }, [open]);
   return (
     <div className="project-switcher" ref={ref}>
-      <button type="button" className="project-switcher-button" aria-label="Switch project" aria-expanded={open} onClick={() => setOpen(!open)}>
+      <button type="button" className="project-switcher-button" aria-label={tr("Switch project")} aria-expanded={open} onClick={() => setOpen(!open)}>
         <span className="name" title={project.path}>{project.name}</span><ChevronDown size={13} />
       </button>
       {open && (
         <div className="menu project-menu" role="menu">
-          <button type="button" role="menuitem" onClick={() => { setOpen(false); window.studio.closeProject().catch(onError); }}>Home</button>
+          <button type="button" role="menuitem" onClick={() => { setOpen(false); window.studio.closeProject().catch(onError); }}>{tr("Home")}</button>
           {tasks.map((task) => (
             <button type="button" role="menuitem" key={task.project.path} onClick={() => { setOpen(false); window.studio.openTask(task.project.path).catch(onError); }}>
-              <strong>{task.project.name}{task.project.path === project.path ? ' · Current' : ''}</strong>
+              <strong>{task.project.name}{task.project.path === project.path ? tr(" · Current") : ''}</strong>
               <span className="note">{task.activity}</span>
             </button>
           ))}
-          <button type="button" role="menuitem" onClick={() => { setOpen(false); window.studio.openTask(project.path, false).catch(onError); }}>Open in main window</button>
-          <button type="button" role="menuitem" onClick={() => { setOpen(false); window.studio.openTask(project.path, true).catch(onError); }}>Open in editor window</button>
+          <button type="button" role="menuitem" onClick={() => { setOpen(false); window.studio.openTask(project.path, false).catch(onError); }}>{tr("Open in main window")}</button>
+          <button type="button" role="menuitem" onClick={() => { setOpen(false); window.studio.openTask(project.path, true).catch(onError); }}><Translated text="Open in editor window" /></button>
         </div>
       )}
     </div>
@@ -149,6 +156,8 @@ interface Props {
   project: Project;
   providers: Providers | null;
   /** Opens Models, on one of the person's own coding agents when one is named. */
+  settingsOpen?: boolean;
+  onGlobalSettings(): void;
   onSettings(agent?: Exclude<AgentKind, 'built-in'>): void;
   /** Opens Models on a voice provider. */
   onVoiceSettings(kind: VoiceKind): void;
@@ -158,7 +167,8 @@ interface Props {
   onClose(): void;
 }
 
-export function ProjectView({ project, providers, onSettings, onVoiceSettings, modelsClosed, onChange, onClose }: Props) {
+export function ProjectView({ onGlobalSettings, settingsOpen, project, providers, onSettings, onVoiceSettings, modelsClosed, onChange, onClose }: Props) {
+  const { t, t: tr } = usePreferences();
   const [build, setBuild] = useState<BuildResult | null>(null);
   const [review, setReview] = useState<FilmReview | null>(null);
   const [importing, setImporting] = useState(false);
@@ -220,6 +230,11 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
   const [selection, setSelection] = useState<Reference | null>(null);
   const [refs, setRefs] = useState<Reference[]>([]);
   const [focusRequest, setFocusRequest] = useState(0);
+  /** What the person asked for on Home when they created this project, until the assistant sends it. */
+  const [brief, setBrief] = useState<string | null>(null);
+  useEffect(() => {
+    window.studio.takeBrief().then(setBrief, (e) => setToast({ text: reason(e), error: true }));
+  }, []);
   const [busy, setBusy] = useState(false);
   const [historyRevision, setHistoryRevision] = useState(0);
   /** What the agent's last turn changed (activity.ts changeKey), lit in the outline and the timeline for a moment. */
@@ -333,6 +348,10 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
     };
   }, [build?.ok, build?.version]);
 
+  useEffect(() => {
+    if (settingsOpen) player.tell({ type: 'oms:pause' });
+  }, [settingsOpen]);
+
   // The export menu closes when the person clicks anywhere else.
   useEffect(() => {
     if (!menu) return;
@@ -351,6 +370,7 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      if (document.querySelector('.studio-settings')) return;
       if (event.key === 'Escape' && shortcuts) return setShortcuts(false);
       if (event.key === 'Escape' && menu) return setMenu(false);
       if (document.querySelector('dialog[open], [role=dialog]')) return;
@@ -420,7 +440,7 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
     setProgress(0);
     try {
       const file = await window.studio.exportFilm();
-      if (file) setToast({ text: `Exported ${file.split(/[/\\]/).pop()}`, error: false, file });
+      if (file) setToast({ text: translate("Exported {0}", false, {0: file.split(/[/\\]/).pop()}), error: false, file });
     } catch (e) {
       setToast({ text: reason(e), error: true });
     } finally {
@@ -435,7 +455,7 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
     setToast(null);
     try {
       const folder = await window.studio.exportRemotion();
-      if (folder) setToast({ text: `Exported a Remotion project to ${folder.split(/[/\\]/).pop()}`, error: false, file: folder });
+      if (folder) setToast({ text: translate("Exported a Remotion project to {0}", false, {0: folder.split(/[/\\]/).pop()}), error: false, file: folder });
     } catch (e) {
       setToast({ text: reason(e), error: true });
     } finally {
@@ -464,16 +484,16 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
     <button
       type="button"
       className={`status${!build ? ' busy' : !build.ok || issues.some((i) => i.severity === 'error') ? ' bad' : ''}`}
-      data-tip="Checks"
+      data-tip={tr("Checks")}
       onClick={() => openSide('review')}
     >
-      {!build ? 'Building…' : !build.ok ? 'Does not build' : found ? `Built · ${found} ${found === 1 ? 'issue' : 'issues'}` : 'Built'}
+      {!build ? tr("Building…") : !build.ok ? tr("Does not build") : found ? tr("Built · {0} {1}", {0: found, 1: found === 1 ? 'issue' : 'issues'}) : tr("Built")}
     </button>
   );
 
   useEffect(() => {
     if (!busy && (marks.length || refs.length))
-      setToast({ text: 'The preview changed. Select references again for this version.', error: false });
+      setToast({ text: "The preview changed. Select references again for this version.", error: false });
     setMarks([]);
     setRefs([]);
     setSelected(null);
@@ -498,11 +518,11 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
   function reference(ref: Reference) {
     if (busy || importing || checking || progress !== null) return;
     if (!build?.ok && ofPicture(ref)) {
-      setToast({ text: 'Fix the current build before referencing the picture.', error: true });
+      setToast({ text: "Fix the current build before referencing the picture.", error: true });
       return;
     }
     if (refs.length >= 8) {
-      setToast({ text: 'A message carries up to eight references. Remove one to add another.', error: false });
+      setToast({ text: "A message carries up to eight references. Remove one to add another.", error: false });
       return;
     }
     setLayout({ assistant: true });
@@ -523,7 +543,7 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
         ...added.slice(0, room).map((a): Reference => ({ kind: 'asset', label: a.name, path: a.path, detail: `Use this local ${a.kind}: ${a.path}` })),
       ]);
       if (added.length > room) {
-        setToast({ text: `Imported ${added.length} files; a message carries up to eight references, so ${added.length - room} wait in Assets.`, error: false });
+        setToast({ text: translate("Imported {0} files; a message carries up to eight references, so {1} wait in Assets.", false, {0: added.length, 1: added.length - room}), error: false });
       }
       setFocusRequest((n) => n + 1);
     } catch (e) {
@@ -543,8 +563,8 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
         <button
           type="button"
           className="icon-button"
-          aria-label="Home"
-          data-tip="Back to home"
+          aria-label={tr("Home")}
+          data-tip={tr("Back to home")}
           onClick={onClose}
         >
           <Home size={18} />
@@ -556,8 +576,8 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
         <button
           type="button"
           className="icon-button"
-          aria-label="Open in editor window"
-          data-tip="Open in editor window"
+          aria-label={t("Open in editor window")}
+          data-tip={t("Open in editor window")}
           data-key="Ctrl/⌘ Shift N"
           onClick={() => window.studio.newWindow().catch((e) => setToast({ text: reason(e), error: true }))}
         >
@@ -569,8 +589,8 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
             {!layout.assistant && (
               <button
                 className="icon-button"
-                aria-label="Show assistant"
-                data-tip="Show assistant"
+                aria-label={t("Show assistant")}
+                data-tip={t("Show assistant")}
                 data-key="["
                 onClick={() => setLayout({ assistant: true })}
               >
@@ -578,7 +598,7 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
               </button>
             )}
             {!showSide && (
-              <button className="icon-button" aria-label="Show project tools" data-tip="Show project tools" data-key="]" onClick={() => showTools(true)}>
+              <button className="icon-button" aria-label={t("Show project tools")} data-tip={t("Show project tools")} data-key="]" onClick={() => showTools(true)}>
                 <PanelRightOpen size={15} />
               </button>
             )}
@@ -587,8 +607,8 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
         <button
           type="button"
           className="icon-button"
-          aria-label="Keyboard shortcuts"
-          data-tip="Keyboard shortcuts"
+          aria-label={t("Keyboard shortcuts")}
+          data-tip={t("Keyboard shortcuts")}
           data-key="?"
           onClick={() => setShortcuts(true)}
         >
@@ -598,12 +618,12 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
           <button
             type="button"
             className="button"
-            data-tip={busy ? 'Voice the film when the agent has finished its turn' : 'Speak the film’s lines in its voice'}
+            data-tip={busy ? tr("Voice the film when the agent has finished its turn") : tr("Speak the film’s lines in its voice")}
             disabled={!build?.ok || busy || importing || checking || progress !== null}
             onClick={() => setVoiceOpen(true)}
           >
             <Mic size={15} />
-            Voice
+            <Translated text="Voice" />
           </button>
         )}
         {project.film &&
@@ -612,7 +632,7 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
               <button
                 type="button"
                 className="button accent"
-                data-tip={busy ? 'Export when the agent has finished its turn' : undefined}
+                data-tip={busy ? tr("Export when the agent has finished its turn") : undefined}
                 onClick={() => {
                   setExportOpen(true);
                   void checkFilm();
@@ -620,14 +640,14 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
                 disabled={!build?.ok || busy || importing || checking}
               >
                 <Download size={15} />
-                Export
+                <Translated text="Export" />
               </button>
               <button
                 type="button"
                 className="icon-button"
-                aria-label="Other ways to export"
+                aria-label={t("Other ways to export")}
                 aria-expanded={menu}
-                data-tip="Other ways to export"
+                data-tip={t("Other ways to export")}
                 disabled={!build?.ok || busy || importing || checking}
                 onClick={() => setMenu((open) => !open)}
               >
@@ -636,18 +656,19 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
               {menu && (
                 <span className="menu" role="menu">
                   <button type="button" role="menuitem" onClick={() => void exportRemotion()}>
-                    <strong>Remotion project…</strong>
-                    <span>The film as a Remotion project, each scene a Series.Sequence</span>
+                    <strong><Translated text="Remotion project…" /></strong>
+                    <span>{tr("The film as a Remotion project, each scene a Series.Sequence")}</span>
                   </button>
                 </span>
               )}
             </span>
           ) : (
-            <button type="button" className="button" onClick={() => void window.studio.cancelExport()} data-tip="Cancel the export">
+            <button type="button" className="button" onClick={() => void window.studio.cancelExport()} data-tip={tr("Cancel the export")}>
               <X size={14} />
-              Exporting {Math.round(progress * 100)}%
+              {tr("Exporting")} {Math.round(progress * 100)}%
             </button>
           ))}
+        <button className="icon-button" aria-label={t("Settings")} title={t("Settings")} onClick={onGlobalSettings}><SettingsIcon size={16} /></button>
       </header>
 
       {project.film ? (
@@ -658,7 +679,7 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
             gridTemplateRows: rows,
           }}
         >
-          <section className="sheet assistant" aria-label="Assistant" style={{ display: layout.assistant ? undefined : 'none' }}>
+          <section className="sheet assistant" aria-label={t("Assistant")} style={{ display: layout.assistant ? undefined : 'none' }}>
             <Assistant
               ref={assistant}
               key={`${project.path}:${historyRevision}:${switches}`}
@@ -673,6 +694,8 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
               refs={refs}
               version={build?.version ?? 0}
               focusRequest={focusRequest}
+              brief={brief}
+              onBriefTaken={() => setBrief(null)}
               onReference={reference}
               onImport={() => void importForMessage()}
               onRemoveRef={(i) => setRefs((items) => items.filter((_, n) => n !== i))}
@@ -709,7 +732,7 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
               value={layout.left}
               limits={LIMITS.left}
               onChange={(left) => setLayout({ left })}
-              label="Resize the assistant"
+              label={tr("Resize the assistant")}
               style={{ right: -7 }}
             />
           </section>
@@ -732,7 +755,7 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
               if (element) {
                 setSelected({
                   kind: 'layer',
-                  label: element.text || element.layer || 'Selected element',
+                  label: element.text || element.layer || tr("Selected element"),
                   scene: element.scene,
                   layer: element.layer,
                   time: next.t,
@@ -744,7 +767,7 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
           />
           <aside
             className="sheet side"
-            aria-label="Project tools"
+            aria-label={tr("Project tools")}
             style={{ gridColumn: layout.assistant ? 3 : 2, display: showSide ? undefined : 'none' }}
           >
             <div className="side-content">
@@ -752,19 +775,19 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
               <div className="side-tabs">
                 {side === 'history' || side === 'review' ? (
                   <>
-                    <button type="button" className="icon-button" aria-label="Back to the outline" data-tip="Back" onClick={() => setSide('outline')}>
+                    <button type="button" className="icon-button" aria-label={tr("Back to the outline")} data-tip={tr("Back")} onClick={() => setSide('outline')}>
                       <ArrowLeft size={15} />
                     </button>
-                    <h2>{side === 'history' ? 'History' : 'Checks'}</h2>
+                    <h2>{side === 'history' ? tr("History") : tr("Checks")}</h2>
                   </>
                 ) : (
-                  <nav aria-label="Project tools">
+                  <nav aria-label={tr("Project tools")}>
                     {(
                       [
-                        { id: 'outline', label: 'Outline' },
-                        { id: 'inspector', label: 'Inspector' },
-                        { id: 'assets', label: 'Assets' },
-                        { id: 'motions', label: 'Motions' },
+                        { id: 'outline', label: tr("Outline") },
+                        { id: 'inspector', label: tr("Inspector") },
+                        { id: 'assets', label: tr("Assets") },
+                        { id: 'motions', label: tr("Motions") },
                       ] as const
                     ).map(({ id, label }) => (
                       <button key={id} type="button" aria-pressed={side === id} onClick={() => setSide(id)}>
@@ -777,8 +800,8 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
                 <button
                   type="button"
                   className="icon-button"
-                  aria-label="Hide project tools"
-                  data-tip="Hide project tools"
+                  aria-label={tr("Hide project tools")}
+                  data-tip={tr("Hide project tools")}
                   data-key="]"
                   onClick={() => showTools(false)}
                 >
@@ -830,14 +853,14 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
               value={layout.right}
               limits={LIMITS.right}
               onChange={(right) => setLayout({ right })}
-              label="Resize the side panel"
+              label={tr("Resize the side panel")}
               style={{ left: -7 }}
             />
           </aside>
           <section
             ref={timelineSheet}
             className="sheet timeline-sheet"
-            aria-label="Timeline"
+            aria-label={t("Timeline")}
             style={{ gridColumn: `${layout.assistant ? 2 : 1} / -1` }}
           >
             {!layout.folded && (
@@ -847,7 +870,7 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
                 value={timelineHeight ?? layout.bottom}
                 limits={LIMITS.bottom}
                 onChange={(value) => setLayout({ bottom: value })}
-                label="Resize the timeline"
+                label={tr("Resize the timeline")}
                 style={{ top: -7 }}
               />
             )}
@@ -866,7 +889,7 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
                   seek(issue.time!);
                   reference({
                     kind: 'issue',
-                    label: issue.severity === 'warning' ? 'Review this layout' : 'Fix this issue',
+                    label: issue.severity === 'warning' ? tr("Review this layout") : tr("Fix this issue"),
                     detail: issue.text,
                     time: issue.time,
                     scene: issue.scene,
@@ -882,7 +905,7 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
               />
             ) : (
               <div className="timeline-options">
-                <span className="eyebrow">Timeline</span>
+                <span className="eyebrow"><Translated text="Timeline" /></span>
                 <span className="spacer" />
                 <Fold folded={layout.folded} onFold={(folded) => setLayout({ folded })} />
               </div>
@@ -891,9 +914,9 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
         </div>
       ) : (
         <div className="empty">
-          <p>This folder holds no film yet.</p>
+          <p>{tr("This folder holds no film yet.")}</p>
           <button type="button" className="button primary" onClick={startFilm}>
-            Start a film here
+            {tr("Start a film here")}
           </button>
         </div>
       )}
@@ -939,13 +962,13 @@ export function ProjectView({ project, providers, onSettings, onVoiceSettings, m
 
       {toast && (
         <div className={`toast${toast.error ? ' bad' : ''}`} role={toast.error ? 'alert' : 'status'}>
-          <span>{toast.text}</span>
+          <span><SystemMessage text={toast.text} error={toast.error} /></span>
           {toast.file && (
             <button type="button" className="button" onClick={() => void window.studio.showExported()}>
-              Show in folder
+              {tr("Show in folder")}
             </button>
           )}
-          <button type="button" className="icon-button" aria-label="Dismiss" onClick={() => setToast(null)} style={{ color: 'inherit' }}>
+          <button type="button" className="icon-button" aria-label={t("Dismiss")} onClick={() => setToast(null)} style={{ color: 'inherit' }}>
             <X size={14} />
           </button>
         </div>

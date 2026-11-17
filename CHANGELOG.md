@@ -3,6 +3,101 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-17 — Templates draw in their own face
+
+- **What:** The templates set their type in Inter instead of the system's face: a template copy gets `media/Inter.woff2`
+  and its licence (`media/Inter-OFL.txt`), and its film imports and declares the face. The preview and the export
+  now load the faces a film declares itself before drawing any frame, not only its motions'. Home's template videos
+  were rendered again in Inter.
+- **Why:** A template looked different on every computer, and its preview video showed the face of the computer that
+  rendered it.
+- **Breaking:** None.
+- **Upgrade:** Nothing. Template copies made before keep the system's face.
+- **Refs:** `apps/desktop/src/main/examples.ts`, `apps/desktop/resources/fonts/`, `apps/desktop/src/preview/core.tsx`.
+
+## 2026-11-16 — Templates play as the Studio renders them
+
+- **What:** Home's template cards and template preview play a video of each template exported by the Studio itself,
+  with its poster frame, instead of an HTML redrawing of it. `pnpm templates` renders them again after a template
+  changes; a test fails until it has. The renderer's content policy allows media from the app itself.
+- **Why:** The redrawing could drift from what the engine draws, so the preview could promise a film the template does
+  not make.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/scripts/render-templates.mjs`, `apps/desktop/src/renderer/src/templates/`,
+  `apps/desktop/src/main/__tests__/examples.test.ts`.
+
+## 2026-11-16 — Home moves, and shows the tasks that need you
+
+- **What:** Home's pages, an opened template, Settings and the editor come in with a short rise; cards lift and their
+  covers lean in under the pointer; Home draws its shape while the library loads. A task over a project's cover shows
+  a progress ring and a progress line while it runs, and a pulsing dot when it needs the person. The tray says how
+  many tasks need the person and run, lists each project that needs them, and shows the count on the dock and beside
+  the tray icon on a Mac; the tray is now in the interface's language. Reduced motion turns all of it off.
+- **Why:** A visual tool should feel alive without moving the film, and a task waiting on the person in the
+  background was easy to miss.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/home.tsx`, `apps/desktop/src/renderer/src/styles.css`,
+  `apps/desktop/src/main/index.ts` (`showTasksInTray`).
+
+## 2026-11-16 — Home starts a film from a description
+
+- **What:** Home opens on a prompt: describe the film, and Start creating makes a project named from the description
+  and sends it to the agent as the first message once the agent and the film are ready (it waits in the composer
+  without an assistant). The project opened last is a large card with Continue editing, the next four beside it.
+  The rail has icons and lists the shortcuts under Help: Ctrl/⌘+N a new film, Ctrl/⌘+O open a project, Ctrl/⌘+,
+  Settings, and / to the prompt or the project search. Launch at login is a switch, and every settings section's
+  heading sits at the same place.
+- **Why:** Starting a film took a blank project, the editor and the assistant before the person could say what they
+  wanted; a creative tool should start from the idea.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/home.tsx`, `apps/desktop/src/main/project.ts` (`filmName`),
+  `apps/desktop/src/main/index.ts` (`takeBrief`).
+
+## 2026-11-16 — Settings is a page, with General preferences and launch at login
+
+- **What:** Settings opens as a page over Home or the editor (its film paused) with sections for General, Model
+  Providers, Coding Agents, Voice Services, Workspace and Diagnostics. General holds the theme (system, light, dark),
+  the language and launch at login (installed Windows and macOS builds). Leaving a provider form with edits asks to
+  save or discard; a change made in another window is announced instead of overwriting the form. Every pick list is
+  one shared select. Open logs folder moved from Workspace to Diagnostics.
+- **Why:** The models dialog had grown into the place for every app setting, and preferences had nowhere to live.
+- **Breaking:** `settings.json` gains a `preferences` object (`theme`, `language`, `onboardingComplete`,
+  `backgroundNoticeSeen`).
+- **Upgrade:** Nothing: a settings file without it uses the system's theme and language.
+- **Refs:** `apps/desktop/src/renderer/src/settings.tsx`, `apps/desktop/src/renderer/src/select.tsx`,
+  `apps/desktop/src/main/providers.ts`.
+
+## 2026-11-16 — The interface is in English or Chinese
+
+- **What:** Every label, message and native dialog the Studio writes is translated to Chinese when the system's
+  language is Chinese or Chinese is chosen in Settings → General; the switch is live in every window. A film's words,
+  project and motion names, model replies and identifiers are never translated. In Chinese, an English error the
+  Studio has no translation for is summarized, with its exact text one click away.
+- **Why:** Many of the creators the Studio is for work in Chinese.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/shared/i18n.ts`, `apps/desktop/src/shared/translations.ts`,
+  `apps/desktop/src/renderer/src/preferences.tsx`.
+
+## 2026-11-16 — Home replaces the launcher, with a project library
+
+- **What:** Home has Home, My projects and Templates. The project library keeps every project opened, with its cover
+  (a still of its film), when it was last opened and modified, search, sort and a grid or list; a project can be
+  removed from the list (its files stay) or, when its folder is gone, located again. A template card shows its
+  film and plays it on hover; opened, it plays on the stage as the editor does before a copy is made. A first run walks through appearance, the workspace and an assistant. The first close of the main window
+  explains that tasks keep running in the tray. Home refreshes when the person returns from an editor, and reopening
+  a project moves it to the top.
+- **Why:** The launcher showed ten recent paths and no picture of the work; a visual tool's home should show the films.
+- **Breaking:** The recent list (`recent-projects.json` in userData) is replaced by the library (`projects.json`); the
+  `recentProjects` IPC call is gone. A project's cover is `.motion-studio/cover.jpg` inside it.
+- **Upgrade:** Projects opened before do not carry over: open each once (Open project) to add it to the library.
+  `recent-projects.json` can be deleted.
+- **Refs:** `apps/desktop/src/renderer/src/home.tsx`, `apps/desktop/src/main/project.ts`, `apps/desktop/src/main/index.ts`,
+  `docs/design.md`.
+
 ## 2026-11-15 — Runtime diagnostics stay in a fixed local log folder
 
 - **What:** Write structured startup, task, build, IPC failure and process-crash diagnostics to main.log in the

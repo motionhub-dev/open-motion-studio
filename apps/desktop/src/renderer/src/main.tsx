@@ -1,3 +1,4 @@
+import { PreferencesProvider, Translated } from './preferences';
 import '@fontsource-variable/inter';
 import '@fontsource/jetbrains-mono/400.css';
 import '@fontsource/jetbrains-mono/500.css';
@@ -19,10 +20,10 @@ class WorkspaceBoundary extends Component<{ children: ReactNode }, { failed: boo
     if (this.state.failed)
       return (
         <main className="empty" role="alert">
-          <h1>The workspace needs a fresh start.</h1>
-          <p className="note">Your files are still on disk. Reload the workspace to continue.</p>
+          <h1><Translated text="The workspace needs a fresh start." /></h1>
+          <p className="note"><Translated text="Your files are still on disk. Reload the workspace to continue." /></p>
           <button className="button primary" onClick={() => location.reload()}>
-            Reload workspace
+            <Translated text="Reload workspace" />
           </button>
         </main>
       );
@@ -32,9 +33,11 @@ class WorkspaceBoundary extends Component<{ children: ReactNode }, { failed: boo
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
+    <PreferencesProvider>
     <WorkspaceBoundary>
       <App />
     </WorkspaceBoundary>
     <Tooltips />
+    </PreferencesProvider>
   </StrictMode>,
 );

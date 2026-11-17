@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { SCENE_STILLS, type Stage, sceneStills, stillsDir } from '../capture';
@@ -58,6 +58,28 @@ describe('the scenes photographed for the timeline', () => {
     expect(stage.close).toHaveBeenCalled();
   });
 
+  it('takes the cover once, sharper than the frames, from the first scene after its entrance', async () => {
+    const { open, times } = fakeStage();
+    const widths: number[] = [];
+    const stage = await open();
+    const frame = stage.frame;
+    stage.frame = async (t) => {
+      const image = await frame(t);
+      return { resize: ({ width }: { width: number }) => (widths.push(width), image.resize({ width })) } as never;
+    };
+    await sceneStills(dir, 1, async () => stage);
+    expect(times.at(-1)).toBeCloseTo(0.6 * 4);
+    expect(widths.at(-1)).toBeGreaterThan(widths[0]! * 3);
+    expect(String(await readFile(join(dir, '.motion-studio', 'cover.jpg')))).toBe(`frame at ${times.at(-1)}`);
+
+    await rm(join(dir, '.motion-studio', 'cover.jpg'));
+    const again = fakeStage();
+    await sceneStills(dir, 1, again.open);
+    expect(again.times).toHaveLength(1);
+    expect(again.stage.close).toHaveBeenCalled();
+    expect(String(await readFile(join(dir, '.motion-studio', 'cover.jpg')))).toBe(`frame at ${again.times[0]}`);
+  });
+
   it('keeps one file, in .motion-studio/thumbs, and photographs the same build only once', async () => {
     const first = fakeStage();
     const stills = await sceneStills(dir, 1, first.open);
@@ -87,5 +109,6 @@ describe('the scenes photographed for the timeline', () => {
     await expect(sceneStills(dir, 1, async () => stage)).rejects.toThrow('took longer');
     expect(stage.close).toHaveBeenCalled();
     await expect(readdir(stillsDir(dir))).rejects.toThrow();
+    await expect(readFile(join(dir, '.motion-studio', 'cover.jpg'))).rejects.toThrow();
   });
 });

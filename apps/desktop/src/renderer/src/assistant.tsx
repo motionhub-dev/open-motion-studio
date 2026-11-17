@@ -5,6 +5,7 @@
 // whose answers send themselves. While the agent works, a message waits for its turn to end, or
 // stops it and goes in its place.
 
+import { SystemMessage, Translated, usePreferences } from './preferences';
 import { type FormEvent, type KeyboardEvent, type Ref, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { AlertTriangle, ArrowUp, AtSign, Check, ChevronDown, Clock, Copy, History, Loader, PanelLeftClose, Plus, RotateCcw, Square, SquarePen, X } from 'lucide-react';
 import {
@@ -91,6 +92,7 @@ function shownStills<T>(stills: T[], open: boolean): { shown: T[]; folded: numbe
  * runs and folded when it ends, unless the person opened or folded it; and the stills it looked at in a row.
  */
 function Work({ steps, tools, live, onStill }: { steps: Step[]; tools: Tool[]; live: boolean; onStill(tool: Tool): void }) {
+  const { t: tr, system } = usePreferences();
   const now = live ? running(tools) : undefined;
   // A turn that fixed what failed on the way ended well: only a last call that failed marks the work as failing.
   const finished = tools.filter((tool) => tool.result);
@@ -114,10 +116,10 @@ function Work({ steps, tools, live, onStill }: { steps: Step[]; tools: Tool[]; l
           {live ? <Loader size={13} className="spin" /> : failed ? <X size={13} /> : <Check size={13} className="ok" />}
           <span>
             {live ? (
-              now ? `Now: ${now.summary}…` : 'Working…'
+              now ? <>{tr("Now: {0}…", {0: system(now.summary)})}</> : tr("Working…")
             ) : (
               <>
-                <b>How it got there</b> · {turnLine(tools)}
+                <b>{tr("How it got there")}</b> · {turnLine(tools, tr)}
               </>
             )}
           </span>
@@ -134,7 +136,7 @@ function Work({ steps, tools, live, onStill }: { steps: Step[]; tools: Tool[]; l
                 <details>
                   <summary>
                     {!step.result ? <Loader size={12} className="spin" /> : step.result.ok ? <Check size={12} className="ok" /> : <X size={12} />}
-                    <span>{step.summary}</span>
+                    <span><SystemMessage text={step.summary} /></span>
                   </summary>
                   {step.result && !step.result.image && <pre>{step.result.text}</pre>}
                 </details>
@@ -150,20 +152,20 @@ function Work({ steps, tools, live, onStill }: { steps: Step[]; tools: Tool[]; l
               key={tool.id}
               type="button"
               className="still"
-              title={tool.at !== undefined ? `Open, and go to ${timecode(tool.at)}` : 'Open'}
+              title={tool.at !== undefined ? tr("Open, and go to {0}", {0: timecode(tool.at)}) : tr("Open")}
               onClick={() => onStill(tool)}
             >
               <img src={tool.result!.image} alt={tool.result!.text} />
             </button>
           ))}
           {folded > 0 && (
-            <button type="button" className="still more" aria-label={`Show ${folded} more stills`} onClick={() => setOpen(true)}>
+            <button type="button" className="still more" aria-label={tr("Show {0} more stills", {0: folded})} onClick={() => setOpen(true)}>
               +{folded}
             </button>
           )}
           {open && (
             <button type="button" className="still more" onClick={() => setOpen(false)}>
-              Fewer
+              {tr("Fewer")}
             </button>
           )}
         </div>
@@ -174,6 +176,7 @@ function Work({ steps, tools, live, onStill }: { steps: Step[]; tools: Tool[]; l
 
 /** Copies the agent's answer, and says for a moment whether it did. */
 function CopyButton({ text }: { text: string }) {
+  const { t: tr } = usePreferences();
   const [said, setSaid] = useState<{ ok: boolean; why?: string } | null>(null);
   useEffect(() => {
     if (!said) return;
@@ -184,7 +187,7 @@ function CopyButton({ text }: { text: string }) {
     <button
       type="button"
       className="button ghost"
-      data-tip={said && !said.ok ? `Not copied: ${said.why}` : 'Copy the agent’s answer'}
+      data-tip={said && !said.ok ? tr("Not copied: {0}", {0: said.why}) : tr("Copy the agent’s answer")}
       onClick={() =>
         navigator.clipboard.writeText(text).then(
           () => setSaid({ ok: true }),
@@ -193,7 +196,7 @@ function CopyButton({ text }: { text: string }) {
       }
     >
       {said?.ok ? <Check size={13} /> : <Copy size={13} />}
-      {said ? (said.ok ? 'Copied' : 'Not copied') : 'Copy'}
+      {said ? (said.ok ? tr("Copied") : tr("Not copied")) : tr("Copy")}
     </button>
   );
 }
@@ -232,6 +235,7 @@ function AgentChip({
   onSettings,
   openRequest,
 }: Pick<Props, 'active' | 'agents' | 'onUseAgent' | 'onRefreshAgents' | 'onAgentSettings' | 'onSettings'> & { disabled: boolean; openRequest: number }) {
+  const { t: tr } = usePreferences();
   const [picking, setPicking] = useState(false);
   useEffect(() => {
     if (!openRequest) return;
@@ -260,21 +264,21 @@ function AgentChip({
   const chosen = own && agents ? agents.settings[own] : null;
   const state: HarnessState = outside ? outside.state : active?.ready ? 'ready' : active ? 'signed-out' : 'missing';
   const label = !agents
-    ? 'Finding the agent…'
+    ? tr("Finding the agent…")
     : outside
       ? `${outside.name}${chosen?.model ? ` · ${chosen.model}` : ''}`
-      : (active?.model ?? 'Set up a model');
+      : (active?.model ?? tr("Set up a model"));
   const title = outside
-    ? `${outside.name}${outside.version ? ` ${outside.version}` : ''}: ${STATE_WORDS[state]}${chosen ? ` · model ${chosen.model || 'default'}, effort ${chosen.effort || 'default'}` : ''}`
+    ? `${outside.name}${outside.version ? ` ${outside.version}` : ''}: ${tr(STATE_WORDS[state])}${chosen ? tr(" · model {0}, effort {1}", {0: chosen.model || tr('default'), 1: tr(chosen.effort || 'default')}) : ''}`
     : active
-      ? `${active.model} · ${active.name}${active.ready ? '' : ': no key'}`
-      : 'Set up a model in Models';
+      ? `${active.model} · ${active.name}${active.ready ? '' : tr(': no key')}`
+      : tr("Set up a model in Models");
   return (
     <span className="agent-picker">
       <button
         type="button"
         className="agent-chip"
-        aria-label={`Choose the agent, current: ${label}`}
+        aria-label={tr("Choose the agent, current: {0}", {0: label})}
         aria-haspopup="menu"
         aria-expanded={picking}
         title={title}
@@ -300,8 +304,8 @@ function AgentChip({
               else onSettings();
             }}
           >
-            <strong>{active ? active.model : 'Built-in agent'}</strong>
-            <span>{active ? `Built-in agent · ${active.name}` : 'Built-in agent · set up a model in Models'}</span>
+            <strong>{active ? active.model : tr("Built-in agent")}</strong>
+            <span>{active ? tr("Built-in agent · {0}", {0: active.name}) : tr("Built-in agent · set up a model in Models")}</span>
           </button>
           {agents?.harnesses.map((harness) => (
             <button
@@ -316,7 +320,7 @@ function AgentChip({
               }}
             >
               <strong>{harness.name}</strong>
-              <span>{harness.state === 'ready' ? `Your ${harness.name}${harness.version ? ` ${harness.version}` : ''} · its own sign-in` : harness.hint}</span>
+              <span>{harness.state === 'ready' ? tr("Your {0}{1} · its own sign-in", {0: harness.name, 1: harness.version ? ` ${harness.version}` : ''}) : tr(harness.hint ?? '')}</span>
             </button>
           ))}
           {own && chosen && (
@@ -325,7 +329,7 @@ function AgentChip({
                 <ModelEffort kind={own} models={models} value={chosen} onChange={(change) => onAgentSettings(own, { ...chosen, ...change })} />
               ) : (
                 <span className="note">
-                  <Loader size={12} className="spin" /> Asking {outside!.name} for its models…
+                  <Loader size={12} className="spin" /> {tr("Asking")} {outside!.name} {tr("for its models…")}
                 </span>
               )}
             </span>
@@ -338,8 +342,8 @@ function AgentChip({
               onSettings(own ?? undefined);
             }}
           >
-            <strong>Models…</strong>
-            <span>{own ? `Everything about how ${outside!.name} runs` : 'Providers and keys for the built-in agent'}</span>
+            <strong>{tr("Models…")}</strong>
+            <span>{own ? tr("Everything about how {0} runs", {0: outside!.name}) : tr("Providers and keys for the built-in agent")}</span>
           </button>
         </span>
       )}
@@ -373,6 +377,10 @@ interface Props {
   /** Imports images or fonts into the project and adds them to the next message. */
   onImport(): void;
   focusRequest: number;
+  /** What the person asked for on Home when they created the project: the first message, sent once it can go. */
+  brief: string | null;
+  /** The brief has gone, or the person sent something else first; it must not go again. */
+  onBriefTaken(): void;
   onRemoveMark(index: number): void;
   onNoteMark(index: number, note: string): void;
   /** The mark whose row is in hand, or null. */
@@ -435,7 +443,10 @@ export function Assistant({
   onReference,
   onImport,
   focusRequest,
+  brief,
+  onBriefTaken,
 }: Props) {
+  const { t: tr } = usePreferences();
   const [items, setItems] = useState<Row[]>([]);
   const current: AgentKind = agents?.current ?? 'built-in';
   /** A message waiting for the turn to end; `steer` stopped the turn for it. */
@@ -568,6 +579,14 @@ export function Assistant({
     if (lastKeys && !working) onFresh(lastKeys.split('|'));
   }, [lastKeys, working]);
 
+  // The brief waits in the composer, where the person sees it, and goes by itself once the agent and the film are ready.
+  useEffect(() => {
+    if (brief) setDraft((current) => current || brief);
+  }, [brief]);
+  useEffect(() => {
+    if (brief && ready && !disabled && !working && version > 0) void sendText(brief, [], []);
+  }, [brief, ready, disabled, working, version]);
+
   // A message that waited for the turn goes as soon as the turn ends.
   useEffect(() => {
     if (!working && queued) {
@@ -606,6 +625,8 @@ export function Assistant({
 
   async function sendText(text: string, sent: Mark[], refsSent: Reference[]) {
     if (working || !ready || disabled) return;
+    // Whatever goes first, the brief has had its turn: it is in the composer for the person to send, or it is this.
+    if (brief) onBriefTaken();
     const shown: SentMark[] = sent.map(({ t, end, note }) => ({ t, ...(end !== undefined ? { end } : {}), note }));
     filmAtSend.current = film;
     setFollowing(true);
@@ -711,10 +732,10 @@ export function Assistant({
   return (
     <>
       <div className="head">
-        <button type="button" className="icon-button" aria-label="Hide assistant" data-tip="Hide assistant" data-key="[" onClick={onHide}>
+        <button type="button" className="icon-button" aria-label={tr("Hide assistant")} data-tip={tr("Hide assistant")} data-key="[" onClick={onHide}>
           <PanelLeftClose size={15} />
         </button>
-        <h2 className="visually-hidden">Assistant</h2>
+        <h2 className="visually-hidden"><Translated text="Assistant" /></h2>
         <AgentChip
           active={active}
           agents={agents}
@@ -728,22 +749,20 @@ export function Assistant({
         {usage && usage.turns > 0 && (
           <span
             className="usage-total"
-            title={`This project, ${usage.turns} ${usage.turns === 1 ? 'turn' : 'turns'}: ${tokenParts(usage)}${
-              usage.voicedCharacters ? `. Voiced ${usage.voicedCharacters} characters, ${usage.voicedSeconds.toFixed(1)} s of speech` : ''
-            }`}
+            title={tr("This project, {0} {1}: {2}{3}", {0: usage.turns, 1: usage.turns === 1 ? 'turn' : 'turns', 2: tokenParts(usage, tr), 3: usage.voicedCharacters ? tr(". Voiced {0} characters, {1} s of speech", {0: usage.voicedCharacters, 1: usage.voicedSeconds.toFixed(1)}) : ''})}
           >
-            {tokenCount(allTokens(usage))} tokens
+            {tokenCount(allTokens(usage))} {tr("tokens")}
           </span>
         )}
         <span className="spacer" />
-        <button type="button" className="icon-button" aria-label="History" data-tip="History: go back to before a turn" onClick={onHistory}>
+        <button type="button" className="icon-button" aria-label={tr("History")} data-tip={tr("History: go back to before a turn")} onClick={onHistory}>
           <History size={15} />
         </button>
         <button
           type="button"
           className="icon-button"
-          aria-label="New conversation"
-          data-tip="New conversation"
+          aria-label={tr("New conversation")}
+          data-tip={tr("New conversation")}
           onClick={clear}
           disabled={working || items.length === 0}
         >
@@ -761,33 +780,33 @@ export function Assistant({
       >
         {items.length === 0 && (
           <div className="starts">
-            <h3>What should this film do?</h3>
+            <h3>{tr("What should this film do?")}</h3>
             {!ready && (
               <p className="note">
-                First,{' '}
+                {tr("First,")}{' '}
                 <button type="button" className="link" onClick={() => onSettings()}>
-                  set up a model
+                  {tr("set up a model")}
                 </button>
-                , or pick your own agent above.
+                {tr(", or pick your own agent above.")}
               </p>
             )}
             <div className="start-grid">
               {STARTS.map((start) => (
                 <button
-                  key={start.title}
+                  key={tr(start.title)}
                   type="button"
                   className={`start${start.draft === undefined && briefing ? ' selected' : ''}`}
                   onClick={() => {
                     if (start.draft === undefined) return setBriefing(!briefing);
-                    setDraft(start.draft);
+                    setDraft(tr(start.draft));
                     requestAnimationFrame(() => {
                       composer.current?.focus();
                       composer.current?.setSelectionRange(start.draft!.length, start.draft!.length);
                     });
                   }}
                 >
-                  <strong>{start.title}</strong>
-                  <span>{start.line}</span>
+                  <strong>{tr(start.title)}</strong>
+                  <span>{tr(start.line)}</span>
                 </button>
               ))}
             </div>
@@ -801,14 +820,13 @@ export function Assistant({
               />
             )}
             <p className="hint point-hint">
-              Point at the picture: <kbd>C</kbd> picks a thing on it, and a drag along the timeline's Marks row marks a
-              stretch. @ in the box points at a scene, a layer, a line, an asset or a motion.
+              {tr("Point at the picture:")} <kbd>C</kbd> {tr("picks a thing on it, and a drag along the timeline's Marks row marks a stretch. @ in the box points at a scene, a layer, a line, an asset or a motion.")}
             </p>
           </div>
         )}
         {earlier > 0 && (
           <button type="button" className="quiet earlier-turns" onClick={() => setShowEarlier(true)}>
-            Show {earlier} earlier {earlier === 1 ? 'turn' : 'turns'}
+            {tr("Show")} {earlier} {tr("earlier")} {earlier === 1 ? 'turn' : 'turns'}
           </button>
         )}
         {drawn.map((block, b) => {
@@ -830,13 +848,13 @@ export function Assistant({
             // Answered by the person's next message; until then its options take the composer's place.
             const reply = drawn.slice(b + 1).find((next) => next.kind === 'item' && next.item.kind === 'user');
             return (
-              <div key={block.tool.id} className="ask-card" role="group" aria-label="The agent asks">
-                <span className="eyebrow">The agent asks</span>
+              <div key={block.tool.id} className="ask-card" role="group" aria-label={tr("The agent asks")}>
+                <span className="eyebrow">{tr("The agent asks")}</span>
                 <p>{block.tool.ask.question}</p>
                 {reply?.kind === 'item' && reply.item.kind === 'user' ? (
-                  <small>Answered: {reply.item.text}</small>
+                  <small>{tr("Answered:")} {reply.item.text}</small>
                 ) : (
-                  block === pendingAsk && <small>{ownAnswer ? 'Write your answer below.' : 'Answer below.'}</small>
+                  block === pendingAsk && <small>{ownAnswer ? tr("Write your answer below.") : tr("Answer below.")}</small>
                 )}
               </div>
             );
@@ -858,26 +876,26 @@ export function Assistant({
             return (
               <div key={`turn-${i}`} className={`turn-card ${item.outcome}`}>
                 <div className="turn-line">
-                  <strong>{item.outcome === 'done' ? 'Done' : item.outcome === 'stopped' ? 'Stopped' : 'Failed'}</strong>
+                  <strong>{item.outcome === 'done' ? tr("Done") : item.outcome === 'stopped' ? tr("Stopped") : tr("Failed")}</strong>
                   {item.usage && (
-                    <span className="turn-took" title={tokenParts(item.usage)}>
-                      {workedFor(item.usage.seconds)} · {tokenCount(allTokens(item.usage))} tokens
+                    <span className="turn-took" title={tokenParts(item.usage, tr)}>
+                      {workedFor(item.usage.seconds, tr)} · {tokenCount(allTokens(item.usage))} {tr("tokens")}
                     </span>
                   )}
-                  {!!item.files && <span>{item.files === 1 ? '1 file' : `${item.files} files`}</span>}
+                  {!!item.files && <span>{item.files === 1 ? tr("1 file") : tr("{0} files", {0: item.files})}</span>}
                   {check !== undefined && (
-                    <span className={check ? 'pass' : 'fail'}>{check ? '✓ Check: no problems' : '✕ Check: problems left'}</span>
+                    <span className={check ? 'pass' : 'fail'}>{check ? tr("✓ Check: no problems") : tr("✕ Check: problems left")}</span>
                   )}
                   {longer !== 0 && after && (
                     <span>
-                      film {after.seconds.toFixed(1)} s ({longer > 0 ? '+' : '−'}
+                      {tr("film")} {after.seconds.toFixed(1)} {tr('s')} ({longer > 0 ? '+' : '−'}
                       {Math.abs(longer).toFixed(1)})
                     </span>
                   )}
                 </div>
                 {changes.length > 0 && (
                   <>
-                    <span className="eyebrow">{changeLine(changes)}</span>
+                    <span className="eyebrow">{changeLine(changes, tr)}</span>
                     <div className="turn-changes">
                       {changes.slice(0, 12).map((change, n) => (
                         <button
@@ -887,7 +905,7 @@ export function Assistant({
                           disabled={change.change === 'removed'}
                           onClick={() => onSelect(change.ref)}
                         >
-                          {change.ref.kind} · {change.ref.label}
+                          {tr(change.ref.kind)} · {change.ref.label}
                         </button>
                       ))}
                     </div>
@@ -900,11 +918,11 @@ export function Assistant({
                         type="button"
                         className="button"
                         disabled={working || undoing}
-                        data-tip="Put the files back as they were before this turn, take the turn out of the conversation, and put your message back to change. History can undo this too."
+                        data-tip={tr("Put the files back as they were before this turn, take the turn out of the conversation, and put your message back to change. History can undo this too.")}
                         onClick={() => void undo(item.checkpoint!)}
                       >
                         <RotateCcw size={13} />
-                        Go back to before this
+                        {tr("Go back to before this")}
                       </button>
                     )}
                     {answer && <CopyButton text={answer} />}
@@ -921,14 +939,14 @@ export function Assistant({
             );
           if (item.kind === 'approval') {
             const { approval, answer } = item;
-            const answered = answer ? { once: 'Allowed this once', session: 'Allowed for this session', deny: 'Denied' }[answer] : null;
+            const answered = answer ? { once: tr("Allowed this once"), session: tr("Allowed for this session"), deny: tr("Denied") }[answer] : null;
             return (
-              <div key={approval.id} className={`approval-card${answer === 'deny' ? ' denied' : ''}`} role="group" aria-label={approval.title}>
-                <span className="eyebrow">{approval.title}</span>
+              <div key={approval.id} className={`approval-card${answer === 'deny' ? ' denied' : ''}`} role="group" aria-label={tr(approval.title)}>
+                <span className="eyebrow"><SystemMessage text={approval.title} /></span>
                 <pre>{approval.detail}</pre>
                 {approval.reason && <p>{approval.reason}</p>}
                 {answered || !working ? (
-                  <small>{answered ?? 'Not answered: the turn ended'}</small>
+                  <small>{answered ?? tr("Not answered: the turn ended")}</small>
                 ) : (
                   <div className="ask-options">
                     {(['once', 'session', 'deny'] as const).map((choice) => (
@@ -943,7 +961,7 @@ export function Assistant({
                             .catch((e) => setItems((items) => [...items, { kind: 'notice', text: reason(e), error: true }]))
                         }
                       >
-                        {choice === 'once' ? 'Allow once' : choice === 'session' ? 'Allow for this session' : 'Deny'}
+                        {choice === 'once' ? tr("Allow once") : choice === 'session' ? tr("Allow for this session") : tr("Deny")}
                       </button>
                     ))}
                   </div>
@@ -958,23 +976,23 @@ export function Assistant({
             const models = item.need !== undefined || current === 'built-in';
             return (
               <div key={i} className="error-card" role="alert">
-                <p>{item.text}</p>
-                {returned && <small>Your message is back in the box below.</small>}
+                <p><SystemMessage text={item.text} error /></p>
+                {returned && <small>{tr("Your message is back in the box below.")}</small>}
                 {last && (
                   <div className="ask-options">
                     {models && (
                       <button type="button" className="button primary" onClick={() => onSettings(current === 'built-in' ? undefined : current)}>
-                        {item.need === 'sign-in' && current === 'codex' ? 'Sign in' : item.need === 'cap' ? 'Change the cap' : 'Open Models'}
+                        {item.need === 'sign-in' && current === 'codex' ? tr("Sign in") : item.need === 'cap' ? tr("Change the cap") : tr("Open Models")}
                       </button>
                     )}
                     {(item.need === 'sign-in' || item.need === 'setup') && (
                       <button type="button" className="button" onClick={() => setAgentMenu((n) => n + 1)}>
-                        Use another agent
+                        {tr("Use another agent")}
                       </button>
                     )}
                     {returned && (
                       <button type="button" className={`button${models ? '' : ' primary'}`} disabled={!ready || disabled} onClick={() => void send()}>
-                        Try again
+                        {tr("Try again")}
                       </button>
                     )}
                   </div>
@@ -984,11 +1002,11 @@ export function Assistant({
           }
           return (
             <p key={i} className={`message ${item.kind}`}>
-                {item.text}
+                {item.kind === 'notice' ? <SystemMessage text={item.text} /> : item.text}
                 {item.kind === 'user' &&
                   item.refs?.map((ref, n) => (
                     <span key={n} className="sent-ref" title={[ref.source, ref.detail ?? ref.path].filter(Boolean).join(' · ')}>
-                      {ref.kind} · {ref.label}
+                      {tr(ref.kind)} · {ref.label}
                     </span>
                   ))}
                 {item.kind === 'user' && item.marks.length > 0 && (
@@ -998,13 +1016,13 @@ export function Assistant({
                         key={n}
                         type="button"
                         className="sent-mark"
-                        title={mark.image ? `Open the frame sent, and go to ${when(mark)}` : `Go to ${when(mark)}`}
+                        title={mark.image ? tr("Open the frame sent, and go to {0}", {0: when(mark)}) : tr("Go to {0}", {0: when(mark)})}
                         onClick={() => {
                           onSeek(mark.t);
-                          if (mark.image) setShown({ image: mark.image, caption: `Mark ${n + 1}${mark.note ? ` · ${mark.note}` : ''}` });
+                          if (mark.image) setShown({ image: mark.image, caption: tr("Mark {0}{1}", {0: n + 1, 1: mark.note ? ` · ${mark.note}` : ''}) });
                         }}
                       >
-                        {mark.image && <img src={mark.image} alt={`Mark ${n + 1}`} />}
+                        {mark.image && <img src={mark.image} alt={tr("Mark {0}", {0: n + 1})} />}
                         <span className="number">{n + 1}</span>
                         <span className="sent-mark-text">
                           <small className="mono">{when(mark)}</small>
@@ -1019,11 +1037,11 @@ export function Assistant({
         })}
         {working && (
           <div className="agent-progress" role="status">
-            <ol className="phases" aria-label="Where the turn is">
+            <ol className="phases" aria-label={tr("Where the turn is")}>
               {PHASES.map(([key, label]) => (
                 <li key={key} className={key === phase ? 'on' : seen.has(key) ? 'done' : undefined}>
                   {seen.has(key) && key !== phase && <Check size={11} />}
-                  {label}
+                  {tr(label)}
                 </li>
               ))}
             </ol>
@@ -1031,12 +1049,12 @@ export function Assistant({
               <Loader size={13} className="spin" />
               <strong>
                 {phase === 'thinking'
-                  ? 'Working through your idea'
+                  ? tr("Working through your idea")
                   : phase === 'editing'
-                    ? 'Shaping the film'
+                    ? tr("Shaping the film")
                     : phase === 'checking'
-                      ? 'Checking the scenes'
-                      : 'Looking at the details'}
+                      ? tr("Checking the scenes")
+                      : tr("Looking at the details")}
               </strong>
               <span className="mono">
                 {Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}
@@ -1044,8 +1062,7 @@ export function Assistant({
             </div>
             {failing && failing.times >= 3 && (
               <p className="warning">
-                <AlertTriangle size={13} /> {failing.name} has failed {failing.times} times in a row. You can stop it and say what
-                to try instead.
+                <AlertTriangle size={13} /> {failing.name} {tr("has failed")} {failing.times} {tr("times in a row. You can stop it and say what to try instead.")}
               </p>
             )}
           </div>
@@ -1053,17 +1070,17 @@ export function Assistant({
       </div>
       {!following && (
         <button type="button" className="latest-messages quiet" onClick={() => setFollowing(true)}>
-          Back to latest ↓
+          {tr("Back to latest ↓")}
         </button>
       )}
       {tray > 0 && (
-        <div className="tray" aria-label="What the next message carries">
+        <div className="tray" aria-label={tr("What the next message carries")}>
           <div className="tray-head">
-            <span className="label">With the next message</span>
+            <span className="label">{tr("With the next message")}</span>
             <span className="mono">{tray}</span>
           </div>
       {sending.length > 0 && (
-        <ul className="reference-cards" aria-label="References for the next message">
+        <ul className="reference-cards" aria-label={tr("References for the next message")}>
           {sending.map((ref, i) => (
             <li key={i} className={ref === selectionRef ? 'selection' : undefined}>
               <button
@@ -1073,8 +1090,8 @@ export function Assistant({
                 title={ref.detail ?? ref.path}
               >
                 <span className="eyebrow">
-                  {ref === selectionRef ? 'Selected · ' : ''}
-                  {ref.kind}
+                  {ref === selectionRef ? tr("Selected · ") : ''}
+                  {tr(ref.kind)}
                   {ref.scene ? ` · ${ref.scene}` : ''}
                 </span>
                 <strong>{ref.label}</strong>
@@ -1084,7 +1101,7 @@ export function Assistant({
                 type="button"
                 className="icon-button"
                 disabled={working}
-                aria-label={`Remove reference ${ref.label}`}
+                aria-label={tr("Remove reference {0}", {0: ref.label})}
                 onClick={() => (ref === selectionRef ? onDropSelection() : onRemoveRef(i))}
               >
                 <X size={12} />
@@ -1094,10 +1111,10 @@ export function Assistant({
         </ul>
       )}
       {marks.length > 0 && (
-        <ul className="mark-tray" aria-label="Marks for the next message" onPointerLeave={() => onLight(null)}>
+        <ul className="mark-tray" aria-label={tr("Marks for the next message")} onPointerLeave={() => onLight(null)}>
           {marks.map((mark, i) => (
             <li key={i} onPointerEnter={() => onLight(i)} onFocus={() => onLight(i)}>
-              <button type="button" className="mark-locate" title={`Go to ${when(mark)}`} onClick={() => onSeek(mark.t)}>
+              <button type="button" className="mark-locate" title={tr("Go to {0}", {0: when(mark)})} onClick={() => onSeek(mark.t)}>
                 <span className="number">{i + 1}</span>
                 <span className="mark-what">
                   <strong>{markLabel(mark)}</strong>
@@ -1111,8 +1128,8 @@ export function Assistant({
                 value={mark.note}
                 maxLength={MARK_NOTE}
                 disabled={working}
-                aria-label={`What should change at mark ${i + 1}`}
-                placeholder="What should change here?"
+                aria-label={tr("What should change at mark {0}", {0: i + 1})}
+                placeholder={tr("What should change here?")}
                 onChange={(e) => onNoteMark(i, e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
@@ -1125,7 +1142,7 @@ export function Assistant({
                 type="button"
                 className="quiet"
                 disabled={working}
-                aria-label={`Remove mark ${i + 1}`}
+                aria-label={tr("Remove mark {0}", {0: i + 1})}
                 onClick={() => onRemoveMark(i)}
               >
                 <X size={12} />
@@ -1140,14 +1157,14 @@ export function Assistant({
         <div className="queued" role="status">
           <Clock size={13} />
           <span>
-            <strong>{queued.steer ? 'Stopping, then sending' : 'Sends when the turn ends'}</strong>
+            <strong>{queued.steer ? tr("Stopping, then sending") : tr("Sends when the turn ends")}</strong>
             {queued.text}
           </span>
           <button
             type="button"
             className="icon-button"
-            aria-label="Take the waiting message back"
-            data-tip="Take it back"
+            aria-label={tr("Take the waiting message back")}
+            data-tip={tr("Take it back")}
             onClick={() => {
               setDraft(queued.text);
               setQueued(null);
@@ -1158,14 +1175,14 @@ export function Assistant({
         </div>
       )}
       {asking && pendingAsk && (
-        <div className="question-sheet" role="group" aria-label="The agent asks">
-          <span className="eyebrow">The agent asks</span>
+        <div className="question-sheet" role="group" aria-label={tr("The agent asks")}>
+          <span className="eyebrow">{tr("The agent asks")}</span>
           <p>{pendingAsk.tool.ask.question}</p>
           <div className="question-options">
             {pendingAsk.tool.ask.options.map((option, n) => (
               <button key={option} type="button" disabled={!ready || disabled} onClick={() => void sendText(option, [], [])}>
                 <span>{option}</span>
-                {n === 0 && <small>Recommended</small>}
+                {n === 0 && <small>{tr("Recommended")}</small>}
               </button>
             ))}
             <button
@@ -1176,7 +1193,7 @@ export function Assistant({
                 requestAnimationFrame(() => composer.current?.focus());
               }}
             >
-              <span>Something else…</span>
+              <span>{tr("Something else…")}</span>
             </button>
           </div>
         </div>
@@ -1199,15 +1216,15 @@ export function Assistant({
           placeholder={
             working
               ? marks.length || sending.length
-                ? 'Marks and references wait until the turn ends'
+                ? tr("Marks and references wait until the turn ends")
                 : current === 'claude'
-                  ? 'Enter adds to the turn; Ctrl+Enter stops it and sends'
-                  : 'Enter sends when the turn ends; Ctrl+Enter stops it and sends'
+                  ? tr("Enter adds to the turn; Ctrl+Enter stops it and sends")
+                  : tr("Enter sends when the turn ends; Ctrl+Enter stops it and sends")
               : marks.length
-                ? 'Anything else? Refer to marks by number (1, 2…)'
-                : 'Ask for a film, or a change to this one'
+                ? tr("Anything else? Refer to marks by number (1, 2…)")
+                : tr("Ask for a film, or a change to this one")
           }
-          aria-label="Message"
+          aria-label={tr("Message")}
           onChange={(e) => {
             setDraft(e.target.value);
             setMention(mentionAt(e.target.value, e.target.selectionStart));
@@ -1220,8 +1237,8 @@ export function Assistant({
           <button
             type="button"
             className="icon-button"
-            aria-label="Import images or fonts for this message"
-            data-tip="Import images or fonts"
+            aria-label={tr("Import images or fonts for this message")}
+            data-tip={tr("Import images or fonts")}
             disabled={working || disabled}
             onClick={onImport}
           >
@@ -1230,8 +1247,8 @@ export function Assistant({
           <button
             type="button"
             className="icon-button"
-            aria-label="Point at a scene, layer, line, asset or motion"
-            data-tip="Point at something"
+            aria-label={tr("Point at a scene, layer, line, asset or motion")}
+            data-tip={tr("Point at something")}
             data-key="@"
             disabled={working}
             onPointerDown={(e) => e.preventDefault()}
@@ -1244,25 +1261,25 @@ export function Assistant({
             <button
               type="button"
               className="send stop"
-              aria-label="Stop"
-              data-tip="Stop"
+              aria-label={tr("Stop")}
+              data-tip={tr("Stop")}
               onClick={() => {
                 window.studio.stopAgent().catch((e) => setItems((items) => [...items, { kind: 'notice', text: reason(e), error: true }]));
               }}
             >
               <Square size={11} fill="currentColor" />
-              Stop
+              <Translated text="Stop" />
             </button>
           ) : (
             <button
               type="submit"
-              aria-label="Send"
-              data-tip="Send"
+              aria-label={tr("Send")}
+              data-tip={tr("Send")}
               data-key="Enter"
               className={tray ? 'send with-tray' : 'send'}
               disabled={(!draft.trim() && !marks.length && !sending.length) || !ready || disabled}
             >
-              {tray > 0 && <span>Send {tray}</span>}
+              {tray > 0 && <span>{tr("Send")} {tray}</span>}
               <ArrowUp size={16} />
             </button>
           )}
@@ -1270,10 +1287,10 @@ export function Assistant({
       </form>
       {shown && (
         <div className="dialog-backdrop dim" role="presentation" onClick={() => setShown(null)}>
-          <figure className="lightbox" role="dialog" aria-modal="true" aria-label="Still" onClick={(e) => e.stopPropagation()}>
+          <figure className="lightbox" role="dialog" aria-modal="true" aria-label={tr("Still")} onClick={(e) => e.stopPropagation()}>
             <img src={shown.image} alt={shown.caption} />
             <figcaption>{shown.caption}</figcaption>
-            <button type="button" className="icon-button" aria-label="Close" data-tip="Close" data-key="Esc" onClick={() => setShown(null)}>
+            <button type="button" className="icon-button" aria-label={tr("Close")} data-tip={tr("Close")} data-key="Esc" onClick={() => setShown(null)}>
               <X size={16} />
             </button>
           </figure>

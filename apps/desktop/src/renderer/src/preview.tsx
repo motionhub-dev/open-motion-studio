@@ -4,6 +4,7 @@
 // mark the picture, looping); Stage draws the frame, the marks over it and, along its foot,
 // the controls that play it and point at it. A new build reloads the frame at the same time.
 
+import { Translated, usePreferences } from './preferences';
 import {
   ChevronsDown,
   ChevronsUp,
@@ -267,6 +268,7 @@ export function Stage({
   disabled?: boolean;
   column?: number;
 }) {
+  const { t: tr } = usePreferences();
   const stage = useRef<HTMLDivElement>(null);
   /** The stage with its controls, which fills the screen in full screen. */
   const root = useRef<HTMLDivElement>(null);
@@ -280,6 +282,7 @@ export function Stage({
   useEffect(() => {
     if (!fullscreen) return;
     const onKey = (event: KeyboardEvent) => {
+      if (document.querySelector('.studio-settings')) return;
       if (event.key === 'Escape' && !document.querySelector('.mark-ask')) void document.exitFullscreen().catch((e: unknown) => console.error('Leaving full screen failed:', e));
     };
     addEventListener('keydown', onKey);
@@ -441,7 +444,7 @@ export function Stage({
           <iframe
             key={shownBuild.version}
             ref={player.frame}
-            title="Film preview"
+            title={tr("Film preview")}
             sandbox="allow-scripts"
             src={`oms-preview://film/?v=${shownBuild.version}`}
             style={{ inset: INSET, width: `calc(100% - ${2 * INSET}px)`, height: `calc(100% - ${2 * INSET}px)` }}
@@ -466,7 +469,7 @@ export function Stage({
                   }) ?? undefined
                 }
               >
-                <span>{selected?.label} · declared bounds</span>
+                <span>{selected?.label} {tr("· declared bounds")}</span>
               </div>
             )}
             {film && hoveredLayer && !sameHovered(hovered, selectedLayer?.id ?? '', selected?.scene) && (
@@ -515,7 +518,7 @@ export function Stage({
             ref={ask}
             className="mark-ask"
             role="dialog"
-            aria-label={`Mark ${marks.length + 1}`}
+            aria-label={tr("Mark {0}", {0: marks.length + 1})}
             style={askAt ?? { left: 0, top: 0, visibility: 'hidden' }}
             onPointerDown={(e) => e.stopPropagation()}
           >
@@ -524,8 +527,8 @@ export function Stage({
               value={note}
               rows={2}
               maxLength={MARK_NOTE}
-              aria-label="What should change here"
-              placeholder="What should change here? (optional)"
+              aria-label={tr("What should change here")}
+              placeholder={tr("What should change here? (optional)")}
               onChange={(e) => setNote(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Escape') {
@@ -538,7 +541,7 @@ export function Stage({
               }}
             />
             <span className="found">
-              {draft.element ? `${elementName(draft.element)}${draft.element.layer ? ` · ${draft.element.layer}` : ''}` : 'A region of the frame'} ·{' '}
+              {draft.element ? `${elementName(draft.element)}${draft.element.layer ? ` · ${draft.element.layer}` : ''}` : tr("A region of the frame")} ·{' '}
               {timecode(draft.t)}
             </span>
             <div className="ask-actions">
@@ -547,8 +550,8 @@ export function Stage({
                   <button
                     type="button"
                     className="icon-button"
-                    aria-label="The element around it"
-                    data-tip="The element around it"
+                    aria-label={tr("The element around it")}
+                    data-tip={tr("The element around it")}
                     disabled={draft.picked.depth >= draft.picked.levels - 1}
                     onClick={() => step(1)}
                   >
@@ -557,8 +560,8 @@ export function Stage({
                   <button
                     type="button"
                     className="icon-button"
-                    aria-label="The element inside"
-                    data-tip="The element inside"
+                    aria-label={tr("The element inside")}
+                    data-tip={tr("The element inside")}
                     disabled={draft.picked.depth === 0}
                     onClick={() => step(-1)}
                   >
@@ -568,18 +571,18 @@ export function Stage({
               )}
               <span className="spacer" />
               <button type="button" className="button ghost" onClick={() => setDraft(null)}>
-                Cancel
+                <Translated text="Cancel" />
               </button>
               <button type="button" className="button primary" disabled={full} onClick={add}>
-                Add mark
+                {tr("Add mark")}
               </button>
             </div>
           </div>
         )}
         {player.solo && (
           <span className="stage-solo" role="status">
-            Solo · {player.solo}
-            <button type="button" className="icon-button" aria-label="Draw every layer again" data-tip="Draw every layer" onClick={player.endSolo}>
+            {tr("Solo ·")} {player.solo}
+            <button type="button" className="icon-button" aria-label={tr("Draw every layer again")} data-tip={tr("Draw every layer")} onClick={player.endSolo}>
               <X size={12} />
             </button>
           </span>
@@ -587,28 +590,28 @@ export function Stage({
         {working && (
           <span className="stage-working" role="status">
             <Loader size={13} className="spin" />
-            The agent is working on the film
+            {tr("The agent is working on the film")}
           </span>
         )}
-        {!build && <p className="waiting">Building the film…</p>}
+        {!build && <p className="waiting">{tr("Building the film…")}</p>}
         {build && !build.ok && (
           <div className="callout build-error" role="alert">
-            <strong>{lastGood ? 'Showing the last successful preview' : 'The film does not build'}</strong>
+            <strong>{lastGood ? tr("Showing the last successful preview") : tr("The film does not build")}</strong>
             <pre>{build.errors.join('\n')}</pre>
             {!working && (
-              <button type="button" className="button" onClick={() => onFix('The film does not build', build.errors.join('\n'))}>
-                Ask the agent to fix it
+              <button type="button" className="button" onClick={() => onFix(tr("The film does not build"), build.errors.join('\n'))}>
+                {tr("Ask the agent to fix it")}
               </button>
             )}
           </div>
         )}
         {build?.ok && player.error && (
           <div className="callout build-error" role="alert">
-            <strong>The film stopped drawing</strong>
+            <strong>{tr("The film stopped drawing")}</strong>
             <pre>{player.error}</pre>
             {!working && (
-              <button type="button" className="button" onClick={() => onFix('The film stopped drawing', player.error!)}>
-                Ask the agent to fix it
+              <button type="button" className="button" onClick={() => onFix(tr("The film stopped drawing"), player.error!)}>
+                {tr("Ask the agent to fix it")}
               </button>
             )}
           </div>
@@ -655,15 +658,16 @@ function Controls({
   fullscreen: boolean;
   onFullscreen(): void;
 }) {
+  const { t: tr } = usePreferences();
   const { film, t, playing } = player;
-  const fullTip = `A message carries at most ${MAX_MARKS} marks`;
+  const fullTip = tr("A message carries at most {0} marks", {0: MAX_MARKS});
   return (
     <div className="stage-bar">
       <button
         type="button"
         className="icon-button"
-        aria-label="Previous frame"
-        data-tip="Previous frame"
+        aria-label={tr("Previous frame")}
+        data-tip={tr("Previous frame")}
         data-key="←"
         disabled={!film}
         onClick={() => player.step(-1)}
@@ -673,8 +677,8 @@ function Controls({
       <button
         type="button"
         className="play"
-        aria-label={playing ? 'Pause' : 'Play'}
-        data-tip={playing ? 'Pause' : 'Play'}
+        aria-label={playing ? tr("Pause") : tr("Play")}
+        data-tip={playing ? tr("Pause") : tr("Play")}
         data-key="Space"
         disabled={!film}
         onClick={player.toggle}
@@ -684,23 +688,23 @@ function Controls({
       <button
         type="button"
         className="icon-button"
-        aria-label="Next frame"
-        data-tip="Next frame"
+        aria-label={tr("Next frame")}
+        data-tip={tr("Next frame")}
         data-key="→"
         disabled={!film}
         onClick={() => player.step(1)}
       >
         <SkipForward size={15} />
       </button>
-      <span className="timecode" aria-label="Time">
+      <span className="timecode" aria-label={tr("Time")}>
         {timecode(t)} <span>/ {timecode(film?.seconds ?? 0)}</span>
       </span>
       <button
         type="button"
         className="icon-button"
         aria-pressed={player.loop}
-        aria-label="Loop"
-        data-tip="Loop"
+        aria-label={tr("Loop")}
+        data-tip={tr("Loop")}
         disabled={!film}
         onClick={() => player.setLoop(!player.loop)}
         style={{ marginLeft: 6 }}
@@ -712,62 +716,62 @@ function Controls({
           type="button"
           className="icon-button"
           aria-pressed={player.muted}
-          aria-label={player.muted ? 'Sound off' : 'Sound on'}
-          data-tip={player.muted ? 'Turn the sound on' : 'Turn the sound off'}
+          aria-label={player.muted ? tr("Sound off") : tr("Sound on")}
+          data-tip={player.muted ? tr("Turn the sound on") : tr("Turn the sound off")}
           onClick={() => player.setMuted(!player.muted)}
         >
           {player.muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
         </button>
       )}
       <span className="spacer" />
-      <span className="pointing" role="group" aria-label="Point at the picture">
+      <span className="pointing" role="group" aria-label={tr("Point at the picture")}>
         <button
           type="button"
           aria-pressed={tool === 'pick'}
-          aria-label="Pick an element"
-          data-tip={full ? fullTip : 'Pick an element'}
+          aria-label={tr("Pick an element")}
+          data-tip={full ? fullTip : tr("Pick an element")}
           data-key={full ? undefined : 'C'}
           disabled={!film || full || disabled}
           onClick={() => player.setTool(tool === 'pick' ? null : 'pick')}
         >
           <Crosshair size={14} />
-          <span>Pick</span>
+          <span>{tr("Pick")}</span>
         </button>
         <button
           type="button"
           aria-pressed={tool === 'region'}
-          aria-label="Mark a region"
-          data-tip={full ? fullTip : 'Mark a region'}
+          aria-label={tr("Mark a region")}
+          data-tip={full ? fullTip : tr("Mark a region")}
           data-key={full ? undefined : 'C'}
           disabled={!film || full || disabled}
           onClick={() => player.setTool(tool === 'region' ? null : 'region')}
         >
           <SquareDashed size={14} />
-          <span>Region</span>
+          <span><Translated text="Region" /></span>
         </button>
         <button
           type="button"
           aria-pressed={guides}
-          aria-label="Safe-area guides"
-          data-tip="Safe-area guides: action 90%, titles 80%"
+          aria-label={tr("Safe-area guides")}
+          data-tip={tr("Safe-area guides: action 90%, titles 80%")}
           data-key="G"
           disabled={!film}
           onClick={onGuides}
         >
           <Frame size={14} />
-          <span>Guides</span>
+          <span>{tr("Guides")}</span>
         </button>
       </span>
       {film && (
         <span className="spec">
-          {film.width}×{film.height} · {Math.round(film.fps * 100) / 100} fps
+          {film.width}×{film.height} · {Math.round(film.fps * 100) / 100} {tr("fps")}
         </span>
       )}
       <button
         type="button"
         className="icon-button"
-        aria-label={fullscreen ? 'Leave full screen' : 'Full screen'}
-        data-tip={fullscreen ? 'Leave full screen' : 'Full screen'}
+        aria-label={fullscreen ? tr("Leave full screen") : tr("Full screen")}
+        data-tip={fullscreen ? tr("Leave full screen") : tr("Full screen")}
         data-key={fullscreen ? 'Esc' : undefined}
         onClick={onFullscreen}
       >

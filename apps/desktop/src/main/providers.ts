@@ -4,11 +4,12 @@
 // opened only at the moment of a call, and never sent to the renderer, written to a log or
 // put in an error (CLAUDE.md, "Architecture rules").
 
+import { translate, type MessageValues } from '../shared/i18n';
 import { app, safeStorage } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { isAbsolute, join, resolve } from 'node:path';
-import type { AgentSettings, Protocol, ProviderInput, ProviderView, Providers, VoiceInput, VoiceKind, VoiceView } from '../shared/api';
+import type { StudioPreferences, AgentSettings, Protocol, ProviderInput, ProviderView, Providers, VoiceInput, VoiceKind, VoiceView } from '../shared/api';
 import type { VoiceSetup } from './voice';
 import { CLAUDE_EFFORTS } from './agent/harness';
 
@@ -22,6 +23,7 @@ interface StoredProvider {
 }
 
 interface Settings {
+  preferences?: StudioPreferences;
   workspace?: string;
   providers: StoredProvider[];
   active: string | null;
@@ -179,6 +181,27 @@ export class ProviderStore {
 
   private keys() {
     return readJson<Record<string, string>>(this.keysFile, {});
+  }
+
+  async preferences(): Promise<StudioPreferences> {
+    return { theme: 'system', language: 'system', ...(await this.settings()).preferences };
+  }
+
+  async savePreferences(input: unknown): Promise<StudioPreferences> {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('Invalid preferences.');
+    const value = input as Record<string, unknown>;
+    if (Object.keys(value).some(key => key !== 'theme' && key !== 'language' && key !== 'onboardingComplete' && key !== 'backgroundNoticeSeen') ||
+        ('backgroundNoticeSeen' in value && typeof value.backgroundNoticeSeen !== 'boolean') ||
+        ('onboardingComplete' in value && typeof value.onboardingComplete !== 'boolean') ||
+        ('theme' in value && !['system', 'light', 'dark'].includes(value.theme as string)) ||
+        ('language' in value && !['system', 'en', 'zh-CN'].includes(value.language as string))) throw new Error('Invalid preferences.');
+    return this.change(async () => {
+      const settings = await this.settings();
+      const next = { theme: 'system', language: 'system', ...settings.preferences, ...value } as StudioPreferences;
+      settings.preferences = next;
+      await writeJson(this.settingsFile, settings);
+      return next;
+    });
   }
 
   async workspace(defaultPath: string): Promise<{ path: string }> {
@@ -358,3 +381,10 @@ export class ProviderStore {
 /** One app-wide settings store serializes saves from the main window and every project view. */
 let sharedStore: ProviderStore | null = null;
 export const providers = (): ProviderStore => (sharedStore ??= new ProviderStore(app.getPath('userData')));
+
+/** Native dialogs use the same preference as every renderer window. */
+export async function studioTranslator(): Promise<(text: string, values?: MessageValues) => string> {
+  const { language } = await providers().preferences();
+  const chinese = (language === 'system' ? app.getLocale() : language).toLowerCase().startsWith('zh');
+  return (text, values) => translate(text, chinese, values);
+}

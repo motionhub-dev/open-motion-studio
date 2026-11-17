@@ -213,6 +213,9 @@ export interface Mark {
   note: string;
 }
 
+/** The longest brief a project is created with (createProject): a description, not a document. */
+export const MAX_BRIEF = 4000;
+
 /** The longest note a mark carries. */
 export const MARK_NOTE = 300;
 
@@ -424,7 +427,46 @@ export interface ProjectTask {
   background: boolean;
 }
 
+/** A project in the person's library, as Home shows it. */
+export interface LibraryProject extends Project {
+  /** When the Studio last opened it, in ms since the epoch. */
+  lastOpened: number;
+  /** When its film.tsx last changed, in ms since the epoch; 0 without a film. */
+  modified: number;
+  /** Its folder is gone: it can be located again or taken off the library. */
+  missing: boolean;
+  /** A still of its film (a JPEG data URL), from its `.motion-studio/cover.jpg`. */
+  cover?: string;
+}
+
+/** App-wide preferences, kept in settings.json and applied to every window. */
+export interface StudioPreferences {
+  /** Home has walked the person through the first run. */
+  onboardingComplete?: boolean;
+  /** The person has been told that closing the main window keeps tasks running. */
+  backgroundNoticeSeen?: boolean;
+  theme: 'system' | 'light' | 'dark';
+  language: 'system' | 'en' | 'zh-CN';
+}
+
+/** Launch at login: only installed Windows and macOS builds support it. */
+export interface SystemStartup {
+  supported: boolean;
+  enabled: boolean;
+}
+
 export interface StudioApi {
+  /** Every project the person has opened, most recent first, missing folders included. */
+  projectLibrary(): Promise<LibraryProject[]>;
+  /** Takes a project off the library, shows its folder, or asks where a missing one went; files are never removed. */
+  libraryAction(path: string, action: 'remove' | 'locate' | 'show'): Promise<void>;
+  /** Fails unless the workspace folder exists, or can be made, and takes a new file. */
+  validateWorkspace(): Promise<void>;
+  onPreferencesChanged(listener: () => void): () => void;
+  preferences(): Promise<StudioPreferences>;
+  savePreferences(input: Partial<StudioPreferences>): Promise<StudioPreferences>;
+  systemStartup(): Promise<SystemStartup>;
+  setSystemStartup(enabled: boolean): Promise<SystemStartup>;
   /** Opens the app's fixed local diagnostics folder. */
   showLogs(): Promise<void>;
   workspace(): Promise<WorkspaceSettings>;
@@ -434,6 +476,7 @@ export interface StudioApi {
   newWindow(): Promise<void>;
   currentProject(): Promise<Project | null>;
   tasks(): Promise<ProjectTask[]>;
+  onSettingsChanged(listener: (external: boolean) => void): () => void;
   onTasks(listener: (tasks: ProjectTask[]) => void): () => void;
   /** Pauses UI playback when an editor is detached or its host is hidden; background tasks are unaffected. */
   onViewVisibility(listener: (visible: boolean) => void): () => void;
@@ -451,13 +494,16 @@ export interface StudioApi {
    * and the conversation as it was before the person's message, whose words come back to put in the composer.
    */
   undoTurn(checkpoint: string): Promise<{ text: string }>;
-  /** Recent projects, most recent first, without folders that no longer exist. */
-  recentProjects(): Promise<Project[]>;
   /** Asks for a folder and opens it; null when the person cancels. */
   openProject(): Promise<Project | null>;
-  /** Creates a fresh film folder in the configured workspace and opens it. */
-  createProject(): Promise<Project | null>;
-  /** Opens a folder from the recent list; any other path is refused. */
+  /**
+   * Creates a fresh film folder in the configured workspace and opens it. With a brief (what the person wants to make,
+   * in their words), the folder is named from it and the brief waits for the new editor (`takeBrief`).
+   */
+  createProject(brief?: string): Promise<Project | null>;
+  /** The brief this editor's project was created with, once: a second call answers null. */
+  takeBrief(): Promise<string | null>;
+  /** Opens a folder from the library; any other path is refused. */
   openRecent(path: string): Promise<Project | null>;
   /** Starts a film in the open project, which holds none yet. */
   startFilm(): Promise<Project>;
@@ -558,6 +604,13 @@ export interface StudioApi {
 
 /** Invoked channels, one per request method of StudioApi. */
 export const CHANNELS = {
+  projectLibrary: 'library:list',
+  libraryAction: 'library:action',
+  validateWorkspace: 'workspace:validate',
+  preferences: 'preferences:get',
+  savePreferences: 'preferences:save',
+  systemStartup: 'startup:get',
+  setSystemStartup: 'startup:set',
   showLogs: 'app:show-logs',
   workspace: 'workspace:get',
   chooseWorkspace: 'workspace:choose',
@@ -573,9 +626,9 @@ export const CHANNELS = {
   history: 'project:history',
   restoreCheckpoint: 'project:restore',
   undoTurn: 'agent:undo-turn',
-  recentProjects: 'project:recent',
   openProject: 'project:open',
   createProject: 'project:create',
+  takeBrief: 'project:take-brief',
   openRecent: 'project:open-recent',
   startFilm: 'project:start-film',
   closeProject: 'project:close',
@@ -624,4 +677,6 @@ export const EVENTS = {
   exportProgress: 'film:export-progress',
   voiceProgress: 'film:voice-progress',
   agent: 'agent:event',
+  preferences: 'preferences:changed',
+  settings: 'settings:changed',
 } as const;

@@ -1,4 +1,6 @@
 // A project-owned session: its editor view, agent, previews and tasks survive moving between native windows.
+
+import { studioTranslator } from './providers';
 import { BrowserWindow, Notification, app, dialog, shell, type BaseWindow, type IpcMainInvokeEvent, type Session, type OpenDialogOptions, type WebContents } from 'electron';
 import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -55,7 +57,7 @@ import { reviewBuild } from './film/review';
 import { FILM, FILM_SKILL, startFilm, watchFilm } from './film/film';
 import { type ExportedSpeech, exportedSpeech, writeRemotionProject } from './film/remotion-export';
 import { motionDetail, motionReel, projectMotions, searchMotions, useMotion } from './motions';
-import { STATE_DIR, projectAt, recentProjects, rememberProject } from './project';
+import { STATE_DIR, projectAt, rememberProject } from './project';
 import { describeReferences, filmSpans, readReferences } from './agent/references';
 import { ProjectHistory, changesBetween, inProject, noteFiles, putBack } from './history';
 import { NO_TOKENS, type Spent, readUsage, recordUsage, totals } from './usage';
@@ -63,7 +65,7 @@ import { randomUUID } from 'node:crypto';
 import { isAbsolute, relative, resolve } from 'node:path';
 import { ProviderStore, providers } from './providers';
 
-const recentsFile = (): string => join(app.getPath('userData'), 'recent-projects.json');
+const libraryFile = (): string => join(app.getPath('userData'), 'projects.json');
 
 
 /** A project can have only one writer window, including while it is being opened. */
@@ -346,7 +348,7 @@ export function createWorkspace(host: WorkspaceHost, renderSession: Session, cha
       reserved = true;
       await closeOpen(false);
       if (host.isDestroyed()) throw new Error('The window was closed.');
-      await rememberProject(recentsFile(), project);
+      await rememberProject(libraryFile(), project);
       const state: NonNullable<typeof open> = { project, watcher: null, build: null, messages: null };
       open = state;
       host.setTitle(`${project.name} — OpenMotionStudio`);
@@ -600,7 +602,7 @@ export function createWorkspace(host: WorkspaceHost, renderSession: Session, cha
       try {
         const window = host.window?.() ?? BrowserWindow.fromWebContents(event.sender);
         const options: OpenDialogOptions = {
-          title: 'Bring images, fonts and sounds into your film',
+          title: (await studioTranslator())('Bring images, fonts and sounds into your film'),
           properties: ['openFile', 'multiSelections'],
           filters: [{ name: 'Images, fonts and sounds', extensions: ASSET_EXTENSIONS }],
         };
@@ -613,7 +615,6 @@ export function createWorkspace(host: WorkspaceHost, renderSession: Session, cha
       }
     });
 
-    handle(CHANNELS.recentProjects, () => recentProjects(recentsFile()));
 
     handle(CHANNELS.startFilm, async () => {
       const { project } = requireOpen();
@@ -963,7 +964,7 @@ export function createWorkspace(host: WorkspaceHost, renderSession: Session, cha
         if (errors.length) throw new Error(`Before exporting: ${errors.map((issue) => issue.text).join('\n')}`);
         const window = host.window?.() ?? BrowserWindow.fromWebContents(event.sender);
         const options = {
-          title: 'Export the film',
+          title: (await studioTranslator())('Export the film'),
           defaultPath: join(state.project.path, `${state.project.name}.mp4`),
           filters: [{ name: 'MP4 video', extensions: ['mp4'] }],
         };
@@ -989,9 +990,10 @@ export function createWorkspace(host: WorkspaceHost, renderSession: Session, cha
       const controller = new AbortController();
       exporting = controller;
       try {
+        const tr = await studioTranslator();
         const path = await chooseFolder(event.sender, {
-          title: 'Choose an empty folder for the Remotion project',
-          buttonLabel: 'Export',
+          title: tr('Choose an empty folder for the Remotion project'),
+          buttonLabel: tr('Export'),
           properties: ['openDirectory', 'createDirectory'],
         });
         if (path === null) return null;

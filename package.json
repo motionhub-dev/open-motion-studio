@@ -9,6 +9,8 @@
     "dev": "pnpm --filter ./apps/desktop dev",
     "typecheck": "pnpm --filter ./apps/desktop typecheck",
     "test": "pnpm --filter ./apps/desktop test",
+    "test:ui": "pnpm --filter ./apps/desktop test:ui",
+    "templates": "pnpm --filter ./apps/desktop templates",
     "build": "pnpm --filter ./apps/desktop build",
     "package": "pnpm --filter ./apps/desktop package"
   }

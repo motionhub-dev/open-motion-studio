@@ -11,6 +11,8 @@
     "dev": "install-electron && node scripts/build-preview.mjs && electron-vite dev",
     "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.web.json --noEmit",
     "test": "vitest run",
+    "test:ui": "pnpm build && node scripts/test-select.mjs && node scripts/test-i18n.mjs && node scripts/test-studio.mjs",
+    "templates": "pnpm build && node scripts/render-templates.mjs",
     "build": "node scripts/build-preview.mjs && electron-vite build",
     "package": "install-electron && pnpm build && electron-builder --publish never"
   },

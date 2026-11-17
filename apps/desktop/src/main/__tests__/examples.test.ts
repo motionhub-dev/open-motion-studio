@@ -1,8 +1,10 @@
-import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile, rm, stat } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { EXAMPLES, exampleSource, openExample } from '../examples';
+import { EXAMPLES, TEMPLATE_FONT, exampleSource, openExample } from '../examples';
 import { watchFilm } from '../film/film';
 vi.mock('electron', () => ({}));
 let dir: string;
@@ -36,4 +38,22 @@ it('copies a pristine template into a fresh folder on every click and preserves 
   expect(await readFile(join(first.path, 'film.tsx'), 'utf8')).toBe('mine');
   expect(await readFile(join(second.path, 'film.tsx'), 'utf8')).toBe(exampleSource(EXAMPLES.find((e) => e.id === 'kinetic')!));
   await expect(openExample(dir, '../escape')).rejects.toThrow('starting points');
+});
+
+it('has each template rendered from its current source, for Home to play', async () => {
+  const folder = fileURLToPath(new URL('../../renderer/src/templates/', import.meta.url));
+  const manifest = JSON.parse(await readFile(join(folder, 'manifest.json'), 'utf8')) as Record<string, { seconds: number; film: string }>;
+  expect(Object.keys(manifest).sort()).toEqual(EXAMPLES.map((example) => example.id).sort());
+  for (const example of EXAMPLES) {
+    const hash = createHash('sha256').update(exampleSource(example)).digest('hex');
+    // Changed a template? Run `pnpm templates` to render it again.
+    expect(manifest[example.id], example.id).toEqual({ seconds: example.seconds, film: hash });
+    for (const kind of ['mp4', 'jpg']) expect((await stat(join(folder, `${example.id}.${kind}`))).size).toBeGreaterThan(0);
+  }
+});
+
+it('gives each template copy its face and the face its licence, beside the film that imports it', async () => {
+  const project = await openExample(dir, 'kinetic');
+  for (const file of Object.values(TEMPLATE_FONT)) expect((await stat(join(project.path, 'media', file))).size).toBeGreaterThan(0);
+  expect(await readFile(join(project.path, 'film.tsx'), 'utf8')).toContain(`import inter from './media/${TEMPLATE_FONT.face}'`);
 });

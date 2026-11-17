@@ -301,11 +301,8 @@ function load(src: string): Promise<void> {
   });
 }
 
-/**
- * The faces of the project's motions (build/fonts.css), loaded before the film draws, so its first frame is in them.
- * A face that will not load leaves its text in the next face of its stack, and is said in the console.
- */
-async function faces(): Promise<void> {
+/** The project's motions' faces (build/fonts.css), in the page before the film draws. */
+async function motionFaces(): Promise<void> {
   await new Promise<void>((done) => {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
@@ -315,9 +312,18 @@ async function faces(): Promise<void> {
     link.onerror = () => done();
     document.head.appendChild(link);
   });
-  const loaded = await Promise.allSettled([...document.fonts].map((face) => face.load()));
+}
+
+/**
+ * Loads every face the page declares (a motion's, or one the film declares itself in a <style>), so no frame is drawn
+ * in a fallback while a face is on its way. A face that will not load leaves its text in the next face of its stack,
+ * and is said in the console.
+ */
+async function loadFaces(): Promise<void> {
+  const faces = [...document.fonts];
+  const loaded = await Promise.allSettled(faces.map((face) => face.load()));
   for (const [i, result] of loaded.entries())
-    if (result.status === 'rejected') console.warn(`The face ${[...document.fonts][i]?.family} did not load:`, result.reason);
+    if (result.status === 'rejected') console.warn(`The face ${faces[i]?.family} did not load:`, result.reason);
 }
 
 async function start(): Promise<void> {
@@ -325,13 +331,16 @@ async function start(): Promise<void> {
   const render = new URLSearchParams(location.search).get('render') === '1';
   const version = new URLSearchParams(location.search).get('v') ?? '';
   try {
-    await faces();
+    await motionFaces();
+    await loadFaces();
     await load(`build/film-${Number(version)}.js`);
     const module = (globalThis as { __omsFilm?: FilmModule }).__omsFilm;
     if (!module) throw new Error('The film did not load.');
     const film = info(module, await spoken());
     const root = createRoot(document.getElementById('root')!);
-    root.render(render ? <Still Film={module.default} film={film} /> : <Player Film={module.default} film={film} />);
+    // Drawn at once, so the faces its first frame declares are in the page, and loaded before anyone asks for a frame.
+    flushSync(() => root.render(render ? <Still Film={module.default} film={film} /> : <Player Film={module.default} film={film} />));
+    await loadFaces();
     window.__omsFrame = film;
     post({ type: 'oms:ready', film });
   } catch (error) {

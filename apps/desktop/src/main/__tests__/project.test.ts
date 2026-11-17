@@ -8,14 +8,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const home = vi.hoisted(() => ({ dir: '' }));
 vi.mock('node:os', async (original) => ({ ...(await original<typeof import('node:os')>()), homedir: () => home.dir }));
 import {
-  MAX_RECENTS,
+  COVER,
+  STATE_DIR,
   createProject,
   createInWorkspace,
+  filmName,
+  forgetProject,
   ignore,
-  isRecent,
+  inLibrary,
   openProject,
   projectAt,
-  recentProjects,
+  projectLibrary,
   rememberProject,
 } from '../project';
 
@@ -115,6 +118,27 @@ describe('createInWorkspace', () => {
   });
 });
 
+describe('filmName', () => {
+  it('names a film from the first line of its brief, as a folder can be named', () => {
+    expect(filmName('  A launch teaser: our app / v2?\nwith details')).toBe('A launch teaser our app v2');
+    expect(filmName('为新的阅读应用制作一段 15 秒的发布短片')).toBe('为新的阅读应用制作一段 15 秒的发布短片');
+  });
+  it('keeps at most 40 characters, at a word end where there is one', () => {
+    const name = filmName('A thirty second explainer on how solar panels turn light into power');
+    expect([...name].length).toBeLessThanOrEqual(40);
+    expect(name).toBe('A thirty second explainer on how solar');
+    expect(filmName('Reading app launch teaser: calm, warm, 15 seconds')).toBe('Reading app launch teaser calm, warm');
+    expect(filmName('为阅读应用做一段发布短片。')).toBe('为阅读应用做一段发布短片');
+  });
+  it('falls back to Untitled film for nothing usable or a reserved name', () => {
+    for (const brief of ['   ', '???', 'CON', 'nul.', '...']) expect(filmName(brief)).toBe('Untitled film');
+  });
+  it('gives a name createInWorkspace accepts', async () => {
+    const project = await createInWorkspace(root, filmName('Kinetic type: “Make it move”'));
+    expect(project.name).toBe('Kinetic type “Make it move”');
+  });
+});
+
 describe('ignore', () => {
   it('appends to an existing .gitignore on a line of its own', async () => {
     await writeFile(join(root, '.gitignore'), 'node_modules');
@@ -137,8 +161,8 @@ describe('ignore', () => {
   });
 });
 
-describe('the recent list', () => {
-  const file = () => join(root, 'recent-projects.json');
+describe('the project library', () => {
+  const file = () => join(root, 'projects.json');
 
   async function folder(name: string) {
     const path = join(root, name);
@@ -149,40 +173,51 @@ describe('the recent list', () => {
   it('keeps projects opened by several windows at the same time', async () => {
     const projects = await Promise.all(['one', 'two', 'three'].map(folder));
     await Promise.all(projects.map((project) => rememberProject(file(), project)));
-    expect((await recentProjects(file())).map((p) => p.name).sort()).toEqual(['one', 'three', 'two']);
+    expect((await projectLibrary(file())).map((p) => p.name).sort()).toEqual(['one', 'three', 'two']);
   });
 
   it('is empty when nothing was stored or the file is corrupt', async () => {
-    expect(await recentProjects(file())).toEqual([]);
+    expect(await projectLibrary(file())).toEqual([]);
     await writeFile(file(), '{not json');
-    expect(await recentProjects(file())).toEqual([]);
+    expect(await projectLibrary(file())).toEqual([]);
   });
 
-  it('keeps the most recent first, once each, at most MAX_RECENTS', async () => {
+  it('keeps every project, the most recently opened first, once each', async () => {
     const projects = [];
-    for (let i = 0; i <= MAX_RECENTS; i++) projects.push(await folder(`p${i}`));
+    for (let i = 0; i < 12; i++) projects.push(await folder(`p${i}`));
     for (const project of projects) await rememberProject(file(), project);
     await rememberProject(file(), projects[5]!);
-    const recents = await recentProjects(file());
-    expect(recents).toHaveLength(MAX_RECENTS);
-    expect(recents[0]).toEqual(projects[5]);
-    expect(recents[1]).toEqual(projects[MAX_RECENTS]);
-    expect(recents.map((p) => p.path)).not.toContain(projects[0]!.path);
+    const library = await projectLibrary(file());
+    expect(library).toHaveLength(12);
+    expect(library[0]).toMatchObject({ ...projects[5], missing: false });
+    expect(library[1]?.path).toBe(projects[11]!.path);
+    expect(library[0]!.lastOpened).toBeGreaterThanOrEqual(library[1]!.lastOpened);
   });
 
-  it('leaves out folders that no longer exist', async () => {
-    const kept = await folder('kept');
+  it('keeps a folder that is gone, marked missing, so it can be located again', async () => {
     const gone = await folder('gone');
-    await rememberProject(file(), kept);
     await rememberProject(file(), gone);
     await rm(gone.path, { recursive: true });
-    expect(await recentProjects(file())).toEqual([kept]);
+    expect(await projectLibrary(file())).toMatchObject([{ path: gone.path, missing: true, film: false }]);
+    expect(await inLibrary(file(), gone.path)).toBe(true);
   });
 
-  it('answers only for paths on it', async () => {
+  it('answers only for paths in it, and forgetting one never touches its folder', async () => {
     const kept = await folder('kept');
     await rememberProject(file(), kept);
-    expect(await isRecent(file(), kept.path)).toBe(true);
-    expect(await isRecent(file(), join(root, 'elsewhere'))).toBe(false);
+    expect(await inLibrary(file(), kept.path)).toBe(true);
+    expect(await inLibrary(file(), join(root, 'elsewhere'))).toBe(false);
+    await forgetProject(file(), kept.path);
+    expect(await inLibrary(file(), kept.path)).toBe(false);
+    expect((await stat(kept.path)).isDirectory()).toBe(true);
+  });
+
+  it('reads a cover from the project, never from the library file', async () => {
+    const project = await createInWorkspace(root, 'Film');
+    await rememberProject(file(), project);
+    expect((await projectLibrary(file()))[0]?.cover).toBeUndefined();
+    await writeFile(join(project.path, STATE_DIR, COVER), Buffer.from('AAAA', 'base64'));
+    expect((await projectLibrary(file()))[0]?.cover).toBe('data:image/jpeg;base64,AAAA');
+    expect(await readFile(file(), 'utf8')).not.toContain('base64');
   });
 });

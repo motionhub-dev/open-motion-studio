@@ -60,7 +60,7 @@ beforeEach(async () => {
   for (const path of [a, b]) {
     await mkdir(path);
     await writeFile(join(path, 'film.tsx'), 'export default function Film() { return null; }');
-    await rememberProject(join(mocks.root, 'recent-projects.json'), projectAt(path));
+    await rememberProject(join(mocks.root, 'projects.json'), projectAt(path));
   }
 });
 afterEach(async () => {
