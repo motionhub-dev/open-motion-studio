@@ -247,7 +247,6 @@ export function Stage({
   guides,
   onGuides,
   disabled = false,
-  column = 2,
 }: {
   player: Player;
   build: BuildResult | null;
@@ -266,7 +265,6 @@ export function Stage({
   guides: boolean;
   onGuides(): void;
   disabled?: boolean;
-  column?: number;
 }) {
   const { t: tr } = usePreferences();
   const stage = useRef<HTMLDivElement>(null);
@@ -435,7 +433,7 @@ export function Stage({
   }
 
   return (
-    <div className="stage" ref={root} style={{ gridColumn: column, gridRow: 1 }}>
+    <div className="stage" ref={root}>
       <div className="picture" ref={stage} style={{ padding: INSET }}>
         {/* The picture asks for the film's own shape, so the stage is no taller than its frame where there is room. */}
         <div className="fit" style={{ aspectRatio: film ? `${film.width} / ${film.height}` : '16 / 9' }} />

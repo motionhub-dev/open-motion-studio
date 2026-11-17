@@ -542,9 +542,60 @@ button.status:hover {
   border-radius: 3px;
 }
 
-.assistant {
+/* The workspace's three columns: the assistant (or its rail), the stage over the timeline, the project tools (or
+   their rail) beside the stage. */
+.workspace > :is(.assistant, .rail-assistant) {
+  grid-column: 1;
   grid-row: 1 / span 2;
+}
+
+.assistant {
   overflow: hidden;
+}
+
+.workspace > .stage {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.workspace > :is(.side, .rail-side) {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.workspace > .timeline-sheet {
+  grid-column: 2 / -1;
+}
+
+/* A panel put away leaves a rail where it was, as the folded timeline leaves its head: the whole rail brings it back. */
+.rail {
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.rail:hover {
+  background: var(--s2);
+  color: var(--text);
+}
+
+.rail > span:not(.rail-working) {
+  writing-mode: vertical-rl;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+/* The agent works while its panel is put away. */
+.rail-working {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--annotate);
+  animation: task-pulse 1.6s ease-in-out infinite;
 }
 
 .assistant > .head {
@@ -2354,6 +2405,14 @@ kbd {
   flex-direction: column;
   min-height: 0;
 }
+.timeline-options.folded {
+  cursor: pointer;
+}
+
+.timeline-options.folded:hover {
+  background: var(--s2);
+}
+
 .timeline-options {
   display: flex;
   align-items: center;
@@ -2786,13 +2845,6 @@ kbd {
 }
 .modal-shell:focus {
   outline: none;
-}
-.layout-tools {
-  display: flex;
-  align-items: center;
-  padding-right: 8px;
-  margin-right: 4px;
-  border-right: 1px solid var(--line);
 }
 .side {
   grid-row: 1;
@@ -5099,7 +5151,8 @@ input.switch:disabled {
   .workspace,
   .skeleton,
   .task-ring.turning,
-  .task-dot {
+  .task-dot,
+  .rail-working {
     animation: none;
   }
 

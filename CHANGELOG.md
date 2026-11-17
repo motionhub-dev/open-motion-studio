@@ -3,6 +3,17 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-17 — A hidden panel leaves a rail
+
+- **What:** Hiding the assistant or the project tools leaves a narrow rail in its place, its icon and name written down
+  it, as the folded timeline leaves its head; clicking anywhere on the rail brings the panel back, and the whole folded
+  timeline head unfolds it too. The assistant's rail shows a pulsing dot while the agent works. The top bar's buttons
+  for hidden panels are gone; [ and ] still toggle them.
+- **Why:** A hidden panel was only findable from two small icons in the top bar, far from where it had been.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/project-view.tsx`, `apps/desktop/src/renderer/src/styles.css`.
+
 ## 2026-11-17 — A motion taken during a coding agent's turn is kept
 
 - **What:** When Codex or Claude Code took a motion from motionhub through the Studio's tools during a turn, the end of
