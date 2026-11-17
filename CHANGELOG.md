@@ -3,6 +3,16 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-17 — Every timeline lane is drawn
+
+- **What:** A film with more layers than the timeline is tall now draws every lane when the timeline is scrolled down.
+  The tracks and the names column take the height of their lanes, at least the timeline's.
+- **Why:** The tracks were as tall as the timeline's visible part, so scrolling down showed the names of the lower layers
+  beside empty space.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/styles.css` (`.timeline .tracks`, `.timeline .names`).
+
 ## 2026-11-17 — A hidden panel leaves a rail
 
 - **What:** Hiding the assistant or the project tools leaves a narrow rail in its place, its icon and name written down
