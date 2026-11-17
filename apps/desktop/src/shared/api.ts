@@ -425,6 +425,8 @@ export interface ProjectTask {
   updatedAt: number;
   progress?: number;
   background: boolean;
+  /** The project is in a window of its own rather than the main window. */
+  separate: boolean;
 }
 
 /** A project in the person's library, as Home shows it. */
@@ -458,8 +460,11 @@ export interface SystemStartup {
 export interface StudioApi {
   /** Every project the person has opened, most recent first, missing folders included. */
   projectLibrary(): Promise<LibraryProject[]>;
-  /** Takes a project off the library, shows its folder, or asks where a missing one went; files are never removed. */
-  libraryAction(path: string, action: 'remove' | 'locate' | 'show'): Promise<void>;
+  /**
+   * Takes a project off the library, shows its folder, asks where a missing one went, renames its folder (`name`), or
+   * copies it beside itself as a new project, which opens; files are never removed.
+   */
+  libraryAction(path: string, action: 'remove' | 'locate' | 'show' | 'rename' | 'duplicate', name?: string): Promise<void>;
   /** Fails unless the workspace folder exists, or can be made, and takes a new file. */
   validateWorkspace(): Promise<void>;
   onPreferencesChanged(listener: () => void): () => void;

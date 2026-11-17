@@ -12,6 +12,9 @@ import {
   STATE_DIR,
   createProject,
   createInWorkspace,
+  duplicateProject,
+  folderName,
+  renameProject,
   filmName,
   forgetProject,
   ignore,
@@ -136,6 +139,57 @@ describe('filmName', () => {
   it('gives a name createInWorkspace accepts', async () => {
     const project = await createInWorkspace(root, filmName('Kinetic type: “Make it move”'));
     expect(project.name).toBe('Kinetic type “Make it move”');
+  });
+});
+
+describe('folderName', () => {
+  it('keeps a name every system can hold, trimmed', () => {
+    expect(folderName('  Launch teaser  ')).toBe('Launch teaser');
+    expect(folderName('产品介绍 · 第二版')).toBe('产品介绍 · 第二版');
+  });
+  it('refuses a separator, a character Windows refuses, a device name or a trailing dot', () => {
+    for (const name of ['', '  ', '.', '..', 'a/b', 'a\\b', 'a:b', 'what?', 'CON', 'nul', 'name.', 42])
+      expect(() => folderName(name), String(name)).toThrow('single folder name');
+  });
+});
+
+describe('renameProject', () => {
+  it('renames the folder in place and keeps every file', async () => {
+    const project = await createInWorkspace(root, 'Film');
+    await writeFile(join(project.path, 'film.tsx'), 'the film');
+    const renamed = await renameProject(project.path, 'Launch teaser');
+    expect(renamed.path).toBe(join(root, 'Launch teaser'));
+    expect(await readFile(join(renamed.path, 'film.tsx'), 'utf8')).toBe('the film');
+    await expect(stat(project.path)).rejects.toThrow();
+  });
+  it('refuses a name another folder beside it has, and changes nothing', async () => {
+    const one = await createInWorkspace(root, 'One');
+    await createInWorkspace(root, 'Two');
+    await expect(renameProject(one.path, 'Two')).rejects.toThrow('already a folder named Two');
+    expect((await stat(one.path)).isDirectory()).toBe(true);
+  });
+  it('takes the same name as nothing to do', async () => {
+    const one = await createInWorkspace(root, 'One');
+    expect((await renameProject(one.path, ' One ')).path).toBe(one.path);
+  });
+});
+
+describe('duplicateProject', () => {
+  it('copies every file beside it as a new project, none of the Studio state', async () => {
+    const project = await createInWorkspace(root, 'Film');
+    await writeFile(join(project.path, 'film.tsx'), 'the film');
+    await mkdir(join(project.path, 'media'));
+    await writeFile(join(project.path, 'media', 'a.png'), 'png');
+    await writeFile(join(project.path, '.motion-studio', 'agent.json'), '{"thread":"mine"}');
+    await writeFile(join(project.path, '.gitignore'), 'node_modules/\n');
+    const copy = await duplicateProject(project.path);
+    expect(copy.name).toBe('Film copy');
+    expect(await readFile(join(copy.path, 'film.tsx'), 'utf8')).toBe('the film');
+    expect(await readFile(join(copy.path, 'media', 'a.png'), 'utf8')).toBe('png');
+    await expect(stat(join(copy.path, '.motion-studio', 'agent.json'))).rejects.toThrow();
+    expect(await readFile(join(copy.path, '.gitignore'), 'utf8')).toContain('.motion-studio/');
+    expect((await duplicateProject(project.path)).name).toBe('Film copy 2');
+    expect(await readFile(join(project.path, '.motion-studio', 'agent.json'), 'utf8')).toContain('mine');
   });
 });
 

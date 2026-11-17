@@ -65,9 +65,12 @@ key where it has one.
 
 A top bar over a grid of panels (`project-view.tsx`):
 
-- **Top bar**: a Home icon (it returns to Home; the project keeps running), a chevron, the project's name (its path on hover) and its status (building,
-  built with the last check's issue count, or does not build), which opens Checks; then keyboard shortcuts, Voice (when the film has lines or a voice) and Export, which shows progress and cancels while
-  running, with a menu beside it for a Remotion project. Voice opens a dialog that goes one step at a time: with no voice
+- **Top bar**: on the left where the person is and what it is: a Home icon (it returns to Home; the project keeps
+  running), a chevron, the project's name (its path on hover; a double-click renames it in place) with its menu, and its
+  status (building, built with the last check's issue count, or does not build), which opens Checks. On the right what
+  to do with it: keyboard shortcuts, Voice (when the film has lines or a voice) and Export, which shows progress and
+  cancels while running, with a menu beside it for a Remotion project; then, set apart by a rule, the gear, which is
+  OpenMotionStudio's settings, the same page as Home's, never the project's. Voice opens a dialog that goes one step at a time: with no voice
   provider set up, the four as cards, each opening it in Models; with no `<Film voice>`, what to ask the agent; then the
   lines, how many are spoken, and Voice with its progress line by line. On a Mac the window has no title bar (`hiddenInset`): its buttons sit over the top bar, which
   leaves them room and moves the window; Home keeps a strip at its top to move it by. The top bar also opens Settings.
@@ -187,9 +190,12 @@ English error the Studio has no translation for is summarized, with its exact te
 The Chinese keeps one word for each thing: a project (a folder) is 项目, a film (`film.tsx`) is 影片, the workspace is
 工作空间, a template is 模板, a motion is 动效, and an agent stays Agent.
 
-The editor's project-name menu switches projects or returns Home without stopping a task. Open in editor window,
-also Ctrl/Cmd+Shift+N, moves its existing view into a dedicated window for that project. Open in main window moves
-it back. Closing a dedicated window only detaches the view; reopening restores the same conversation, draft and
+The project's menu has what can be done to this project: Rename… (the folder, refused while a task runs; the editor
+comes back on the renamed folder where it was), Show in folder, Duplicate as a new project (a copy beside it without
+the Studio's state, which opens), and Open in its own window (also Ctrl/Cmd+Shift+N), which moves its existing view
+into a dedicated window, or Move back to the main window when it is in one; then the film's size, rate and length,
+which the assistant changes. Below, Switch to lists the projects with a task running (those that need the person in
+cobalt) and the five opened last, and Home returns Home without stopping a task. Closing a dedicated window only detaches the view; reopening restores the same conversation, draft and
 pending requests. A project appears in one editing surface at a time. Hidden views pause preview playback while
 agents and exports continue. Sessions are retained for this app run; explicit Quit ends them.
 

@@ -9,7 +9,7 @@ import { CHANNELS, EVENTS, MAX_BRIEF, type Project, type ProjectTask } from '../
 import { keepFilmsInPlace, registerPreviewScheme, SCHEME, servePreview } from './film/preview';
 import { startFilm } from './film/film';
 import { openExample } from './examples';
-import { createInWorkspace, filmName, forgetProject, inLibrary, openProject, projectAt, projectLibrary, rememberProject } from './project';
+import { createInWorkspace, duplicateProject, filmName, forgetProject, inLibrary, openProject, projectAt, projectLibrary, rememberProject, renameProject } from './project';
 import { providers, studioTranslator } from './providers';
 import { createWorkspace, type WorkspaceHost } from './workspace';
 import { WebContentsView } from 'electron';
@@ -49,6 +49,7 @@ function taskList(): ProjectTask[] {
       title: 'Ready to create', activity: 'Ready', startedAt: entry.openedAt, updatedAt: entry.openedAt,
     }),
     background: !entry.host || !entry.host.isVisible(),
+    separate: !!entry.window && entry.host === entry.window,
   })).sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
@@ -224,6 +225,47 @@ async function editorFor(project: Project, brief: string | null = null): Promise
   changed(); return entry;
 }
 
+/** Ends a project's editor: its view and its own window close and its sessions stop serving; its files stay. */
+async function retire(entry: Editor): Promise<void> {
+  for (const [key, known] of editors) if (known === entry) editors.delete(key);
+  surfaces.delete(entry.view.webContents.id);
+  await entry.workspace.dispose();
+  detach(entry);
+  if (entry.window && !entry.window.isDestroyed()) entry.window.destroy();
+  entry.view.webContents.session.protocol.unhandle(SCHEME);
+  entry.renderSession.protocol.unhandle(SCHEME);
+  entry.view.webContents.close();
+  changed();
+}
+
+/**
+ * Renames a project's folder. An open project's editor is retired first, since its watcher and its agent hold the
+ * folder, and opens again on the renamed folder where it was; a project with a task running is refused.
+ */
+async function renameKnown(path: string, name: unknown): Promise<void> {
+  const entry = [...editors.values()].find((e) => e.project.path === path);
+  if (entry?.workspace.busy()) throw new Error('Finish or stop the current task before renaming the project.');
+  const separate = !!entry && !!entry.window && entry.host === entry.window;
+  const shown = !!entry && !!entry.host;
+  if (entry) await retire(entry);
+  let project;
+  try {
+    project = await renameProject(path, name);
+  } catch (error) {
+    if (shown) {
+      // The editor comes back on the folder as it was, so a refused name loses nothing.
+      const back = await editorFor(projectAt(path));
+      if (separate) openSeparate(back); else openInMain(back);
+    }
+    throw error;
+  }
+  await forgetProject(libraryFile(), path);
+  await rememberProject(libraryFile(), project);
+  if (!shown) return;
+  const renamed = await editorFor(project);
+  if (separate) openSeparate(renamed); else openInMain(renamed);
+}
+
 async function openKnown(path: unknown, separate: unknown): Promise<void> {
   if (typeof path !== 'string' || (separate !== undefined && typeof separate !== 'boolean')) throw new Error('Choose a project to open.');
   const known = [...editors.values()].find((e) => e.project.path === path);
@@ -321,6 +363,12 @@ else {
           const [path, action] = args;
           if (typeof path !== 'string' || !(await inLibrary(libraryFile(), path))) throw new Error('That project is not in your library.');
           if (action === 'remove') await forgetProject(libraryFile(), path);
+          else if (action === 'rename') await renameKnown(path, args[2]);
+          else if (action === 'duplicate') {
+            const copy = await duplicateProject(path);
+            await rememberProject(libraryFile(), copy);
+            openInMain(await editorFor(copy));
+          }
           else if (action === 'show') { const error = await shell.openPath(path); if (error) throw new Error(error); }
           else if (action === 'locate') {
             const result = await dialog.showOpenDialog(entry?.host ?? mainWindow, { properties: ['openDirectory'], title: (await studioTranslator())('Locate project folder') });

@@ -798,7 +798,7 @@ export function Home({ providers, workspace, tasks, examples, busy, error, revis
           <Plus size={15} />
           {t('New film')}
         </button>
-        <button className="icon-button" aria-label={t('Settings')} title={t('Settings')} onClick={() => onSettings()}>
+        <button className="icon-button" aria-label={t('OpenMotionStudio settings')} data-tip={t('OpenMotionStudio settings')} onClick={() => onSettings()}>
           <SettingsIcon size={18} />
         </button>
       </header>

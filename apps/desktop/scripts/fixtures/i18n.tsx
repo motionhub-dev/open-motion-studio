@@ -48,7 +48,7 @@ const nav = async (label: string) => action(() => { const found = Array.from(doc
   await action(() => root.render(<PreferencesProvider><App /></PreferencesProvider>));
   assert(document.documentElement.lang === 'zh-CN', 'Document language not applied');
   assert(text().includes('新建影片') && text().includes('用数字讲故事'), 'Home not localized');
-  await action(() => button('设置').click());
+  await action(() => button('OpenMotionStudio 设置').click());
   assert(text().includes('开机自动启动') && text().includes('简体中文'), 'General settings not localized');
   await nav('模型服务');
   assert(text().includes('测试连接') && text().includes('English provider name') && text().includes('模型支持图像'), 'Provider labels or user name changed');

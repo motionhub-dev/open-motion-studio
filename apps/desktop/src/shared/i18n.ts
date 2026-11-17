@@ -18,7 +18,7 @@ const systemTemplates = [
   'Voicing {0} of {1} lines', 'Layer “{0}” extends beyond the frame. This may be intentional.',
   '{0} needs its key.', '{0} is not set up: add it in Models, under Voices.',
   "Type {0}'s key to test it.", '{0} has no key: add one in Settings.',
-  'Not an address: {0}', 'Claude Code takes an effort of {0}.',
+  'Not an address: {0}', 'Claude Code takes an effort of {0}.', 'There is already a folder named {0} beside this project.',
   'Stopped after {0} model calls. Send a message to let it go on.',
   'The files are back as they were. {0} still remembers the turn you undid.',
   'The turn stopped at its cap{0}. Raise or remove the cap per turn in Models to go on.',

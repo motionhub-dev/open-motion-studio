@@ -3,6 +3,20 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-17 — The project's title menu holds what can be done to the project
+
+- **What:** The editor's title menu now renames the project (also a double-click on the title), shows its folder,
+  duplicates it as a new project beside it, and moves it to a window of its own or back to the main window, whichever
+  applies; it shows the film's size, rate and length, the projects with a task running, the five opened last, and
+  Home. The top bar's separate "Open in editor window" button is gone into that menu. The gear says it is
+  OpenMotionStudio's settings and sits apart at the bar's end.
+- **Why:** The pop-out icon read as a browser window, the menu offered both window moves at once, and a gear in a
+  project's bar read as that project's settings.
+- **Breaking:** Renaming a project renames its folder on disk.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/project-view.tsx` (`ProjectMenu`), `apps/desktop/src/main/project.ts`
+  (`renameProject`, `duplicateProject`, `folderName`), `apps/desktop/src/main/index.ts` (`renameKnown`).
+
 ## 2026-11-17 — A hidden panel leaves a rail
 
 - **What:** Hiding the assistant or the project tools leaves a narrow rail in its place, its icon and name written down

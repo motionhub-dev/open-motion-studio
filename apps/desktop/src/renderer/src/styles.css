@@ -381,7 +381,68 @@ button.status:hover {
   cursor: pointer;
 }
 .project-switcher-button:hover { background: var(--s2); }
-.project-menu { left: 0; right: auto; max-height: 70vh; overflow-y: auto; }
+.project-menu { left: 0; right: auto; width: 340px; max-height: 70vh; overflow-y: auto; }
+
+/* The title being renamed, in place, as wide as the title was. */
+.project-rename {
+  width: 260px;
+  max-width: 40vw;
+  padding: 5px 8px;
+  border: 1px solid var(--text);
+  border-radius: var(--r-control);
+  background: var(--sheet);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+}
+
+/* A menu's group and its notes: what the items below are about, and a fact that is not an action. */
+.menu .menu-label {
+  padding: 8px 10px 2px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.menu hr {
+  width: 100%;
+  margin: 4px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.menu .menu-note {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 6px 10px 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.menu .menu-note .mono {
+  color: var(--text2);
+}
+
+.menu [role='menuitem'].with-key {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.menu [role='menuitem'] span.waiting {
+  color: var(--annotate);
+}
+
+/* The app's settings sit apart at the bar's end: they are the app's, not the project's. */
+.topbar-divider {
+  width: 1px;
+  height: 20px;
+  margin: 0 4px;
+  background: var(--line);
+}
 
 .topbar .spacer {
   flex: 1;
