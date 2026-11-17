@@ -659,6 +659,7 @@ button.status:hover {
 
 .pointing button {
   height: 26px;
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -838,10 +839,13 @@ button.status:hover {
 }
 
 .timeline .names span {
+  display: block;
   height: 30px;
-  display: flex;
-  align-items: center;
-  padding-left: 12px;
+  padding: 0 6px 0 12px;
+  line-height: 30px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .timeline .tracks {
@@ -942,6 +946,8 @@ button.status:hover {
 }
 
 .timeline .names .scenes-name {
+  display: flex;
+  align-items: center;
   height: 48px;
   gap: 4px;
 }
@@ -1760,9 +1766,13 @@ button.motion-card:hover {
 
 .inspector .note {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
-  flex-wrap: wrap;
+}
+
+.inspector .note > svg {
+  flex: none;
+  margin-top: 2px;
 }
 
 .inspected {
@@ -1944,9 +1954,10 @@ kbd {
   color: var(--muted);
   font-size: 10px;
 }
-/* The name is written as the brand writes it, never in capitals. */
-.eyebrow .brand-name {
+/* A name or an identifier in an eyebrow is written as it is (the brand, a scene's id), never in capitals. */
+.eyebrow .verbatim {
   text-transform: none;
+  overflow-wrap: anywhere;
 }
 
 .eyebrow {
@@ -2341,6 +2352,7 @@ kbd {
 .reference-locate small {
   font-size: 10px;
   color: var(--muted);
+  overflow-wrap: anywhere;
 }
 .sent-ref {
   display: block;
@@ -3141,7 +3153,11 @@ kbd {
   cursor: help;
 }
 
+/* As wide as its card, never its chips' text: the card lays its rows out at their own width, which a chip's one
+   unbroken line would otherwise set, past the panel's edge. A chip too long for it ends in an ellipsis. */
 .turn-changes {
+  align-self: stretch;
+  min-width: 0;
   display: flex;
   flex-wrap: wrap;
   gap: 4px;

@@ -902,6 +902,7 @@ export function Assistant({
                           key={n}
                           type="button"
                           className={`change ${change.change}`}
+                          title={`${tr(change.ref.kind)} · ${change.ref.label}`}
                           disabled={change.change === 'removed'}
                           onClick={() => onSelect(change.ref)}
                         >
@@ -1092,7 +1093,12 @@ export function Assistant({
                 <span className="eyebrow">
                   {ref === selectionRef ? tr("Selected · ") : ''}
                   {tr(ref.kind)}
-                  {ref.scene ? ` · ${ref.scene}` : ''}
+                  {ref.scene && (
+                    <>
+                      {' · '}
+                      <span className="verbatim">{ref.scene}</span>
+                    </>
+                  )}
                 </span>
                 <strong>{ref.label}</strong>
                 {ref.time !== undefined && <small className="mono">{timecode(ref.time)}</small>}

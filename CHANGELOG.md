@@ -3,6 +3,20 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-17 — Long names stay inside the workspace's panels
+
+- **What:** Names that are longer than their place no longer run out of it or break badly. The chips under a finished
+  turn end in an ellipsis inside the assistant, with the whole name on hover. A timeline lane named by a long layer
+  id ends in an ellipsis instead of being cut mid-word. The stage's Pick, Region and Guides keep their words on one
+  line instead of breaking a Chinese word per character. A reference card shows its scene's id as written rather than
+  in capitals, and wraps a long path. The inspector's note flows as one sentence around its key.
+- **Why:** A scene named by a long line pushed the turn's card past the assistant's edge, and the other panels had the
+  same kind of break with long names or in Chinese.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/styles.css`, `apps/desktop/src/renderer/src/assistant.tsx`,
+  `apps/desktop/src/renderer/src/inspector.tsx`.
+
 ## 2026-11-17 — A motion taken during a coding agent's turn is kept
 
 - **What:** When Codex or Claude Code took a motion from motionhub through the Studio's tools during a turn, the end of
