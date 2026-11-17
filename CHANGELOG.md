@@ -3,6 +3,17 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-17 — A step's long command wraps inside the assistant
+
+- **What:** A step of the agent's work that names a long path or command (a coding agent running
+  `"C:\WINDOWS\System32\…\powershell.exe" -Command …`, say) wraps inside the assistant instead of running past its
+  edge, and its icon stays by the first line. A step's output, the agent's words between its steps and its Markdown
+  replies wrap an unbroken token the same way.
+- **Why:** A path with no break in it set the step's width, and the assistant cut it off.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/styles.css` (`.tool summary`, `.markdown`).
+
 ## 2026-11-17 — Long names stay inside the workspace's panels
 
 - **What:** Names that are longer than their place no longer run out of it or break badly. The chips under a finished

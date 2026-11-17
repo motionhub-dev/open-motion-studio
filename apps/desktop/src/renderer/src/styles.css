@@ -1092,6 +1092,22 @@ button.status:hover {
   color: var(--text2);
 }
 
+/* A step names what it ran, which can be one unbroken path or command: it wraps anywhere rather than set the row's width. */
+.tool summary > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Its icon keeps its size and sits by the first line when the words take several. */
+.tool summary:has(> span) {
+  align-items: flex-start;
+}
+
+.tool summary > svg {
+  flex: none;
+  margin-top: 2px;
+}
+
 .tool summary::-webkit-details-marker {
   display: none;
 }
@@ -1111,6 +1127,7 @@ button.status:hover {
 
 .tool pre {
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
   font: 11px/1.4 var(--font-mono);
   margin: 6px 0 0;
   max-height: 200px;
@@ -1468,6 +1485,7 @@ button.status:hover {
   flex-direction: column;
   gap: 8px;
   white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .markdown h3,
@@ -3020,6 +3038,7 @@ kbd {
   padding: 2px 0 2px 8px;
   border-left: 2px solid var(--line);
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 @media (prefers-reduced-motion: reduce) {
   .work > .tool > summary .work-fold {
