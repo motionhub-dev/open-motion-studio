@@ -11,6 +11,15 @@ function subscribe<T>(channel: string, listener: (value: T) => void): () => void
 }
 
 const api: StudioApi = {
+  projectLibrary: () => ipcRenderer.invoke(CHANNELS.projectLibrary),
+  libraryAction: (path, action) => ipcRenderer.invoke(CHANNELS.libraryAction, path, action),
+  validateWorkspace: () => ipcRenderer.invoke(CHANNELS.validateWorkspace),
+  onPreferencesChanged: listener => subscribe(EVENTS.preferences, listener),
+  preferences: () => ipcRenderer.invoke(CHANNELS.preferences),
+  savePreferences: input => ipcRenderer.invoke(CHANNELS.savePreferences, input),
+  systemStartup: () => ipcRenderer.invoke(CHANNELS.systemStartup),
+  setSystemStartup: enabled => ipcRenderer.invoke(CHANNELS.setSystemStartup, enabled),
+  onSettingsChanged: (listener) => subscribe(EVENTS.settings, listener),
   showLogs: () => ipcRenderer.invoke(CHANNELS.showLogs),
   workspace: () => ipcRenderer.invoke(CHANNELS.workspace),
   chooseWorkspace: () => ipcRenderer.invoke(CHANNELS.chooseWorkspace),
@@ -34,9 +43,9 @@ const api: StudioApi = {
   answerApproval: (id, answer) => ipcRenderer.invoke(CHANNELS.answerApproval, id, answer),
   signInAgent: (kind) => ipcRenderer.invoke(CHANNELS.signInAgent, kind),
   undoTurn: (checkpoint) => ipcRenderer.invoke(CHANNELS.undoTurn, checkpoint),
-  recentProjects: () => ipcRenderer.invoke(CHANNELS.recentProjects),
   openProject: () => ipcRenderer.invoke(CHANNELS.openProject),
-  createProject: () => ipcRenderer.invoke(CHANNELS.createProject),
+  createProject: (brief) => ipcRenderer.invoke(CHANNELS.createProject, brief),
+  takeBrief: () => ipcRenderer.invoke(CHANNELS.takeBrief),
   openRecent: (path) => ipcRenderer.invoke(CHANNELS.openRecent, path),
   startFilm: () => ipcRenderer.invoke(CHANNELS.startFilm),
   closeProject: () => ipcRenderer.invoke(CHANNELS.closeProject),

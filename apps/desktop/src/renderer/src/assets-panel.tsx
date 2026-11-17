@@ -1,3 +1,4 @@
+import { SystemMessage, usePreferences } from './preferences';
 import { Image, Music, Plus, RefreshCw, Type, MessageSquare, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { Asset, Reference } from '../../shared/api';
@@ -13,6 +14,7 @@ export function AssetsPanel({
   onReference(ref: Reference): void;
   onBusy(value: boolean): void;
 }) {
+  const { t: tr } = usePreferences();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -67,19 +69,19 @@ export function AssetsPanel({
   return (
     <div className="body assets-panel">
       <div className="panel-intro">
-        <span className="eyebrow">Make it your own</span>
-        <h2>Your images, type and sound.</h2>
-        <p>Bring images, fonts, music and sound effects into the project, then tell the assistant how to use them.</p>
+        <span className="eyebrow">{tr("Make it your own")}</span>
+        <h2>{tr("Your images, type and sound.")}</h2>
+        <p>{tr("Bring images, fonts, music and sound effects into the project, then tell the assistant how to use them.")}</p>
       </div>
       <div className="asset-actions">
         <button className="button" disabled={disabled || importing} onClick={() => void bring()}>
           <Plus size={14} />
-          {importing ? 'Importing…' : 'Import files'}
+          {importing ? tr("Importing…") : tr("Import files")}
         </button>
         <button
           className="icon-button"
-          aria-label="Refresh assets"
-          data-tip="Refresh assets"
+          aria-label={tr("Refresh assets")}
+          data-tip={tr("Refresh assets")}
           disabled={loading || importing}
           onClick={() => void refresh()}
         >
@@ -87,20 +89,20 @@ export function AssetsPanel({
         </button>
       </div>
       <p className="note">
-        Copied into <span className="mono">media/</span>. Originals stay where they are. Images and fonts, up to 50 MB each.
+        {tr("Copied into")} <span className="mono">media/</span>{tr(". Originals stay where they are. Images and fonts, up to 50 MB each.")}
       </p>
       {error && (
         <p role="alert" className="callout">
-          {error}
+          <SystemMessage text={error} error />
         </p>
       )}
       {loading ? (
-        <p className="note">Looking for your files…</p>
+        <p className="note">{tr("Looking for your files…")}</p>
       ) : !assets.length ? (
         <div className="asset-empty">
           <Image size={28} />
-          <strong>A place for your own material</strong>
-          <p>A logo, a photograph, a typeface. Start with one file.</p>
+          <strong>{tr("A place for your own material")}</strong>
+          <p>{tr("A logo, a photograph, a typeface. Start with one file.")}</p>
         </div>
       ) : (
         <ul className="asset-grid">
@@ -120,7 +122,7 @@ export function AssetsPanel({
                 )}
                 <strong>{asset.name}</strong>
                 <small>
-                  {asset.kind} ·{' '}
+                  {tr(asset.kind)} ·{' '}
                   {asset.bytes < 1024 * 1024
                     ? `${Math.max(1, Math.round(asset.bytes / 1024))} KB`
                     : `${(asset.bytes / 1024 / 1024).toFixed(1)} MB`}
@@ -134,7 +136,7 @@ export function AssetsPanel({
                 }
               >
                 <MessageSquare size={12} />
-                Use in a message
+                {tr("Use in a message")}
               </button>
             </li>
           ))}
@@ -144,7 +146,7 @@ export function AssetsPanel({
         <Dialog label={selected.name} onClose={() => setSelected(null)}>
           <div className="panel-head">
             <h2>{selected.name}</h2>
-            <button className="icon-button" aria-label="Close asset" onClick={() => setSelected(null)}>
+            <button className="icon-button" aria-label={tr("Close asset")} onClick={() => setSelected(null)}>
               <X size={16} />
             </button>
           </div>
@@ -155,8 +157,8 @@ export function AssetsPanel({
           ) : (
             <p className="note">
               {broken
-                ? `This ${selected.kind === 'audio' ? 'sound' : 'image'} could not be loaded. Refresh the asset list to check whether it is still in the project.`
-                : 'This font is available for the assistant to use in the film.'}
+                ? tr("This {0} could not be loaded. Refresh the asset list to check whether it is still in the project.", {0: tr(selected.kind === 'audio' ? 'sound' : 'image')})
+                : tr("This font is available for the assistant to use in the film.")}
             </p>
           )}
           <p className="path mono">{selected.path}</p>
@@ -169,7 +171,7 @@ export function AssetsPanel({
                 setSelected(null);
               }}
             >
-              Use in a message
+              {tr("Use in a message")}
             </button>
           </div>
         </Dialog>

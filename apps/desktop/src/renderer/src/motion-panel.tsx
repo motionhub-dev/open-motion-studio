@@ -2,6 +2,7 @@
 // components with their previews, its MOTION.md), and motionhub.dev's catalogue to take one
 // from. A project's own images are read through the preview scheme's /project/.
 
+import { SystemMessage, Translated, usePreferences } from './preferences';
 import { ArrowLeft, Loader, Search, Play, X } from 'lucide-react';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import type { CatalogueMotion, MotionDetail, ProjectMotion } from '../../shared/api';
@@ -24,6 +25,7 @@ function Poster({ src, label }: { src: string | null; label: string }) {
 }
 
 function Page({ id, onBack }: { id: string; onBack(): void }) {
+  const { t: tr } = usePreferences();
   const [detail, setDetail] = useState<MotionDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => void window.studio.motionDetail(id).then(setDetail, (e) => setError(reason(e))), [id]);
@@ -31,11 +33,11 @@ function Page({ id, onBack }: { id: string; onBack(): void }) {
   return (
     <div className="body">
       <button type="button" className="quiet back" onClick={onBack}>
-        <ArrowLeft size={14} /> Motions
+        <ArrowLeft size={14} /> <Translated text="Motions" />
       </button>
       {error && (
         <p className="error" role="alert">
-          {error}
+          <SystemMessage text={error} error />
         </p>
       )}
       {detail && (
@@ -50,7 +52,7 @@ function Page({ id, onBack }: { id: string; onBack(): void }) {
             {detail.motion.line && <p>{detail.motion.line}</p>}
           </div>
           {detail.colors.length > 0 && (
-            <ul className="swatches" aria-label="Colours">
+            <ul className="swatches" aria-label={tr("Colours")}>
               {detail.colors.map((color) => (
                 <li key={color.name} title={`${color.name} ${color.value}`}>
                   <span style={{ background: color.value }} />
@@ -61,7 +63,7 @@ function Page({ id, onBack }: { id: string; onBack(): void }) {
           )}
           {detail.components.length > 0 && (
             <>
-              <span className="label">Components · {detail.components.length}</span>
+              <span className="label">{tr("Components ·")} {detail.components.length}</span>
               <ul className="components">
                 {detail.components.map((part) => (
                   <li key={part.file} title={part.line}>
@@ -88,6 +90,7 @@ function Page({ id, onBack }: { id: string; onBack(): void }) {
 }
 
 export function MotionPanel({ disabled = false, onBusy }: { disabled?: boolean; onBusy(value: boolean): void }) {
+  const { t: tr } = usePreferences();
   const [held, setHeld] = useState<ProjectMotion[]>([]);
   const [words, setWords] = useState('');
   const [found, setFound] = useState<CatalogueMotion[] | null>(null);
@@ -111,7 +114,7 @@ export function MotionPanel({ disabled = false, onBusy }: { disabled?: boolean; 
       const src = await window.studio.motionReel(motion.id);
       if (request !== reelRequest.current) return;
       setReel({ name: motion.name, src });
-      if (!src) setReelError('This motion has no reel yet. Its poster and description are available in the catalogue.');
+      if (!src) setReelError("This motion has no reel yet. Its poster and description are available in the catalogue.");
     } catch (e) {
       if (request === reelRequest.current) setReelError(reason(e));
     }
@@ -158,7 +161,7 @@ export function MotionPanel({ disabled = false, onBusy }: { disabled?: boolean; 
       ) : (
         <div className="body">
           {held.length === 0 ? (
-            <p className="note">None in this project yet. Take one from motionhub, or let the film draw freely.</p>
+            <p className="note">{tr("None in this project yet. Take one from motionhub, or let the film draw freely.")}</p>
           ) : (
             <ul className="motion-cards">
               {held.map((m) => (
@@ -184,28 +187,28 @@ export function MotionPanel({ disabled = false, onBusy }: { disabled?: boolean; 
             <input
               type="search"
               value={words}
-              placeholder="Search motions"
-              aria-label="Search motions"
+              placeholder={tr("Search motions")}
+              aria-label={tr("Search motions")}
               onChange={(e) => setWords(e.target.value)}
             />
-            <button type="submit" className="button" aria-label="Search" disabled={busy !== null}>
+            <button type="submit" className="button" aria-label={tr("Search")} disabled={busy !== null}>
               {busy === 'search' ? <Loader size={14} className="spin" /> : <Search size={14} />}
             </button>
           </form>
           {error && (
             <p className="error" role="alert">
-              {error}
+              <SystemMessage text={error} error />
             </p>
           )}
-          {found && found.length === 0 && <p className="note">No motion has all of those words.</p>}
+          {found && found.length === 0 && <p className="note">{tr("No motion has all of those words.")}</p>}
           <ul className="catalogue">
             {found?.map((m) => (
-              <li key={m.id} className="motion-card" title={m.fit ? `For: ${m.fit}` : m.line}>
-                <button className="motion-preview" aria-label={`Preview ${m.name}`} onClick={() => void preview(m)}>
+              <li key={m.id} className="motion-card" title={m.fit ? tr("For: {0}", {0: m.fit}) : m.line}>
+                <button className="motion-preview" aria-label={tr("Preview {0}", {0: m.name})} onClick={() => void preview(m)}>
                   <Poster src={m.poster} label={m.name} />
                   <span>
                     <Play size={12} />
-                    Preview
+                    <Translated text="Preview" />
                   </span>
                 </button>
                 <span className="motion-title">
@@ -213,7 +216,7 @@ export function MotionPanel({ disabled = false, onBusy }: { disabled?: boolean; 
                   <span className="path mono">{m.id}</span>
                 </span>
                 <button type="button" className="button" disabled={disabled || busy !== null || holds.has(m.id)} onClick={() => use(m.id)}>
-                  {holds.has(m.id) ? 'In this project' : busy === m.id ? 'Taking…' : 'Use'}
+                  {holds.has(m.id) ? tr("In this project") : busy === m.id ? tr("Taking…") : tr("Use")}
                 </button>
               </li>
             ))}
@@ -222,7 +225,7 @@ export function MotionPanel({ disabled = false, onBusy }: { disabled?: boolean; 
       )}
       {reel && (
         <Dialog
-          label={`Preview ${reel.name}`}
+          label={tr("Preview {0}", {0: reel.name})}
           onClose={() => {
             reelRequest.current++;
             setReel(null);
@@ -232,7 +235,7 @@ export function MotionPanel({ disabled = false, onBusy }: { disabled?: boolean; 
             <h2>{reel.name}</h2>
             <button
               className="icon-button"
-              aria-label="Close motion preview"
+              aria-label={tr("Close motion preview")}
               onClick={() => {
                 reelRequest.current++;
                 setReel(null);
@@ -244,7 +247,7 @@ export function MotionPanel({ disabled = false, onBusy }: { disabled?: boolean; 
           {reel.src?.startsWith('oms-preview://catalogue/') ? (
             <iframe
               className="reel-frame"
-              title={`${reel.name} reel`}
+              title={tr("{0} reel", {0: reel.name})}
               src={reel.src}
               sandbox="allow-scripts"
               allow="autoplay; fullscreen"
@@ -258,14 +261,14 @@ export function MotionPanel({ disabled = false, onBusy }: { disabled?: boolean; 
               autoPlay
               muted
               playsInline
-              onError={() => setReelError('This reel could not be played. Try another motion or retry later.')}
+              onError={() => setReelError("This reel could not be played. Try another motion or retry later.")}
             />
           ) : (
-            !reelError && <p className="note">Loading the reel…</p>
+            !reelError && <p className="note">{tr("Loading the reel…")}</p>
           )}
           {reelError && (
             <p className="note" role="status">
-              {reelError}
+              <SystemMessage text={reelError} error />
             </p>
           )}
         </Dialog>

@@ -13,7 +13,7 @@ import ffmpegStatic from 'ffmpeg-static';
 import { keepFilmsInPlace, PREVIEW_URL } from './preview';
 import type { Box, FilmInfo } from '../../shared/preview';
 import type { SceneStills } from '../../shared/api';
-import { STATE_DIR } from '../project';
+import { COVER, STATE_DIR } from '../project';
 import { buildDir } from './film';
 import { srt } from './captions';
 import { soundInputs, soundMix } from './mix';
@@ -132,13 +132,29 @@ export const SCENE_STILLS = 6;
 /** The width the timeline's frames are kept at, in pixels; small, since they are drawn small. */
 const STILL_WIDTH = 160;
 
+/** The width a project's cover is kept at: sharp on Home's cards on a high-density screen. */
+const COVER_WIDTH = 640;
+/** How far into the first scene the cover is taken: after an entrance has settled, before an exit. */
+const COVER_AT = 0.6;
+
+/** Takes the project's cover from the first scene and keeps it as `.motion-studio/cover.jpg`, written whole. */
+async function takeCover(dir: string, stage: Stage): Promise<void> {
+  const first = stage.film.scenes[0];
+  if (!first) return;
+  const image = await stage.frame(first.start + COVER_AT * first.duration);
+  const file = join(dir, STATE_DIR, COVER);
+  await writeFile(`${file}.partial`, image.resize({ width: COVER_WIDTH }).toJPEG(82));
+  await rename(`${file}.partial`, file);
+}
+
 /** Where a project keeps the timeline's frames: one file for the build they are of, named by that build's hash. */
 export const stillsDir = (dir: string): string => join(dir, STATE_DIR, 'thumbs');
 
 /**
  * Each scene of build `version` as SCENE_STILLS small frames, by scene id, as data URLs. They are kept in
  * `.motion-studio/thumbs/<hash of the build>.json`, so the same film is photographed once; making them for a new
- * build removes the files of the others there, and nothing outside that folder is written or removed.
+ * build removes the files of the others there, and nothing outside that folder is written or removed but the
+ * project's cover, taken with them (and taken alone when the frames are kept but the cover is not).
  */
 export async function sceneStills(dir: string, version: number, open: (version: number) => Promise<Stage>): Promise<SceneStills> {
   const hash = createHash('sha256')
@@ -147,10 +163,23 @@ export async function sceneStills(dir: string, version: number, open: (version: 
     .slice(0, 16);
   const folder = stillsDir(dir);
   const file = join(folder, `${hash}.json`);
+  let kept: SceneStills | null = null;
   try {
-    return JSON.parse(await readFile(file, 'utf8')) as SceneStills;
+    kept = JSON.parse(await readFile(file, 'utf8')) as SceneStills;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+  }
+  if (kept) {
+    const covered = await readFile(join(dir, STATE_DIR, COVER)).then(() => true, () => false);
+    if (!covered) {
+      const stage = await open(version);
+      try {
+        await takeCover(dir, stage);
+      } finally {
+        stage.close();
+      }
+    }
+    return kept;
   }
   const stage = await open(version);
   const stills: SceneStills = {};
@@ -162,10 +191,11 @@ export async function sceneStills(dir: string, version: number, open: (version: 
         stills[scene.id]!.push(`data:image/jpeg;base64,${image.resize({ width: STILL_WIDTH }).toJPEG(70).toString('base64')}`);
       }
     }
+    await mkdir(folder, { recursive: true });
+    await takeCover(dir, stage);
   } finally {
     stage.close();
   }
-  await mkdir(folder, { recursive: true });
   // Written whole, then moved into place: a file there is always a whole one.
   await writeFile(`${file}.partial`, JSON.stringify(stills));
   await rename(`${file}.partial`, file);

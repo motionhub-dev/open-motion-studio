@@ -4,6 +4,8 @@
 // playhead is. The scene the playhead enters opens and the one it leaves closes, unless the person folded or opened
 // it; while the film plays the list keeps the playing scene in view, unless the person moved the list in the last
 // few seconds. A layer hovered here, on the timeline or on the picture is shown in all three (`hovered`).
+
+import { usePreferences } from './preferences';
 import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, Layers, MessageSquare, Play, SquareStack } from 'lucide-react';
 import type { Reference, SceneStills } from '../../shared/api';
@@ -54,6 +56,7 @@ export function Outline({
   /** Plays a span, with one layer alone when `solo` names it. */
   onPlay(start: number, end: number, solo?: string): void;
 }) {
+  const { t: tr } = usePreferences();
   const current = film?.scenes.find((s) => t >= s.start && t < s.start + s.duration)?.id;
   const sections = useRef(new Map<string, HTMLElement>());
   /** When the person last moved the list, which the playhead leaves alone for a while after. */
@@ -89,7 +92,7 @@ export function Outline({
   if (!film)
     return (
       <div className="body">
-        <p className="note">Your film’s scenes and layers will appear here once the preview is ready.</p>
+        <p className="note">{tr("Your film’s scenes and layers will appear here once the preview is ready.")}</p>
       </div>
     );
 
@@ -110,8 +113,8 @@ export function Outline({
     <button
       type="button"
       className="icon-button"
-      aria-label={`Ask about ${ref.label}`}
-      data-tip="Add to your message"
+      aria-label={tr("Ask about {0}", {0: ref.label})}
+      data-tip={tr("Add to your message")}
       onClick={() => {
         onSelect(ref);
         onReference(ref);
@@ -135,7 +138,7 @@ export function Outline({
         <button
           className="outline-pick"
           aria-pressed={sameSelection(selected, ref)}
-          title={`${layer.id} · ${layer.w} × ${layer.h} at (${layer.x}, ${layer.y}) · z ${layer.z}`}
+          title={tr("{0} · {1} × {2} at ({3}, {4}) · z {5}", {0: layer.id, 1: layer.w, 2: layer.h, 3: layer.x, 4: layer.y, 5: layer.z})}
           onClick={() => onSelect(ref)}
         >
           <Layers size={13} />
@@ -146,8 +149,8 @@ export function Outline({
             <button
               type="button"
               className="icon-button"
-              aria-label={`Play ${layer.id} alone`}
-              data-tip="Play this layer alone"
+              aria-label={tr("Play {0} alone", {0: layer.id})}
+              data-tip={tr("Play this layer alone")}
               onClick={() => onPlay(scene.start, scene.start + scene.duration, layer.id)}
             >
               <SquareStack size={13} />
@@ -168,11 +171,11 @@ export function Outline({
     >
       <div className="outline-tools">
         <span>
-          {film.scenes.length} {film.scenes.length === 1 ? 'scene' : 'scenes'} · {film.seconds.toFixed(1)} s
+          {film.scenes.length} {film.scenes.length === 1 ? 'scene' : 'scenes'} · {film.seconds.toFixed(1)} {tr("s")}
         </span>
         {film.scenes.length > 0 && (
           <button type="button" className="quiet" onClick={foldAll}>
-            {open.size ? 'Collapse all' : 'Expand all'}
+            {open.size ? tr("Collapse all") : tr("Expand all")}
           </button>
         )}
       </div>
@@ -180,7 +183,7 @@ export function Outline({
         <details className="outline-global">
           <summary>
             <Layers size={13} />
-            Across the film · {film.layers.length} {film.layers.length === 1 ? 'layer' : 'layers'}
+            {tr("Across the film ·")} {film.layers.length} {film.layers.length === 1 ? 'layer' : 'layers'}
           </summary>
           {[...film.layers].sort((a, b) => b.z - a.z).map((layer) => layerRow(layer))}
         </details>
@@ -213,7 +216,7 @@ export function Outline({
                 <span>
                   <strong>{sceneTitle(scene)}</strong>
                   <small>
-                    <b>{String(index + 1).padStart(2, '0')}</b> {timecode(scene.start)} · {scene.duration.toFixed(1)} s
+                    <b>{String(index + 1).padStart(2, '0')}</b> {timecode(scene.start)} · {scene.duration.toFixed(1)} {tr("s")}
                   </small>
                 </span>
               </button>
@@ -221,8 +224,8 @@ export function Outline({
                 <button
                   type="button"
                   className="icon-button"
-                  aria-label={`Play ${sceneTitle(scene)}`}
-                  data-tip="Play this scene"
+                  aria-label={tr("Play {0}", {0: sceneTitle(scene)})}
+                  data-tip={tr("Play this scene")}
                   onClick={() => onPlay(scene.start, scene.start + scene.duration)}
                 >
                   <Play size={13} />
@@ -233,7 +236,7 @@ export function Outline({
                 type="button"
                 className="icon-button outline-fold"
                 aria-expanded={isOpen}
-                aria-label={isOpen ? `Fold ${sceneTitle(scene)}` : `Open ${sceneTitle(scene)}`}
+                aria-label={isOpen ? tr("Fold {0}", {0: sceneTitle(scene)}) : tr("Open {0}", {0: sceneTitle(scene)})}
                 onClick={() => fold(scene.id)}
               >
                 <ChevronDown size={14} />

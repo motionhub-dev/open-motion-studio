@@ -1,6 +1,6 @@
 # Architecture
 
-> **Status:** Plan — steps 1 to 3 and 6 built, 7 under way; signing waits for certificates · **Updated:** 2026-11-15
+> **Status:** Plan — steps 1 to 3 and 6 built, 7 under way; signing waits for certificates · **Updated:** 2026-11-16
 
 The components of the Studio and what each owns, the film, the agent and its providers, what is expensive to change, and the order of work.
 
@@ -29,7 +29,7 @@ apps/desktop/
   src/main/            Node: the only process that touches the disk, the network and child processes
     index.ts           the tray-backed main window, retained editor views, dedicated windows and IPC routing
     workspace.ts       a project's handlers, bundler, agent sessions, tasks and outgoing events (ADR 0014)
-    project.ts         open / create a folder, whether it holds a film, the recent list
+    project.ts         open / create a folder, whether it holds a film, the project library
     history.ts         local checkpoints of the agent's source writes in .motion-studio/history.json, and restoring
                        one only when no file it touches was changed since (ADR 0007)
     examples.ts        the bundled starting films, copied into a fresh project in the default workspace on each click
@@ -62,7 +62,8 @@ apps/desktop/
   src/preview/         the Studio's preview scripts: core.tsx (React, @motionhub/runtime and the film's player),
                        sound.ts (its sounds through Web Audio) and pick.ts (pointing at the picture)
   src/preload/         the typed bridge the renderer calls (contextIsolation on, no Node in the renderer)
-  src/shared/          what both sides agree on: StudioApi, and the preview bridge's messages
+  src/shared/          what both sides agree on: StudioApi, the preview bridge's messages, and the interface's
+                       messages in Chinese (i18n.ts, translations.ts)
   src/renderer/        React UI
 site/                  the introduction page at studio.motionhub.dev: static HTML and screenshots of the app, no build,
                        served by a static-assets Worker (wrangler.jsonc; .github/workflows/site.yml deploys it on a push to main)
@@ -74,7 +75,7 @@ site/                  the introduction page at studio.motionhub.dev: static HTM
 | `project` | The folder is the truth: files on disk, git if the person uses it. The Studio's own state for a project is `.motion-studio/` (the film's bundle in `build/`, the conversation in `session.json`, the checkpoints in `history.json`, the timeline's scene frames in `thumbs/`, each turn's tokens and time in `usage.jsonl` (ADR 0009)), which a new project's `.gitignore` leaves out | Keep a copy of the project elsewhere |
 | `film/*` | Turning `film.tsx` into a playable preview, a still at a time, and an MP4 | Know about the agent or the UI |
 | `agent` | The conversation, the tools, what the agent may do | Hold a key longer than a turn, or write the Studio's state, a motion from motionhub, dependencies or git |
-| `providers` | The providers in `settings.json` (userData); each key sealed with `safeStorage` in `keys.json`, opened for a call | Put a key in a reply to the renderer, a log, an error or a project |
+| `providers` | The providers and the app's preferences (theme, language, first-run state) in `settings.json` (userData); each key sealed with `safeStorage` in `keys.json`, opened for a call | Put a key in a reply to the renderer, a log, an error or a project |
 | `motions` | Reading the public catalogue and taking a motion into a project, the way `@motionhub/cli get` does | Publish; a person's motion reaches the catalogue as a pull request to `motionhub-dev/motions` |
 | renderer | Panels, selection, marks, settings | Reach the disk or network except through preload (posters from motionhub.dev are the one exception) |
 
@@ -82,17 +83,21 @@ One main BrowserWindow hosts Home and switches between retained project WebConte
 to its own BaseWindow with Open in editor window or Ctrl/Cmd+Shift+N, preserving the same renderer and pending turn.
 Closing a dedicated window or returning Home detaches the view; the project session continues. Closing the main
 window hides it to the tray. Another app launch restores it. Home lists project tasks and real progress, with Open
-here and Open in editor window. Views pause playback when hidden; task events and approvals remain live.
+here and Open in editor window. The first close of the main window explains this once (`backgroundNoticeSeen`). Each task change also rebuilds the
+tray (`showTasksInTray`): its tooltip, a menu item per project waiting on the person, and the badge count where the
+system has one (`app.setBadgeCount`; the tray's title on a Mac). Views pause playback when hidden; task events and approvals remain live.
 
 Each project retains separate in-memory UI/preview and offscreen-render sessions. Stills and exports receive its
 stage opener. IPC is routed by the calling view's webContents id and main frame, even when the view moves between
-native windows. Provider settings, keys and recents are shared, with queued atomic mutations. Explicit Quit aborts
+native windows. Provider settings, preferences, keys and the project library are shared, with queued atomic mutations. A change to
+any of them is broadcast to every view (`EVENTS.preferences`, `EVENTS.settings`, the latter saying whether another view
+made it), so an open Settings page never overwrites what the person is typing. Explicit Quit aborts
 tasks, closes agents and MCP servers, settles pending writes, destroys retained views and exits; this is not a
 system background service. The app does not resume in-flight tasks across an app exit or machine restart.
 
 Runtime diagnostics initialize before the film bundler: `main.log` holds timestamped startup metadata, task
 boundaries, build failures, IPC errors, preload/load failures and renderer/child process exits. The folder is
-`~/Library/Logs/OpenMotionStudio` on macOS and `logs/` under userData on Windows/Linux. Settings → Workspace opens
+`~/Library/Logs/OpenMotionStudio` on macOS and `logs/` under userData on Windows/Linux. Settings → Diagnostics opens
 it through a fixed-path main-process action. Each log is limited to 5 MiB with one previous file; logging failures
 fall back to stderr without blocking project work. IPC arguments, model messages and environment variables are not
 recorded; credential fields and common secret patterns are redacted. Logs remain local.
@@ -104,6 +109,34 @@ canonical path. The shared ProviderStore serializes this write with model, agent
 reservation uses exclusive `mkdir`, appending numeric suffixes on collisions, so simultaneous creations never reuse
 or overwrite a project. Existing projects and old `userData/Examples` copies are not moved
 ([ADR 0015](../adr/0015-new-projects-live-in-a-default-workspace.md)).
+
+A project made from Home's prompt is created with the person's brief: the main process checks it (a string of at most
+`MAX_BRIEF` characters), names the folder from its first line (`filmName`: no character a folder cannot hold, at
+most 40 characters, no Windows device name) and keeps it on the new editor until that editor's renderer takes it,
+once (`takeBrief`). The brief is never written to disk by the Studio; it reaches the project as the first message.
+
+The project library is `projects.json` in userData: `[{path, lastOpened}]`, most recently opened first, every
+project ever opened until the person removes it. It is the only list of paths the renderer may name itself
+(`openRecent`, `openTask`, `libraryAction`). Removing an entry, or locating a moved folder, never touches files. A
+folder that is gone stays, marked missing. A project's cover is not in the library: it is the first scene's still,
+written to the project's own `.motion-studio/cover.jpg` when the timeline's stills are made, and read back as a data URL
+when Home lists the library.
+
+Home plays each bundled template as a video the Studio's own export made of it: `pnpm templates`
+(`scripts/render-templates.mjs`) drives the built app in a hidden window with an isolated profile, exports every
+template, and keeps a 960 px MP4 without sound and a poster frame per template in `src/renderer/src/templates/`, which
+the renderer bundles; `manifest.json` there holds each template's `film.tsx` hash, and `examples.test.ts` fails when a
+template changed without being rendered again. The files are rendered on a developer's machine and committed (about
+250 KB in all): CI does not render them. A template draws in Inter, its own face: the app ships its Latin variable
+face and its licence (OFL) in `resources/fonts/`, a template copy gets both in its `media/`, and its `film.tsx` imports
+the face and declares it, so the film, its export and Home's video look the same on every computer.
+
+The preview core loads every face the page declares before it reports the film ready: the project's motions' faces
+(`build/fonts.css`) before the film's code, and the faces the film declares itself once its first frame is drawn, so
+no frame, in the preview or an export, is drawn in a fallback face.
+
+Launch at login is `app.setLoginItemSettings`, offered only in packaged Windows and macOS builds; the main process
+reads the setting back and fails when the system did not apply it.
 
 ## The film
 
@@ -330,7 +363,7 @@ src/main/agent/
 
 ## The UI
 
-Built: the launcher, a top bar, and the assistant, the stage, the motion panel and the transport with the timeline as
+Built: Home, a top bar, and the assistant, the stage, the motion panel and the transport with the timeline as
 panels whose sizes the person drags and the app keeps; the look and the layout are [the design](../design.md). The
 panels, built and planned, each a projection of the project:
 
@@ -343,7 +376,7 @@ panels, built and planned, each a projection of the project:
 | **Files** | The tree and a read-only CodeMirror view; open in the person's own editor | Nothing |
 | **Timeline** | Read-only: a ruler to seek on (the moment under the pointer named with its scene), the film's scenes, each with a strip of its frames (a scene clicked seeks to its start), the marks (a drag along their lane marks a stretch), the check's issues at their moments (clicked, to the assistant) and the playhead; zoom about the pointer, a view that follows the playhead while it plays, and a chip that brings back a playhead out of view (built) | Nothing |
 | **Export** | Queue, progress, open the file | Nothing |
-| **Settings** | Providers and keys in two panes, with a connection test (`testProvider`: one call as the form stands, asking for a tool call, with the typed key or the stored one; the reply carries no key), and the person's own coding agents with where each stands and the one action that fixes it (built); permissions are planned | App settings |
+| **Settings** | A page over Home or the editor: General (theme, language, launch at login), providers and keys in two panes, with a connection test (`testProvider`: one call as the form stands, asking for a tool call, with the typed key or the stored one; the reply carries no key), and the person's own coding agents with where each stands and the one action that fixes it (built); permissions are planned | App settings |
 
 ## What is expensive to change
 
@@ -362,7 +395,7 @@ Each step is a vertical slice that runs end to end before the next begins.
 
 1. **Shell**: the Electron app opens and creates a folder, signed builds on all three platforms from CI. Packaging is
    settled first because signing and notarisation are what most often block a desktop app late. *Built*: the app opens a
-   folder, makes an empty one a project (its `.motion-studio/`, ignored by git) and keeps ten recent projects;
+   folder, makes an empty one a project (its `.motion-studio/`, ignored by git) and remembers the projects opened;
    `.github/workflows/build.yml` runs the gate and packages a DMG and zip, an NSIS installer, and an AppImage and tarball,
    signed and notarised once the secrets in `CLAUDE.md` are set, unsigned until then.
 2. **A film, one provider**: a film, a motion from motionhub, the agent on one Anthropic-protocol model, the preview,

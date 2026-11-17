@@ -25,6 +25,7 @@
   --bad-line: #e8b9ae;
   --overlay: rgb(20 18 16 / 0.72);
   --float-shadow: 0 30px 80px rgb(42 38 34 / 0.25);
+  --lift-shadow: 0 10px 28px rgb(42 38 34 / 0.12);
 
   --font-ui: 'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
@@ -39,8 +40,7 @@
   line-height: 1.45;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
+:root[data-theme="dark"] {
     --bg: #1a1714;
     --sheet: #221e1a;
     --s2: #2c2722;
@@ -59,8 +59,8 @@
     --bad-ground: #2e1d18;
     --bad-line: #5c2d22;
     --float-shadow: 0 30px 80px rgb(0 0 0 / 0.5);
+    --lift-shadow: 0 10px 28px rgb(0 0 0 / 0.35);
     color-scheme: dark;
-  }
 }
 
 * {
@@ -218,8 +218,7 @@ input[type='search'],
 input[type='text'],
 input[type='password'],
 input[type='number'],
-textarea,
-select {
+textarea {
   font: inherit;
   color: var(--text);
   background: var(--bg);
@@ -342,155 +341,8 @@ button.status:hover {
   white-space: pre-wrap;
   overflow: auto;
 }
-
-/* The launcher. */
-
-.launcher {
-  height: 100%;
-  overflow-y: auto;
-  display: flex;
-  justify-content: center;
-}
-
-.launcher-inner {
-  width: 100%;
-  max-width: 1040px;
-  padding: 72px 32px 48px;
-  display: flex;
-  flex-direction: column;
-  gap: 36px;
-}
-
-.launcher-head {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.workspace-location {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  max-width: 100%;
-  margin: 16px 0 0;
-}
-.workspace-location .mono {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .workspace-pane input {
   margin-top: 8px;
-}
-.launcher-head h1 {
-  font-size: 26px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.project-tasks {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 16px;
-}
-
-.project-task {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 20px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-panel);
-  background: var(--sheet);
-  min-width: 0;
-}
-
-.task-heading, .task-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.task-heading > strong { flex: 1; }
-.task-title { overflow-wrap: anywhere; color: var(--text2); }
-.task-state { font-size: 11px; color: var(--muted); }
-.task-state.running, .task-state.waiting { color: var(--annotate); }
-.task-state.done { color: var(--good); }
-.task-state.failed { color: var(--bad); }
-.project-task progress { width: 100%; height: 5px; accent-color: var(--annotate); }
-.task-actions { margin-top: auto; padding-top: 8px; }
-
-.launcher section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.recents {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 12px;
-}
-
-.recent {
-  text-align: left;
-  padding: 0;
-  border-radius: var(--r-panel);
-  border: 1px solid var(--line);
-  background: var(--sheet);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.recent:hover {
-  border-color: var(--text);
-}
-
-.recent .tile {
-  aspect-ratio: 16 / 9;
-  background: var(--stage);
-  color: var(--bg);
-  display: grid;
-  place-items: center;
-  font: 500 22px var(--font-mono);
-  opacity: 0.92;
-}
-
-.recent .meta {
-  padding: 10px 12px 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.recent .meta > span:first-child {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-}
-
-.recent .meta .path {
-  font: 11px var(--font-mono);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.banner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  border-radius: var(--r-panel);
-  background: var(--s2);
-}
-
-.banner p {
-  flex: 1;
 }
 
 /* The workspace: panels on the ground, the film on ink. */
@@ -1364,43 +1216,12 @@ button.status:hover {
   font-weight: 600;
 }
 
-/* The models dialog: providers down the left, the selected one's form on the right. */
-
 .dialog.models {
   width: min(860px, 100%);
   padding: 0;
   display: grid;
   grid-template-columns: 260px 1fr;
   overflow: hidden;
-}
-
-.models-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 18px 12px;
-  background: var(--bg);
-  border-right: 1px solid var(--line);
-  overflow-y: auto;
-}
-
-.models-list h2 {
-  font-size: 16px;
-  font-weight: 600;
-  padding: 0 8px;
-}
-
-.models-list .note {
-  padding: 0 8px 10px;
-}
-
-.models-list ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
 }
 
 .provider-row {
@@ -1528,7 +1349,7 @@ button.status:hover {
 }
 
 .fields label input,
-.fields label select {
+.fields label .studio-select {
   font-weight: 400;
 }
 
@@ -1583,10 +1404,6 @@ button.status:hover {
 @media (max-width: 720px) {
   .dialog.models {
     grid-template-columns: 1fr;
-  }
-  .models-list {
-    border-right: none;
-    border-bottom: 1px solid var(--line);
   }
   .presets {
     grid-template-columns: repeat(2, 1fr);
@@ -2068,24 +1885,16 @@ kbd {
   color: var(--text2);
 }
 
-/* On a Mac the window has no title bar: its buttons sit over the top bar, which moves the
-   window, and the launcher keeps a strip to move it by. */
+/* On a Mac the window has no title bar: its buttons sit over the bar at the top of each page (the editor's top
+   bar, Home's header, Settings' header), which moves the window. */
 
-:root[data-platform='mac'] .topbar {
+:root[data-platform='mac'] :is(.topbar, .home-header, .settings-header) {
   padding-left: 84px;
   -webkit-app-region: drag;
 }
 
-:root[data-platform='mac'] .topbar :is(button, a, input, select) {
+:root[data-platform='mac'] :is(.topbar, .home-header, .settings-header) :is(button, a, input, select) {
   -webkit-app-region: no-drag;
-}
-
-:root[data-platform='mac'] .launcher::before {
-  content: '';
-  position: fixed;
-  inset: 0 0 auto;
-  height: 40px;
-  -webkit-app-region: drag;
 }
 
 /* Quiet, recoverable work: history and source-aware navigation. */
@@ -2135,6 +1944,11 @@ kbd {
   color: var(--muted);
   font-size: 10px;
 }
+/* The name is written as the brand writes it, never in capitals. */
+.eyebrow .brand-name {
+  text-transform: none;
+}
+
 .eyebrow {
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -2831,112 +2645,6 @@ kbd {
   color: var(--muted);
   font-size: 12px;
 }
-.example-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-}
-.example-card {
-  padding: 0;
-  border: 1px solid var(--line);
-  background: var(--sheet);
-  border-radius: var(--r-panel);
-  overflow: hidden;
-  text-align: left;
-  transition:
-    transform 180ms ease,
-    border-color 180ms ease;
-}
-.example-card:hover:not(:disabled) {
-  transform: translateY(-3px);
-  border-color: var(--text);
-}
-.example-poster {
-  aspect-ratio: 16 / 10;
-  padding: 24px;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  overflow: hidden;
-  background: var(--text);
-  color: var(--bg);
-}
-.example-poster > .eyebrow {
-  position: absolute;
-  top: 18px;
-  left: 24px;
-  color: inherit;
-  font-size: 8px;
-  opacity: 0.6;
-}
-.example-poster > strong {
-  font-size: clamp(22px, 3vw, 38px);
-  line-height: 1.05;
-  letter-spacing: -1.5px;
-  max-width: 220px;
-  font-weight: 650;
-  transition: transform 400ms ease;
-}
-.example-card:hover .example-poster > strong {
-  transform: translateX(5px);
-}
-.example-product .example-poster {
-  background: var(--s2);
-  color: var(--text);
-}
-.example-data .example-poster {
-  background: var(--sheet);
-  color: var(--text);
-}
-.example-play {
-  position: absolute;
-  bottom: 16px;
-  right: 18px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font: 10px var(--font-mono);
-  opacity: 0.65;
-}
-.example-bars {
-  display: flex;
-  align-items: end;
-  gap: 8px;
-  height: 45px;
-  margin-bottom: 12px;
-}
-.example-bars i {
-  display: block;
-  width: 24px;
-  height: calc(var(--bar) * 10px);
-  background: var(--text);
-  opacity: calc(var(--bar) * 0.25);
-}
-.example-data .example-poster > strong {
-  font-size: 25px;
-  max-width: 230px;
-}
-.example-caption {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 18px;
-}
-.example-caption strong {
-  font-size: 13px;
-  font-weight: 600;
-}
-.example-caption p {
-  font-size: 11px;
-  line-height: 1.6;
-  color: var(--muted);
-  margin-top: 5px;
-}
-.example-caption > svg {
-  flex: none;
-  color: var(--muted);
-}
 .brief {
   padding: 14px;
   border: 1px solid var(--line);
@@ -2956,7 +2664,7 @@ kbd {
   font-size: 11px;
   color: var(--text2);
 }
-.brief :is(input, textarea, select) {
+.brief :is(input, textarea, .studio-select) {
   width: 100%;
   min-width: 0;
   font-size: 12px;
@@ -3079,13 +2787,6 @@ kbd {
 .modal-shell:focus {
   outline: none;
 }
-@media (prefers-reduced-motion: reduce) {
-  .example-card,
-  .example-poster > strong {
-    transition: none;
-    transform: none !important;
-  }
-}
 .layout-tools {
   display: flex;
   align-items: center;
@@ -3099,12 +2800,6 @@ kbd {
 @media (max-width: 1100px) {
   .topbar .button > .muted {
     display: none;
-  }
-  .example-grid {
-    gap: 10px;
-  }
-  .example-caption {
-    padding: 12px;
   }
 }
 .motion-preview {
@@ -3736,7 +3431,7 @@ kbd {
   font-size: 11px;
   color: var(--muted);
 }
-.agent-menu-settings select {
+.agent-menu-settings .studio-select {
   width: 100%;
 }
 .agent-menu-settings .note {
@@ -3784,9 +3479,6 @@ kbd {
 }
 
 /* The person's own coding agents in Models (ADR 0008): each with its state, and a pane saying what to do. */
-.agents-label {
-  margin: 18px 0 2px;
-}
 
 .state-dot {
   flex: none;
@@ -4167,4 +3859,1261 @@ kbd {
 .line-span.selected {
   border-color: var(--annotate);
   background: color-mix(in srgb, var(--annotate) 12%, var(--sheet));
+}
+
+/* Global settings is a page; the editor remains mounted behind it. */
+.studio-settings {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.settings-header h1 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.settings-header h1:focus {
+  outline: none;
+}
+
+.settings-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+}
+
+.settings-nav {
+  padding: 24px 12px;
+  border-right: 1px solid var(--line);
+  overflow: auto;
+}
+
+.settings-nav .label {
+  display: block;
+  padding: 0 8px 16px;
+}
+
+.settings-content {
+  overflow: auto;
+  padding: 28px 36px;
+}
+
+.settings-content > * {
+  max-width: 960px;
+  margin-inline: auto;
+}
+
+.settings-content .provider-form {
+  max-width: 720px;
+  padding: 24px 0;
+  overflow: visible;
+}
+
+.settings-services ul {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.settings-services li {
+  flex: 1 1 240px;
+}
+
+.settings-services .provider-row {
+  border: 1px solid var(--line);
+}
+
+.settings-services .add {
+  width: auto;
+}
+
+.settings-notice {
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-notice {
+  flex-wrap: wrap;
+}
+
+.settings-content .provider-form {
+  margin-inline: auto;
+  width: 100%;
+}
+
+.settings-services {
+  max-width: 720px;
+}
+
+@media (max-width: 720px) {
+  .settings-layout {
+    grid-template-columns: 170px minmax(0, 1fr);
+  }
+  .settings-content {
+    padding: 16px;
+  }
+}
+
+/* A section's heading sits where every section's does: at the content's top, its note right under it. */
+.settings-content > .provider-form:first-child,
+.settings-services:empty + .provider-form {
+  padding-top: 0;
+}
+
+.settings-services:empty {
+  display: none;
+}
+
+.general-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.general-settings > h2 {
+  margin: 0 0 4px;
+}
+
+.general-settings > .note {
+  margin: 0 0 4px;
+}
+
+.general-settings .preference-row {
+  padding: 20px 0;
+}
+
+.preference-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.preference-row > span {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.preference-row .studio-select {
+  min-width: 160px;
+}
+
+/* A setting that applies the moment it changes: a switch, ink when on. */
+input.switch {
+  flex: none;
+  position: relative;
+  width: 36px;
+  height: 20px;
+  margin: 0;
+  appearance: none;
+  border-radius: 999px;
+  background: var(--line);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+input.switch::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--sheet);
+  transition: transform 0.15s;
+}
+
+input.switch:checked {
+  background: var(--text);
+}
+
+input.switch:checked::before {
+  transform: translateX(16px);
+  background: var(--bg);
+}
+
+input.switch:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Shared combobox: paper, ink, and the same control tokens in either theme. */
+.studio-select {
+  display: inline-flex;
+  position: relative;
+  min-width: 0;
+  vertical-align: middle;
+}
+
+.select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-button);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+}
+
+.select-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.select-trigger > svg {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+.select-trigger:hover:not(:disabled) {
+  background: var(--sheet);
+  border-color: var(--muted);
+}
+
+.select-trigger:focus-visible,
+.select-trigger[aria-expanded='true'] {
+  outline: 2px solid var(--annotate);
+  outline-offset: 2px;
+}
+
+.select-trigger:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.select-popup {
+  position: fixed;
+  z-index: 2000;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-button);
+  background: var(--sheet);
+  color: var(--text);
+  box-shadow: var(--float-shadow);
+}
+
+.select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 34px;
+  padding: 7px 9px;
+  border-radius: var(--r-control);
+  cursor: pointer;
+  font-weight: 400;
+}
+
+.select-option > span {
+  overflow-wrap: anywhere;
+}
+
+.select-option > svg {
+  flex-shrink: 0;
+}
+
+.select-option.highlighted {
+  background: var(--s2);
+}
+
+.select-option[aria-selected='true'] {
+  font-weight: 600;
+}
+
+.select-option[aria-disabled='true'] {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.select-empty {
+  padding: 10px;
+  color: var(--muted);
+}
+
+.voice-pick > .studio-select {
+  flex: 1;
+}
+
+.preference-row > .studio-select {
+  flex-direction: row;
+}
+
+.studio-select > input.select-trigger {
+  padding-right: 32px;
+}
+
+.select-input-chevron {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--muted);
+}
+
+.system-message-detail {
+  display: block;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+/* Home: a header, a navigation rail and the content; returning to work above choosing a starting point. */
+.studio-home {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 176px minmax(0, 1fr);
+  grid-template-rows: 64px minmax(0, 1fr);
+  background: var(--bg);
+}
+
+.home-header {
+  grid-column: 1/-1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--line);
+  background: var(--sheet);
+}
+
+.home-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+}
+
+.home-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px 12px 16px;
+  border-right: 1px solid var(--line);
+}
+
+/* The rail's pages and, at its foot, the workspace and help: one row shape, an icon then its words. */
+.home-nav nav,
+.home-nav-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.home-nav :is(nav, .home-nav-foot) button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--r-button);
+  background: transparent;
+  color: var(--text2);
+  text-align: left;
+}
+
+.home-nav :is(nav, .home-nav-foot) button > svg {
+  flex: none;
+  color: var(--muted);
+}
+
+.home-nav :is(nav, .home-nav-foot) button:hover,
+.home-nav nav button[aria-current] {
+  background: var(--s2);
+  color: var(--text);
+}
+
+.home-nav nav button[aria-current] > svg {
+  color: var(--text);
+}
+
+.workspace-shortcut span {
+  min-width: 0;
+}
+
+.workspace-shortcut small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 116px;
+  color: var(--muted);
+}
+
+.home-content {
+  overflow: auto;
+  padding: 36px clamp(20px,4vw,64px) 60px;
+}
+
+.home-content-inner {
+  max-width: 1280px;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.home-title,
+.home-hero h1,
+.onboarding h1 {
+  font-size: 28px;
+  letter-spacing: -.6px;
+  margin: 8px 0 12px;
+}
+
+.home-content h2 {
+  font-size: 17px;
+}
+
+.home-content .section-heading {
+  margin-bottom: 18px;
+}
+
+.home-projects,
+.home-templates {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 18px;
+}
+
+.home-project {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  background: var(--sheet);
+  min-width: 0;
+}
+
+.project-open {
+  background: none;
+  border: 0;
+  padding: 0;
+  width: 100%;
+  text-align: left;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+.project-open:disabled {
+  opacity: .65;
+}
+
+.project-art {
+  aspect-ratio: 16/9;
+  background: var(--s2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.project-art > span:not(.badge) {
+  font-size: 32px;
+  color: var(--muted);
+}
+
+.project-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.project-art .badge {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background: var(--sheet);
+}
+
+.project-caption {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 44px 16px 16px;
+}
+
+.project-caption strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-caption small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.project-more {
+  position: absolute;
+  bottom: 22px;
+  right: 10px;
+}
+
+.home-menu {
+  position: absolute;
+  z-index: 10;
+  right: 0;
+  top: 30px;
+  min-width: 210px;
+  background: var(--sheet);
+  border: 1px solid var(--line);
+  border-radius: var(--r-button);
+  padding: 6px;
+  box-shadow: var(--float-shadow);
+}
+
+.home-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: none;
+  padding: 10px;
+  border-radius: var(--r-control);
+}
+
+.home-menu button:hover {
+  background: var(--s2);
+}
+
+.home-menu small {
+  display: block;
+  padding: 8px 10px;
+  color: var(--muted);
+}
+
+.home-projects.list {
+  grid-template-columns: 1fr;
+}
+
+.home-projects.list .project-open {
+  display: flex;
+  align-items: center;
+}
+
+.home-projects.list .project-art {
+  width: 110px;
+  flex-shrink: 0;
+}
+
+.home-projects.list .project-caption {
+  padding: 14px 52px 14px 18px;
+}
+
+.library-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.project-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.project-search input {
+  width: 100%;
+}
+
+.library-toolbar .studio-select {
+  min-width: 140px;
+}
+
+.home-template {
+  text-align: left;
+  border: 1px solid var(--line);
+  background: var(--sheet);
+  border-radius: var(--r-panel);
+  padding: 0 0 18px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.home-template > strong,
+.home-template > span,
+.home-template > small {
+  margin: 0 16px;
+}
+
+.home-template > small {
+  color: var(--muted);
+}
+
+/* A template card's picture is its film's poster frame; it plays while the card is hovered or focused. */
+.template-art {
+  position: relative;
+  margin-bottom: 8px;
+  background: var(--stage);
+}
+
+.template-play {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--stage);
+  color: #fff;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.home-template:is(:hover, :focus-visible) .template-play {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+.home-template:hover,
+.home-project:hover {
+  border-color: var(--muted);
+}
+
+.task-summary {
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  padding: 8px;
+  background: var(--sheet);
+}
+
+.task-summary > button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px;
+  background: none;
+  border: 0;
+  text-align: left;
+}
+
+.onboarding {
+  max-width: 780px;
+  width: 100%;
+  margin: 18px auto;
+}
+
+.setup-steps {
+  list-style: none;
+  display: flex;
+  padding: 0;
+  margin: 32px 0 22px;
+  gap: 14px;
+}
+
+.setup-steps li {
+  flex: 1;
+}
+
+.setup-steps button {
+  background: none;
+  border: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.setup-steps span {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+}
+
+.setup-steps .selected button {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.setup-steps .selected span {
+  background: var(--text);
+  color: var(--bg);
+}
+
+.setup-panel {
+  background: var(--sheet);
+  border: 1px solid var(--line);
+  padding: 28px;
+  min-height: 240px;
+  border-radius: var(--r-panel);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 20px;
+}
+
+.setup-panel .button {
+  align-self: flex-start;
+}
+
+.setup-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.workspace-path {
+  overflow-wrap: anywhere;
+  padding: 12px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+}
+
+.setup-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.home-help {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+}
+
+.home-help p {
+  margin: 10px 0;
+  color: var(--muted);
+}
+
+.home-empty {
+  padding: 40px 0;
+  color: var(--muted);
+}
+
+.template-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  align-items: center;
+  gap: 32px;
+}
+
+.template-back {
+  grid-column: 1/-1;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.template-description {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.template-description h1 {
+  font-size: 24px;
+  margin: 0;
+}
+
+.template-description p {
+  margin: 0;
+}
+
+@media (max-width: 700px) {
+  .template-detail {
+    grid-template-columns: minmax(0,1fr);
+  }
+}
+
+@media (min-width: 1500px) {
+  .home-projects {
+    grid-template-columns: repeat(4,minmax(0,1fr));
+  }
+}
+
+@media (max-width: 1050px) {
+  .home-projects,
+  .home-templates {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+  .studio-home {
+    grid-template-columns: 160px minmax(0,1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .studio-home {
+    grid-template-columns: 120px minmax(0,1fr);
+  }
+  .home-nav {
+    padding: 20px 8px;
+  }
+  .home-content {
+    padding: 20px 14px;
+  }
+  .home-projects,
+  .home-templates {
+    grid-template-columns: 1fr;
+  }
+  .home-header {
+    padding: 0 12px;
+  }
+  .home-brand strong {
+    display: none;
+  }
+  .setup-steps {
+    flex-direction: column;
+  }
+  .library-toolbar {
+    flex-wrap: wrap;
+  }
+  .setup-actions {
+    flex-wrap: wrap;
+  }
+  .setup-panel {
+    padding: 18px;
+  }
+}
+
+@media (max-height: 700px) {
+  .home-content {
+    padding-top: 20px;
+    padding-bottom: 24px;
+  }
+  .onboarding {
+    margin-block: 0;
+  }
+  .setup-steps {
+    margin-block: 20px 16px;
+  }
+  .setup-panel {
+    padding: 20px;
+    min-height: 180px;
+    gap: 14px;
+  }
+  .setup-panel .preference-row {
+    padding-bottom: 14px;
+  }
+  .setup-panel .preference-row:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+  .setup-actions {
+    margin-top: 16px;
+  }
+}
+
+/* A template on the stage, as the editor plays a film: on ink, 16 px of it around the frame, the controls at its foot. */
+.template-stage {
+  width: 100%;
+}
+
+.template-picture {
+  padding: 16px 16px 4px;
+}
+
+/* A template's film as the Studio exported it, drawn at its own 16:9. */
+.template-picture video,
+.template-art video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: var(--stage);
+}
+
+.template-picture video {
+  border-radius: var(--r-control);
+}
+
+.template-stage .timecode {
+  margin-left: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* A seek along the stage's foot: a white track filled to the playhead, on ink. */
+.stage-seek {
+  flex: 1;
+  min-width: 0;
+  height: 20px;
+  margin: 0 8px;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.stage-seek::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, #fff var(--progress, 0%), rgb(255 255 255 / 0.22) var(--progress, 0%));
+}
+
+.stage-seek::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -4px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.stage-seek:focus-visible {
+  outline-color: #fff;
+}
+
+.studio-home .spacer {
+  flex: 1;
+}
+
+/* Home's prompt: what to make, in the person's words, as the first thing on Home. */
+.home-hero h1 {
+  margin-top: 4px;
+}
+
+.home-prompt {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  background: var(--sheet);
+  box-shadow: 0 1px 0 var(--line);
+  transition: border-color 0.15s;
+}
+
+.home-prompt:focus-within {
+  border-color: var(--text);
+}
+
+.home-prompt textarea {
+  min-height: 84px;
+  max-height: 240px;
+  padding: 18px 20px 8px;
+  border: 0;
+  outline: none;
+  resize: vertical;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.home-prompt-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px 12px 16px;
+}
+
+.home-starters {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.home-starters .chip {
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text2);
+  font-size: 12px;
+}
+
+.home-starters .chip:hover {
+  border-color: var(--muted);
+  color: var(--text);
+}
+
+.home-prompt-note {
+  margin: 0;
+  padding: 10px 16px 12px;
+  border-top: 1px solid var(--line);
+}
+
+/* The project opened last, large: its cover beside its name and a way back into it. */
+.home-project.featured .project-open {
+  display: grid;
+  grid-template-columns: minmax(0, 560px) minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.home-project.featured .project-caption {
+  justify-content: center;
+  gap: 10px;
+  padding: 28px 32px;
+}
+
+.home-project.featured .project-caption strong {
+  font-size: 22px;
+  letter-spacing: -0.3px;
+  white-space: normal;
+}
+
+.home-project.featured .project-more {
+  top: 12px;
+  bottom: auto;
+}
+
+.project-continue {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 8px 14px;
+  border-radius: var(--r-button);
+  background: var(--text);
+  color: var(--bg);
+  font-weight: 600;
+}
+
+.home-projects.recent {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 18px;
+}
+
+.project-search kbd {
+  flex: none;
+}
+
+@media (max-width: 1050px) {
+  .home-projects.recent {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .home-project.featured .project-open {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home-prompt-foot {
+    flex-wrap: wrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  input.switch,
+  input.switch::before,
+  .home-prompt,
+  .template-play {
+    transition: none;
+  }
+}
+
+/* Motion: a page comes in with a short rise, a card lifts under the pointer and its cover leans in. Never with reduced
+   motion, and never on the film's own picture. */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.home-page {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  animation: rise-in 0.22s ease-out both;
+}
+
+.studio-settings,
+.workspace {
+  animation: rise-in 0.2s ease-out both;
+}
+
+.home-project,
+.home-template {
+  transition: border-color 0.15s, transform 0.2s ease-out, box-shadow 0.2s ease-out;
+}
+
+.home-project:has(.project-open:not(:disabled):hover),
+.home-template:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--lift-shadow);
+}
+
+.project-art img {
+  transition: transform 0.4s ease-out;
+}
+
+.project-open:not(:disabled):hover .project-art img {
+  transform: scale(1.03);
+}
+
+/* A task over its project's cover: its state with a ring or a dot, and its progress along the cover's foot. */
+.task-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text);
+}
+
+/* Something waits on the person: the attention colour, wherever a task says so. */
+.state-dot.waiting {
+  border-color: var(--annotate);
+  background: var(--annotate);
+}
+
+.task-badge.waiting {
+  border-color: var(--annotate);
+  color: var(--annotate);
+}
+
+.task-ring {
+  width: 14px;
+  height: 14px;
+  transform: rotate(-90deg);
+}
+
+.task-ring circle {
+  fill: none;
+  stroke-width: 2.5;
+}
+
+.task-ring circle:first-child {
+  stroke: var(--line);
+}
+
+.task-ring circle:last-child {
+  stroke: var(--text);
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.3s;
+}
+
+.task-ring.turning {
+  animation: spin 1s linear infinite;
+}
+
+.task-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--annotate);
+  animation: task-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes task-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.task-progress {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--text);
+  transition: width 0.3s;
+}
+
+/* Home while its library is read: the page's blocks, drawn quietly. */
+.home-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.skeleton {
+  border-radius: var(--r-panel);
+  background: linear-gradient(90deg, var(--s2) 0%, var(--sheet) 50%, var(--s2) 100%) 0 0 / 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+.skeleton-title {
+  width: 320px;
+  max-width: 60%;
+  height: 34px;
+}
+
+.skeleton-prompt {
+  height: 150px;
+}
+
+.skeleton-card {
+  aspect-ratio: 16 / 12;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-page,
+  .studio-settings,
+  .workspace,
+  .skeleton,
+  .task-ring.turning,
+  .task-dot {
+    animation: none;
+  }
+
+  .home-project,
+  .home-template,
+  .project-art img,
+  .task-ring circle:last-child,
+  .task-progress {
+    transition: none;
+  }
+
+  .home-project:has(.project-open:not(:disabled):hover),
+  .home-template:hover,
+  .project-open:not(:disabled):hover .project-art img {
+    transform: none;
+  }
 }

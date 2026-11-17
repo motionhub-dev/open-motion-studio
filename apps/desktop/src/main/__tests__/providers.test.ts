@@ -205,3 +205,29 @@ describe('the voice providers', () => {
     expect(await new ProviderStore(dir).voiceSetup('minimax')).toEqual({ kind: 'minimax', region: 'china', key: KEY });
   });
 });
+
+describe('Studio preferences', () => {
+  it('defaults to the system and persists concurrent partial changes without losing providers', async () => {
+    const store = new ProviderStore(dir);
+    expect(await store.preferences()).toEqual({ theme: 'system', language: 'system' });
+    await Promise.all([
+      store.savePreferences({ theme: 'dark' }),
+      store.savePreferences({ language: 'zh-CN' }),
+      store.save({ ...WIRE, name: 'A', baseUrl: 'https://a.example', model: 'a', key: KEY }),
+    ]);
+    const reopened = new ProviderStore(dir);
+    expect(await reopened.preferences()).toEqual({ theme: 'dark', language: 'zh-CN' });
+    expect((await reopened.list()).providers[0]?.name).toBe('A');
+    expect(await reopened.savePreferences({ theme: 'light' })).toEqual({ theme: 'light', language: 'zh-CN' });
+    expect(await reopened.savePreferences({ language: 'system' })).toEqual({ theme: 'light', language: 'system' });
+  });
+
+  it('rejects invalid renderer input without changing saved settings', async () => {
+    const store = new ProviderStore(dir);
+    await store.savePreferences({ theme: 'dark' });
+    for (const input of [null, [], true, { theme: 'blue' }, { language: 'unknown' }, { theme: undefined }, { workspace: '/outside' }]) {
+      await expect(store.savePreferences(input)).rejects.toThrow('Invalid preferences');
+    }
+    expect(await store.preferences()).toEqual({ theme: 'dark', language: 'system' });
+  });
+});

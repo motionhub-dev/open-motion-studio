@@ -2,6 +2,7 @@
 // place among its ancestors, the moment, where it is drawn in the film's pixels, its words, how
 // it looks and its attributes. A region dragged out is shown by its box alone.
 
+import { usePreferences } from './preferences';
 import { Crosshair } from 'lucide-react';
 import type { Mark } from '../../shared/api';
 import type { FilmInfo } from '../../shared/preview';
@@ -9,9 +10,10 @@ import { timecode } from './preview';
 
 
 function Row({ name, value }: { name: string; value: string }) {
+  const { t: tr } = usePreferences();
   return (
     <>
-      <dt>{name}</dt>
+      <dt>{tr(name)}</dt>
       <dd className="mono">
         {name.endsWith('color') && <span className="swatch-dot" style={{ background: value }} />}
         {value}
@@ -21,18 +23,19 @@ function Row({ name, value }: { name: string; value: string }) {
 }
 
 export function Inspector({ mark, film, onSeek }: { mark: Mark | null; film: FilmInfo | null; onSeek(t: number): void }) {
+  const { t: tr } = usePreferences();
   if (!mark) {
     return (
       <div className="body inspector">
         <p className="note">
-          <Crosshair size={14} /> Pick an element on the picture (<kbd>C</kbd>) to see it here.
+          <Crosshair size={14} /> {tr("Pick an element on the picture (")}<kbd>C</kbd>{tr(") to see it here.")}
         </p>
       </div>
     );
   }
   const px = (fraction: number, size: number | undefined) => (size ? `${Math.round(fraction * size)}` : `${Math.round(fraction * 100)}%`);
   const { box, element } = mark;
-  const name = element ? (element.path.split(' > ').pop() ?? element.path) : 'A region';
+  const name = element ? (element.path.split(' > ').pop() ?? element.path) : tr("A region");
   return (
     <div className="body inspector">
       <div className="inspected">
@@ -40,9 +43,9 @@ export function Inspector({ mark, film, onSeek }: { mark: Mark | null; film: Fil
         {element && element.path !== name && <span className="path mono">{element.path}</span>}
       </div>
       <dl>
-        <dt>At</dt>
+        <dt>{tr("At")}</dt>
         <dd>
-          <button type="button" className="quiet mono" onClick={() => onSeek(mark.t)} data-tip="Go to this moment">
+          <button type="button" className="quiet mono" onClick={() => onSeek(mark.t)} data-tip={tr("Go to this moment")}>
             {timecode(mark.t)}
           </button>
         </dd>
@@ -54,7 +57,7 @@ export function Inspector({ mark, film, onSeek }: { mark: Mark | null; film: Fil
       </dl>
       {element && Object.keys(element.styles).length > 0 && (
         <>
-          <span className="label">Styles</span>
+          <span className="label">{tr("Styles")}</span>
           <dl>
             {Object.entries(element.styles).map(([k, v]) => (
               <Row key={k} name={k} value={v} />
@@ -64,7 +67,7 @@ export function Inspector({ mark, film, onSeek }: { mark: Mark | null; film: Fil
       )}
       {element && Object.keys(element.attributes).length > 0 && (
         <>
-          <span className="label">Attributes</span>
+          <span className="label">{tr("Attributes")}</span>
           <dl>
             {Object.entries(element.attributes).map(([k, v]) => (
               <Row key={k} name={k} value={v} />

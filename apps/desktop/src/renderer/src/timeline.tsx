@@ -4,6 +4,8 @@
 // Ctrl (⌘) and the wheel zoom about the pointer; while the film plays the view follows the playhead
 // a page at a time, until the person scrolls it themselves; a playhead out of view is a chip at the
 // edge that brings it back. The check's issues sit on the ruler at their moments.
+
+import { Translated, usePreferences } from './preferences';
 import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent, type PointerEvent, type WheelEvent } from 'react';
 import { ChevronDown, ChevronUp, ChevronsLeft, ChevronsRight, Locate, Minus, Plus, Scan, TriangleAlert } from 'lucide-react';
 import { MAX_MARKS, type FilmIssue, type Mark, type Reference, type SceneStills } from '../../shared/api';
@@ -101,12 +103,13 @@ export function stripOf<T>(frames: T[], width: number): T[] {
 
 /** Folds the timeline to its head, or opens it again. */
 export function Fold({ folded, onFold }: { folded: boolean; onFold(folded: boolean): void }) {
+  const { t: tr } = usePreferences();
   return (
     <button
       type="button"
       className="icon-button"
-      aria-label={folded ? 'Show the timeline' : 'Fold the timeline'}
-      data-tip={folded ? 'Show the timeline' : 'Fold the timeline'}
+      aria-label={folded ? tr("Show the timeline") : tr("Fold the timeline")}
+      data-tip={folded ? tr("Show the timeline") : tr("Fold the timeline")}
       data-key="\"
       onClick={() => onFold(!folded)}
     >
@@ -159,6 +162,7 @@ export function Timeline({
   hovered: Hovered;
   onHover(hovered: Hovered): void;
 }) {
+  const { t: tr } = usePreferences();
   const [zoom, setZoom] = useState(1);
   /** The zoom as last asked for, ahead of the render, so wheel steps that come together add up. */
   const zoomNow = useRef(1);
@@ -288,63 +292,63 @@ export function Timeline({
   return (
     <div className="timeline-wrap">
       <div className="timeline-options">
-        <span className="eyebrow">Timeline</span>
+        <span className="eyebrow"><Translated text="Timeline" /></span>
         <span className="spacer" />
         <button
           className="icon-button"
           aria-pressed={follow}
-          aria-label="Follow the playhead"
-          data-tip={follow ? 'Following the playhead while it plays' : 'Follow the playhead while it plays'}
+          aria-label={tr("Follow the playhead")}
+          data-tip={follow ? tr("Following the playhead while it plays") : tr("Follow the playhead while it plays")}
           onClick={() => setFollow(!follow)}
         >
           <Locate size={12} />
         </button>
         <button
           className="icon-button"
-          aria-label="Zoom out timeline"
-          data-tip="Zoom out"
+          aria-label={tr("Zoom out timeline")}
+          data-tip={tr("Zoom out")}
           data-key="−"
           disabled={zoom === ZOOM.min}
           onClick={() => zoomTo(zoomBy(zoomNow.current, 0.5))}
         >
           <Minus size={12} />
         </button>
-        <span className="mono" title="Ctrl and the wheel zoom about the pointer">
+        <span className="mono" title={tr("Ctrl and the wheel zoom about the pointer")}>
           {Math.round(zoom * 10) / 10}×
         </span>
         <button
           className="icon-button"
-          aria-label="Zoom in timeline"
-          data-tip="Zoom in"
+          aria-label={tr("Zoom in timeline")}
+          data-tip={tr("Zoom in")}
           data-key="+"
           disabled={zoom === ZOOM.max}
           onClick={() => zoomTo(zoomBy(zoomNow.current, 2))}
         >
           <Plus size={12} />
         </button>
-        <button className="icon-button" aria-label="Fit timeline" data-tip="Fit the whole film" data-key="Shift Z" onClick={() => zoomTo(ZOOM.min)}>
+        <button className="icon-button" aria-label={tr("Fit timeline")} data-tip={tr("Fit the whole film")} data-key="Shift Z" onClick={() => zoomTo(ZOOM.min)}>
           <Scan size={12} />
         </button>
         <Fold folded={false} onFold={onFold} />
       </div>
-      <div className="timeline" aria-label="Timeline">
+      <div className="timeline" aria-label={tr("Timeline")}>
         <div className="timeline-scroll">
           <div className="names" aria-hidden="true">
-            <span className="scenes-name" title={stillsError ? `The scenes' frames could not be made: ${stillsError}` : undefined}>
-              Scenes
+            <span className="scenes-name" title={stillsError ? tr("The scenes' frames could not be made: {0}", {0: stillsError}) : undefined}>
+              {tr("Scenes")}
               {stillsError && <TriangleAlert size={11} />}
             </span>
-            <span title={full ? `A message carries at most ${MAX_MARKS} marks` : 'Drag along this lane to mark a stretch of the film'}>
-              Marks
+            <span title={full ? tr("A message carries at most {0} marks", {0: MAX_MARKS}) : tr("Drag along this lane to mark a stretch of the film")}>
+              {tr("Marks")}
             </span>
             {soundLanes.map((_, r) => (
-              <span key={`sound-${r}`} title="The film's music and sound effects">
-                {r === 0 ? 'Sound' : ''}
+              <span key={`sound-${r}`} title={tr("The film's music and sound effects")}>
+                {r === 0 ? tr("Sound") : ''}
               </span>
             ))}
             {lines.length > 0 && (
-              <span title={film.captions ? 'What the film says, shown as captions' : 'What the film says: its script, and its subtitles in an export'}>
-                Lines
+              <span title={film.captions ? tr("What the film says, shown as captions") : tr("What the film says: its script, and its subtitles in an export")}>
+                {tr("Lines")}
               </span>
             )}
             {[...rows].map(([id, row]) => (
@@ -375,7 +379,7 @@ export function Timeline({
               </div>
               <input
                 className="timeline-seek"
-                aria-label="Seek the film"
+                aria-label={tr("Seek the film")}
                 type="range"
                 min={0}
                 max={seconds}
@@ -400,8 +404,8 @@ export function Timeline({
                   type="button"
                   className={`issue-marker ${issue.severity}`}
                   style={{ left: at(issue.time!) }}
-                  aria-label={`${issue.text} at ${timecode(issue.time!)}`}
-                  data-tip={`${issue.text} · click to bring it to the assistant`}
+                  aria-label={tr("{0} at {1}", {0: issue.text, 1: timecode(issue.time!)})}
+                  data-tip={tr("{0} · click to bring it to the assistant", {0: issue.text})}
                   onClick={() => onIssue(issue)}
                 >
                   <TriangleAlert size={10} />
@@ -440,14 +444,14 @@ export function Timeline({
                 onPointerUp={endRange}
                 onPointerCancel={() => setRange(null)}
               >
-                {!marks.length && !range && <span className="hint">Drag here to mark a stretch of the film</span>}
+                {!marks.length && !range && <span className="hint">{tr("Drag here to mark a stretch of the film")}</span>}
                 {marks.map((mark, i) =>
                   mark.end !== undefined ? (
                     <button
                       key={i}
                       className={`mark-range${lit === i ? ' lit' : ''}`}
                       style={{ left: at(mark.t), width: at(mark.end - mark.t) }}
-                      aria-label={`Mark ${i + 1}, ${timecode(mark.t)} to ${timecode(mark.end)}`}
+                      aria-label={tr("Mark {0}, {1} to {2}", {0: i + 1, 1: timecode(mark.t), 2: timecode(mark.end)})}
                       onClick={() => onSeek(mark.t)}
                     >
                       <span className="number">{i + 1}</span>
@@ -457,7 +461,7 @@ export function Timeline({
                       key={i}
                       className={`number flag${lit === i ? ' lit' : ''}`}
                       style={{ left: at(mark.t) }}
-                      aria-label={`Mark ${i + 1} at ${timecode(mark.t)}`}
+                      aria-label={tr("Mark {0} at {1}", {0: i + 1, 1: timecode(mark.t)})}
                       onClick={() => onSeek(mark.t)}
                     >
                       {i + 1}
@@ -484,12 +488,12 @@ export function Timeline({
                         type="button"
                         className={`sound-span${failed ? ' failed' : ''}`}
                         style={{ left: at(sound.at), width: at(Math.min(span, seconds - sound.at)) }}
-                        aria-label={`${fileName(sound.src)}, ${timecode(sound.at)} to ${timecode(sound.at + span)}`}
+                        aria-label={tr("{0}, {1} to {2}", {0: fileName(sound.src), 1: timecode(sound.at), 2: timecode(sound.at + span)})}
                         title={
                           failed ??
                           `${sound.src} · ${timecode(sound.at)}–${timecode(sound.at + span)} · ${sound.volume} dB${sound.loop ? ' · looped' : ''}${
-                            sound.fadeIn ? ` · fades in ${sound.fadeIn} s` : ''
-                          }${sound.fadeOut ? ` · fades out ${sound.fadeOut} s` : ''}`
+                            sound.fadeIn ? tr(" · fades in {0} s", {0: sound.fadeIn}) : ''
+                          }${sound.fadeOut ? tr(" · fades out {0} s", {0: sound.fadeOut}) : ''}`
                         }
                         onClick={() => onSeek(sound.at)}
                       >
@@ -516,7 +520,7 @@ export function Timeline({
                       type="button"
                       className={`line-span${t >= line.start && t < line.end ? ' current' : ''}${selected?.kind === 'line' && selected.line === line.id ? ' selected' : ''}`}
                       style={{ left: at(line.start), width: at(line.end - line.start) }}
-                      aria-label={`${line.text}, ${timecode(line.start)} to ${timecode(line.end)}`}
+                      aria-label={tr("{0}, {1} to {2}", {0: line.text, 1: timecode(line.start), 2: timecode(line.end)})}
                       title={`“${line.text}” · ${timecode(line.start)}–${timecode(line.end)}`}
                       onClick={() => onSelect({ kind: 'line', label: line.text, scene, line: line.id, time: line.start })}
                     >
@@ -533,8 +537,8 @@ export function Timeline({
                       className={`layer-span${selected?.kind === 'layer' && selected.layer === span.layer.id && selected.scene === span.scene ? ' selected' : ''}${fresh.has(changeKey({ kind: 'layer', scene: span.scene, layer: span.layer.id })) ? ' fresh' : ''}${sameHovered(hovered, span.layer.id, span.scene) ? ' hovered' : ''}`}
                       onPointerEnter={() => onHover({ layer: span.layer.id, scene: span.scene })}
                       onPointerLeave={() => onHover(null)}
-                      aria-label={`${span.layer.id}${span.scene ? ` in ${span.scene}` : ', global layer'}`}
-                      title="Declared scene span; content may animate within it"
+                      aria-label={`${span.layer.id}${span.scene ? tr(" in {0}", {0: span.scene}) : ', global layer'}`}
+                      title={tr("Declared scene span; content may animate within it")}
                       style={{ left: at(span.start), width: at(span.duration) }}
                       onClick={() =>
                         onSelect({
@@ -558,8 +562,8 @@ export function Timeline({
             <button
               type="button"
               className={`playhead-chip ${off}`}
-              aria-label={`Bring the playhead at ${timecode(t)} into view`}
-              data-tip="Bring the playhead into view"
+              aria-label={tr("Bring the playhead at {0} into view", {0: timecode(t)})}
+              data-tip={tr("Bring the playhead into view")}
               onClick={() => scrollTo(playheadX - view.width / 2)}
             >
               {off === 'left' && <ChevronsLeft size={12} />}

@@ -12,7 +12,7 @@ person plays, seeks or steps. The stage's guides show the action-safe (90%) and 
 zooms about the pointer with Ctrl and the wheel, turns a page as the playhead nears its edge while the film plays (the
 person scrolling it takes it over), and shows the last check's issues on its ruler, each one click from the assistant.
 
-The launcher offers three bundled starting points. Each click creates a fresh ordinary project in the default
+Home offers three bundled starting points. Each click creates a fresh ordinary project in the default
 workspace, copying the bundled source and preserving earlier projects. New film also creates its own workspace
 directory without a folder picker. The workspace defaults to Documents/OpenMotionStudio and can be changed in
 Settings → Workspace; existing projects stay where they are. Open folder and Recent reopen existing projects.

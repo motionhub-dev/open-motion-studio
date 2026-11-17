@@ -1,5 +1,7 @@
 // Every click instantiates a bundled starting film in a fresh workspace project; existing films are never reused.
-import { writeFile } from 'node:fs/promises';
+// A template draws in its own face, Inter, copied into the project's media/ with its licence, so the film looks the
+// same on every computer and in the video Home plays of it (scripts/render-templates.mjs).
+import { copyFile, mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Example, Project } from '../shared/api';
 import { createInWorkspace, projectAt } from './project';
@@ -9,14 +11,22 @@ export const EXAMPLES: Example[] = [
   { id: 'product', name: 'A product moment', line: 'Give your next launch room to breathe.', title: 'MEET SOMETHING NEW', seconds: 7 },
   { id: 'data', name: 'A story in numbers', line: 'Turn a change into a clear visual.', title: 'SMALL STEPS. BIG CHANGE.', seconds: 7 },
 ];
+/** The face every template draws in, and its licence, as the app ships them (resources/fonts/). */
+const FONTS = join(__dirname, '..', '..', 'resources', 'fonts');
+export const TEMPLATE_FONT = { face: 'Inter.woff2', licence: 'Inter-OFL.txt' };
+
 export function exampleSource(example: Example): string {
   return `import { Film, Scene, Layer, Line, useTime, interpolate } from '@motionhub/runtime';
+import inter from './media/${TEMPLATE_FONT.face}';
 export const film = { width: 1920, height: 1080, fps: 30 };
+/** The film's face, from the project: the same on every computer. */
+const face = \`@font-face { font-family: 'Inter'; src: url(\${inter}) format('woff2'); font-weight: 100 900; font-display: block; }\`;
 function Picture({ closing = false }: { closing?: boolean }) {
   const t = useTime();
   const enter = interpolate(t, [0, .8], [0, 1], { clamp: true });
   const count = Math.round(interpolate(t, [0, 3], [0, 84], { clamp: true }));
-  return <div style={{ width: '100%', height: '100%', padding: 130, boxSizing: 'border-box', background: '#f3eee4', color: '#2a2622', fontFamily: 'system-ui, sans-serif', display: 'flex', flexDirection: 'column', justifyContent: 'center', overflow: 'hidden' }}>
+  return <div style={{ width: '100%', height: '100%', padding: 130, boxSizing: 'border-box', background: '#f3eee4', color: '#2a2622', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column', justifyContent: 'center', overflow: 'hidden' }}>
+    <style>{face}</style>
     <p style={{ fontSize: 24, letterSpacing: 7, margin: '0 0 50px' }}>{closing ? 'YOUR NEXT IDEA STARTS HERE' : 'OpenMotionStudio / ${example.id.toUpperCase()}'}</p>
     ${example.id === 'data' ? "{!closing && <div style={{ display: 'flex', gap: 24, alignItems: 'flex-end', height: 250, marginBottom: 50 }}>{[.3, .5, .7, 1].map((height, i) => <div key={i} style={{ width: 170, height: 250 * height * enter + 1, background: '#2a2622', opacity: .25 + i * .25 }} />)}<strong style={{ fontSize: 150, lineHeight: 1 }}>{count}%</strong></div>}" : ''}
     <h1 style={{ fontSize: ${example.id === 'product' ? 150 : 170}, lineHeight: 1.02, letterSpacing: -9, maxWidth: 1500, margin: 0, transform: 'translateY(' + (1-enter)*60 + 'px)', opacity: .2 + enter * .8 }}>{closing ? 'Make it yours.' : ${JSON.stringify(example.title)}}</h1>
@@ -32,6 +42,8 @@ export async function openExample(root: string, id: unknown): Promise<Project> {
   const example = EXAMPLES.find((e) => e.id === id);
   if (!example) throw new Error('Choose one of the starting points.');
   const project = await createInWorkspace(root, example.name);
+  await mkdir(join(project.path, 'media'));
+  for (const file of Object.values(TEMPLATE_FONT)) await copyFile(join(FONTS, file), join(project.path, 'media', file));
   await writeFile(join(project.path, 'film.tsx'), exampleSource(example), { flag: 'wx' });
   return projectAt(project.path);
 }

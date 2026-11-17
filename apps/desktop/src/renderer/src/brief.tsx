@@ -1,7 +1,10 @@
+import { usePreferences } from './preferences';
+import { Select } from './select';
 import { useState } from 'react';
 import { ArrowUpRight } from 'lucide-react';
 /** This prepares a prompt, not a hidden model call or an edit to the film. */
 export function Brief({ onUse }: { onUse(text: string): void }) {
+  const { t: tr } = usePreferences();
   const [subject, setSubject] = useState('');
   const [audience, setAudience] = useState('');
   const [duration, setDuration] = useState('15');
@@ -18,10 +21,10 @@ export function Brief({ onUse }: { onUse(text: string): void }) {
         }}
       >
         <label>
-          What are we making?
+          {tr("What are we making?")}
           <textarea
             rows={2}
-            placeholder="A launch for our new reading app…"
+            placeholder={tr("A launch for our new reading app…")}
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
             maxLength={1000}
@@ -29,10 +32,10 @@ export function Brief({ onUse }: { onUse(text: string): void }) {
           />
         </label>
         <label>
-          Who is it for? <span className="muted">Optional</span>
+          {tr("Who is it for?")} <span className="muted">{tr("Optional")}</span>
           <input
             type="text"
-            placeholder="Curious readers, first-time visitors…"
+            placeholder={tr("Curious readers, first-time visitors…")}
             value={audience}
             onChange={(e) => setAudience(e.target.value)}
             maxLength={300}
@@ -40,27 +43,19 @@ export function Brief({ onUse }: { onUse(text: string): void }) {
         </label>
         <div className="brief-options">
           <label>
-            Length
-            <select value={duration} onChange={(e) => setDuration(e.target.value)}>
-              <option value="15">15 seconds</option>
-              <option value="30">30 seconds</option>
-              <option value="60">60 seconds</option>
-            </select>
+            {tr("Length")}
+            <Select aria-label={tr("Length")} value={duration} onValueChange={setDuration} options={['15', '30', '60'].map(value => ({ value, label: tr("{0} seconds", {0: value}) }))} />
           </label>
           <label>
-            Canvas
-            <select value={ratio} onChange={(e) => setRatio(e.target.value)}>
-              <option value="16:9">Wide · 16:9</option>
-              <option value="9:16">Portrait · 9:16</option>
-              <option value="1:1">Square · 1:1</option>
-            </select>
+            {tr("Canvas")}
+            <Select aria-label={tr("Canvas")} value={ratio} onValueChange={setRatio} options={[{ value: '16:9', label: tr("Wide · 16:9") }, { value: '9:16', label: tr("Portrait · 9:16") }, { value: '1:1', label: tr("Square · 1:1") }]} />
           </label>
         </div>
         <button type="submit" className="button" disabled={!subject.trim()}>
-          Use this brief
+          {tr("Use this brief")}
           <ArrowUpRight size={13} />
         </button>
-        <p className="note">Review your message before sending.</p>
+        <p className="note">{tr("Review your message before sending.")}</p>
       </form>
     </div>
   );

@@ -40,7 +40,10 @@ concept and indirection is something the next reader has to load.
 ## Language
 
 **Everything a developer reads is English**: code, identifiers, comments, docs, test names, commit messages, PR text.
-Words a user reads in the app will live in message files when the app is translated; until then the UI is English.
+Words a user reads in the app are English in the code and translated through `t()` (`src/renderer/src/preferences.tsx`),
+with the Chinese for each in `src/shared/translations.ts`, keyed by the English. A new message gets its Chinese in the
+same change; `i18n.test.ts` fails on a label left outside `t()` or a message without a translation. A film's words, a
+project's or a motion's names, a model's reply and identifiers are never translated.
 
 **Reply to the developer in Chinese** in a coding session: explanations, plans, questions and the report at the end of a
 task. A commit message, a doc or a comment quoted inside the reply stays English. A message written in English, or an
@@ -55,6 +58,8 @@ downloads Electron.
 pnpm dev              # the desktop app with hot reload (electron-vite)
 pnpm typecheck        # the gate, in CI's order: typecheck → test → build
 pnpm test
+pnpm test:ui          # a build, then Home, Settings, the select and both languages driven in hidden Electron windows
+pnpm templates        # a build, then each template exported again into src/renderer/src/templates/ (after changing one)
 pnpm build            # the preview core into resources/preview/, then main, preload and renderer into out/
 pnpm package          # an installer for this platform into apps/desktop/dist/ (unsigned without signing secrets)
 ```
