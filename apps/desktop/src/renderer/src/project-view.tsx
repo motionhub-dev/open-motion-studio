@@ -964,7 +964,7 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
                 </button>
               </div>
               {side === 'assets' ? (
-                <AssetsPanel disabled={busy || checking || progress !== null} onBusy={setImporting} onReference={reference} />
+                <AssetsPanel disabled={busy || checking || progress !== null} revision={build?.version ?? 0} onBusy={setImporting} onReference={reference} />
               ) : side === 'review' ? (
                 <ReviewPanel
                   review={review}

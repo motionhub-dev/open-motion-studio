@@ -33,6 +33,8 @@ const api: StudioApi = {
   openExample: (id) => ipcRenderer.invoke(CHANNELS.openExample, id),
   projectAssets: () => ipcRenderer.invoke(CHANNELS.projectAssets),
   importAssets: () => ipcRenderer.invoke(CHANNELS.importAssets),
+  renameAsset: (path, name) => ipcRenderer.invoke(CHANNELS.renameAsset, path, name),
+  trashAsset: (path) => ipcRenderer.invoke(CHANNELS.trashAsset, path),
   importDroppedAssets: (files) =>
     ipcRenderer.invoke(
       CHANNELS.importDroppedAssets,

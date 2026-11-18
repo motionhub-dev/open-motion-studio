@@ -1,11 +1,11 @@
 // Local, creator-supplied images, fonts and sounds. Paths entering this module come only from
 // the native picker; the renderer can name only an asset already listed by the app.
 import { constants } from 'node:fs';
-import { copyFile, mkdir, readdir, realpath, stat } from 'node:fs/promises';
+import { copyFile, mkdir, readdir, realpath, rename, stat } from 'node:fs/promises';
 import { basename, dirname, extname, join, relative } from 'node:path';
 import type { Asset } from '../shared/api';
 import { writablePath } from './agent/tools';
-import { projectSource } from './project';
+import { folderName, projectSource } from './project';
 const IMAGES = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif', '.svg']);
 const FONTS = new Set(['.woff', '.woff2', '.ttf', '.otf']);
 /** What a <Sound> plays (ADR 0010), and what the preview's Web Audio and the export's ffmpeg both read. */
@@ -46,6 +46,43 @@ export async function projectAssets(dir: string): Promise<Asset[]> {
   for (const asset of assets) asset.used = source.includes(asset.path);
   return assets.sort((a, b) => a.name.localeCompare(b.name));
 }
+/**
+ * The asset at `path` as the panel lists it, or an error: the renderer can name only a file under media/ the Studio
+ * already listed, and not one the film's code names, which renaming or removing would break.
+ */
+async function unusedAsset(dir: string, path: unknown): Promise<Asset> {
+  const asset = (await projectAssets(dir)).find((a) => a.path === path);
+  if (!asset) throw new Error('That file is not among the project’s assets. Refresh them and try again.');
+  if (asset.used) throw new Error(`The video uses ${asset.name}. Ask the assistant to stop using it first.`);
+  return asset;
+}
+
+/**
+ * Renames an asset beside itself, keeping its kind: a name without an extension takes the old one, and a different
+ * extension is refused. A name another file there already has is refused too.
+ */
+export async function renameAsset(dir: string, path: unknown, name: unknown): Promise<Asset[]> {
+  const asset = await unusedAsset(dir, path);
+  const old = extname(asset.name);
+  let next = folderName(name);
+  if (!extname(next)) next += old;
+  if (extname(next).toLowerCase() !== old.toLowerCase()) throw new Error(`Keep the ${old} at the end: a file is renamed, not converted.`);
+  if (next === asset.name) return projectAssets(dir);
+  const from = await writablePath(dir, asset.path);
+  const to = join(dirname(from), next);
+  const sameFile = to.toLowerCase() === from.toLowerCase();
+  if (!sameFile && (await stat(to).then(() => true, () => false))) throw new Error(`There is already a file named ${next} beside it.`);
+  await rename(from, to);
+  return projectAssets(dir);
+}
+
+/** Moves an asset to the system's trash, from which the person can put it back; never deletes it outright. */
+export async function trashAsset(dir: string, path: unknown, trash: (file: string) => Promise<void>): Promise<Asset[]> {
+  const asset = await unusedAsset(dir, path);
+  await trash(await writablePath(dir, asset.path));
+  return projectAssets(dir);
+}
+
 export async function importAssets(dir: string, paths: string[]): Promise<Asset[]> {
   for (const path of paths) {
     if (!kind(path)) throw new Error(`${basename(path)} is not an image, a font or a sound the Studio takes (MP3, WAV, M4A, OGG).`);

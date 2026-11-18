@@ -35,7 +35,9 @@ project-relative paths to messages: with @, or dragged onto the composer, or dra
 for the file there. A file the film's code names is marked in use. A dropped file's path is read by the preload from the
 dropped File itself (`importDroppedAssets`, Electron's `webUtils.getPathForFile`; a File the page makes has none), so
 the renderer still names no path; the main process takes absolute paths only, at most 50, and checks each as an import
-from the picker is checked. Imports keep originals, avoid overwriting names, and are capped at 50 MB per file.
+from the picker is checked. A file the video does not use can be renamed beside itself, keeping its extension
+(`renameAsset`), or moved to the system's trash (`trashAsset`, Electron's `shell.trashItem`), never deleted
+outright; both take only a path the Studio listed, and refuse one the film's code names. Imports keep originals, avoid overwriting names, and are capped at 50 MB per file.
 A font is listed, not installed into the operating system. A film's sounds are `<Sound>` elements
 (see the architecture, "Sound"); video playback and media generation are outside this slice.
 

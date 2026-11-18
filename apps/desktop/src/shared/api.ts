@@ -509,6 +509,10 @@ export interface StudioApi {
    * the page made has none), so the renderer never names a path.
    */
   importDroppedAssets(files: File[]): Promise<Asset[]>;
+  /** Renames an asset the video does not use, keeping its extension; resolves with the assets as they now are. */
+  renameAsset(path: string, name: string): Promise<Asset[]>;
+  /** Moves an asset the video does not use to the system's trash; resolves with the assets as they now are. */
+  trashAsset(path: string): Promise<Asset[]>;
   reviewFilm(): Promise<FilmReview>;
   history(): Promise<Checkpoint[]>;
   restoreCheckpoint(id: string): Promise<void>;
@@ -648,6 +652,8 @@ export const CHANNELS = {
   projectAssets: 'assets:list',
   importAssets: 'assets:import',
   importDroppedAssets: 'assets:import-dropped',
+  renameAsset: 'assets:rename',
+  trashAsset: 'assets:trash',
   reviewFilm: 'film:review',
   history: 'project:history',
   restoreCheckpoint: 'project:restore',

@@ -277,7 +277,10 @@ agents and exports continue. Sessions are retained for this app run; explicit Qu
 - **Assets** (`assets-panel.tsx`): images, fonts and sounds under `media/`, each a card dragged onto the picture (a
   mark where it falls, Put it here, with the asset as a reference) or onto the composer (a reference); @ on its corner
   adds it to the message. A sound plays in place with its length, a typeface shows itself (Aa 永), and a file the
-  film's code names is marked In use.
+  film's code names is marked In use. When some are not used, a line says how many, with Show only these. A file
+  opened shows large; one the video does not use can be renamed there (its extension kept beside the field) or moved
+  to the system's trash, and one it uses says why it cannot be. The list is read again when the window comes back
+  into focus or the film is rebuilt; there is no refresh button.
 - **Model Providers** (Settings): two panes. The providers down the left, an initial for each, the active one badged; the
   selected one, or a new one, as a form on the right. A new one starts from a service card (each with its protocol);
   the address and model are in mono, the key field says it is sealed in the keychain and never shown again. **Test

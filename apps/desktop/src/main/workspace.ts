@@ -52,7 +52,7 @@ import { soundPeaks } from './film/mix';
 import { voiceFilm } from './narration';
 import { speak, voicesOf } from './voice';
 import { EXAMPLES } from './examples';
-import { ASSET_EXTENSIONS, importAssets, projectAssets } from './assets';
+import { ASSET_EXTENSIONS, importAssets, projectAssets, renameAsset, trashAsset } from './assets';
 import { reviewBuild } from './film/review';
 import { FILM, FILM_SKILL, startFilm, watchFilm } from './film/film';
 import { type ExportedSpeech, exportedSpeech, writeRemotionProject } from './film/remotion-export';
@@ -632,6 +632,16 @@ export function createWorkspace(host: WorkspaceHost, renderSession: Session, cha
       } finally {
         if (working === controller) working = null;
       }
+    });
+    handle(CHANNELS.renameAsset, async (_event, path: unknown, name: unknown) => {
+      const state = requireOpen();
+      if (working || exporting) throw new Error('Finish the current task before renaming a file.');
+      return renameAsset(state.project.path, path, name);
+    });
+    handle(CHANNELS.trashAsset, async (_event, path: unknown) => {
+      const state = requireOpen();
+      if (working || exporting) throw new Error('Finish the current task before removing a file.');
+      return trashAsset(state.project.path, path, (file) => shell.trashItem(file));
     });
     handle(CHANNELS.importDroppedAssets, async (_event, paths: unknown) => {
       const state = requireOpen();

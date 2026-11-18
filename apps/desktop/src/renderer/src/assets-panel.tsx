@@ -1,9 +1,10 @@
 // The project's own images, type and sound, copied into media/. Each is dragged onto the picture (a mark asking for it
 // there) or onto the composer (a reference), or added to the message with @; a sound plays in place and a typeface
-// shows itself. A file the film's code names is marked In use.
+// shows itself. A file the film's code names is marked In use; one it does not can be renamed or moved to the trash, and
+// those can be shown alone. The list is read again when the window comes back into focus or the film is rebuilt.
 
 import { SystemMessage, usePreferences } from './preferences';
-import { AtSign, Image, Music, Pause, Play, Plus, RefreshCw, Type, X } from 'lucide-react';
+import { AtSign, Image, Music, Pause, Play, Plus, Trash2, Type, X } from 'lucide-react';
 import { type DragEvent, useEffect, useRef, useState } from 'react';
 import type { Asset, Reference } from '../../shared/api';
 import { reason } from './reason';
@@ -71,10 +72,13 @@ function Specimen({ asset }: { asset: Asset }) {
 
 export function AssetsPanel({
   disabled,
+  revision,
   onReference,
   onBusy,
 }: {
   disabled: boolean;
+  /** The film's build, whose change may mean the film uses other files, or the agent added some. */
+  revision: number;
   onReference(ref: Reference): void;
   onBusy(value: boolean): void;
 }) {
@@ -89,37 +93,55 @@ export function AssetsPanel({
   const [playing, setPlaying] = useState<string | null>(null);
   const [lengths, setLengths] = useState<Record<string, number>>({});
   const sounds = useRef<Record<string, HTMLAudioElement | null>>({});
+  /** Only the files the video does not use are shown. */
+  const [unusedOnly, setUnusedOnly] = useState(false);
+  /** The name being typed for the asset opened, and whether its rename or removal is under way. */
+  const [name, setName] = useState('');
+  const [changing, setChanging] = useState(false);
+  // Read on opening, whenever the film is rebuilt, and when the window comes back: files added or removed in the
+  // system's file manager meanwhile show without a button to press.
   useEffect(() => {
     let live = true;
-    window.studio.projectAssets().then(
-      (items) => {
-        if (live) {
+    const read = () =>
+      window.studio.projectAssets().then(
+        (items) => {
+          if (!live) return;
           setAssets(items);
+          setError('');
           setLoading(false);
-        }
-      },
-      (e) => {
-        if (live) {
+        },
+        (e) => {
+          if (!live) return;
           setError(reason(e));
           setLoading(false);
-        }
-      },
-    );
+        },
+      );
+    void read();
+    addEventListener('focus', read);
     return () => {
       live = false;
+      removeEventListener('focus', read);
     };
-  }, []);
-  async function refresh() {
+  }, [revision]);
+  /** Renames or removes the asset opened, then shows the list as it now is. */
+  async function change(act: () => Promise<Asset[]>, after: (items: Asset[]) => void) {
+    if (disabled || changing) return;
+    setChanging(true);
+    onBusy(true);
     setError('');
-    setLoading(true);
     try {
-      setAssets(await window.studio.projectAssets());
+      const items = await act();
+      setAssets(items);
+      after(items);
     } catch (e) {
       setError(reason(e));
     } finally {
-      setLoading(false);
+      setChanging(false);
+      onBusy(false);
     }
   }
+  const unused = assets.filter((a) => !a.used);
+  const shown = unusedOnly && unused.length ? unused : assets;
   async function bring() {
     if (disabled || importing) return;
     setImporting(true);
@@ -153,15 +175,6 @@ export function AssetsPanel({
           <Plus size={14} />
           {importing ? tr("Importing…") : tr("Import files")}
         </button>
-        <button
-          className="icon-button"
-          aria-label={tr("Refresh assets")}
-          data-tip={tr("Refresh assets")}
-          disabled={loading || importing}
-          onClick={() => void refresh()}
-        >
-          <RefreshCw size={14} />
-        </button>
       </div>
       <p className="note">
         {tr("Copied into")} <span className="mono">media/</span>{tr(". Originals stay where they are. Images, fonts, music and sound effects, up to 50 MB each.")}
@@ -180,8 +193,18 @@ export function AssetsPanel({
           <p>{tr("A logo, a photograph, a typeface. Start with one file.")}</p>
         </div>
       ) : (
+        <>
+        {unused.length > 0 && unused.length < assets.length && (
+          // What the video leaves out, which can be put to use or cleared away.
+          <div className="asset-filter">
+            <span className="note">{tr("{0} not used in the video", {0: unused.length})}</span>
+            <button type="button" className="quiet" aria-pressed={unusedOnly} onClick={() => setUnusedOnly(!unusedOnly)}>
+              {unusedOnly ? tr("Show all") : tr("Show only these")}
+            </button>
+          </div>
+        )}
         <ul className="asset-grid">
-          {assets.map((asset) => (
+          {shown.map((asset) => (
             <li
               key={asset.path}
               draggable={!disabled}
@@ -195,6 +218,7 @@ export function AssetsPanel({
                 onClick={() => {
                   setBroken(false);
                   setSelected(asset);
+                  setName(asset.name.replace(/\.[^.]+$/, ''));
                 }}
               >
                 {asset.kind === 'image' ? (
@@ -252,6 +276,7 @@ export function AssetsPanel({
             </li>
           ))}
         </ul>
+        </>
       )}
       {selected && (
         <Dialog label={selected.name} onClose={() => setSelected(null)}>
@@ -273,7 +298,44 @@ export function AssetsPanel({
             </p>
           )}
           <p className="path mono">{selected.path}</p>
+          {selected.used ? (
+            <p className="note">{tr("The video uses this file, so it keeps its name and place. Ask the assistant to stop using it first.")}</p>
+          ) : (
+            // A file the video does not use can be renamed (its extension kept) or moved to the system's trash.
+            <form
+              className="asset-rename"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void change(
+                  () => window.studio.renameAsset(selected.path, name.trim()),
+                  (items) => setSelected(items.find((a) => a.name.replace(/\.[^.]+$/, '') === name.trim()) ?? null),
+                );
+              }}
+            >
+              <label>
+                <span>{tr("Name")}</span>
+                <input value={name} maxLength={120} onChange={(e) => setName(e.target.value)} />
+                <span className="mono">{selected.name.match(/\.[^.]+$/)?.[0]}</span>
+              </label>
+              <button type="submit" className="button" disabled={disabled || changing || !name.trim() || `${name.trim()}${selected.name.match(/\.[^.]+$/)?.[0] ?? ''}` === selected.name}>
+                {tr("Rename")}
+              </button>
+            </form>
+          )}
           <div className="dialog-actions">
+            {!selected.used && (
+              <button
+                type="button"
+                className="button ghost asset-trash"
+                disabled={disabled || changing}
+                data-tip={tr("It can be put back from the system's trash")}
+                onClick={() => void change(() => window.studio.trashAsset(selected.path), () => setSelected(null))}
+              >
+                <Trash2 size={14} />
+                {tr("Move to trash")}
+              </button>
+            )}
+            <span className="spacer" />
             <button
               className="button primary"
               disabled={disabled || importing || broken}

@@ -3,6 +3,18 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-17 — Assets are renamed, trashed and kept current
+
+- **What:** A file the video does not use is renamed (its extension kept) or moved to the system's trash from its
+  dialog in Assets; one it uses says why it cannot be. Assets say how many files the video leaves out, with Show only
+  these. The list is read again when the window comes back into focus or the film is rebuilt, and its refresh button
+  is gone.
+- **Why:** A file once imported could only be renamed or cleared away in the file manager, and the list showed what
+  was there only after a press of refresh.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/main/assets.ts` (`renameAsset`, `trashAsset`), `apps/desktop/src/renderer/src/assets-panel.tsx`.
+
 ## 2026-11-17 — Assets and motions are reached from the composer and by dropping files
 
 - **What:** The composer's + opens Import files…, From the assets and From the motion library. Files from the
