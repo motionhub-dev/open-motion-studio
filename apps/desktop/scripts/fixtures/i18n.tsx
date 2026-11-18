@@ -47,7 +47,7 @@ const nav = async (label: string) => action(() => { const found = Array.from(doc
 (window as any).runTests = async () => {
   await action(() => root.render(<PreferencesProvider><App /></PreferencesProvider>));
   assert(document.documentElement.lang === 'zh-CN', 'Document language not applied');
-  assert(text().includes('新建影片') && text().includes('用数字讲故事'), 'Home not localized');
+  assert(text().includes('新建视频') && text().includes('用数字讲故事'), 'Home not localized');
   await action(() => button('OpenMotionStudio 设置').click());
   assert(text().includes('开机自动启动') && text().includes('简体中文'), 'General settings not localized');
   await nav('模型服务');
@@ -64,7 +64,7 @@ const nav = async (label: string) => action(() => { const found = Array.from(doc
   editor = true; language = 'zh-CN';
   await action(() => root.render(<PreferencesProvider><App /></PreferencesProvider>));
   assert(text().includes('English project name'), 'Project name was rewritten');
-  assert(text().includes('想让这部影片表达什么') && text().includes('解释一个概念'), 'Assistant labels not localized');
+  assert(text().includes('想让这个视频表达什么') && text().includes('解释一个概念'), 'Assistant labels not localized');
   assert(document.querySelector('[aria-label="导入图片或字体"]') || document.querySelector('[data-tip="导入图片或字体"]'), 'Composer hint not localized');
   await action(() => button('键盘快捷键').click());
   assert(text().includes('显示或隐藏助手') && text().includes('播放或暂停'), 'Shortcut help not localized');
@@ -78,9 +78,9 @@ const nav = async (label: string) => action(() => { const found = Array.from(doc
   await action(() => root.render(<></>));
   editor = false; language = 'zh-CN'; complete = false;
   await action(() => root.render(<PreferencesProvider><App /></PreferencesProvider>));
-  assert(text().includes('准备好，开始第一部影片'), 'First-run guide missing');
+  assert(text().includes('准备好，开始第一个视频'), 'First-run guide missing');
   await action(() => button('继续').click());
-  assert(text().includes('影片保存在哪里'), 'Workspace step missing');
+  assert(text().includes('视频保存在哪里'), 'Workspace step missing');
   await action(() => button('继续').click());
   assert(text().includes('选择创作方式'), 'Assistant step missing');
   await action(() => button('模型服务').click());
@@ -96,7 +96,7 @@ const nav = async (label: string) => action(() => { const found = Array.from(doc
   complete = false;
   library = [{name:'English project name',path:'/test',display:'/test',film:true,lastOpened:1000,modified:1000,missing:true}];
   await action(() => root.render(<PreferencesProvider><App /></PreferencesProvider>));
-  assert(!text().includes('准备好，开始第一部影片') && text().includes('继续创作'), 'Existing user was forced through onboarding');
+  assert(!text().includes('准备好，开始第一个视频') && text().includes('继续创作'), 'Existing user was forced through onboarding');
   assert(text().includes('找不到项目文件夹') && text().includes('重新定位项目文件夹'), 'Missing project not recoverable');
   await action(() => button('项目操作').click());
   await action(() => button('从列表移除').click());

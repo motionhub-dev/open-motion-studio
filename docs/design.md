@@ -203,7 +203,7 @@ each message is looked up by its English text in `src/shared/translations.ts`. A
 names, a model's reply and every identifier (a model, a path, a key's name) are never translated. In Chinese, an
 English error the Studio has no translation for is summarized, with its exact text one click away.
 
-The Chinese keeps one word for each thing: a project (a folder) is 项目, a film (`film.tsx`) is 影片, the workspace is
+The Chinese keeps one word for each thing: a project (a folder) is 项目, a film (`film.tsx`) is 视频, the workspace is
 工作空间, a template is 模板, a motion is 动效, and an agent stays Agent.
 
 The project's menu is about this project alone, each row led by its icon: Rename… (the folder, refused while a task

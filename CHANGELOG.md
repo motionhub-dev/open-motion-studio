@@ -3,6 +3,15 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-17 — The Chinese interface says 视频, not 影片
+
+- **What:** Every Chinese label, message and hint that named the film (`film.tsx`) as 影片 names it 视频, counted with
+  个 (这个视频, 第一个视频): 新建视频, 导出视频, 视频预览 and the rest. The English is unchanged.
+- **Why:** 影片 reads as a cinema film; what people make here are videos, and 视频 is the word they use for them.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/shared/translations.ts`, `docs/design.md`.
+
 ## 2026-11-17 — A film made without a name is film-<id>
 
 - **What:** New film, and a film whose brief leaves no usable name, makes its folder `film-` and six random letters and
