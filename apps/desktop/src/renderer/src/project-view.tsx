@@ -387,6 +387,21 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
     );
   }
   /** Opens one of the project tools, showing them if they are hidden. */
+  /** Files from the computer are being dragged over the workspace, which says it will import them. */
+  const [fileDrop, setFileDrop] = useState(false);
+  /** How many assets and motions the project holds, for their tabs; counted again when either may have changed. */
+  const [counts, setCounts] = useState<{ assets: number; motions: number } | null>(null);
+  useEffect(() => {
+    if (importing) return;
+    let live = true;
+    Promise.all([window.studio.projectAssets(), window.studio.projectMotions()]).then(
+      ([assets, motions]) => live && setCounts({ assets: assets.length, motions: motions.length }),
+      (e: unknown) => console.error('Counting the assets and motions failed:', e),
+    );
+    return () => {
+      live = false;
+    };
+  }, [importing, build?.version]);
   function openSide(panel: typeof side) {
     setSide(panel);
     if (!showSide) showTools(true);
@@ -652,13 +667,17 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
     setRefs((current) => (current.some((r) => JSON.stringify(r) === JSON.stringify(ref)) ? current : [...current, ref]));
     setFocusRequest((n) => n + 1);
   }
-  /** Imports images or fonts into the project's assets, and puts the new ones in the next message's tray. */
-  async function importForMessage() {
+  /**
+   * Imports images, fonts or sounds into the project's assets (picked, or dropped on the window), and puts the new ones
+   * in the next message's tray.
+   */
+  async function importForMessage(dropped?: File[]) {
     if (busy || importing || checking || progress !== null) return;
     setImporting(true);
     try {
       const before = new Set((await window.studio.projectAssets()).map((a) => a.path));
-      const added = (await window.studio.importAssets()).filter((a) => !before.has(a.path));
+      const after = dropped ? await window.studio.importDroppedAssets(dropped) : await window.studio.importAssets();
+      const added = after.filter((a) => !before.has(a.path));
       if (!added.length) return;
       const room = 8 - refs.length;
       setRefs((current) => [
@@ -764,7 +783,22 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
 
       {project.film ? (
         <div
-          className="workspace"
+          className={`workspace${fileDrop ? ' file-drop' : ''}`}
+          onDragOver={(event) => {
+            if (!event.dataTransfer.types.includes('Files')) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = busy || importing || checking || progress !== null ? 'none' : 'copy';
+            setFileDrop(true);
+          }}
+          onDragLeave={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFileDrop(false);
+          }}
+          onDrop={(event) => {
+            setFileDrop(false);
+            if (!event.dataTransfer.files.length) return;
+            event.preventDefault();
+            void importForMessage([...event.dataTransfer.files]);
+          }}
           style={{
             // A panel put away keeps a rail in its column, as the folded timeline keeps its head.
             gridTemplateColumns: `${layout.assistant ? layout.left : RAIL}px minmax(0, 1fr) ${showSide ? layout.right : RAIL}px`,
@@ -804,6 +838,7 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
               onBriefTaken={() => setBrief(null)}
               onReference={reference}
               onImport={() => void importForMessage()}
+              onOpenPanel={(panel) => openSide(panel)}
               onRemoveRef={(i) => setRefs((items) => items.filter((_, n) => n !== i))}
               onSettings={onSettings}
               marks={marks}
@@ -905,11 +940,15 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
                         { id: 'assets', label: tr("Assets") },
                         { id: 'motions', label: tr("Motions") },
                       ] as const
-                    ).map(({ id, label }) => (
-                      <button key={id} type="button" aria-pressed={side === id} onClick={() => setSide(id)}>
-                        {label}
-                      </button>
-                    ))}
+                    ).map(({ id, label }) => {
+                      const count = id === 'assets' ? counts?.assets : id === 'motions' ? counts?.motions : undefined;
+                      return (
+                        <button key={id} type="button" aria-pressed={side === id} onClick={() => setSide(id)}>
+                          {label}
+                          {count ? <span className="tab-count">{count}</span> : null}
+                        </button>
+                      );
+                    })}
                   </nav>
                 )}
                 <span className="spacer" />

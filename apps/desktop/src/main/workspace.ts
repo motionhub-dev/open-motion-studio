@@ -84,7 +84,7 @@ export function createWorkspace(host: WorkspaceHost, renderSession: Session, cha
   let needsInput = false;
   const taskChannels = new Set<string>([
     CHANNELS.sendMessage, CHANNELS.exportFilm, CHANNELS.exportRemotion, CHANNELS.voiceFilm,
-    CHANNELS.importAssets, CHANNELS.useMotion, CHANNELS.undoTurn, CHANNELS.restoreCheckpoint,
+    CHANNELS.importAssets, CHANNELS.importDroppedAssets, CHANNELS.useMotion, CHANNELS.undoTurn, CHANNELS.restoreCheckpoint,
   ]);
   const handle = (channel: string, listener: Handler) => handlers.set(channel, (event, ...args) => {
     const tracked = taskChannels.has(channel) && !working && !exporting && tasks.size === 0 && open;
@@ -629,6 +629,19 @@ export function createWorkspace(host: WorkspaceHost, renderSession: Session, cha
         if (chosen.canceled) return projectAssets(state.project.path);
         if (open !== state) throw new Error('The project was closed.');
         return importAssets(state.project.path, chosen.filePaths);
+      } finally {
+        if (working === controller) working = null;
+      }
+    });
+    handle(CHANNELS.importDroppedAssets, async (_event, paths: unknown) => {
+      const state = requireOpen();
+      if (working || exporting) throw new Error('Finish the current task before importing files.');
+      if (!Array.isArray(paths) || paths.length > 50 || !paths.every((p) => typeof p === 'string' && isAbsolute(p)))
+        throw new Error('Drop files from your computer to import them.');
+      const controller = new AbortController();
+      working = controller;
+      try {
+        return await importAssets(state.project.path, paths as string[]);
       } finally {
         if (working === controller) working = null;
       }

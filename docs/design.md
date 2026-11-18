@@ -96,7 +96,9 @@ A top bar over a grid of panels (`project-view.tsx`):
   what the agent will do, with Cancel and Change the film, which alone asks the agent. The agent writes it in film.tsx: a new rate keeps everything else, a frame of the same shape is scaled, and a new shape lays
   every scene out again; the scenes keep their lengths in seconds. It waits while the agent is not ready or is working.
   Full screen is the stage alone, picture and foot, with no corners; Esc or the button leaves it.
-- The **project tools** are three tabs, Outline, Assets and Motions. History opens from the assistant's head
+- The **project tools** are three tabs, Outline, Assets and Motions, the last two with how many they hold beside their
+  name. Files from the computer dropped anywhere on the workspace (dashed while they are over it) are imported and go
+  with the next message; Start from a look, on an empty conversation, opens the motion library. History opens from the assistant's head
   and Checks from the status; either shows its title with a way back to the tabs.
 - The assistant's and the right panel's widths are dragged at their edges, and the timeline's height is the least it
   has: it takes whatever the stage leaves (handles take the arrow keys too). The timeline folds to its head, and the
@@ -245,7 +247,8 @@ agents and exports continue. Sessions are retained for this app run; explicit Qu
   dashed outline; on Claude Code, Enter adds a message of words to the turn instead, as a bubble in the conversation
   where it was sent. Items the last turn changed are ringed in green in the outline and the timeline for four seconds, and
   the stage says the agent is working in a dark pill over its top left. The composer grows with its text up to 180px; Enter
-  sends, Shift+Enter breaks the line, + and @ at its start, and at its end its agent as a quiet chip and Send (or
+  sends, Shift+Enter breaks the line, + and @ at its start (+ opens, upward, Import files…, From the assets and From
+  the motion library, each with a line saying what it does), and at its end its agent as a quiet chip and Send (or
   Stop): what the message goes to sits beside the button that sends it. The assistant's head is hide, then the project's
   tokens, History and New conversation as icons. The chip has a dot (green
   ready, `--bad` signed out or too old, hollow not installed or no model) and the built-in agent's model, or the

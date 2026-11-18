@@ -65,7 +65,7 @@ const nav = async (label: string) => action(() => { const found = Array.from(doc
   await action(() => root.render(<PreferencesProvider><App /></PreferencesProvider>));
   assert(text().includes('English project name'), 'Project name was rewritten');
   assert(text().includes('想让这个视频表达什么') && text().includes('解释一个概念'), 'Assistant labels not localized');
-  assert(document.querySelector('[aria-label="导入图片或字体"]') || document.querySelector('[data-tip="导入图片或字体"]'), 'Composer hint not localized');
+  assert(document.querySelector('[aria-label="添加到消息"]') || document.querySelector('[data-tip="添加文件、素材或动效"]'), 'Composer hint not localized');
   await action(() => button('键盘快捷键').click());
   assert(text().includes('显示或隐藏助手') && text().includes('播放或暂停'), 'Shortcut help not localized');
   await action(() => button('关闭').click());

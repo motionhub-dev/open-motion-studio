@@ -193,6 +193,7 @@ export function MotionPanel({
     }
     setError(null);
     setBusy(id);
+    onBusy(true);
     try {
       await window.studio.removeMotion(id);
       if (open === id) setOpen(null);
@@ -201,6 +202,7 @@ export function MotionPanel({
       setError(reason(e));
     } finally {
       setBusy(null);
+      onBusy(false);
     }
   }
 

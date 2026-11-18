@@ -504,6 +504,11 @@ export interface StudioApi {
   openExample(id: string): Promise<Project | null>;
   projectAssets(): Promise<Asset[]>;
   importAssets(): Promise<Asset[]>;
+  /**
+   * Imports files the person dropped on the window. The preload reads each path from the dropped File itself (a File
+   * the page made has none), so the renderer never names a path.
+   */
+  importDroppedAssets(files: File[]): Promise<Asset[]>;
   reviewFilm(): Promise<FilmReview>;
   history(): Promise<Checkpoint[]>;
   restoreCheckpoint(id: string): Promise<void>;
@@ -642,6 +647,7 @@ export const CHANNELS = {
   openExample: 'examples:open',
   projectAssets: 'assets:list',
   importAssets: 'assets:import',
+  importDroppedAssets: 'assets:import-dropped',
   reviewFilm: 'film:review',
   history: 'project:history',
   restoreCheckpoint: 'project:restore',

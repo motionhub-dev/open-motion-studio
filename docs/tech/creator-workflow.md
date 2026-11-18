@@ -30,9 +30,12 @@ The Motions panel can preview a catalogue reel before adding it. The main proces
 `.motion-studio/reels/`, capped at 50 MB, and the renderer plays the local preview URL. HTML players use an opaque sandbox and a separate catalogue host/CSP
 that cannot fetch project files; all remote asset requests remain in the main process. A film reaches only the film
 host, by fetch or by navigation, so it can never have the main process fetch a URL it wrote. A missing reel is explained.
-The Assets panel lists images, fonts and sounds (MP3, WAV, M4A, OGG, played in place) under `media/`, imports through the native file picker, and attaches their
+The Assets panel lists images, fonts and sounds (MP3, WAV, M4A, OGG, played in place) under `media/`, imports through the native file picker or files dropped on the workspace, and attaches their
 project-relative paths to messages: with @, or dragged onto the composer, or dragged onto the picture as a mark asking
-for the file there. A file the film's code names is marked in use. Imports keep originals, avoid overwriting names, and are capped at 50 MB per file.
+for the file there. A file the film's code names is marked in use. A dropped file's path is read by the preload from the
+dropped File itself (`importDroppedAssets`, Electron's `webUtils.getPathForFile`; a File the page makes has none), so
+the renderer still names no path; the main process takes absolute paths only, at most 50, and checks each as an import
+from the picker is checked. Imports keep originals, avoid overwriting names, and are capped at 50 MB per file.
 A font is listed, not installed into the operating system. A film's sounds are `<Sound>` elements
 (see the architecture, "Sound"); video playback and media generation are outside this slice.
 

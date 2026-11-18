@@ -1,7 +1,7 @@
 // The bridge: exposes StudioApi to the sandboxed renderer as `window.studio`, and
 // nothing else (no ipcRenderer, no Node).
 
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
+import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron';
 import { CHANNELS, EVENTS, type StudioApi } from '../shared/api';
 
 function subscribe<T>(channel: string, listener: (value: T) => void): () => void {
@@ -33,6 +33,11 @@ const api: StudioApi = {
   openExample: (id) => ipcRenderer.invoke(CHANNELS.openExample, id),
   projectAssets: () => ipcRenderer.invoke(CHANNELS.projectAssets),
   importAssets: () => ipcRenderer.invoke(CHANNELS.importAssets),
+  importDroppedAssets: (files) =>
+    ipcRenderer.invoke(
+      CHANNELS.importDroppedAssets,
+      [...files].map((file) => webUtils.getPathForFile(file)).filter(Boolean),
+    ),
   reviewFilm: () => ipcRenderer.invoke(CHANNELS.reviewFilm),
   history: () => ipcRenderer.invoke(CHANNELS.history),
   restoreCheckpoint: (id) => ipcRenderer.invoke(CHANNELS.restoreCheckpoint, id),

@@ -3,6 +3,17 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-17 — Assets and motions are reached from the composer and by dropping files
+
+- **What:** The composer's + opens Import files…, From the assets and From the motion library. Files from the
+  computer dropped anywhere on the workspace are imported into `media/` and go with the next message. The Assets and
+  Motions tabs say how many they hold, and Start from a look opens the motion library.
+- **Why:** Both panels sat behind the Outline with nothing in the way of making a film leading to them.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/assistant.tsx`, `apps/desktop/src/renderer/src/project-view.tsx`,
+  `apps/desktop/src/preload/index.ts` (`importDroppedAssets`).
+
 ## 2026-11-17 — Motions are applied to the video, and assets dragged where they go
 
 - **What:** The Motions panel (动效库 in Chinese) opens on motionhub's whole catalogue instead of an empty search, and
