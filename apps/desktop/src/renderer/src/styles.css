@@ -454,14 +454,6 @@ button.status:hover {
   overflow-wrap: anywhere;
 }
 
-/* The app's settings sit apart at the bar's end: they are the app's, not the project's. */
-.topbar-divider {
-  width: 1px;
-  height: 20px;
-  margin: 0 4px;
-  background: var(--line);
-}
-
 .topbar .spacer {
   flex: 1;
 }
@@ -3800,6 +3792,30 @@ kbd {
 /* The @ picker, over the composer: what the message can point at, in groups. */
 .composer-actions .spacer {
   flex: 1;
+}
+
+/* At the composer's foot the agent's chip is quiet, and its menu opens upward as wide as the composer, as @ does. */
+.composer-actions .usage-total {
+  margin-right: 4px;
+}
+.composer-actions .agent-picker {
+  position: static;
+  margin-right: 6px;
+}
+.composer-actions .agent-chip {
+  border-color: transparent;
+  color: var(--muted);
+}
+.composer-actions .agent-chip:hover:not(:disabled),
+.composer-actions .agent-chip[aria-expanded='true'] {
+  color: var(--text);
+}
+.composer .agent-menu {
+  top: auto;
+  bottom: calc(100% + 6px);
+  left: -1px;
+  right: -1px;
+  min-width: 0;
 }
 .reference-picker {
   position: absolute;

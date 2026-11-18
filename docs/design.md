@@ -70,15 +70,16 @@ A top bar over a grid of panels (`project-view.tsx`):
   status (building, built with the last check's issue count, or does not build), which opens Checks. On the right what
   to do with it: keyboard shortcuts (a question mark, the key that opens them, in a wide dialog with its groups side by side), Voice (when the film has lines or a voice) and Export MP4, one vermilion split
   button whose chevron holds the other ways to export (a Remotion project), and which shows progress and cancels while
-  running; then, set apart by a rule, the gear, which is
-  OpenMotionStudio's settings, the same page as Home's, never the project's. Voice opens the Voice panel in the project
+  running. The bar has no Settings button: OpenMotionStudio's settings are the app's, not the film's, and open from
+  Ctrl/⌘ , or from their row in the shortcuts dialog (Home keeps its gear); a model and a voice are set up where they
+  are used, from the assistant's model menu and the Voice panel. Voice opens the Voice panel in the project
   tools (a back arrow and its title, as History and Checks): with no voice provider set up, the four as cards, each
   opening it in Settings; with no `<Film voice>`, Voice settings and Generate with agent; then a card with the film's
   voice, its provider and how its captions show, with Voice settings and, when another voice is selected, Use that
   voice instead (through the agent); the lines by scene, each with ▶ to play it in place in the film and its length,
   or Waiting in cobalt; and at the panel's foot, which stays in reach, Voice N lines with the characters it will
   speak, its progress line by line and what it did. On a Mac the window has no title bar (`hiddenInset`): its buttons sit over the top bar, which
-  leaves them room and moves the window; Home keeps a strip at its top to move it by. The top bar also opens Settings.
+  leaves them room and moves the window; Home keeps a strip at its top to move it by.
 - **Assistant** down the whole left, the **stage** in the middle, the **project tools** on the right, the **timeline**
   along the bottom under the stage and the project tools. A shown panel hides from its own head (the assistant's left
   corner, the tools' right corner, the timeline's chevron) and leaves a 40 px rail in its place (the timeline its head),
@@ -237,11 +238,12 @@ agents and exports continue. Sessions are retained for this app run; explicit Qu
   dashed outline; on Claude Code, Enter adds a message of words to the turn instead, as a bubble in the conversation
   where it was sent. Items the last turn changed are ringed in green in the outline and the timeline for four seconds, and
   the stage says the agent is working in a dark pill over its top left. The composer grows with its text up to 180px; Enter
-  sends, Shift+Enter breaks the line, + and @ at its start, and Send (or Stop) at its end. The assistant's head is hide, the
-  project's agent as a round chip, its tokens, then History and New conversation as icons. The chip has a dot (green
+  sends, Shift+Enter breaks the line, + and @ at its start, and at its end the project's tokens, its agent as a quiet
+  chip, and Send (or Stop): what the message goes to sits beside the button that sends it. The assistant's head is hide,
+  then History and New conversation as icons. The chip has a dot (green
   ready, `--bad` signed out or too old, hollow not installed or no model) and the built-in agent's model, or the
   person's own agent with the model chosen for it ("Claude Code · opus"; ADR 0008), the rest on hover. It opens a menu
-  downward: the built-in agent on its provider, Codex and Claude Code with their versions or what they need
+  upward, as wide as the composer, as @ does: the built-in agent on its provider, Codex and Claude Code with their versions or what they need
   (installing, updating, signing in), for the person's own agent its Model and Effort as two selects that take at
   once, and Models. Until the project's agent is known it says so, and nothing sends.
 - **Outline** (`outline.tsx`): the scene count and length with Collapse all / Expand all; the film's own layers folded

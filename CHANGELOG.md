@@ -3,6 +3,27 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-17 — The agent and the tokens are at the composer's foot
+
+- **What:** The chip that chooses the project's agent and model, and the project's tokens, move from the assistant's
+  head to the composer's foot, left of Send. The chip's menu opens upward, as wide as the composer. The head keeps hide,
+  History and New conversation.
+- **Why:** Which agent a message goes to, and what the project has spent, belong beside the button that sends it.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/assistant.tsx` (`AgentChip`), `apps/desktop/src/renderer/src/styles.css`.
+
+## 2026-11-17 — The editor's bar has no Settings button
+
+- **What:** The gear at the end of the editor's top bar is removed. OpenMotionStudio's settings open from Ctrl/⌘ , or
+  from the Open Settings row of the keyboard shortcuts dialog, which is now a button; Home keeps its gear, and a model
+  or a voice is still set up from the assistant's model menu and the Voice panel.
+- **Why:** The settings it opened are the app's (theme, language, launch at login), not the film's; in the editor's bar
+  it competed with Voice and Export MP4 for what the bar is about.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/project-view.tsx` (`Shortcuts`).
+
 ## 2026-11-17 — A picked element's properties are changed on the picture; the Inspector is gone
 
 - **What:** Picking an element on the picture opens its properties in the mark's sheet: its words (when it holds

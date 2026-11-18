@@ -744,24 +744,6 @@ export function Assistant({
           <PanelLeftClose size={15} />
         </button>
         <h2 className="visually-hidden"><Translated text="Assistant" /></h2>
-        <AgentChip
-          active={active}
-          agents={agents}
-          disabled={working}
-          onUseAgent={onUseAgent}
-          onRefreshAgents={onRefreshAgents}
-          onAgentSettings={onAgentSettings}
-          onSettings={onSettings}
-          openRequest={agentMenu}
-        />
-        {usage && usage.turns > 0 && (
-          <span
-            className="usage-total"
-            title={tr("This project, {0} {1}: {2}{3}", {0: usage.turns, 1: usage.turns === 1 ? 'turn' : 'turns', 2: tokenParts(usage, tr), 3: usage.voicedCharacters ? tr(". Voiced {0} characters, {1} s of speech", {0: usage.voicedCharacters, 1: usage.voicedSeconds.toFixed(1)}) : ''})}
-          >
-            {tokenCount(allTokens(usage))} {tr("tokens")}
-          </span>
-        )}
         <span className="spacer" />
         <button type="button" className="icon-button" aria-label={tr("History")} data-tip={tr("History: go back to before a turn")} onClick={onHistory}>
           <History size={15} />
@@ -1274,6 +1256,25 @@ export function Assistant({
             <AtSign size={15} />
           </button>
           <span className="spacer" />
+          {/* What the message goes to and what the project has spent, beside the button that sends it. */}
+            {usage && usage.turns > 0 && (
+              <span
+                className="usage-total"
+                title={tr("This project, {0} {1}: {2}{3}", {0: usage.turns, 1: usage.turns === 1 ? 'turn' : 'turns', 2: tokenParts(usage, tr), 3: usage.voicedCharacters ? tr(". Voiced {0} characters, {1} s of speech", {0: usage.voicedCharacters, 1: usage.voicedSeconds.toFixed(1)}) : ''})}
+              >
+                {tokenCount(allTokens(usage))} {tr("tokens")}
+              </span>
+            )}
+            <AgentChip
+              active={active}
+              agents={agents}
+              disabled={working}
+              onUseAgent={onUseAgent}
+              onRefreshAgents={onRefreshAgents}
+              onAgentSettings={onAgentSettings}
+              onSettings={onSettings}
+              openRequest={agentMenu}
+            />
           {working ? (
             <button
               type="button"

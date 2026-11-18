@@ -6,7 +6,6 @@
 import { SystemMessage, Translated, usePreferences } from './preferences';
 import { translate } from '../../shared/i18n';
 import {
-  Settings as SettingsIcon,
   ArrowLeft,
   ChevronDown,
   ChevronRight,
@@ -88,8 +87,10 @@ const SHORTCUTS: [group: string, keys: string[], what: string][] = [
   ['App', ['Ctrl/⌘', ','], 'Open Settings'],
 ];
 
-function Shortcuts({ onClose }: { onClose(): void }) {
+function Shortcuts({ onClose, onSettings }: { onClose(): void; onSettings(): void }) {
   const { t: tr } = usePreferences();
+  // The editor's bar has no Settings button: its row here opens them, as well as naming the key.
+  const actions: Record<string, () => void> = { 'Open Settings': onSettings };
   return (
     <div className="dialog-backdrop" role="presentation" onClick={onClose}>
       <div
@@ -117,7 +118,22 @@ function Shortcuts({ onClose }: { onClose(): void }) {
                       <kbd key={key}>{key}</kbd>
                     ))}
                   </dt>
-                  <dd>{tr(what)}</dd>
+                  <dd>
+                    {actions[what] ? (
+                      <button
+                        type="button"
+                        className="link"
+                        onClick={() => {
+                          onClose();
+                          actions[what]?.();
+                        }}
+                      >
+                        {tr(what)}
+                      </button>
+                    ) : (
+                      tr(what)
+                    )}
+                  </dd>
                 </div>
               ))}
             </dl>
@@ -737,10 +753,6 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
               {tr("Exporting")} {Math.round(progress * 100)}%
             </button>
           ))}
-        <span className="topbar-divider" aria-hidden="true" />
-        <button className="icon-button" aria-label={t("OpenMotionStudio settings")} data-tip={t("OpenMotionStudio settings")} onClick={onGlobalSettings}>
-          <SettingsIcon size={16} />
-        </button>
       </header>
 
       {project.film ? (
@@ -1040,7 +1052,7 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
           }}
         />
       )}
-      {shortcuts && <Shortcuts onClose={() => setShortcuts(false)} />}
+      {shortcuts && <Shortcuts onClose={() => setShortcuts(false)} onSettings={onGlobalSettings} />}
 
       {toast && (
         <div className={`toast${toast.error ? ' bad' : ''}`} role={toast.error ? 'alert' : 'status'}>
