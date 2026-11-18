@@ -50,7 +50,7 @@ import { VoicePanel } from './voice-panel';
 import { type Hovered, Outline } from './outline';
 import { HistoryPanel } from './history-panel';
 import { LIMITS, Splitter, useLayout } from './layout';
-import { MotionPanel } from './motion-panel';
+import { MotionLibrary } from './motion-library';
 import { Stage, usePlayer } from './preview';
 import { Fold, Timeline } from './timeline';
 import { reason } from './reason';
@@ -308,10 +308,15 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
   const [lit, setLit] = useState<number | null>(null);
   /** Asks the composer to put the cursor in a mark's note: its index, and a count that makes each ask new. */
   const [noteRequest, setNoteRequest] = useState({ index: -1, n: 0 });
-  const [side, setSide] = useState<'outline' | 'motions' | 'code' | 'history' | 'review' | 'assets' | 'voice'>('outline');
-  /** The file across the stage in place of the picture, and the lines it is asked to show, or null for the picture. */
-  const [code, setCode] = useState<{ path: string; focus: CodeFocus | null } | null>(null);
-  const closeCode = useCallback(() => setCode(null), []);
+  const [side, setSide] = useState<'outline' | 'code' | 'history' | 'review' | 'assets' | 'voice'>('outline');
+  /**
+   * What is across the workspace in place of the picture, or null for the picture: a file of code (and the lines it is
+   * asked to show), in the stage's place; or the motion library, over the stage, the timeline and the project tools.
+   */
+  const [centre, setCentre] = useState<{ kind: 'code'; path: string; focus: CodeFocus | null } | { kind: 'motions' } | null>(null);
+  const closeCentre = useCallback(() => setCentre(null), []);
+  const code = centre?.kind === 'code' ? centre : null;
+  const library = centre?.kind === 'motions';
   const [shortcuts, setShortcuts] = useState(false);
   /** Whether the menu of other ways to export is open. */
   const [menu, setMenu] = useState(false);
@@ -735,8 +740,8 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
             type="button"
             className="button"
             data-tip={tr("A look from motionhub to apply to the video")}
-            aria-pressed={showSide && side === 'motions'}
-            onClick={() => openSide('motions')}
+            aria-pressed={library}
+            onClick={() => setCentre(library ? null : { kind: 'motions' })}
           >
             <Sparkles size={15} />
             <Translated text="Motions" />
@@ -820,7 +825,8 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
           style={{
             // A panel put away keeps a rail in its column, as the folded timeline keeps its head.
             gridTemplateColumns: `${layout.assistant ? layout.left : RAIL}px minmax(0, 1fr) ${showSide ? layout.right : RAIL}px`,
-            gridTemplateRows: rows,
+            // The library takes the stage's row and the timeline's as one.
+            gridTemplateRows: library ? 'minmax(0, 1fr)' : rows,
           }}
         >
           {!layout.assistant && (
@@ -856,7 +862,7 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
               onBriefTaken={() => setBrief(null)}
               onReference={reference}
               onImport={() => void importForMessage()}
-              onOpenPanel={(panel) => openSide(panel)}
+              onOpenPanel={(panel) => (panel === 'motions' ? setCentre({ kind: 'motions' }) : openSide(panel))}
               onRemoveRef={(i) => setRefs((items) => items.filter((_, n) => n !== i))}
               onSettings={onSettings}
               marks={marks}
@@ -894,10 +900,24 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
             />
           </section>
           {code && (
-            <CodeView path={code.path} revision={build?.version ?? 0} focus={code.focus} onClose={closeCode} onReference={reference} />
+            <CodeView path={code.path} revision={build?.version ?? 0} focus={code.focus} onClose={closeCentre} onReference={reference} />
+          )}
+          {library && (
+            <MotionLibrary
+              disabled={busy || importing || checking || progress !== null}
+              revision={build?.version ?? 0}
+              onBusy={setImporting}
+              canAsk={canAsk}
+              onAsk={(text) => {
+                // The restyle is seen on the picture, so the library makes way for it.
+                setCentre(null);
+                ask(text);
+              }}
+              onClose={closeCentre}
+            />
           )}
           <Stage
-            hidden={code !== null}
+            hidden={centre !== null}
             player={player}
             build={build}
             marks={marks}
@@ -930,7 +950,7 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
               }
             }}
           />
-          {!showSide && (
+          {!showSide && !library && (
             <button
               type="button"
               className="sheet rail rail-side"
@@ -943,16 +963,16 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
               <span>{t("Project tools")}</span>
             </button>
           )}
-          <aside className="sheet side" aria-label={tr("Project tools")} style={{ display: showSide ? undefined : 'none' }}>
+          <aside className="sheet side" aria-label={tr("Project tools")} style={{ display: showSide && !library ? undefined : 'none' }}>
             <div className="side-content">
               {/* The four tools at hand are tabs; History opens from the assistant and Checks from the status. */}
               <div className="side-tabs">
-                {side === 'history' || side === 'review' || side === 'voice' || side === 'motions' ? (
+                {side === 'history' || side === 'review' || side === 'voice' ? (
                   <>
                     <button type="button" className="icon-button" aria-label={tr("Back to the outline")} data-tip={tr("Back")} onClick={() => setSide('outline')}>
                       <ArrowLeft size={15} />
                     </button>
-                    <h2>{side === 'history' ? tr("History") : side === 'voice' ? tr("Voice") : side === 'motions' ? tr("Motions") : tr("Checks")}</h2>
+                    <h2>{side === 'history' ? tr("History") : side === 'voice' ? tr("Voice") : tr("Checks")}</h2>
                   </>
                 ) : (
                   <nav aria-label={tr("Project tools")}>
@@ -1011,7 +1031,9 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
                   onSelect={select}
                   onReference={reference}
                   onPlay={player.playRange}
-                  onCode={(target) => setCode((was) => ({ path: 'film.tsx', focus: { target, n: (was?.focus?.n ?? 0) + 1 } }))}
+                  onCode={(target) =>
+                    setCentre((was) => ({ kind: 'code', path: 'film.tsx', focus: { target, n: (was?.kind === 'code' ? (was.focus?.n ?? 0) : 0) + 1 } }))
+                  }
                 />
               ) : side === 'voice' && player.film ? (
                 <VoicePanel
@@ -1029,14 +1051,7 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
                   onRestored={restored}
                 />
               ) : side === 'code' ? (
-                <CodeFiles revision={build?.version ?? 0} open={code?.path ?? null} onOpen={(path) => setCode({ path, focus: null })} />
-              ) : side === 'motions' ? (
-                <MotionPanel
-                  onBusy={setImporting}
-                  disabled={busy || importing || checking || progress !== null}
-                  canAsk={canAsk}
-                  onAsk={ask}
-                />
+                <CodeFiles revision={build?.version ?? 0} open={code?.path ?? null} onOpen={(path) => setCentre({ kind: 'code', path, focus: null })} />
               ) : null}
             </div>
             <Splitter
@@ -1052,6 +1067,7 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
           <section
             ref={timelineSheet}
             className="sheet timeline-sheet"
+            style={library ? { display: 'none' } : undefined}
             aria-label={t("Timeline")}
           >
             {!layout.folded && (

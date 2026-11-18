@@ -1,6 +1,6 @@
 # Design
 
-> **Status:** Current · **Updated:** 2026-11-17
+> **Status:** Current · **Updated:** 2026-11-18
 
 The Studio's visual system: its identity, colour, type, shape, icons, the workspace's layout and the rules components follow.
 
@@ -97,7 +97,7 @@ A top bar over a grid of panels (`project-view.tsx`):
   every scene out again; the scenes keep their lengths in seconds. It waits while the agent is not ready or is working.
   Full screen is the stage alone, picture and foot, with no corners; Esc or the button leaves it.
 - The **project tools** are three tabs, Outline, Assets (with how many it holds) and Code. The motion library opens
-  from the top bar, as Voice does, with a back arrow and its title. Files from the computer dropped anywhere on the workspace (dashed while they are over it) are imported and go
+  from the top bar across the workspace, in place of the stage, the timeline and the project tools. Files from the computer dropped anywhere on the workspace (dashed while they are over it) are imported and go
   with the next message; Start from a look, on an empty conversation, opens the motion library. History opens from the assistant's head
   and Checks from the status; either shows its title with a way back to the tabs.
 - The assistant's and the right panel's widths are dragged at their edges, and the timeline's height is the least it
@@ -273,14 +273,18 @@ agents and exports continue. Sessions are retained for this app run; explicit Qu
   Show its code (</>), which opens film.tsx across the stage at the lines that write it; Ask is @, as in the composer,
   since it adds the row to the message. A layer hovered here or on the
   timeline is lit in both, and its declared box drawn dashed on a cobalt tint on the picture while its scene is on screen.
-- **Motions** (`motion-panel.tsx`, 动效库 in Chinese): a line on what a motion is, then the project's motions as poster
-  cards (initials when a motion has no poster), each marked In use or Not used yet by whether the film's code names it,
-  with Apply to the video while unused, ▷ to preview its reel and, for one from the hub the film does not use, Remove
-  (asked first; its folder and its line in the lock go). One opened is its page — poster, name, line, its colour tokens
-  as swatches, its components with their previews, and its MOTION.md. Below, motionhub's whole catalogue as cards from
-  the moment the panel opens, the search narrowing it: poster with Preview, name, what it is for in two lines, Apply to
-  the video and Add only. Apply asks first, then takes the motion if the project does not hold it and asks the agent to
-  restyle the film with it (`applyRequest`), keeping the film's words, scenes, order and timing.
+- **Motions** (`motion-library.tsx`, 动效库 in Chinese): a view of its own across the workspace beside the assistant,
+  in place of the stage, the timeline and the project tools (the film stays loaded out of sight); the top bar's
+  button, pressed while it is open, Picture or Esc go back. Its head holds the way back, its title, a search and a line
+  on what a motion is; under it the tags more than one motion shares, as chips (All, and one at a time). Then a grid
+  of large posters, at least 220 px each: the project's motions first, marked In use or In this project, then
+  motionhub's whole catalogue with how many the words and the tag leave; a poster pointed at for a moment plays its
+  reel when the reel is a video. A motion opened shows in a drawer at the right (Esc closes it first): its reel, its
+  id and version, what it is and what it is for, its tags, and for one the project holds its colour tokens as
+  swatches, its components with their previews and its MOTION.md; at its foot Apply to the video, Add only for one
+  the project does not hold, and Remove for one from the hub the film does not use (asked first; its folder and its
+  line in the lock go). Apply asks first, then takes the motion if the project does not hold it, goes back to the
+  picture and asks the agent to restyle the film with it (`applyRequest`), keeping its words, scenes, order and timing.
 - **Code** (`code-view.tsx`): the project's files as a tree (folders first; motions/, media/ and voice/ start folded),
   each code file opening across the stage in place of the picture, which keeps its film loaded out of sight; anything
   else opens in its own program. The code is read-only, on the panels' paper rather than the stage's ink: its path and

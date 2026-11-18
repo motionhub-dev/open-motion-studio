@@ -3,6 +3,19 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-18 — The motion library is a view of its own
+
+- **What:** Motions (动效库) opens across the workspace beside the assistant, in place of the stage, the timeline and
+  the project tools, instead of in the side panel: a search and tag chips over a grid of large posters (a poster
+  pointed at plays its reel), the project's motions first, and a drawer for the motion opened, with its reel, what it
+  is for, its colours, components and MOTION.md and its actions. Picture or Esc go back; applying a motion goes back
+  to the picture to show the restyle.
+- **Why:** In the side panel a motion could only be seen one poster and one dialog at a time.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/motion-library.tsx` (replacing `motion-panel.tsx`),
+  `apps/desktop/src/renderer/src/project-view.tsx`.
+
 ## 2026-11-17 — Settings are in Home's sidebar
 
 - **What:** Home's sidebar lists Settings' sections (General, Model Providers, Coding Agents, Voice Services,
