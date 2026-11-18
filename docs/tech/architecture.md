@@ -103,7 +103,7 @@ fall back to stderr without blocking project work. IPC arguments, model messages
 recorded; credential fields and common secret patterns are redacted. Logs remain local.
 
 New film and template actions create fresh child directories in the default workspace, without a directory picker.
-The default is `app.getPath('documents')/OpenMotionStudio`; Settings → Workspace can persist a different absolute
+The default is `app.getPath('documents')/OpenMotionStudio`; Settings → General → Workspace can persist a different absolute
 path in `settings.json`'s optional `workspace` field. Only the main process opens the native chooser and saves its
 canonical path. The shared ProviderStore serializes this write with model, agent and voice settings. Directory
 reservation uses exclusive `mkdir`, appending numeric suffixes on collisions, so simultaneous creations never reuse
@@ -382,7 +382,7 @@ panels, built and planned, each a projection of the project:
 | **Code** | The project's files as a tree (`projectFiles`, without dot folders or node_modules), a code file read-only across the stage with its syntax coloured by sugar-high (`readProjectFile`: text up to 1 MB, inside the project, through no symbolic link), opened in the person's own program (`openProjectFile`); the outline's rows show the lines of film.tsx that write them (`filmSpans`, now in `shared/spans.ts`), and lines selected go with the message as a `code` reference (built) | Nothing: lines picked go to the agent |
 | **Timeline** | Read-only: a ruler to seek on (the moment under the pointer named with its scene), the film's scenes, each with a strip of its frames (a scene clicked seeks to its start), the marks (a drag along their lane marks a stretch), the check's issues at their moments (clicked, to the assistant) and the playhead; zoom about the pointer, a view that follows the playhead while it plays, and a chip that brings back a playhead out of view (built) | Nothing |
 | **Export** | Queue, progress, open the file | Nothing |
-| **Settings** | A page over Home or the editor: General (theme, language, launch at login), providers and keys in two panes, with a connection test (`testProvider`: one call as the form stands, asking for a tool call, with the typed key or the stored one; the reply carries no key), and the person's own coding agents with where each stands and the one action that fixes it (built); permissions are planned | App settings |
+| **Settings** | Home's pages on Home, its sections in Home's sidebar; a page of its own over the editor: General (theme, language, launch at login), providers and keys in two panes, with a connection test (`testProvider`: one call as the form stands, asking for a tool call, with the typed key or the stored one; the reply carries no key), and the person's own coding agents with where each stands and the one action that fixes it (built); permissions are planned | App settings |
 
 ## What is expensive to change
 

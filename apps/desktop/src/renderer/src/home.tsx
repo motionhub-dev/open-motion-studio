@@ -20,19 +20,33 @@ import {
   Pause,
   Play,
   Search,
-  Settings as SettingsIcon,
+  Bot,
+  Cpu,
+  Mic,
+  SlidersHorizontal,
+  Stethoscope,
+  TerminalSquare,
   Sun,
 } from 'lucide-react';
 import { MAX_BRIEF } from '../../shared/api';
-import type { Agents, Example, LibraryProject, Project, ProjectTask, Providers, WorkspaceSettings } from '../../shared/api';
+import type { Agents, Example, LibraryProject, Project, ProjectTask, Providers, VoiceKind, WorkspaceSettings } from '../../shared/api';
 import { Logo } from './logo';
+import { SETTINGS_SECTIONS, Settings, type SettingsSection } from './settings';
 import { Select } from './select';
 import { SystemMessage, usePreferences } from './preferences';
 import { reason } from './reason';
 import { timecode } from './preview';
 
 type Page = 'home' | 'projects' | 'templates';
-type SettingsTarget = { models?: boolean; workspace?: boolean; agent?: 'codex' | 'claude' };
+/** What asks for Settings: a section to open on, or one of its panes (a coding agent, a voice provider). */
+export type SettingsTarget = { models?: boolean; workspace?: boolean; agent?: 'codex' | 'claude'; voice?: VoiceKind };
+
+/** The section of Settings a request opens on. */
+const sectionOf = (target: SettingsTarget): SettingsSection =>
+  target.agent ? 'agents' : target.voice ? 'voices' : target.models ? 'models' : 'general';
+
+/** Each section's icon in Home's sidebar. */
+const SECTION_ICONS = { general: SlidersHorizontal, models: Cpu, agents: TerminalSquare, voices: Mic, diagnostics: Stethoscope } as const;
 
 /**
  * Each template's film as the Studio's own export drew it, and its poster frame (scripts/render-templates.mjs, run by
@@ -490,7 +504,7 @@ function Prompt({ field, available, disabled, onCreate, onOpen, onSetUp }: {
 const typing = (target: EventTarget | null) =>
   target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
 
-export function Home({ providers, workspace, tasks, examples, busy, error, revision, onAction, onSettings }: {
+export function Home({ providers, workspace, tasks, examples, busy, error, revision, settings, onAction, onSettingsShown, onSettingsLeft, onProviders }: {
   providers: Providers | null;
   workspace: WorkspaceSettings | null;
   tasks: ProjectTask[];
@@ -501,12 +515,30 @@ export function Home({ providers, workspace, tasks, examples, busy, error, revis
   error: string | null;
   /** Runs an action that may open a project; whether it went. */
   onAction(action: () => Promise<Project | null>): Promise<boolean>;
-  onSettings(target?: SettingsTarget): void;
+  /** Settings asked for from outside Home (Ctrl/⌘ ,): opened among Home's pages, then said to have been. */
+  settings: SettingsTarget | null;
+  onSettingsShown(): void;
+  /** Settings was left for another of Home's pages: what it changed is read again. */
+  onSettingsLeft(): void;
+  onProviders(providers: Providers): void;
 }) {
   const { t, chinese, preferences, ready, save } = usePreferences();
   /** The theme on screen, Follow system resolved, which the header's switch turns over. */
   const dark = preferences.theme === 'dark' || (preferences.theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
   const [page, setPage] = useState<Page>('home');
+  /** The section of Settings shown as Home's page, and what asked for it (a pane to open on), or null. */
+  const [setting, setSetting] = useState<{ section: SettingsSection; target: SettingsTarget; n: number; back: boolean } | null>(null);
+  /** Opens Settings from something the person was doing, with the way back to it. */
+  function onSettings(target: SettingsTarget = {}) {
+    setSetting((was) => ({ section: sectionOf(target), target, n: (was?.n ?? 0) + 1, back: true }));
+    setPreview(null);
+    setMenu(null);
+  }
+  useEffect(() => {
+    if (!settings) return;
+    onSettings(settings);
+    onSettingsShown();
+  }, [settings]);
   const [library, setLibrary] = useState<LibraryProject[] | null>(null);
   const [agents, setAgents] = useState<Agents | null>(null);
   const [problem, setProblem] = useState('');
@@ -586,6 +618,10 @@ export function Home({ providers, workspace, tasks, examples, busy, error, revis
     setPage(destination);
   }
   function visit(next: Page) {
+    if (setting) {
+      setSetting(null);
+      onSettingsLeft();
+    }
     setPage(next);
     setPreview(null);
     setQuery('');
@@ -821,28 +857,41 @@ export function Home({ providers, workspace, tasks, examples, busy, error, revis
         >
           {dark ? <Sun size={17} /> : <Moon size={17} />}
         </button>
-        <button className="icon-button" aria-label={t('OpenMotionStudio settings')} data-tip={t('OpenMotionStudio settings')} onClick={() => onSettings()}>
-          <SettingsIcon size={18} />
-        </button>
       </header>
       <aside className="home-nav">
         <nav aria-label={t('Main navigation')}>
           {pages.map(([id, label, Icon]) => (
-            <button key={id} aria-current={page === id ? 'page' : undefined} onClick={() => visit(id)}>
+            <button key={id} aria-current={!setting && page === id ? 'page' : undefined} onClick={() => visit(id)}>
               <Icon size={17} aria-hidden="true" />
               {t(label)}
             </button>
           ))}
         </nav>
         <span className="spacer" />
+        {/* Settings are Home's pages too, at the sidebar's foot, apart from the pages of work above. */}
+        <nav aria-label={t('Settings')}>
+          <span className="home-nav-label">{t('Settings')}</span>
+          {SETTINGS_SECTIONS.map(([id, label]) => {
+            const Icon = SECTION_ICONS[id];
+            return (
+              <button
+                key={id}
+                aria-current={setting?.section === id ? 'page' : undefined}
+                aria-label={t(label)}
+                onClick={() => {
+                  // Another section of the Settings shown is the same page turned; from another page, Settings opens.
+                  setSetting((was) => ({ section: id, target: {}, n: was ? was.n : Date.now(), back: was?.back ?? false }));
+                  setPreview(null);
+                  setMenu(null);
+                }}
+              >
+                <Icon size={17} aria-hidden="true" />
+                {t(label)}
+              </button>
+            );
+          })}
+        </nav>
         <div className="home-nav-foot">
-          <button className="workspace-shortcut" title={workspace?.path} onClick={() => onSettings({ workspace: true })}>
-            <Folder size={17} aria-hidden="true" />
-            <span>
-              {t('Workspace')}
-              <small>{workspace?.path.split(/[/\\]/).filter(Boolean).at(-1) ?? t('Loading…')}</small>
-            </span>
-          </button>
           <button aria-expanded={help} onClick={() => setHelp(!help)}>
             <CircleHelp size={17} aria-hidden="true" />
             {t('Help')}
@@ -878,8 +927,31 @@ export function Home({ providers, workspace, tasks, examples, busy, error, revis
               </button>
             </section>
           )}
-          {/* Each page, and a template opened, comes in with a short rise. */}
-          <div className="home-page" key={preview ? `template:${preview.id}` : page}>
+          {/* Each page, and a template opened, comes in with a short rise; Settings is one of them. */}
+          {setting && providers && (
+            <div className="home-page" key={`settings:${setting.n}`}>
+              <Settings
+                key={setting.n}
+                providers={providers}
+                embedded={setting.section}
+                back={setting.back}
+                agent={setting.target.agent}
+                voice={setting.target.voice}
+                workspace={setting.target.workspace}
+                onChange={onProviders}
+                onClose={() => {
+                  setSetting(null);
+                  onSettingsLeft();
+                }}
+              />
+            </div>
+          )}
+          {/* The page beneath stays as it was (a setup step, a search), out of sight, for the way back. */}
+          <div
+            className="home-page"
+            key={preview ? `template:${preview.id}` : page}
+            style={setting && providers ? { display: 'none' } : undefined}
+          >
             {body()}
           </div>
         </div>

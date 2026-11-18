@@ -116,23 +116,23 @@ require(${JSON.stringify(join(desktop, 'out/main/index.js'))});
   assert.equal(await js(briefed,'window.studio.takeBrief()'),null,'a brief is taken once');
   await js(briefed,'window.studio.closeProject()'); await sleep(250);
   pass('home prompt creates a named project and hands its brief to the assistant once');
-  await button(home,'OpenMotionStudio 设置');
-  for(const label of ['通用','模型服务','编程 Agent','语音服务','工作空间','诊断']) {
-    await button(home,label,'.settings-nav ');
+  await button(home,'通用','.home-nav ');
+  for(const label of ['通用','模型服务','编程 Agent','语音服务','诊断']) {
+    await button(home,label,'.home-nav ');
     if(label==='编程 Agent') await until(async()=>(await text(home)).includes('重新检查'),'agent settings loaded');
     assert(await js(home,'document.documentElement.scrollWidth <= innerWidth'),label+' overflow');
-    await shot(home,'settings-'+(['通用','模型服务','编程 Agent','语音服务','工作空间','诊断'].indexOf(label)));
+    await shot(home,'settings-'+(['通用','模型服务','编程 Agent','语音服务','诊断'].indexOf(label)));
   }
-  await button(home,'模型服务','.settings-nav ');
+  await button(home,'模型服务','.home-nav ');
   await input(home,'.provider-form input[type="text"]','Unsaved name');
-  await button(home,'通用','.settings-nav ');
+  await button(home,'通用','.home-nav ');
   assert((await text(home)).includes('有尚未保存的修改。'));
   await button(home,'放弃修改');
   assert((await text(home)).includes('开机自动启动'));
-  await button(home,'模型服务','.settings-nav ');
+  await button(home,'模型服务','.home-nav ');
   assert.equal(await js(home,'document.querySelector(".provider-form input[type=text]").value'),'Ollama');
   pass('discard navigation restores saved form');
-  await button(home,'返回原页面'); pass('all settings pages at minimum window size');
+  pass('all settings pages at minimum window size');
   win.setSize(1440,900); await button(home,'首页','.home-nav ');
   assert(await js(home,'!!document.querySelector(".home-project.featured") && !document.querySelector(".home-projects.list")'),'library layout leaked into home');
   await shot(home,'home');

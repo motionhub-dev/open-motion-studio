@@ -71,7 +71,7 @@ A top bar over a grid of panels (`project-view.tsx`):
   to do with it: keyboard shortcuts (a question mark, the key that opens them, in a wide dialog with its groups side by side), the motion library (Motions, with how many the project holds), Voice (when the film has lines or a voice) and Export MP4, one vermilion split
   button whose chevron holds the other ways to export (a Remotion project), and which shows progress and cancels while
   running. The bar has no Settings button: OpenMotionStudio's settings are the app's, not the film's, and open from
-  Ctrl/⌘ , or from their row in the shortcuts dialog (Home keeps its gear); a model and a voice are set up where they
+  Ctrl/⌘ , or from their row in the shortcuts dialog (on Home they are in its sidebar); a model and a voice are set up where they
   are used, from the assistant's model menu and the Voice panel. Voice opens the Voice panel in the project
   tools (a back arrow and its title, as History and Checks): with no voice provider set up, the four as cards, each
   opening it in Settings; with no `<Film voice>`, Voice settings and Generate with agent; then a card with the film's
@@ -141,11 +141,17 @@ A top bar over a grid of panels (`project-view.tsx`):
 ## Home
 
 Home (`home.tsx`) is a header (the icon and **OpenMotionStudio**, the language as 中文 or EN that switches to the
-other, the theme as one icon that turns it over — a moon in light, a sun in dark — and Settings, which keeps Follow
-system for both; Open project sits in the prompt beside Start creating, the two ways to begin; a new film is made from the prompt below, a template, or Ctrl/⌘ N), a 176 px navigation rail (Home, My projects, Templates, each with
-its icon; at its foot the workspace folder's name, which opens Settings → Workspace, and Help, which lists the
+other, and the theme as one icon that turns it over — a moon in light, a sun in dark; Settings keeps Follow system
+for both; Open project sits in the prompt beside Start creating, the two ways to begin; a new film is made from the prompt below, a template, or Ctrl/⌘ N), a 176 px navigation rail (Home, My projects, Templates, each with
+its icon; at its foot, apart from them, Settings' sections under a small Settings heading, each with its icon, and
+Help, which lists the
 shortcuts) and the content.
 
+- **Settings on Home** are Home's pages: a section chosen in the sidebar shows in Home's content under its own
+  heading, lined up with Home's other pages, with no page or back button of its own. Opened from something the
+  person was doing (a setup step, Connect an assistant, Ctrl/⌘ ,), it has a back arrow to it, and the page beneath
+  keeps its state. Leaving with unsaved edits, by Home's sidebar or header, asks first, as Settings' own sidebar
+  does in the editor, where Settings is still a page of its own over the project.
 - **Home** asks what the person wants to make next, over a prompt: a field for the film in their own words, three
   starts to finish (a launch teaser, an explainer, kinetic type) and **Start creating**. Enter sends it, Shift+Enter
   is a new line, `/` goes to it. It creates a project named from the words' first line and opens it, and the words

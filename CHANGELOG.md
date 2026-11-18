@@ -3,6 +3,19 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-17 — Settings are in Home's sidebar
+
+- **What:** Home's sidebar lists Settings' sections (General, Model Providers, Coding Agents, Voice Services,
+  Diagnostics) at its foot, apart from the pages of work above, and each opens as one of Home's pages instead of a
+  page over Home. The workspace folder is part of General, in the editor's Settings too. Home's header gear and the workspace row at the sidebar's foot are gone. Settings opened from a
+  setup step or Ctrl/⌘ , has a back arrow to where the person was; leaving with unsaved edits asks first. In the
+  editor Settings is still a page of its own.
+- **Why:** Home's sidebar held three rows and a wide gap, and Settings covered Home with a second sidebar of its own.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/home.tsx`, `apps/desktop/src/renderer/src/settings.tsx` (`embedded`),
+  `apps/desktop/src/renderer/src/app.tsx`.
+
 ## 2026-11-17 — The motion library opens from the top bar
 
 - **What:** Motions (动效库) is a button in the editor's top bar beside Voice, with how many motions the project holds,

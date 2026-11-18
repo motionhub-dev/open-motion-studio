@@ -879,7 +879,6 @@ export const zh: Record<string, string> = {
   "Duplicate as a new project": "复制为新项目",
   "Open in its own window": "在独立窗口中打开",
   "Move back to the main window": "移回主窗口",
-  "OpenMotionStudio settings": "OpenMotionStudio 设置",
   "Finish or stop the current task before renaming the project.": "请先完成或停止当前任务，再重命名项目。",
   "A project name must be a single folder name.": "项目名称必须是一个有效的文件夹名称。",
   "There is already a folder named {0} beside this project.": "此项目旁边已有名为 {0} 的文件夹。",

@@ -4529,6 +4529,46 @@ kbd {
   flex-direction: column;
 }
 
+/* Settings as one of Home's pages: in Home's content, under Home's own header and beside its sidebar. */
+.studio-settings.embedded {
+  position: static;
+  inset: auto;
+  z-index: auto;
+  background: none;
+}
+.studio-settings.embedded .settings-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+.studio-settings.embedded .settings-content {
+  overflow: visible;
+  padding: 0;
+}
+.studio-settings.embedded .settings-header {
+  padding: 0 0 8px;
+  border-bottom: 0;
+}
+/* Each pane in Home lines up with Home's other pages, its heading the page's title. */
+.studio-settings.embedded .settings-content > *,
+.studio-settings.embedded .settings-content .provider-form {
+  margin-inline: 0;
+}
+.studio-settings.embedded .settings-content > .provider-form:first-child {
+  padding-top: 0;
+}
+.studio-settings.embedded .settings-content > :is(.provider-form, .settings-services):first-child > h2:first-child {
+  font-size: 28px;
+  letter-spacing: -0.6px;
+  margin: 8px 0 4px;
+}
+
+/* Home's sidebar: its pages of work at the top; Settings' sections under a small heading at its foot, with Help. */
+.home-nav-label {
+  padding: 0 10px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
 .settings-header {
   display: flex;
   align-items: center;
@@ -4924,19 +4964,6 @@ input.switch:disabled {
 
 .home-nav nav button[aria-current] > svg {
   color: var(--text);
-}
-
-.workspace-shortcut span {
-  min-width: 0;
-}
-
-.workspace-shortcut small {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 116px;
-  color: var(--muted);
 }
 
 .home-content {

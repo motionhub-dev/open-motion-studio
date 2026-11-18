@@ -15,7 +15,7 @@ person scrolling it takes it over), and shows the last check's issues on its rul
 Home offers three bundled starting points. Each click creates a fresh ordinary project in the default
 workspace, copying the bundled source and preserving earlier projects. New film also creates its own workspace
 directory without a folder picker. The workspace defaults to Documents/OpenMotionStudio and can be changed in
-Settings → Workspace; existing projects stay where they are. Open folder and Recent reopen existing projects.
+Settings → General → Workspace; existing projects stay where they are. Open folder and Recent reopen existing projects.
 No provider is needed to play, inspect, check or export a starting point. The assistant's brief prepares a message with the subject, audience,
 length and aspect ratio; it never sends a message or edits the film by itself.
 
