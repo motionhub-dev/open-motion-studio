@@ -2457,7 +2457,15 @@ kbd {
 }
 .outline-row.selected {
   background: color-mix(in srgb, var(--annotate) 12%, transparent);
-  box-shadow: inset 0 0 0 1px var(--annotate);
+}
+/* Its outline is drawn over the row, so the actions on its end never cover it. */
+.outline-row.selected::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--annotate);
+  border-radius: inherit;
+  pointer-events: none;
 }
 .outline-scene.playing > .outline-scene-row:not(.selected):not(:hover) {
   background: color-mix(in srgb, var(--text) 5%, transparent);
