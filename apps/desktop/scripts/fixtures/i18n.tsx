@@ -71,8 +71,6 @@ const nav = async (label: string) => action(() => { const found = Array.from(doc
   await action(() => button('关闭').click());
   await action(() => button('素材').click());
   assert(text().includes('图片、字体与声音') && text().includes('原始文件保持不变'), 'Assets help not localized');
-  await action(() => button('检查器').click());
-  assert(text().includes('在画面中选取元素'), 'Inspector help not localized');
   await action(() => button('动效').click());
   assert(text().includes('此项目尚未添加动效'), 'Motion empty state not localized');
   await switchLanguage('en');

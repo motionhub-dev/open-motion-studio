@@ -24,7 +24,7 @@ import {
   X,
 } from 'lucide-react';
 import { type PointerEvent, type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { type BuildResult, MARK_NOTE, MAX_MARKS, type Mark, type Reference } from '../../shared/api';
+import { type BuildResult, MARK_NOTE, MAX_MARKS, type Mark, type MarkChange, type Reference } from '../../shared/api';
 import type { Box, FilmInfo, FromPreview, PickedElement, ToPreview } from '../../shared/preview';
 import { type Hovered, sameHovered } from './outline';
 
@@ -221,7 +221,16 @@ export function askPlace(mark: { left: number; top: number; width: number; heigh
   if (mark.top - GAP - h >= GAP) return { left: clampX(mark.left), top: mark.top - GAP - h };
   if (right + GAP + w <= W - GAP) return { left: right + GAP, top: clampY(mark.top) };
   if (mark.left - GAP - w >= GAP) return { left: mark.left - GAP - w, top: clampY(mark.top) };
-  return { left: clampX(mark.left + GAP), top: clampY(mark.top + GAP) };
+  // No side has room: the place that covers least of the mark, so what is tried on it stays in sight.
+  const covered = (at: { left: number; top: number }) =>
+    Math.max(0, Math.min(at.left + w, right) - Math.max(at.left, mark.left)) * Math.max(0, Math.min(at.top + h, bottom) - Math.max(at.top, mark.top));
+  const places = [
+    { left: clampX(mark.left), top: clampY(bottom + GAP) },
+    { left: clampX(mark.left), top: clampY(mark.top - GAP - h) },
+    { left: clampX(right + GAP), top: clampY(mark.top) },
+    { left: clampX(mark.left - GAP - w), top: clampY(mark.top) },
+  ];
+  return places.reduce((best, at) => (covered(at) < covered(best) ? at : best));
 }
 
 /**
@@ -229,6 +238,40 @@ export function askPlace(mark: { left: number; top: number; width: number; heigh
  * innermost element it is, how many there are, and the point it was picked at.
  */
 type Draft = { t: number; box: Box; element: PickedElement | null; picked?: { depth: number; levels: number; x: number; y: number } };
+
+/** What the person tried on a picked element: a value for each property they changed. */
+type Look = Partial<Record<MarkChange['property'], string>>;
+
+/** A computed colour as the colour field takes it (#rrggbb), or null for one it cannot show (transparent). */
+export function hex(colour: string | undefined): string | null {
+  const m = colour?.match(/^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)(?:\s*[,/]\s*([\d.]+%?))?\s*\)$/);
+  if (!m || (m[4] !== undefined && parseFloat(m[4]) === 0)) return null;
+  return `#${[m[1], m[2], m[3]].map((v) => Number(v).toString(16).padStart(2, '0')).join('')}`;
+}
+
+/**
+ * What a picked element's properties are as the film draws them, for the fields that change them: its words when it
+ * holds nothing else, its type when it has words, its colours and its opacity.
+ */
+export function lookOf(element: PickedElement): Look {
+  const { styles } = element;
+  return {
+    ...(element.ownText !== undefined ? { text: element.ownText } : {}),
+    ...(element.text ? { 'font-size': styles['font-size'] ?? '16px', 'font-weight': styles['font-weight'] ?? '400', color: styles.color ?? 'rgb(0, 0, 0)' } : {}),
+    ...(hex(styles['background-color']) ? { 'background-color': styles['background-color'] } : {}),
+    opacity: styles.opacity ?? '1',
+  };
+}
+
+/** The properties the person changed, from what the film draws to what they tried. */
+export function changesOf(element: PickedElement, look: Look): MarkChange[] {
+  const was = lookOf(element);
+  return (Object.keys(look) as MarkChange['property'][])
+    .filter((property) => was[property] !== undefined && look[property] !== undefined && look[property] !== was[property])
+    .map((property) => ({ property, from: was[property]!, to: look[property]! }));
+}
+
+const WEIGHTS = ['100', '200', '300', '400', '500', '600', '700', '800', '900'];
 
 /** What a picked element is called: its words, else the last step of its path. */
 export const elementName = (element: PickedElement) =>
@@ -240,6 +283,7 @@ export function Stage({
   marks,
   lit,
   onMark,
+  canApply,
   selected,
   hovered = null,
   working,
@@ -253,7 +297,10 @@ export function Stage({
   marks: Mark[];
   /** The mark whose row in the composer is in hand, drawn lit at its moment. */
   lit: number | null;
-  onMark(mark: Mark): void;
+  /** Adds a mark to the next message, and with `apply` sends that message at once. */
+  onMark(mark: Mark, apply?: boolean): void;
+  /** Whether the agent can take a message now, which applying changes sends. */
+  canApply: boolean;
   selected: Reference | null;
   /** The layer under the pointer in the outline or on the timeline, drawn as its declared box. */
   hovered?: Hovered;
@@ -290,6 +337,8 @@ export function Stage({
   const [drag, setDrag] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [note, setNote] = useState('');
+  /** What the person is trying on the picked element, shown at once on the picture. */
+  const [look, setLook] = useState<Look>({});
   const ask = useRef<HTMLDivElement>(null);
   const askField = useRef<HTMLTextAreaElement>(null);
   const [askAt, setAskAt] = useState<{ left: number; top: number } | null>(null);
@@ -312,6 +361,11 @@ export function Stage({
 
   // A mark half made belongs to the build and the tool it was made with.
   useEffect(() => setDraft(null), [build?.version, tool]);
+  // What is tried shows on the picture while the mark is open, and goes when it closes or another element is picked.
+  useEffect(() => {
+    const { text, ...styles } = draft?.element ? look : {};
+    player.tell({ type: 'oms:tweak', styles, ...(text !== undefined ? { text } : {}) });
+  }, [look, draft]);
 
   const inner = size && { width: Math.max(0, size.width - 2 * INSET), height: Math.max(0, size.height - 2 * INSET) };
   const box = inner && film ? frameIn(inner, film) : null;
@@ -374,6 +428,7 @@ export function Stage({
     if (pickContext.current.version !== version || pickContext.current.tool !== 'pick') return;
     // Where nothing is drawn, the point itself is marked, as a small region.
     const fallback: Box = { x: Math.min(0.96, Math.max(0, x - 0.02)), y: Math.min(0.96, Math.max(0, y - 0.02)), w: 0.04, h: 0.04 };
+    setLook({});
     setDraft({
       t: at,
       box: message.box ?? fallback,
@@ -420,12 +475,17 @@ export function Stage({
     }
   }
 
-  function add() {
-    if (!draft || full) return;
-    onMark({ t: draft.t, box: draft.box, element: draft.element, note: note.trim().slice(0, MARK_NOTE) });
+  const changes = draft?.element ? changesOf(draft.element, look) : [];
+  const shown = draft?.element ? { ...lookOf(draft.element), ...look } : {};
+
+  function add(apply = false) {
+    if (!draft || full || (apply && !canApply)) return;
+    onMark({ t: draft.t, box: draft.box, element: draft.element, note: note.trim().slice(0, MARK_NOTE), ...(changes.length ? { changes } : {}) }, apply);
     setDraft(null);
     setNote('');
   }
+
+  const set = (property: MarkChange['property'], value: string) => setLook((current) => ({ ...current, [property]: value }));
 
   function step(by: 1 | -1) {
     const picked = draft?.picked;
@@ -542,6 +602,62 @@ export function Stage({
               {draft.element ? `${elementName(draft.element)}${draft.element.layer ? ` · ${draft.element.layer}` : ''}` : tr("A region of the frame")} ·{' '}
               {timecode(draft.t)}
             </span>
+            {draft.element && (
+              // Tried on the picture at once; the agent makes them so in the film when they are applied.
+              <div className="mark-look">
+                {shown.text !== undefined && (
+                  <label className="wide">
+                    <span>{tr("Text")}</span>
+                    <input value={shown.text} maxLength={500} onChange={(e) => set('text', e.target.value)} />
+                  </label>
+                )}
+                {shown['font-size'] !== undefined && (
+                  <label>
+                    <span>{tr("Size")}</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={2000}
+                      value={Math.round(parseFloat(shown['font-size']) || 0)}
+                      onChange={(e) => e.target.value && set('font-size', `${e.target.value}px`)}
+                    />
+                  </label>
+                )}
+                {shown['font-weight'] !== undefined && (
+                  <label>
+                    <span>{tr("Weight")}</span>
+                    <select value={shown['font-weight']} onChange={(e) => set('font-weight', e.target.value)}>
+                      {(WEIGHTS.includes(shown['font-weight']) ? WEIGHTS : [shown['font-weight'], ...WEIGHTS]).map((w) => (
+                        <option key={w} value={w}>
+                          {w}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                {shown.color !== undefined && (
+                  <label>
+                    <span>{tr("Color")}</span>
+                    <input type="color" value={shown.color.startsWith('#') ? shown.color : (hex(shown.color) ?? '#000000')} onChange={(e) => set('color', e.target.value)} />
+                  </label>
+                )}
+                {shown['background-color'] !== undefined && (
+                  <label>
+                    <span>{tr("Fill")}</span>
+                    <input
+                      type="color"
+                      value={shown['background-color'].startsWith('#') ? shown['background-color'] : (hex(shown['background-color']) ?? '#000000')}
+                      onChange={(e) => set('background-color', e.target.value)}
+                    />
+                  </label>
+                )}
+                <label className="wide">
+                  <span>{tr("Opacity")}</span>
+                  <input type="range" min={0} max={1} step={0.05} value={Number(shown.opacity ?? 1)} onChange={(e) => set('opacity', e.target.value)} />
+                  <output>{Math.round(Number(shown.opacity ?? 1) * 100)}%</output>
+                </label>
+              </div>
+            )}
             <div className="ask-actions">
               {draft.picked && draft.picked.levels > 1 && (
                 <>
@@ -571,9 +687,26 @@ export function Stage({
               <button type="button" className="button ghost" onClick={() => setDraft(null)}>
                 <Translated text="Cancel" />
               </button>
-              <button type="button" className="button primary" disabled={full} onClick={add}>
-                {tr("Add mark")}
-              </button>
+              {changes.length ? (
+                <>
+                  <button type="button" className="button" disabled={full} onClick={() => add()} data-tip={tr("Add it to the next message")}>
+                    {tr("Add to message")}
+                  </button>
+                  <button
+                    type="button"
+                    className="button primary"
+                    disabled={full || !canApply}
+                    onClick={() => add(true)}
+                    data-tip={tr("Ask the agent to make these changes in the film now")}
+                  >
+                    {tr("Apply")}
+                  </button>
+                </>
+              ) : (
+                <button type="button" className="button primary" disabled={full} onClick={() => add()}>
+                  {tr("Add mark")}
+                </button>
+              )}
             </div>
           </div>
         )}

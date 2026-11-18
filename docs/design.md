@@ -68,8 +68,9 @@ A top bar over a grid of panels (`project-view.tsx`):
 - **Top bar**: on the left where the person is and what it is: a Home icon (it returns to Home; the project keeps
   running), a chevron, the project's name (its path on hover; a double-click renames it in place) with its menu, and its
   status (building, built with the last check's issue count, or does not build), which opens Checks. On the right what
-  to do with it: keyboard shortcuts, Voice (when the film has lines or a voice) and Export, which shows progress and
-  cancels while running, with a menu beside it for a Remotion project; then, set apart by a rule, the gear, which is
+  to do with it: keyboard shortcuts (a question mark, the key that opens them, in a wide dialog with its groups side by side), Voice (when the film has lines or a voice) and Export MP4, one vermilion split
+  button whose chevron holds the other ways to export (a Remotion project), and which shows progress and cancels while
+  running; then, set apart by a rule, the gear, which is
   OpenMotionStudio's settings, the same page as Home's, never the project's. Voice opens the Voice panel in the project
   tools (a back arrow and its title, as History and Checks): with no voice provider set up, the four as cards, each
   opening it in Settings; with no `<Film voice>`, Voice settings and Generate with agent; then a card with the film's
@@ -88,7 +89,7 @@ A top bar over a grid of panels (`project-view.tsx`):
   film with sounds; then Pick, Region and
   Guides as one labelled group, the film's size and rate, and full screen). A narrow stage keeps the group's icons and
   drops the size. Full screen is the stage alone, picture and foot, with no corners; Esc or the button leaves it.
-- The **project tools** are four tabs, Outline, Inspector, Assets and Motions. History opens from the assistant's head
+- The **project tools** are three tabs, Outline, Assets and Motions. History opens from the assistant's head
   and Checks from the status; either shows its title with a way back to the tabs.
 - The assistant's and the right panel's widths are dragged at their edges, and the timeline's height is the least it
   has: it takes whatever the stage leaves (handles take the arrow keys too). The timeline folds to its head, and the
@@ -109,7 +110,11 @@ A top bar over a grid of panels (`project-view.tsx`):
   with its scene. Ctrl and the wheel zoom about the pointer (1× to 32×); a playhead out of view is a chip at the edge
   it went past.
 - A mark being made is a dashed cobalt box with its number, and beside it a floating sheet that asks what should change
-  there: below the mark, else above, right or left, kept inside the stage. A mark in hand in the composer is drawn lit
+  there: below the mark, else above, right or left, kept inside the stage, and where no side has room, wherever it
+  covers least of the mark. For a picked element the sheet also holds its properties — its words when it holds nothing
+  else, size, weight and colour when it has words, its fill where one is drawn, and its opacity — each change shown on the
+  picture at once. With a change made, its actions are Add to message and Apply, which sends it to the agent now;
+  Cancel puts the picture back. A mark's row in the composer counts its changes. A mark in hand in the composer is drawn lit
   (thicker, with a soft cobalt halo) on the picture and the timeline.
 - The stage draws the film's frame contained and centred on ink with a shadow.
 - Keys, grouped in one table (`SHORTCUTS` in `project-view.tsx`) that ? lists in a dialog: Space or K plays, ← → step
@@ -194,12 +199,11 @@ English error the Studio has no translation for is summarized, with its exact te
 The Chinese keeps one word for each thing: a project (a folder) is 项目, a film (`film.tsx`) is 影片, the workspace is
 工作空间, a template is 模板, a motion is 动效, and an agent stays Agent.
 
-The project's menu has what can be done to this project: Rename… (the folder, refused while a task runs; the editor
-comes back on the renamed folder where it was), Show in folder, Duplicate as a new project (a copy beside it without
+The project's menu is about this project alone, each row led by its icon: Rename… (the folder, refused while a task
+runs; the editor comes back on the renamed folder where it was), Duplicate as a new project (a copy beside it without
 the Studio's state, which opens), and Open in its own window (also Ctrl/Cmd+Shift+N), which moves its existing view
-into a dedicated window, or Move back to the main window when it is in one; then the film's size, rate and length,
-which the assistant changes. Below, Switch to lists the projects with a task running (those that need the person in
-cobalt) and the five opened last, and Home returns Home without stopping a task. Closing a dedicated window only detaches the view; reopening restores the same conversation, draft and
+into a dedicated window, or Move back to the main window when it is in one. Below a rule, Show in folder over the folder's path, written out and wrapping. Home and
+the other projects are reached from the Home icon beside the title. Closing a dedicated window only detaches the view; reopening restores the same conversation, draft and
 pending requests. A project appears in one editing surface at a time. Hidden views pause preview playback while
 agents and exports continue. Sessions are retained for this app run; explicit Quit ends them.
 
@@ -251,10 +255,6 @@ agents and exports continue. Sessions are retained for this app run; explicit Qu
 - **Motions** (`motion-panel.tsx`): the project's motions as poster cards (initials when a motion has no poster); one
   opened is its page — poster, name, line, its colour tokens as swatches, its components with their previews, and its
   MOTION.md. The catalogue search answers as cards with Use.
-- **Inspector** (`inspector.tsx`): the element last picked, which the panel switches to — its name and path, the
-  moment (clicked, the stage goes there), the scene and layer it is in, its position and size in the film's pixels, its words, its look (font, size,
-  weight, colour with a swatch, and background, opacity and transform where set) and its attributes. It stays after its
-  mark is sent.
 - **Model Providers** (Settings): two panes. The providers down the left, an initial for each, the active one badged; the
   selected one, or a new one, as a form on the right. A new one starts from a service card (each with its protocol);
   the address and model are in mono, the key field says it is sealed in the keychain and never shown again. **Test

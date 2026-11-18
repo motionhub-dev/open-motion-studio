@@ -44,6 +44,20 @@ describe('readMarks', () => {
   it('keeps no element on a stretch of time', () => {
     expect(readMarks([{ ...stretch, element: title.element }])[0]?.element).toBeNull();
   });
+
+  it('keeps the changes tried on a picked element, cut short, and refuses a property it cannot change', () => {
+    const changes = [
+      { property: 'font-size', from: '130px', to: '160px' },
+      { property: 'text', from: 'A new film', to: 'b'.repeat(600) },
+    ];
+    const [read] = readMarks([{ ...title, changes }]);
+    expect(read?.changes?.[0]).toEqual(changes[0]);
+    expect(read?.changes?.[1]?.to).toHaveLength(500);
+    expect(readMarks([{ ...region, changes }])[0]?.changes).toBeUndefined();
+    for (const bad of [[{ property: 'transform', from: '', to: 'none' }], [{ property: 'color', from: 'red' }], 'color']) {
+      expect(() => readMarks([{ ...title, changes: bad }])).toThrow();
+    }
+  });
 });
 
 describe('describeMarks', () => {
@@ -58,6 +72,13 @@ describe('describeMarks', () => {
     expect(text).toContain('keep the rest of the film');
     expect(text).toContain('outlined in red');
     expect(describeMarks([region], false)).not.toContain('outlined in red');
+  });
+
+  it('asks for exactly the changes tried on the picture, at their source, before the person’s note', () => {
+    const changed: Mark = { ...title, changes: [{ property: 'color', from: 'rgb(255, 255, 255)', to: '#ffcc00' }, { property: 'text', from: 'A new film', to: 'An old film' }] };
+    expect(describeMarks([changed], false)).toContain(
+      'The person changed it on the picture and asks for exactly this in the film, at the source of the element\'s look and words, keeping its motion: color "rgb(255, 255, 255)" → "#ffcc00"; text "A new film" → "An old film". The person asks: "Make it \\"bigger\\""',
+    );
   });
 });
 

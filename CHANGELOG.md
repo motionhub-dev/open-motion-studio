@@ -3,6 +3,40 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-17 — A picked element's properties are changed on the picture; the Inspector is gone
+
+- **What:** Picking an element on the picture opens its properties in the mark's sheet: its words (when it holds
+  nothing else), size, weight, colour, fill and opacity. Each change shows on the picture at once; Apply sends it to the
+  agent as exact changes to make in film.tsx (Add to message keeps it for the next message, Cancel puts the picture
+  back). A mark carries the changes (`Mark.changes`), checked in the main process against the properties a mark can
+  change. The Inspector tab, which only showed the element last picked, is removed; the project tools are Outline,
+  Assets and Motions.
+- **Why:** The Inspector showed what an element was but changed nothing, away from the picture. Trying a size or a
+  colour where it is seen, then having the agent write it at its source, is the shorter way to the change.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/preview/pick.ts` (`oms:tweak`), `apps/desktop/src/renderer/src/preview.tsx` (`Stage`),
+  `apps/desktop/src/main/agent/marks.ts`, `apps/desktop/src/shared/preview.ts` (`TWEAKABLE`).
+
+## 2026-11-17 — Export MP4 is one split button
+
+- **What:** The top bar's Export reads Export MP4 and is joined with the chevron beside it into one split button: the
+  MP4 on its left, the other ways to export (a Remotion project) behind the chevron on its right.
+- **Why:** The chevron sat apart in another style, so it did not read as part of exporting, and Export did not say what
+  it makes.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/project-view.tsx`, `apps/desktop/src/renderer/src/styles.css` (`.export`).
+
+## 2026-11-17 — Keyboard shortcuts open from a question mark, in a wide dialog
+
+- **What:** The top bar's keyboard shortcuts button is a question mark, the key that opens them, and the dialog is wide
+  with its groups side by side in up to three columns instead of one tall list.
+- **Why:** The keyboard icon did not say what it opened, and the tall list scrolled on a short window.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/project-view.tsx` (`Shortcuts`), `apps/desktop/src/renderer/src/styles.css`.
+
 ## 2026-11-17 — Voice is a panel with every line
 
 - **What:** Voice opens a panel in the project tools instead of a dialog. It shows the film's voice, its provider and
@@ -15,6 +49,17 @@ Every key change to OpenMotionStudio, newest first, by date. What counts as key 
 - **Breaking:** None.
 - **Upgrade:** Nothing.
 - **Refs:** `apps/desktop/src/renderer/src/voice-panel.tsx`, `apps/desktop/src/renderer/src/project-view.tsx`.
+
+## 2026-11-17 — The title menu is about the project alone
+
+- **What:** The editor's title menu no longer lists other projects, Home or the film's size, rate and length; Show in
+  folder moves to its foot with the folder's path written out, and every row has its icon (rename, duplicate, the
+  window move, the folder).
+- **Why:** Switching projects and going Home already have their place (the Home icon beside the title, and Home's
+  library); in the project's own menu they made it long and mixed what is this project's with what is not.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/project-view.tsx` (`ProjectMenu`), `apps/desktop/src/renderer/src/styles.css`.
 
 ## 2026-11-17 — The project's title menu holds what can be done to the project
 

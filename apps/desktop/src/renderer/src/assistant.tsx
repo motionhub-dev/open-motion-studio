@@ -355,7 +355,7 @@ function AgentChip({
 const STATE_WORDS: Record<HarnessState, string> = { ready: 'ready', 'signed-out': 'not signed in', old: 'needs an update', missing: 'not installed' };
 
 interface Props {
-  ref?: Ref<{ send(text: string): void }>;
+  ref?: Ref<AssistantHandle>;
   active: ProviderView | undefined;
   /** The project's agent and the person's own coding agents (ADR 0008). */
   agents: Agents | null;
@@ -406,6 +406,14 @@ interface Props {
   onHide(): void;
   /** Opens the project's history, the turns' checkpoints, in the project tools. */
   onHistory(): void;
+}
+
+/** What the workspace asks of the assistant. */
+export interface AssistantHandle {
+  /** Sends words of the workspace's own, without what is in the tray. */
+  send(text: string): void;
+  /** Sends the composer and its tray, as the send button does. */
+  submit(): void;
 }
 
 /** The composer grows with its text to about eight lines. */
@@ -656,7 +664,7 @@ export function Assistant({
   }
 
   // Workspace actions use the same conversation, progress and error handling as a message from the composer.
-  useImperativeHandle(ref, () => ({ send: (text: string) => void sendText(text, [], []) }));
+  useImperativeHandle(ref, () => ({ send: (text: string) => void sendText(text, [], []), submit: () => void send() }));
 
   function onKey(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (mention && !event.nativeEvent.isComposing) {
@@ -1124,7 +1132,10 @@ export function Assistant({
                 <span className="number">{i + 1}</span>
                 <span className="mark-what">
                   <strong>{markLabel(mark)}</strong>
-                  <small className="mono">{when(mark)}</small>
+                  <small className="mono">
+                    {when(mark)}
+                    {mark.changes?.length ? ` · ${tr("{0} changes", {0: mark.changes.length})}` : ''}
+                  </small>
                 </span>
               </button>
               <input

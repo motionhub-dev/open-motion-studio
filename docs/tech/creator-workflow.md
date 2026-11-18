@@ -1,6 +1,6 @@
 # The creator's workflow
 
-> **Status:** Current · **Updated:** 2026-11-15
+> **Status:** Current · **Updated:** 2026-11-17
 
 How a creator explores a film, points at a change, checks the result and returns to earlier source.
 
@@ -47,8 +47,9 @@ creator's words in the composer and transcript. What was last selected in the ou
 next message as a reference, marked Selected, unless it is put aside. A scene, layer or line, marked or referenced,
 tells the agent where film.tsx writes it.
 Structural references and marks belong to the current build. A changed preview clears pending references with a
-notice when the agent is not working, and the main process refuses stale picture references. The inspector still
-shows actual computed styles of a picked element. The composer keeps its words and marks when a request is rejected.
+notice when the agent is not working, and the main process refuses stale picture references. A picked element's
+properties in the mark's sheet start from its actual computed styles, and what the creator tries there goes to the agent
+as exact changes. The composer keeps its words and marks when a request is rejected.
 
 The assistant reports thinking, editing, checking and reviewing from actual model/tool events, with elapsed time and
 a stop action. These phases are activities, not a claim of percentage completion or that the model checked every frame.

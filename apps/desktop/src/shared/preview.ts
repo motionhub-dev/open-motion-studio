@@ -75,7 +75,13 @@ export interface PickedElement {
   /** The <Scene> and the <Layer> it is drawn in, for a film of scenes. */
   scene?: string;
   layer?: string;
+  /** Its words in full when it holds nothing but text: the only words a tweak can try on the picture. */
+  ownText?: string;
 }
+
+/** The properties a picked element's look can be tried with on the picture, and changed through the agent. */
+export const TWEAKABLE = ['font-size', 'font-weight', 'color', 'background-color', 'opacity'] as const;
+export type Tweakable = (typeof TWEAKABLE)[number];
 
 export type ToPreview =
   | { type: 'oms:play' }
@@ -86,6 +92,8 @@ export type ToPreview =
   | { type: 'oms:mute'; muted: boolean }
   /** The element drawn at a point, in fractions of the frame, or the one `depth` elements around it (studio/pick.js answers). */
   | { type: 'oms:pick'; x: number; y: number; depth?: number }
+  /** Tries a look (and, for an element of text alone, words) on the element last picked, replacing any tried before; none restores it. */
+  | { type: 'oms:tweak'; styles: Partial<Record<Tweakable, string>>; text?: string }
   /** Draws one layer alone, every other <Layer> hidden; null draws them all again (studio/pick.js). */
   | { type: 'oms:solo'; layer: string | null };
 

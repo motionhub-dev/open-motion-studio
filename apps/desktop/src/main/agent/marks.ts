@@ -6,7 +6,8 @@
 // moment, its note and the frame the model saw.
 
 import type Anthropic from '@anthropic-ai/sdk';
-import { MARK_NOTE, MAX_MARKS, type Mark, type SentMark } from '../../shared/api';
+import { MARK_NOTE, MAX_MARKS, type Mark, type MarkChange, type SentMark } from '../../shared/api';
+import { TWEAKABLE, type Tweakable } from '../../shared/preview';
 import type { Stage } from '../film/capture';
 import type { Locate } from './references';
 
@@ -44,8 +45,23 @@ export function readMarks(value: unknown): Mark[] {
       box: { x: box.x, y: box.y, w: box.w, h: box.h },
       element: mark.end !== undefined ? null : element,
       note: (mark.note ?? '').trim().slice(0, MARK_NOTE),
+      ...(element && mark.end === undefined ? changesOf(mark.changes) : {}),
     };
   });
+}
+
+/** A picked element's changes from the renderer: known properties only, each value cut short, at most eight. */
+function changesOf(value: unknown): { changes?: MarkChange[] } {
+  if (value === undefined) return {};
+  if (!Array.isArray(value)) throw new Error('A mark’s changes must be a list.');
+  const changes = value.slice(0, 8).map((raw) => {
+    const change = raw as Partial<MarkChange>;
+    if (change?.property !== 'text' && !TWEAKABLE.includes(change?.property as Tweakable)) throw new Error('Not a property a mark can change.');
+    if (typeof change.from !== 'string' || typeof change.to !== 'string') throw new Error('A change says what it was and what it becomes.');
+    const cut = change.property === 'text' ? 500 : 60;
+    return { property: change.property, from: change.from.slice(0, cut), to: change.to.slice(0, cut) } as MarkChange;
+  });
+  return changes.length ? { changes } : {};
 }
 
 /** A record of strings from the renderer, at most eight entries, each cut short. */
@@ -72,7 +88,11 @@ export function describeMarks(marks: Mark[], pictures: boolean, locate: Locate =
     const { scene, layer } = mark.element;
     const within = layer ? ` in layer \`${layer}\`${scene ? ` of scene \`${scene}\`` : ''}` : scene ? ` in scene \`${scene}\`` : '';
     const source = layer || scene ? locate({ scene, layer }) : null;
-    return `${i + 1}. At ${mark.t.toFixed(2)} s, the element \`${mark.element.path}\`${within}${source ? ` (written at ${source})` : ''}${attributes ? ` (${attributes})` : ''}${words}, drawn at ${where}${styles ? `, styled ${styles}` : ''}.${asked}`;
+    // What the person tried on the picture, to be made so in the film where the element's look and words come from.
+    const changes = mark.changes?.length
+      ? ` The person changed it on the picture and asks for exactly this in the film, at the source of the element's look and words, keeping its motion: ${mark.changes.map((c) => `${c.property} ${JSON.stringify(c.from)} → ${JSON.stringify(c.to)}`).join('; ')}.`
+      : '';
+    return `${i + 1}. At ${mark.t.toFixed(2)} s, the element \`${mark.element.path}\`${within}${source ? ` (written at ${source})` : ''}${attributes ? ` (${attributes})` : ''}${words}, drawn at ${where}${styles ? `, styled ${styles}` : ''}.${changes}${asked}`;
   });
   return [
     MARKS_TAG,

@@ -396,7 +396,7 @@ button.status:hover {
   font-weight: 600;
 }
 
-/* A menu's group and its notes: what the items below are about, and a fact that is not an action. */
+/* A menu's group: what the items below are about. */
 .menu .menu-label {
   padding: 8px 10px 2px;
   font-size: 10px;
@@ -411,29 +411,47 @@ button.status:hover {
   border-top: 1px solid var(--line);
 }
 
-.menu .menu-note {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin: 0;
-  padding: 6px 10px 8px;
-  font-size: 11px;
+/* A menu row led by its icon; a key it answers to sits at its end. */
+.menu [role='menuitem'].icon-item {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.menu .icon-item > svg {
+  flex: none;
   color: var(--muted);
 }
 
-.menu .menu-note .mono {
-  color: var(--text2);
+.menu .icon-item > kbd {
+  margin-left: auto;
 }
 
-.menu [role='menuitem'].with-key {
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+/* The folder's row: what it does over where the folder is, the path wrapping rather than widening the menu. */
+.menu [role='menuitem'].folder-item {
+  align-items: flex-start;
 }
 
-.menu [role='menuitem'] span.waiting {
-  color: var(--annotate);
+.menu .folder-item > svg {
+  margin-top: 2px;
+}
+
+.menu .folder-item .folder-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.menu .folder-item .folder-text b {
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.menu .folder-item .folder-text .mono {
+  font-size: 11px;
+  overflow-wrap: anywhere;
 }
 
 /* The app's settings sit apart at the bar's end: they are the app's, not the project's. */
@@ -448,11 +466,23 @@ button.status:hover {
   flex: 1;
 }
 
+/* Export is one split button: the MP4 on its left, the other ways to export behind the chevron on its right. */
 .export {
   position: relative;
   display: flex;
-  align-items: center;
-  gap: 2px;
+  align-items: stretch;
+}
+
+.export > .button.accent:first-child {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.export > .export-more {
+  padding: 0 8px;
+  border-left-color: color-mix(in srgb, var(--on-accent) 35%, var(--accent));
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
 }
 
 .menu {
@@ -884,7 +914,7 @@ button.status:hover {
 .mark-ask {
   position: absolute;
   z-index: 3;
-  width: 288px;
+  width: 300px;
   max-width: calc(100% - 16px);
   display: flex;
   flex-direction: column;
@@ -912,6 +942,62 @@ button.status:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* What can be tried on a picked element: shown at once on the picture, made so by the agent. */
+.mark-look {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px 8px;
+  padding: 8px 0 2px;
+  border-top: 1px solid var(--line);
+}
+
+.mark-look label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.mark-look label.wide {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.mark-look input:not([type='range']),
+.mark-look select {
+  width: 100%;
+  min-width: 0;
+  height: 26px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--bg);
+  color: var(--text);
+  padding: 0 6px;
+  font: 12px var(--font-ui);
+}
+
+.mark-look input[type='color'] {
+  padding: 2px;
+  cursor: pointer;
+}
+
+.mark-look input[type='range'] {
+  width: 100%;
+  accent-color: var(--annotate);
+}
+
+.mark-look output {
+  min-width: 34px;
+  text-align: right;
+  font: 11px var(--font-mono);
+  color: var(--text);
 }
 
 .ask-actions {
@@ -1886,72 +1972,6 @@ button.motion-card:hover {
   color: var(--text);
 }
 
-/* The inspector. */
-
-.inspector {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.inspector .note {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-}
-
-.inspector .note > svg {
-  flex: none;
-  margin-top: 2px;
-}
-
-.inspected {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.inspected .path {
-  font-size: 11px;
-  color: var(--muted);
-}
-
-.inspector dl {
-  display: grid;
-  grid-template-columns: minmax(72px, auto) 1fr;
-  gap: 6px 12px;
-  margin: 0;
-  font-size: 12px;
-}
-
-.inspector dt {
-  color: var(--muted);
-}
-
-.inspector dd {
-  margin: 0;
-  min-width: 0;
-  overflow-wrap: anywhere;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.inspector dd .quiet {
-  padding: 0;
-  font-size: 12px;
-}
-
-.swatch-dot {
-  flex: none;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 1px solid var(--line);
-}
-
 /* Keys, in tooltips, the shortcuts dialog and notes. */
 
 kbd {
@@ -1996,8 +2016,19 @@ kbd {
   color: var(--sheet);
 }
 
+/* Wide rather than tall: the groups side by side, each kept whole in its column. */
 .dialog.shortcuts {
-  width: min(460px, 100%);
+  width: min(980px, calc(100vw - 48px));
+}
+
+.shortcut-groups {
+  columns: 3 280px;
+  column-gap: 32px;
+}
+
+.shortcut-groups > section {
+  break-inside: avoid;
+  margin-bottom: 18px;
 }
 
 .shortcuts dl {
@@ -2009,14 +2040,15 @@ kbd {
 
 .shortcuts dl > div {
   display: grid;
-  grid-template-columns: 140px 1fr;
-  align-items: center;
-  gap: 12px;
-  font-size: 13px;
+  grid-template-columns: 136px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  font-size: 12px;
 }
 
 .shortcuts dt {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
 }
 
@@ -3510,10 +3542,6 @@ kbd {
   width: 22px;
   height: 22px;
   color: inherit;
-}
-
-.shortcuts section + section {
-  margin-top: 16px;
 }
 
 .shortcuts h3 {

@@ -5,7 +5,25 @@
 
 import { SystemMessage, Translated, usePreferences } from './preferences';
 import { translate } from '../../shared/i18n';
-import { Settings as SettingsIcon, ArrowLeft, ChevronDown, ChevronRight, Download, Home, Keyboard, Mic, PanelLeftOpen, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
+import {
+  Settings as SettingsIcon,
+  ArrowLeft,
+  ChevronDown,
+  ChevronRight,
+  CircleHelp,
+  Copy,
+  Download,
+  FolderOpen,
+  Home,
+  Mic,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
+  Pencil,
+  SquareArrowDownLeft,
+  SquareArrowOutUpRight,
+  X,
+} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import {
   type AgentKind,
@@ -13,7 +31,6 @@ import {
   type AgentSettings,
   type Agents,
   type BuildResult,
-  type LibraryProject,
   MAX_MARKS,
   ofPicture,
   type Mark,
@@ -24,20 +41,18 @@ import {
   type FilmReview,
   type SceneStills,
 } from '../../shared/api';
-import { Assistant } from './assistant';
+import { Assistant, type AssistantHandle } from './assistant';
 import { AssetsPanel } from './assets-panel';
 import { ReviewPanel } from './review-panel';
 import { ExportDialog } from './export-dialog';
 import { VoicePanel } from './voice-panel';
 import { type Hovered, Outline } from './outline';
 import { HistoryPanel } from './history-panel';
-import { Inspector } from './inspector';
 import { LIMITS, Splitter, useLayout } from './layout';
 import { MotionPanel } from './motion-panel';
-import { Stage, timecode, usePlayer } from './preview';
+import { Stage, usePlayer } from './preview';
 import { Fold, Timeline } from './timeline';
 import { reason } from './reason';
-import type { FilmInfo } from '../../shared/preview';
 
 type Toast = { text: string; error: boolean; file?: string };
 
@@ -90,6 +105,7 @@ function Shortcuts({ onClose }: { onClose(): void }) {
             <X size={16} />
           </button>
         </div>
+        <div className="shortcut-groups">
         {[...new Set(SHORTCUTS.map(([group]) => group))].map((group) => (
           <section key={group}>
             <h3 className="eyebrow">{tr(group)}</h3>
@@ -107,21 +123,20 @@ function Shortcuts({ onClose }: { onClose(): void }) {
             </dl>
           </section>
         ))}
+        </div>
       </div>
     </div>
   );
 }
 
 /**
- * The project's title and its menu. First what can be done to this project: rename it (a double-click on the title
- * does too), show its folder, copy it as a new project, and move it between the main window and a window of its own;
- * and its film's size, rate and length. Then the other projects to go to, those with a task running first and then
- * those opened last, and Home.
+ * The project's title and its menu, about this project alone: rename it (a double-click on the title does too), copy
+ * it as a new project, and move it between the main window and a window of its own; and where its folder is, which
+ * opens it. Home and the other projects are reached from Home.
  */
-function ProjectMenu({ project, film, onError }: { project: Project; film: FilmInfo | null; onError(error: unknown): void }) {
+function ProjectMenu({ project, onError }: { project: Project; onError(error: unknown): void }) {
   const { t: tr } = usePreferences();
   const [tasks, setTasks] = useState<ProjectTask[]>([]);
-  const [library, setLibrary] = useState<LibraryProject[]>([]);
   const [open, setOpen] = useState(false);
   /** The name being typed while the title is being renamed. */
   const [naming, setNaming] = useState<string | null>(null);
@@ -132,9 +147,6 @@ function ProjectMenu({ project, film, onError }: { project: Project; film: FilmI
     return stop;
   }, []);
   useEffect(() => {
-    if (open) window.studio.projectLibrary().then(setLibrary, onError);
-  }, [open]);
-  useEffect(() => {
     if (!open) return;
     const close = (event: globalThis.PointerEvent) => { if (!ref.current?.contains(event.target as Node)) setOpen(false); };
     const key = (event: globalThis.KeyboardEvent) => { if (event.key === 'Escape') setOpen(false); };
@@ -144,11 +156,6 @@ function ProjectMenu({ project, film, onError }: { project: Project; film: FilmI
   }, [open]);
 
   const separate = tasks.find((task) => task.project.path === project.path)?.separate ?? false;
-  const working = tasks.filter((task) => task.project.path !== project.path && (task.status === 'running' || task.status === 'waiting'));
-  const recent = library
-    .filter((other) => other.path !== project.path && !other.missing && !working.some((task) => task.project.path === other.path))
-    .sort((a, b) => b.lastOpened - a.lastOpened)
-    .slice(0, 5);
   /** Closes the menu and runs one of its actions, saying what went wrong. */
   const act = (action: () => Promise<unknown>) => {
     setOpen(false);
@@ -199,56 +206,40 @@ function ProjectMenu({ project, film, onError }: { project: Project; film: FilmI
       {open && (
         <div className="menu project-menu" role="menu">
           <span className="menu-label">{tr("This project")}</span>
-          <button type="button" role="menuitem" onClick={() => { setOpen(false); setNaming(project.name); }}>
+          <button type="button" role="menuitem" className="icon-item" onClick={() => { setOpen(false); setNaming(project.name); }}>
+            <Pencil size={15} aria-hidden="true" />
             {tr("Rename…")}
           </button>
-          <button type="button" role="menuitem" onClick={() => act(() => window.studio.libraryAction(project.path, 'show'))}>
-            {tr("Show in folder")}
-          </button>
-          <button type="button" role="menuitem" onClick={() => act(() => window.studio.libraryAction(project.path, 'duplicate'))}>
+          <button type="button" role="menuitem" className="icon-item" onClick={() => act(() => window.studio.libraryAction(project.path, 'duplicate'))}>
+            <Copy size={15} aria-hidden="true" />
             {tr("Duplicate as a new project")}
           </button>
           {separate ? (
-            <button type="button" role="menuitem" onClick={() => act(() => window.studio.openTask(project.path, false))}>
+            <button type="button" role="menuitem" className="icon-item" onClick={() => act(() => window.studio.openTask(project.path, false))}>
+              <SquareArrowDownLeft size={15} aria-hidden="true" />
               {tr("Move back to the main window")}
             </button>
           ) : (
-            <button type="button" role="menuitem" className="with-key" onClick={() => act(() => window.studio.newWindow())}>
+            <button type="button" role="menuitem" className="icon-item" onClick={() => act(() => window.studio.newWindow())}>
+              <SquareArrowOutUpRight size={15} aria-hidden="true" />
               {tr("Open in its own window")}
               <kbd>{'Ctrl/⌘ Shift N'}</kbd>
             </button>
           )}
-          {film && (
-            <p className="menu-note">
-              <span className="mono">
-                {film.width}×{film.height} · {Math.round(film.fps * 100) / 100} {tr("fps")} · {timecode(film.seconds)}
-              </span>
-              {tr("Ask the assistant to change them.")}
-            </p>
-          )}
-          {(working.length > 0 || recent.length > 0) && (
-            <>
-              <hr />
-              <span className="menu-label">{tr("Switch to")}</span>
-              {working.map((task) => (
-                <button type="button" role="menuitem" key={task.project.path} onClick={() => act(() => window.studio.openTask(task.project.path))}>
-                  <strong>{task.project.name}</strong>
-                  <span className={task.status === 'waiting' ? 'waiting' : undefined}>
-                    <SystemMessage text={task.status === 'waiting' ? 'Needs you' : task.activity} />
-                  </span>
-                </button>
-              ))}
-              {recent.map((other) => (
-                <button type="button" role="menuitem" key={other.path} onClick={() => act(() => window.studio.openRecent(other.path))}>
-                  <strong>{other.name}</strong>
-                  <span title={other.path}>{other.display}</span>
-                </button>
-              ))}
-            </>
-          )}
           <hr />
-          <button type="button" role="menuitem" onClick={() => act(() => window.studio.closeProject())}>
-            {tr("Home")}
+          {/* Where the project is: its folder, written out, and a way to open it. */}
+          <button
+            type="button"
+            role="menuitem"
+            className="icon-item folder-item"
+            title={project.path}
+            onClick={() => act(() => window.studio.libraryAction(project.path, 'show'))}
+          >
+            <FolderOpen size={15} aria-hidden="true" />
+            <span className="folder-text">
+              <b>{tr("Show in folder")}</b>
+              <span className="mono">{project.display}</span>
+            </span>
           </button>
         </div>
       )}
@@ -283,7 +274,14 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
   const [checking, setChecking] = useState(false);
   const [checkError, setCheckError] = useState('');
   const [exportOpen, setExportOpen] = useState(false);
-  const assistant = useRef<{ send(text: string): void }>(null);
+  const assistant = useRef<AssistantHandle>(null);
+  /** A mark was added to be sent at once: the message goes once the tray has it. */
+  const [applying, setApplying] = useState(false);
+  useEffect(() => {
+    if (!applying) return;
+    setApplying(false);
+    assistant.current?.submit();
+  }, [applying]);
   const [progress, setProgress] = useState<number | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
   /** The places marked on the picture, and the stretches on the timeline, for the next message. */
@@ -292,9 +290,7 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
   const [lit, setLit] = useState<number | null>(null);
   /** Asks the composer to put the cursor in a mark's note: its index, and a count that makes each ask new. */
   const [noteRequest, setNoteRequest] = useState({ index: -1, n: 0 });
-  /** The element last picked, which the inspector shows; it stays after its mark is sent. */
-  const [inspected, setInspected] = useState<Mark | null>(null);
-  const [side, setSide] = useState<'outline' | 'motions' | 'inspector' | 'history' | 'review' | 'assets' | 'voice'>('outline');
+  const [side, setSide] = useState<'outline' | 'motions' | 'history' | 'review' | 'assets' | 'voice'>('outline');
   const [shortcuts, setShortcuts] = useState(false);
   /** Whether the menu of other ways to export is open. */
   const [menu, setMenu] = useState(false);
@@ -347,7 +343,6 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
   function restored() {
     setHistoryRevision((n) => n + 1);
     setMarks([]);
-    setInspected(null);
   }
   const focusLayout = useRef({ assistant: true, side: true });
   function toggleFocus() {
@@ -423,7 +418,6 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
 
   useEffect(() => {
     setBuild(null);
-    setInspected(null);
     const stop = window.studio.onBuild(setBuild);
     void window.studio.lastBuild().then((last) => last && setBuild((b) => b ?? last));
     return stop;
@@ -605,7 +599,6 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
     setRefs([]);
     setSelected(null);
     setSelection(null);
-    setInspected(null);
   }, [build?.version]);
 
   /** Selects a scene, a layer or a line in a panel: it is shown, and goes with the next message unless put aside. */
@@ -677,7 +670,7 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
           <Home size={18} />
         </button>
         <ChevronRight size={14} className="muted" aria-hidden="true" />
-        <ProjectMenu project={project} film={player.film} onError={(e) => setToast({ text: reason(e), error: true })} />
+        <ProjectMenu project={project} onError={(e) => setToast({ text: reason(e), error: true })} />
         {project.film && status}
         <span className="spacer" />
         <button
@@ -688,7 +681,7 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
           data-key="?"
           onClick={() => setShortcuts(true)}
         >
-          <Keyboard size={16} />
+          <CircleHelp size={16} />
         </button>
         {player.film && (player.film.voice || player.film.scenes.some((scene) => scene.lines.length > 0)) && (
           <button
@@ -716,11 +709,11 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
                 disabled={!build?.ok || busy || importing || checking}
               >
                 <Download size={15} />
-                <Translated text="Export" />
+                <Translated text="Export MP4" />
               </button>
               <button
                 type="button"
-                className="icon-button"
+                className="button accent export-more"
                 aria-label={t("Other ways to export")}
                 aria-expanded={menu}
                 data-tip={t("Other ways to export")}
@@ -814,10 +807,7 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
               onSelect={select}
               film={player.film}
               onFresh={(keys) => setFresh(new Set(keys))}
-              onUndone={() => {
-                setMarks([]);
-                setInspected(null);
-              }}
+              onUndone={() => setMarks([])}
               onHide={() => setLayout({ assistant: false })}
               onHistory={() => openSide('history')}
             />
@@ -842,8 +832,10 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
             onGuides={() => setGuides(!guides)}
             onFix={(label, detail) => reference({ kind: 'issue', label, detail })}
             disabled={busy || importing || checking || !build?.ok}
-            onMark={(next) => {
+            canApply={ready && !busy && !importing && !checking && progress === null}
+            onMark={(next, apply) => {
               mark(next);
+              if (apply) setApplying(true);
               const { element } = next;
               if (element) {
                 setSelected({
@@ -853,8 +845,6 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
                   layer: element.layer,
                   time: next.t,
                 });
-                setInspected(next);
-                setSide('inspector');
               }
             }}
           />
@@ -887,7 +877,6 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
                     {(
                       [
                         { id: 'outline', label: tr("Outline") },
-                        { id: 'inspector', label: tr("Inspector") },
                         { id: 'assets', label: tr("Assets") },
                         { id: 'motions', label: tr("Motions") },
                       ] as const
@@ -954,9 +943,7 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
                 />
               ) : side === 'motions' ? (
                 <MotionPanel onBusy={setImporting} disabled={busy || importing || checking || progress !== null} />
-              ) : (
-                <Inspector mark={inspected} film={player.film} onSeek={seek} />
-              )}
+              ) : null}
             </div>
             <Splitter
               axis="x"

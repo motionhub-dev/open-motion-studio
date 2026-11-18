@@ -197,7 +197,7 @@ export interface ProviderInput {
   key?: string;
 }
 
-import type { Box, PickedElement } from './preview';
+import type { Box, PickedElement, Tweakable } from './preview';
 
 /** A place the person marked on the picture, or a stretch of the timeline, sent with their next message. */
 export interface Mark {
@@ -211,6 +211,15 @@ export interface Mark {
   element: PickedElement | null;
   /** What the person says should change there; may be empty. */
   note: string;
+  /** What the person tried on the picked element on the picture, to be made so in the film. */
+  changes?: MarkChange[];
+}
+
+/** One property of a picked element as the person changed it on the picture: `text` for its words. */
+export interface MarkChange {
+  property: 'text' | Tweakable;
+  from: string;
+  to: string;
 }
 
 /** The longest brief a project is created with (createProject): a description, not a document. */
