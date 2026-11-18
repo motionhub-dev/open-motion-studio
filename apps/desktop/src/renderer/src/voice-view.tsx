@@ -7,9 +7,9 @@
 // line's words are the film's own and are never translated.
 
 import { SystemMessage, Translated, usePreferences } from './preferences';
-import { ArrowLeft, AtSign, Check, Loader, Mic, Play, Settings } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import type { Reference, VoicedFilm, VoiceKind, VoiceView as VoiceSetUp } from '../../shared/api';
+import { ArrowLeft, AtSign, Check, Loader, Mic, Play, Search, Settings, Volume2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { Reference, VoiceChoice, VoicedFilm, VoiceKind, VoiceView as VoiceSetUp } from '../../shared/api';
 import type { FilmInfo } from '../../shared/preview';
 import { reason } from './reason';
 
@@ -19,6 +19,174 @@ const PROVIDERS: { kind: VoiceKind; name: string; note: string }[] = [
   { kind: 'minimax', name: 'MiniMax', note: 'Natural Chinese voices' },
   { kind: 'openai', name: 'OpenAI', note: 'The OpenAI key you already have' },
 ];
+
+/** What a voice says when heard: the film's own first line, cut short, else a sentence in its language. */
+export function sampleText(lines: { text: string }[], language?: string): string {
+  const first = lines.find((line) => line.text.trim())?.text.trim();
+  if (first) return first.length > 120 ? `${first.slice(0, 120)}…` : first;
+  return language?.toLowerCase().startsWith('zh') ? '热量从高处流向低处，除非你推它一把。' : 'Heat moves downhill, unless you push it.';
+}
+
+/** The voices a provider offers whose name, language or id hold the words typed. */
+export function voicesFound(choices: VoiceChoice[], words: string): VoiceChoice[] {
+  const wanted = words.toLowerCase().split(/\s+/).filter(Boolean);
+  return choices.filter((c) => wanted.every((w) => `${c.name} ${c.language ?? ''} ${c.id}`.toLowerCase().includes(w)));
+}
+
+/**
+ * The voices of the providers set up, to choose the film's from without leaving it: a provider, its voices searched,
+ * each heard saying the film's own first line, and the one chosen used through the agent, which writes the film's
+ * voice and speaks its lines again. Keys and new providers stay in Settings.
+ */
+function VoicePicker({
+  providers,
+  current,
+  sample,
+  canGenerate,
+  onUse,
+  onSetUp,
+}: {
+  providers: VoiceSetUp[];
+  /** The film's voice as it writes it, `provider:voice`, if it has one. */
+  current: string | undefined;
+  sample: string;
+  canGenerate: boolean;
+  /** Has the agent give the film this voice and speak its lines again. */
+  onUse(voice: string): void;
+  onSetUp(kind: VoiceKind): void;
+}) {
+  const { t: tr } = usePreferences();
+  const [currentKind, currentId] = current ? (current.split(/:(.*)/s) as [VoiceKind, string]) : [undefined, undefined];
+  const [kind, setKind] = useState<VoiceKind>(providers.find((p) => p.kind === currentKind)?.kind ?? providers[0]!.kind);
+  const [choices, setChoices] = useState<Record<string, VoiceChoice[] | 'loading' | string>>({});
+  const [words, setWords] = useState('');
+  const [chosen, setChosen] = useState<string | null>(kind === currentKind ? (currentId ?? null) : null);
+  const [hearing, setHearing] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const audio = useRef<HTMLAudioElement | null>(null);
+  const setup = providers.find((p) => p.kind === kind)!;
+  const input = { kind, region: setup.region, groupId: setup.groupId, model: setup.model };
+  useEffect(() => {
+    if (choices[kind]) return;
+    setChoices((c) => ({ ...c, [kind]: 'loading' }));
+    window.studio.voiceChoices(input).then(
+      (found) => setChoices((c) => ({ ...c, [kind]: found })),
+      (e) => setChoices((c) => ({ ...c, [kind]: reason(e) })),
+    );
+  }, [kind]);
+  useEffect(() => () => audio.current?.pause(), []);
+  const listed = choices[kind];
+  const found = Array.isArray(listed) ? voicesFound(listed, words).slice(0, 200) : [];
+
+  async function hear(id: string) {
+    audio.current?.pause();
+    setError(null);
+    setHearing(id);
+    try {
+      const url = await window.studio.sampleVoice(input, id, sample);
+      audio.current = new Audio(url);
+      await audio.current.play();
+    } catch (e) {
+      setError(reason(e));
+    } finally {
+      setHearing(null);
+    }
+  }
+  async function use() {
+    if (!chosen) return;
+    setError(null);
+    try {
+      // Remembered as the provider's chosen voice, as Settings remembers one, then given to the film by the agent.
+      await window.studio.saveVoice({ ...input, voiceId: chosen });
+      onUse(`${kind}:${chosen}`);
+    } catch (e) {
+      setError(reason(e));
+    }
+  }
+
+  const isCurrent = (id: string) => kind === currentKind && id === currentId;
+  return (
+    <section className="voice-card voice-picker" aria-label={tr("Choose a voice")}>
+      <span className="eyebrow">{tr("Choose a voice")}</span>
+      {providers.length > 1 && (
+        <div className="voice-kinds" role="group" aria-label={tr("Voice provider")}>
+          {providers.map((p) => (
+            <button
+              key={p.kind}
+              type="button"
+              className="chip"
+              aria-pressed={kind === p.kind}
+              onClick={() => {
+                setKind(p.kind);
+                setChosen(p.kind === currentKind ? (currentId ?? null) : null);
+                setWords('');
+              }}
+            >
+              {PROVIDERS.find((known) => known.kind === p.kind)?.name ?? p.kind}
+            </button>
+          ))}
+        </div>
+      )}
+      <label className="library-search voice-search">
+        <Search size={14} />
+        <input type="search" value={words} placeholder={tr("Search voices")} aria-label={tr("Search voices")} onChange={(e) => setWords(e.target.value)} />
+      </label>
+      {listed === 'loading' || listed === undefined ? (
+        <p className="note">
+          <Loader size={12} className="spin" /> {tr("Listing the voices…")}
+        </p>
+      ) : typeof listed === 'string' ? (
+        <p className="error">
+          <SystemMessage text={listed} error />
+        </p>
+      ) : (
+        <ul className="voice-choices" role="listbox" aria-label={tr("Voices")}>
+          {found.map((c) => (
+            <li key={c.id} role="option" aria-selected={chosen === c.id} className={chosen === c.id ? 'chosen' : undefined}>
+              <button type="button" className="voice-choice" onClick={() => setChosen(c.id)}>
+                <strong>{c.name}</strong>
+                <span className="mono">{c.language ? `${c.language} · ${c.id}` : c.id}</span>
+              </button>
+              {isCurrent(c.id) && <span className="motion-state used">{tr("In use")}</span>}
+              <button
+                type="button"
+                className="icon-button"
+                aria-label={tr("Hear {0}", {0: c.name})}
+                data-tip={tr("Hear it say the first line")}
+                disabled={hearing !== null}
+                onClick={() => void hear(c.id)}
+              >
+                {hearing === c.id ? <Loader size={14} className="spin" /> : <Volume2 size={14} />}
+              </button>
+            </li>
+          ))}
+          {found.length === 0 && <li className="note">{tr("No voice has all of those words.")}</li>}
+        </ul>
+      )}
+      {error && (
+        <p className="error" role="alert">
+          <SystemMessage text={error} error />
+        </p>
+      )}
+      <p className="note">{tr("Hearing a voice uses a little of your provider’s allowance.")}</p>
+      <div className="voice-actions">
+        <button
+          type="button"
+          className="button primary"
+          disabled={!chosen || isCurrent(chosen) || !canGenerate}
+          data-tip={canGenerate ? tr("The agent changes the film’s voice and speaks its lines again") : tr("Waits until the agent is ready")}
+          onClick={() => void use()}
+        >
+          <Mic size={14} />
+          {tr("Use this voice")}
+        </button>
+        <button type="button" className="button quiet" onClick={() => onSetUp(kind)}>
+          <Settings size={14} /> {tr("Keys and providers")}
+        </button>
+      </div>
+    </section>
+  );
+}
 
 /** A scene's lines that say something, by scene, for the script. */
 export function scriptOf(film: FilmInfo) {
@@ -147,9 +315,6 @@ export function VoiceView({
           </p>
           {!canGenerate && <p className="note">{tr("The agent must be connected and idle to generate narration.")}</p>}
           <div className="voice-actions">
-            <button type="button" className="button" onClick={() => onSetUp(selected?.kind ?? voices[0]!.kind)}>
-              <Settings size={14} /> {tr("Voice settings")}
-            </button>
             <button type="button" className="button primary" onClick={() => onGenerate(selectedVoice)} disabled={!canGenerate}>
               <Mic size={14} /> {tr("Generate with agent")}
             </button>
@@ -184,6 +349,17 @@ export function VoiceView({
   }
 
   const blocked = setup();
+  const keyed = useMemo(() => (voices ?? []).filter((v) => v.hasKey), [voices]);
+  const picker = keyed.length > 0 && (
+    <VoicePicker
+      providers={keyed}
+      current={film.voice ?? undefined}
+      sample={sampleText(lines, film.voice?.split(':')[1])}
+      canGenerate={canGenerate}
+      onUse={onGenerate}
+      onSetUp={onSetUp}
+    />
+  );
   return (
     <div className="centre-view centre-wide voice-view">
       <div className="library-head">
@@ -256,7 +432,10 @@ export function VoiceView({
         {/* The voice and the voicing beside the script, always in reach; until the film can speak, what it needs. */}
         <aside className="voice-side">
           {blocked ? (
-            <section className="voice-card voice-setup">{blocked}</section>
+            <>
+              <section className="voice-card voice-setup">{blocked}</section>
+              {!film.voice && picker}
+            </>
           ) : (
             <>
             <section className="voice-card" aria-label={tr("The film’s voice")}>
@@ -266,23 +445,8 @@ export function VoiceView({
                 <Check size={12} /> {provider!.name} ·{' '}
                 {tr(film.captions ? (film.captions === 'words' ? 'Captions follow each word' : 'Captions show each line') : 'No captions in the picture')}
               </span>
-              <div className="voice-actions">
-                <button type="button" className="button" onClick={() => onSetUp(provider!.kind)}>
-                  <Settings size={14} /> {tr("Voice settings")}
-                </button>
-                {selectedVoice && selectedVoice !== film.voice && (
-                  <button
-                    type="button"
-                    className="button"
-                    disabled={!canGenerate}
-                    data-tip={tr("The agent changes the film’s voice and speaks its lines again")}
-                    onClick={() => onGenerate(selectedVoice)}
-                  >
-                    {tr("Use {0} instead", {0: selectedVoice})}
-                  </button>
-                )}
-              </div>
             </section>
+            {picker}
             <section className="voice-card voice-generate" aria-label={tr("Voice the film")}>
               {progress ? (
                 <p className="note" role="status">
@@ -297,19 +461,25 @@ export function VoiceView({
                 </p>
               ) : waiting.length ? (
                 <p className="note">{tr("About {0} characters; your provider may charge for them.", {0: characters})}</p>
+              ) : null}
+              {waiting.length || progress ? (
+                <button
+                  type="button"
+                  className="button primary"
+                  disabled={!!progress || busy || !waiting.length}
+                  data-tip={busy ? tr("Voice the film when the agent has finished its turn") : undefined}
+                  onClick={() => void voice()}
+                >
+                  {progress ? <Loader size={14} className="spin" /> : <Mic size={14} />}
+                  {tr("Voice {0} lines", {0: waiting.length})}
+                </button>
               ) : (
-                <p className="note">{tr("Every line is voiced")}</p>
+                !voiced && (
+                  <p className="voice-done">
+                    <Check size={14} /> {tr("Every line is voiced")}
+                  </p>
+                )
               )}
-              <button
-                type="button"
-                className="button primary"
-                disabled={!!progress || busy || !waiting.length}
-                data-tip={busy ? tr("Voice the film when the agent has finished its turn") : undefined}
-                onClick={() => void voice()}
-              >
-                {progress ? <Loader size={14} className="spin" /> : <Mic size={14} />}
-                {waiting.length ? tr("Voice {0} lines", {0: waiting.length}) : tr("Every line is voiced")}
-              </button>
             </section>
             </>
           )}

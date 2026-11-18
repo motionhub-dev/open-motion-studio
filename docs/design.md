@@ -79,10 +79,12 @@ A top bar over a grid of panels (`project-view.tsx`):
   its span and Play this scene) and a row for each line in large type, with ▷ to play it in the film, its length or
   Waiting in cobalt, and @ on hover to add it to the message; the line being said is lit in cobalt while the film
   plays. At the right, always in reach, what the voice still needs (with no provider set up, the four as cards, each
-  opening it in Settings; with no `<Film voice>`, Voice settings and Generate with agent), or a card with the film's
-  voice, its provider and how its captions show, with Voice settings and, when another voice is selected, Use that
-  voice instead (through the agent), and under it Voice N lines with the characters it will speak, its progress line
-  by line and what it did. Asking the agent to apply a voice goes back to the picture. On a Mac the window has no title bar (`hiddenInset`): its buttons sit over the top bar, which
+  opening it in Settings; with no `<Film voice>`, Generate with agent), or a card with the film's voice, its provider
+  and how its captions show. Under it, once a provider with a key is set up, Choose a voice: the providers set up as
+  chips, a search, and the provider's voices (name, language and id; the film's own marked In use), each with a
+  speaker that has it say the film's first line; Use this voice remembers it as Settings does and has the agent give
+  the film that voice and speak its lines again, and Keys and providers opens Settings, where keys stay. Then Voice N
+  lines with the characters it will speak, its progress line by line and what it did, or Every line is voiced. Asking the agent to apply a voice goes back to the picture. On a Mac the window has no title bar (`hiddenInset`): its buttons sit over the top bar, which
   leaves them room and moves the window; Home keeps a strip at its top to move it by.
 - **Assistant** down the whole left, the **stage** in the middle, the **project tools** on the right, the **timeline**
   along the bottom under the stage and the project tools. A shown panel hides from its own head (the assistant's left

@@ -3,6 +3,17 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-18 — The film's voice is chosen and heard in the voice view
+
+- **What:** The voice view lists the voices of each provider set up, searched by name, language or id; each is heard
+  saying the film's own first line, and Use this voice has the agent give the film that voice and speak its lines
+  again. Only keys and new providers are left to Settings. Every line voiced shows once, not as a disabled button too.
+- **Why:** Choosing a voice meant leaving the film for Settings and back, and hearing it say a sentence the film never
+  says.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/voice-view.tsx` (`VoicePicker`).
+
 ## 2026-11-18 — Voice is a view of its own
 
 - **What:** Voice (配音) opens across the workspace beside the assistant, as the motion library does, instead of in

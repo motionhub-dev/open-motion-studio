@@ -6193,6 +6193,84 @@ input.switch:disabled {
 .voice-generate .button {
   justify-content: center;
 }
+.voice-done {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--good);
+  font-size: 13px;
+}
+/* Choosing the film's voice within the view: a provider, its voices searched, each heard. */
+.voice-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.voice-kinds .chip {
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--sheet);
+  font-size: 12px;
+}
+.voice-kinds .chip[aria-pressed='true'] {
+  border-color: var(--text);
+  background: var(--text);
+  color: var(--bg);
+}
+.voice-search {
+  width: 100%;
+}
+.voice-choices {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 320px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.voice-choices li {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: var(--r-control);
+}
+.voice-choices li:hover {
+  background: var(--s2);
+}
+.voice-choices li.chosen {
+  background: color-mix(in srgb, var(--annotate) 12%, transparent);
+  box-shadow: inset 2px 0 var(--annotate);
+}
+.voice-choice {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 6px 8px;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+.voice-choice strong {
+  font-size: 13px;
+}
+.voice-choice span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--muted);
+}
+.voice-choices .motion-state {
+  flex: none;
+}
 .voice-view > .error {
   margin: 0 14px 12px;
 }
