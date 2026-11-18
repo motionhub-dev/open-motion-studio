@@ -53,12 +53,14 @@ import { voiceFilm } from './narration';
 import { speak, voicesOf } from './voice';
 import { EXAMPLES } from './examples';
 import { ASSET_EXTENSIONS, importAssets, projectAssets, renameAsset, trashAsset } from './assets';
+import { projectFileToOpen, projectFiles, readProjectFile } from './files';
 import { reviewBuild } from './film/review';
 import { FILM, FILM_SKILL, startFilm, watchFilm } from './film/film';
 import { type ExportedSpeech, exportedSpeech, writeRemotionProject } from './film/remotion-export';
 import { motionDetail, motionReel, projectMotions, searchMotions, useMotion, removeMotion } from './motions';
 import { STATE_DIR, projectAt, rememberProject } from './project';
-import { describeReferences, filmSpans, readReferences } from './agent/references';
+import { describeReferences, readReferences } from './agent/references';
+import { filmSpans } from '../shared/spans';
 import { type FileNote, ProjectHistory, changesBetween, inProject, noteFiles, putBack } from './history';
 import { NO_TOKENS, type Spent, readUsage, recordUsage, totals } from './usage';
 import { randomUUID } from 'node:crypto';
@@ -632,6 +634,12 @@ export function createWorkspace(host: WorkspaceHost, renderSession: Session, cha
       } finally {
         if (working === controller) working = null;
       }
+    });
+    handle(CHANNELS.projectFiles, () => projectFiles(requireOpen().project.path));
+    handle(CHANNELS.readProjectFile, (_event, path: unknown) => readProjectFile(requireOpen().project.path, path));
+    handle(CHANNELS.openProjectFile, async (_event, path: unknown) => {
+      const error = await shell.openPath(await projectFileToOpen(requireOpen().project.path, path));
+      if (error) throw new Error(error);
     });
     handle(CHANNELS.renameAsset, async (_event, path: unknown, name: unknown) => {
       const state = requireOpen();

@@ -7,7 +7,7 @@
 
 import { usePreferences } from './preferences';
 import { useEffect, useRef, useState } from 'react';
-import { AtSign, ChevronDown, Layers, Play, SquarePlay } from 'lucide-react';
+import { AtSign, ChevronDown, Code, Layers, Play, SquarePlay } from 'lucide-react';
 import type { Reference, SceneStills } from '../../shared/api';
 import type { FilmInfo, LayerBox, SceneInfo } from '../../shared/preview';
 import { timecode } from './preview';
@@ -40,6 +40,7 @@ export function Outline({
   onSelect,
   onReference,
   onPlay,
+  onCode,
 }: {
   film: FilmInfo | null;
   selected: Reference | null;
@@ -55,6 +56,8 @@ export function Outline({
   onReference(ref: Reference): void;
   /** Plays a span, with one layer alone when `solo` names it. */
   onPlay(start: number, end: number, solo?: string): void;
+  /** Shows the lines of film.tsx that write a scene, a layer or a line. */
+  onCode(target: { scene?: string; layer?: string; line?: string }): void;
 }) {
   const { t: tr } = usePreferences();
   const current = film?.scenes.find((s) => t >= s.start && t < s.start + s.duration)?.id;
@@ -123,6 +126,11 @@ export function Outline({
       <AtSign size={14} />
     </button>
   );
+  const code = (target: { scene?: string; layer?: string; line?: string }) => (
+    <button type="button" className="icon-button" aria-label={tr("Show its code")} data-tip={tr("Show its code")} onClick={() => onCode(target)}>
+      <Code size={14} />
+    </button>
+  );
   const classes = (ref: Reference, extra = '') =>
     `outline-row${extra}${sameSelection(selected, ref) ? ' selected' : ''}${fresh.has(changeKey(ref)) ? ' fresh' : ''}`;
   const layerRow = (layer: LayerBox, scene?: SceneInfo) => {
@@ -156,6 +164,7 @@ export function Outline({
               <SquarePlay size={14} />
             </button>
           )}
+          {code({ scene: scene?.id, layer: layer.id })}
           {ask(ref)}
         </span>
       </div>
@@ -230,6 +239,7 @@ export function Outline({
                 >
                   <Play size={14} />
                 </button>
+                {code({ scene: scene.id })}
                 {ask(ref)}
               </span>
               <button
@@ -253,7 +263,10 @@ export function Outline({
                       <button className="outline-pick" aria-pressed={sameSelection(selected, lineRef)} onClick={() => onSelect(lineRef)}>
                         <q>{line.text}</q>
                       </button>
-                      <span className="row-actions">{ask(lineRef)}</span>
+                      <span className="row-actions">
+                        {code({ line: line.id })}
+                        {ask(lineRef)}
+                      </span>
                     </div>
                   );
                 })}

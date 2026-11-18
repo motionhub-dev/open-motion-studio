@@ -3254,6 +3254,164 @@ kbd {
   outline-offset: -6px;
 }
 
+/* The code view, across the stage in place of the picture: light like the panels, its type the code's own. */
+.workspace > .code-view {
+  background: var(--sheet);
+  border: 1px solid var(--line);
+}
+.code-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.code-head h2 {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+}
+.code-head .note {
+  margin: 0;
+  white-space: nowrap;
+}
+.code-head .button {
+  height: 28px;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.code-note {
+  margin: 0;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--muted);
+}
+.code-text {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 10px 0;
+  overflow: auto;
+  font: 12px/1.7 var(--font-mono);
+  font-variant-ligatures: none;
+  color: var(--text);
+  user-select: text;
+}
+.code-text:focus-visible {
+  outline: 2px solid var(--annotate);
+  outline-offset: -2px;
+}
+.code-text code {
+  display: block;
+  width: max-content;
+  min-width: 100%;
+}
+.code-line {
+  display: flex;
+}
+/* The lines that write what was asked for from the outline, lit in the annotation's cobalt. */
+.code-line.lit {
+  background: color-mix(in srgb, var(--annotate) 12%, transparent);
+  box-shadow: inset 2px 0 var(--annotate);
+}
+.code-number {
+  position: sticky;
+  left: 0;
+  flex: none;
+  padding: 0 14px 0 10px;
+  text-align: right;
+  color: var(--muted);
+  background: var(--sheet);
+  user-select: none;
+}
+.code-line.lit .code-number {
+  background: color-mix(in srgb, var(--annotate) 12%, var(--sheet));
+}
+.code-tokens {
+  white-space: pre;
+  padding-right: 14px;
+}
+/* Syntax in the Studio's own few colours, quiet: the film is the loud thing. */
+.tok-keyword {
+  color: var(--annotate);
+}
+.tok-string {
+  color: var(--good);
+}
+.tok-entity,
+.tok-class {
+  color: color-mix(in srgb, var(--annotate) 60%, var(--text));
+}
+.tok-property,
+.tok-jsxliterals {
+  color: var(--text);
+}
+.tok-comment {
+  color: var(--muted);
+  font-style: italic;
+}
+.tok-sign {
+  color: var(--muted);
+}
+
+/* The project's files in the project tools: folders first, code that opens across the stage, the rest listed. */
+.code-tree,
+.code-tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.code-file,
+.code-folder {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  padding: 2px 8px;
+  border: 0;
+  border-radius: var(--r-control);
+  background: none;
+  color: var(--text2);
+  font: 12px var(--font-mono);
+  text-align: left;
+}
+.code-file span,
+.code-folder span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.code-file:hover,
+.code-folder:hover {
+  background: var(--s2);
+  color: var(--text);
+}
+.code-file[aria-current='page'] {
+  background: color-mix(in srgb, var(--annotate) 12%, transparent);
+  color: var(--text);
+}
+.code-folder svg:first-child {
+  flex: none;
+  transition: transform 0.15s;
+}
+.code-folder[aria-expanded='true'] svg:first-child {
+  transform: rotate(90deg);
+}
+.code-file svg,
+.code-folder svg {
+  flex: none;
+  color: var(--muted);
+}
+
 .picture.dropping,
 .composer.dropping {
   outline: 2px dashed var(--annotate);

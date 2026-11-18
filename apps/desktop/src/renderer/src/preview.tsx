@@ -323,6 +323,7 @@ export function Stage({
   canApply,
   onAsk,
   onDropAsset,
+  hidden = false,
   selected,
   hovered = null,
   working,
@@ -344,6 +345,8 @@ export function Stage({
   onAsk(text: string): void;
   /** An asset dropped on the picture: a mark where it fell, asking for it there. */
   onDropAsset(asset: Pick<Asset, 'path' | 'name' | 'kind'>, mark: Mark): void;
+  /** The code view is across the stage: the stage keeps its film loaded, out of sight. */
+  hidden?: boolean;
   selected: Reference | null;
   /** The layer under the pointer in the outline or on the timeline, drawn as its declared box. */
   hovered?: Hovered;
@@ -550,7 +553,7 @@ export function Stage({
   }
 
   return (
-    <div className="stage" ref={root}>
+    <div className="stage" ref={root} style={hidden ? { display: 'none' } : undefined}>
       <div
         className={`picture${dropping ? ' dropping' : ''}`}
         ref={stage}

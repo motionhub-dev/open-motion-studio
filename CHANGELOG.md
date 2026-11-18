@@ -3,6 +3,19 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-17 — A read-only code view
+
+- **What:** A Code tab lists the project's files; a code file opens across the stage in place of the picture,
+  read-only, with line numbers and its syntax coloured, Copy and Open in your editor. A scene, layer or line of the
+  outline shows the lines of film.tsx that write it, and lines selected go with the next message as a reference
+  (`film.tsx:3-5`, with their text). The assistant stays beside it.
+- **Why:** The film is code the agent writes, and there was no way to read it, or point at a part of it, without
+  leaving the Studio.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/code-view.tsx`, `apps/desktop/src/main/files.ts`, `apps/desktop/src/shared/spans.ts`;
+  `sugar-high` 2.6.0 (a dev dependency, bundled into the renderer).
+
 ## 2026-11-17 — Assets are renamed, trashed and kept current
 
 - **What:** A file the video does not use is renamed (its extension kept) or moved to the system's trash from its

@@ -241,7 +241,7 @@ export interface SentMark {
 
 /** A source-aware reference, attached separately from the creator's words. */
 export interface Reference {
-  kind: 'scene' | 'layer' | 'line' | 'asset' | 'motion' | 'issue';
+  kind: 'scene' | 'layer' | 'line' | 'asset' | 'motion' | 'issue' | 'code';
   label: string;
   scene?: string;
   layer?: string;
@@ -249,8 +249,17 @@ export interface Reference {
   time?: number;
   path?: string;
   detail?: string;
-  /** Where film.tsx writes it, `film.tsx:12-18`, added when the message is sent. */
+  /** Where film.tsx writes it, `film.tsx:12-18`, added when the message is sent; for code, the lines picked. */
   source?: string;
+}
+
+/** A file of the open project, as the code view lists it: code it can show, or anything else, listed only. */
+export interface ProjectFile {
+  /** Relative to the project, with forward slashes. */
+  path: string;
+  bytes: number;
+  /** Whether the code view can show it: text, within the size it reads. */
+  text: boolean;
 }
 
 /** Whether a reference points at the picture (a scene, a layer or a line), so it holds only for the build it was taken from. */
@@ -504,6 +513,12 @@ export interface StudioApi {
   openExample(id: string): Promise<Project | null>;
   projectAssets(): Promise<Asset[]>;
   importAssets(): Promise<Asset[]>;
+  /** The open project's files for the code view: everything but its dot folders and node_modules. */
+  projectFiles(): Promise<ProjectFile[]>;
+  /** A text file of the open project, as it is on disk now. */
+  readProjectFile(path: string): Promise<string>;
+  /** Opens a file of the open project in the program the system opens it with. */
+  openProjectFile(path: string): Promise<void>;
   /**
    * Imports files the person dropped on the window. The preload reads each path from the dropped File itself (a File
    * the page made has none), so the renderer never names a path.
@@ -651,6 +666,9 @@ export const CHANNELS = {
   openExample: 'examples:open',
   projectAssets: 'assets:list',
   importAssets: 'assets:import',
+  projectFiles: 'files:list',
+  readProjectFile: 'files:read',
+  openProjectFile: 'files:open',
   importDroppedAssets: 'assets:import-dropped',
   renameAsset: 'assets:rename',
   trashAsset: 'assets:trash',

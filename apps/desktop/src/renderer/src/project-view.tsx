@@ -23,7 +23,7 @@ import {
   SquareArrowOutUpRight,
   X,
 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import {
   type AgentKind,
   type VoiceKind,
@@ -42,6 +42,7 @@ import {
 } from '../../shared/api';
 import { Assistant, type AssistantHandle } from './assistant';
 import { AssetsPanel, assetReference } from './assets-panel';
+import { CodeFiles, type CodeFocus, CodeView } from './code-view';
 import { ReviewPanel } from './review-panel';
 import { ExportDialog } from './export-dialog';
 import { VoicePanel } from './voice-panel';
@@ -306,7 +307,10 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
   const [lit, setLit] = useState<number | null>(null);
   /** Asks the composer to put the cursor in a mark's note: its index, and a count that makes each ask new. */
   const [noteRequest, setNoteRequest] = useState({ index: -1, n: 0 });
-  const [side, setSide] = useState<'outline' | 'motions' | 'history' | 'review' | 'assets' | 'voice'>('outline');
+  const [side, setSide] = useState<'outline' | 'motions' | 'code' | 'history' | 'review' | 'assets' | 'voice'>('outline');
+  /** The file across the stage in place of the picture, and the lines it is asked to show, or null for the picture. */
+  const [code, setCode] = useState<{ path: string; focus: CodeFocus | null } | null>(null);
+  const closeCode = useCallback(() => setCode(null), []);
   const [shortcuts, setShortcuts] = useState(false);
   /** Whether the menu of other ways to export is open. */
   const [menu, setMenu] = useState(false);
@@ -875,7 +879,11 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
               style={{ right: -7 }}
             />
           </section>
+          {code && (
+            <CodeView path={code.path} revision={build?.version ?? 0} focus={code.focus} onClose={closeCode} onReference={reference} />
+          )}
           <Stage
+            hidden={code !== null}
             player={player}
             build={build}
             marks={marks}
@@ -939,6 +947,7 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
                         { id: 'outline', label: tr("Outline") },
                         { id: 'assets', label: tr("Assets") },
                         { id: 'motions', label: tr("Motions") },
+                        { id: 'code', label: tr("Code") },
                       ] as const
                     ).map(({ id, label }) => {
                       const count = id === 'assets' ? counts?.assets : id === 'motions' ? counts?.motions : undefined;
@@ -989,6 +998,7 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
                   onSelect={select}
                   onReference={reference}
                   onPlay={player.playRange}
+                  onCode={(target) => setCode((was) => ({ path: 'film.tsx', focus: { target, n: (was?.focus?.n ?? 0) + 1 } }))}
                 />
               ) : side === 'voice' && player.film ? (
                 <VoicePanel
@@ -1005,6 +1015,8 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
                   revision={build?.version ?? 0}
                   onRestored={restored}
                 />
+              ) : side === 'code' ? (
+                <CodeFiles revision={build?.version ?? 0} open={code?.path ?? null} onOpen={(path) => setCode({ path, focus: null })} />
               ) : side === 'motions' ? (
                 <MotionPanel
                   onBusy={setImporting}

@@ -9,7 +9,7 @@ import type Anthropic from '@anthropic-ai/sdk';
 import { MARK_NOTE, MAX_MARKS, type Mark, type MarkChange, type SentMark } from '../../shared/api';
 import { TWEAKABLE, type Tweakable } from '../../shared/preview';
 import type { Stage } from '../film/capture';
-import type { Locate } from './references';
+import type { Locate } from '../../shared/spans';
 
 type Block = Anthropic.Beta.BetaContentBlockParam;
 

@@ -96,7 +96,7 @@ A top bar over a grid of panels (`project-view.tsx`):
   what the agent will do, with Cancel and Change the film, which alone asks the agent. The agent writes it in film.tsx: a new rate keeps everything else, a frame of the same shape is scaled, and a new shape lays
   every scene out again; the scenes keep their lengths in seconds. It waits while the agent is not ready or is working.
   Full screen is the stage alone, picture and foot, with no corners; Esc or the button leaves it.
-- The **project tools** are three tabs, Outline, Assets and Motions, the last two with how many they hold beside their
+- The **project tools** are four tabs, Outline, Assets, Motions and Code, Assets and Motions with how many they hold beside their
   name. Files from the computer dropped anywhere on the workspace (dashed while they are over it) are imported and go
   with the next message; Start from a look, on an empty conversation, opens the motion library. History opens from the assistant's head
   and Checks from the status; either shows its title with a way back to the tabs.
@@ -263,8 +263,9 @@ agents and exports continue. Sessions are retained for this app run; explicit Qu
   line fills as far into the scene as the playhead is. The scene the playhead enters opens and the one it leaves closes,
   unless the person folded or opened it; selecting something elsewhere opens its scene. Actions sit on a row's end
   on hover or focus, in the row's own colour with its text fading under them and muted until pointed at: Play (▷)
-  and Ask on a scene, Solo (▷ in a square, playing the layer alone) and Ask on a layer, Ask on a line; Ask is @, as
-  in the composer, since it adds the row to the message. A layer hovered here or on the
+  and Ask on a scene, Solo (▷ in a square, playing the layer alone) and Ask on a layer, Ask on a line, and on each
+  Show its code (</>), which opens film.tsx across the stage at the lines that write it; Ask is @, as in the composer,
+  since it adds the row to the message. A layer hovered here or on the
   timeline is lit in both, and its declared box drawn dashed on a cobalt tint on the picture while its scene is on screen.
 - **Motions** (`motion-panel.tsx`, 动效库 in Chinese): a line on what a motion is, then the project's motions as poster
   cards (initials when a motion has no poster), each marked In use or Not used yet by whether the film's code names it,
@@ -274,6 +275,14 @@ agents and exports continue. Sessions are retained for this app run; explicit Qu
   the moment the panel opens, the search narrowing it: poster with Preview, name, what it is for in two lines, Apply to
   the video and Add only. Apply asks first, then takes the motion if the project does not hold it and asks the agent to
   restyle the film with it (`applyRequest`), keeping the film's words, scenes, order and timing.
+- **Code** (`code-view.tsx`): the project's files as a tree (folders first; motions/, media/ and voice/ start folded),
+  each code file opening across the stage in place of the picture, which keeps its film loaded out of sight; anything
+  else opens in its own program. The code is read-only, on the panels' paper rather than the stage's ink: its path and
+  line count, Picture (or Esc) back, Add lines (the lines selected, as a reference `film.tsx:3-5` with their text),
+  Copy, and Open in your editor; a line under the head says the assistant writes the code. Line numbers stay at the
+  left; syntax is coloured by sugar-high in the Studio's own few colours (cobalt keywords, green strings, muted signs
+  and comments), and the lines asked for from the outline are lit in cobalt and brought to the middle. What is shown
+  is read again when the film is rebuilt or the window comes back.
 - **Assets** (`assets-panel.tsx`): images, fonts and sounds under `media/`, each a card dragged onto the picture (a
   mark where it falls, Put it here, with the asset as a reference) or onto the composer (a reference); @ on its corner
   adds it to the message. A sound plays in place with its length, a typeface shows itself (Aa 永), and a file the
