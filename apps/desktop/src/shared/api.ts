@@ -302,6 +302,14 @@ export type ChatItem =
   /** What an outside agent asked leave to do, and what the person answered. */
   | { kind: 'approval'; approval: Approval; answer?: ApprovalAnswer };
 
+/** A conversation set aside when a new one started: when, its first message, and how many messages it held. */
+export interface PastConversation {
+  id: string;
+  at: number;
+  title: string;
+  messages: number;
+}
+
 /** What the agent reports while it works. */
 export type AgentEvent =
   | { type: 'phase'; phase: 'thinking' | 'editing' | 'checking' | 'reviewing' }
@@ -615,8 +623,12 @@ export interface StudioApi {
   steerAgent(text: string): Promise<boolean>;
   /** The open project's turns added up, from its usage log (.motion-studio/usage.jsonl). */
   projectUsage(): Promise<UsageTotals>;
-  /** Forgets the open project's conversation. */
+  /** Starts a new conversation, keeping the one before among the project's past conversations. */
   clearConversation(): Promise<void>;
+  /** The open project's past conversations, newest first. */
+  pastConversations(): Promise<PastConversation[]>;
+  /** A past conversation's entries, to be shown read-only. */
+  pastConversation(id: string): Promise<ChatItem[]>;
   /** Calls `listener` with what the agent does; returns the unsubscribe. */
   onAgentEvent(listener: (event: AgentEvent) => void): () => void;
 
@@ -713,6 +725,8 @@ export const CHANNELS = {
   stopAgent: 'agent:stop',
   steerAgent: 'agent:steer',
   clearConversation: 'agent:clear',
+  pastConversations: 'conversations:past',
+  pastConversation: 'conversations:past-one',
   projectUsage: 'agent:usage',
   exportFilm: 'film:export',
   cancelExport: 'film:cancel-export',

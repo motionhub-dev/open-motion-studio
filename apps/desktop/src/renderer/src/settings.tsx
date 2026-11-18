@@ -658,12 +658,24 @@ function GeneralPane() {
   );
 }
 
+/** Settings' sections, in the order a sidebar lists them. */
+export const SETTINGS_SECTIONS = [
+  ['general', 'General'],
+  ['models', 'Model Providers'],
+  ['agents', 'Coding Agents'],
+  ['voices', 'Voice Services'],
+  ['diagnostics', 'Diagnostics'],
+] as const;
+export type SettingsSection = (typeof SETTINGS_SECTIONS)[number][0];
+
 export function Settings({
   providers,
   agent,
   voice,
   workspace,
   models,
+  embedded,
+  back = false,
   onChange,
   onClose,
 }: {
@@ -674,6 +686,13 @@ export function Settings({
   voice?: VoiceKind;
   workspace?: boolean;
   models?: boolean;
+  /**
+   * The section shown when Settings is one of Home's pages: no header or sidebar of its own, Home's sidebar choosing
+   * the section, and leaving by that sidebar asking first about unsaved edits, as leaving by its own would.
+   */
+  embedded?: SettingsSection;
+  /** Within Home, opened from something the person was doing (a setup step, Ctrl/⌘ ,), so it offers the way back. */
+  back?: boolean;
   onChange(p: Providers): void;
   onClose(): void;
 }) {
@@ -697,11 +716,25 @@ export function Settings({
     continuation.current = null;
   }
   useEffect(() => {
+    if (embedded) return () => { continuation.current = null; };
     const previous = document.activeElement as HTMLElement | null;
     // The heading, not the back button: a screen reader hears where it is, and no focus ring greets a click.
     page.current?.querySelector<HTMLElement>('.settings-header h1')?.focus();
     return () => { continuation.current = null; previous?.focus(); };
   }, []);
+  // Within Home, its sidebar and header lead away: a click there with edits unsaved is held, as one on the sidebar here is.
+  useEffect(() => {
+    if (!embedded) return;
+    const hold = (event: MouseEvent) => {
+      const target = (event.target as HTMLElement | null)?.closest<HTMLElement>('.home-nav button, .home-header button');
+      if (!target || !dirty.current || page.current?.contains(target)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setPending(target);
+    };
+    document.addEventListener('click', hold, true);
+    return () => document.removeEventListener('click', hold, true);
+  }, [!!embedded]);
   function continueNavigation(target: HTMLElement) {
     dirty.current = false;
     setPending(null);
@@ -714,10 +747,13 @@ export function Settings({
   const [voices, setVoices] = useState<VoiceView[] | null>(null);
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [voiceShown, setVoiceShown] = useState<VoiceKind | null>(voice ?? null);
-  const [section, setSection] = useState<'general' | 'models' | 'agents' | 'voices' | 'workspace' | 'diagnostics'>(
-    workspace ? 'workspace' : agent ? 'agents' : voice ? 'voices' : models ? 'models' : 'general',
+  const [section, setSection] = useState<SettingsSection>(
+    embedded ?? (agent ? 'agents' : voice ? 'voices' : models ? 'models' : 'general'),
   );
-  const [workspaceShown, setWorkspaceShown] = useState(workspace ?? false);
+  // Asked for the workspace, General opens on it: its pane is the last of General's.
+  useEffect(() => {
+    if (workspace) page.current?.querySelector('.workspace-pane')?.scrollIntoView({ block: 'start' });
+  }, []);
   useEffect(() => {
     let live = true;
     window.studio.agents().then(
@@ -742,7 +778,6 @@ export function Settings({
   function select(next: ProviderInput) {
     setShown(null);
     setVoiceShown(null);
-    setWorkspaceShown(false);
     setConfirmRemove(false);
     setForm(next);
     setError(null);
@@ -794,21 +829,18 @@ export function Settings({
   }
 
   const stored = providers.providers.find((p) => p.id === form.id);
-  const sections = [
-    ['general', 'General'],
-    ['models', 'Model Providers'],
-    ['agents', 'Coding Agents'],
-    ['voices', 'Voice Services'],
-    ['workspace', 'Workspace'],
-    ['diagnostics', 'Diagnostics'],
-  ] as const;
+  const sections = SETTINGS_SECTIONS;
 
-  function open(id: (typeof sections)[number][0]) {
+  function open(id: SettingsSection) {
     setSection(id);
-    setWorkspaceShown(id === 'workspace');
     setShown(id === 'agents' ? (agents?.harnesses[0]?.kind ?? null) : null);
     setVoiceShown(id === 'voices' ? VOICE_KINDS[0]! : null);
   }
+
+  // Home's sidebar chooses the section of Settings within it.
+  useEffect(() => {
+    if (embedded && embedded !== section) open(embedded);
+  }, [embedded]);
 
   function saveAndContinue(target: HTMLElement) {
     const buttons = Array.from(page.current?.querySelectorAll<HTMLButtonElement>('.provider-form button') ?? []);
@@ -836,7 +868,7 @@ export function Settings({
 
   return (
     <div
-      className="studio-settings"
+      className={`studio-settings${embedded ? ' embedded' : ''}`}
       ref={page}
       onInputCapture={() => {
         if (section === 'general') return;
@@ -853,12 +885,15 @@ export function Settings({
         }
       }}
     >
-      <header className="settings-header">
-        <button type="button" className="icon-button" aria-label={t('Back to previous page')} onClick={onClose}>
-          <ArrowLeft size={20} />
-        </button>
-        <h1 tabIndex={-1}>{t('Settings')}</h1>
-      </header>
+      {/* Within Home each pane's own heading names the page: the head holds only the way back, when there is one. */}
+      {(!embedded || back) && (
+        <header className="settings-header">
+          <button type="button" className="icon-button" aria-label={t('Back to previous page')} onClick={onClose}>
+            <ArrowLeft size={20} />
+          </button>
+          {!embedded && <h1 tabIndex={-1}>{t('Settings')}</h1>}
+        </header>
+      )}
       {pending && (
         <div className="settings-notice" role="alert">
           <span>{t('You have unsaved changes.')}</span>
@@ -890,21 +925,26 @@ export function Settings({
         </div>
       )}
       <div className="settings-layout">
-        <nav className="settings-nav" aria-label={t('Settings categories')}>
-          {sections.map(([id, label]) => (
-            <button
-              key={id}
-              className={`provider-row${section === id ? ' selected' : ''}`}
-              aria-current={section === id ? 'page' : undefined}
-              onClick={() => open(id)}
-            >
-              {t(label)}
-            </button>
-          ))}
-        </nav>
+        {!embedded && (
+          <nav className="settings-nav" aria-label={t('Settings categories')}>
+            {sections.map(([id, label]) => (
+              <button
+                key={id}
+                className={`provider-row${section === id ? ' selected' : ''}`}
+                aria-current={section === id ? 'page' : undefined}
+                onClick={() => open(id)}
+              >
+                {t(label)}
+              </button>
+            ))}
+          </nav>
+        )}
         <main className="settings-content">
         {section === 'general' ? (
-          <GeneralPane />
+          <>
+            <GeneralPane />
+            <WorkspacePane key={reload} />
+          </>
         ) : section === 'diagnostics' ? (
           <div className="provider-form">
             <h2>{t('Diagnostics')}</h2>
@@ -926,7 +966,7 @@ export function Settings({
           <ul>
             {providers.providers.map((p) => (
               <li key={p.id}>
-                <button type="button" className={`provider-row${p.id === form.id && !shown && !voiceShown && !workspaceShown ? ' selected' : ''}`} onClick={() => select(fromView(p))}>
+                <button type="button" className={`provider-row${p.id === form.id && !shown && !voiceShown ? ' selected' : ''}`} onClick={() => select(fromView(p))}>
                   <span className="avatar" aria-hidden="true">
                     {initials(p.name)}
                   </span>
@@ -941,7 +981,7 @@ export function Settings({
           </ul>
           <button
             type="button"
-            className={`provider-row add${form.id || shown || voiceShown || workspaceShown ? '' : ' selected'}`}
+            className={`provider-row add${form.id || shown || voiceShown ? '' : ' selected'}`}
             onClick={() => {
               setPreset(0);
               select(fromPreset(PRESETS[0]!));
@@ -966,7 +1006,6 @@ export function Settings({
                     className={`provider-row${shown === h.kind ? ' selected' : ''}`}
                     onClick={() => {
                       setVoiceShown(null);
-                      setWorkspaceShown(false);
                       setShown(h.kind);
                     }}
                   >
@@ -997,7 +1036,6 @@ export function Settings({
                     className={`provider-row${voiceShown === kind ? ' selected' : ''}`}
                     onClick={() => {
                       setShown(null);
-                      setWorkspaceShown(false);
                       setVoiceShown(kind);
                     }}
                   >
@@ -1017,7 +1055,7 @@ export function Settings({
           </>}
         </div>
 
-        {workspaceShown ? <WorkspacePane key={reload} /> : voiceShown ? (
+        {voiceShown ? (
           voices ? (
             <VoicePane key={`${voiceShown}-${reload}`} kind={voiceShown} view={voices.find((v) => v.kind === voiceShown)} onVoices={next => { setVoices(next); markSaved(); }} onClose={onClose} />
           ) : (

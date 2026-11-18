@@ -1,5 +1,6 @@
 // The launcher (start a film in a new folder, open a folder, reopen a recent project) and the
-// open project. Global settings belongs to both and preserves the underlying view.
+// open project. Global settings belongs to both: on Home it is one of Home's pages, its sections in Home's sidebar; over
+// the open project it is a page of its own, which preserves the editor beneath it.
 
 import { Home } from './home';
 import { SystemMessage, Translated, usePreferences } from './preferences';
@@ -138,8 +139,23 @@ export function App() {
     );
   }
 
-  return <>
-    <div style={{ display: settings && providers ? 'none' : 'contents' }}><Home revision={modelsClosed} providers={providers} workspace={workspace} tasks={tasks} examples={examples} busy={busy} error={error} onAction={run} onSettings={target => setSettings(target ?? {})}/></div>
-    {settingsPage}
-  </>;
+  return (
+    <Home
+      revision={modelsClosed}
+      providers={providers}
+      workspace={workspace}
+      tasks={tasks}
+      examples={examples}
+      busy={busy}
+      error={error}
+      onAction={run}
+      settings={settings || null}
+      onSettingsShown={() => setSettings(false)}
+      onSettingsLeft={() => {
+        window.studio.workspace().then(setWorkspace, (e) => setError(reason(e)));
+        setModelsClosed((n) => n + 1);
+      }}
+      onProviders={setProviders}
+    />
+  );
 }

@@ -3,6 +3,75 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-18 — The timeline folds while code is read
+
+- **What:** Opening a file in the code view folds the timeline to its head, and leaving the code view opens it again,
+  unless it was folded before.
+- **Why:** Code is read line by line down the page; the timeline took a third of its height and showed nothing of it.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/project-view.tsx`.
+
+## 2026-11-18 — Past conversations are kept; History is Versions
+
+- **What:** New conversation keeps the one before in the project's `.motion-studio/conversations/` (as it was shown,
+  without stills), and the assistant's clock opens Past conversations: those kept, newest first, each read as it was.
+  The turns' checkpoints the clock used to open are now Versions, opened from the project's title menu.
+- **Why:** The clock beside New conversation read as the conversation's history but showed the film's checkpoints, and
+  New conversation threw the conversation away with no way back to it.
+- **Breaking:** None. A conversation cleared before this is not recovered.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/main/conversations.ts`, `apps/desktop/src/renderer/src/past-conversations.tsx`,
+  `apps/desktop/src/renderer/src/project-view.tsx` (`ProjectMenu`).
+
+## 2026-11-18 — The film's voice is chosen and heard in the voice view
+
+- **What:** The voice view lists the voices of each provider set up, searched by name, language or id; each is heard
+  saying the film's own first line, and Use this voice has the agent give the film that voice and speak its lines
+  again. Only keys and new providers are left to Settings. Every line voiced shows once, not as a disabled button too.
+- **Why:** Choosing a voice meant leaving the film for Settings and back, and hearing it say a sentence the film never
+  says.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/voice-view.tsx` (`VoicePicker`).
+
+## 2026-11-18 — Voice is a view of its own
+
+- **What:** Voice (配音) opens across the workspace beside the assistant, as the motion library does, instead of in
+  the side panel: the script read straight through, a card for each scene with Play this scene and a row for each
+  line in large type, played in place, added to the message with @, and lit while it is said; at the right, what the
+  voice still needs, or the voice and voicing the lines waiting. The script shows while the voice is being set up.
+- **Why:** In the side panel the script was a narrow list, and it was hidden until a voice could speak.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/voice-view.tsx` (replacing `voice-panel.tsx`), `apps/desktop/src/renderer/src/project-view.tsx`.
+
+## 2026-11-18 — The motion library is a view of its own
+
+- **What:** Motions (动效库) opens across the workspace beside the assistant, in place of the stage, the timeline and
+  the project tools, instead of in the side panel: a search and tag chips over a grid of large posters (a poster
+  pointed at plays its reel), the project's motions first, and a drawer for the motion opened, with its reel, what it
+  is for, its colours, components and MOTION.md and its actions. Picture or Esc go back; applying a motion goes back
+  to the picture to show the restyle.
+- **Why:** In the side panel a motion could only be seen one poster and one dialog at a time.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/motion-library.tsx` (replacing `motion-panel.tsx`),
+  `apps/desktop/src/renderer/src/project-view.tsx`.
+
+## 2026-11-17 — Settings are in Home's sidebar
+
+- **What:** Home's sidebar lists Settings' sections (General, Model Providers, Coding Agents, Voice Services,
+  Diagnostics) at its foot, apart from the pages of work above, and each opens as one of Home's pages instead of a
+  page over Home. The workspace folder is part of General, in the editor's Settings too. Home's header gear and the workspace row at the sidebar's foot are gone. Settings opened from a
+  setup step or Ctrl/⌘ , has a back arrow to where the person was; leaving with unsaved edits asks first. In the
+  editor Settings is still a page of its own.
+- **Why:** Home's sidebar held three rows and a wide gap, and Settings covered Home with a second sidebar of its own.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/home.tsx`, `apps/desktop/src/renderer/src/settings.tsx` (`embedded`),
+  `apps/desktop/src/renderer/src/app.tsx`.
+
 ## 2026-11-17 — The motion library opens from the top bar
 
 - **What:** Motions (动效库) is a button in the editor's top bar beside Voice, with how many motions the project holds,

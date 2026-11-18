@@ -43,12 +43,12 @@ const button = (name: string) => {
   return found;
 };
 const switchLanguage = async (next: string) => { await action(() => {language = next; listeners.forEach(callback => callback());}); };
-const nav = async (label: string) => action(() => { const found = Array.from(document.querySelectorAll<HTMLButtonElement>('.settings-nav button')).find(node => node.textContent === label); if (!found) throw Error('Missing settings category ' + label); found.click(); });
+const nav = async (label: string) => action(() => { const found = Array.from(document.querySelectorAll<HTMLButtonElement>('.settings-nav button, .home-nav button')).find(node => node.textContent === label || node.getAttribute('aria-label') === label); if (!found) throw Error('Missing settings category ' + label); found.click(); });
 (window as any).runTests = async () => {
   await action(() => root.render(<PreferencesProvider><App /></PreferencesProvider>));
   assert(document.documentElement.lang === 'zh-CN', 'Document language not applied');
   assert(text().includes('打开项目') && text().includes('用数字讲故事'), 'Home not localized');
-  await action(() => button('OpenMotionStudio 设置').click());
+  await nav('通用');
   assert(text().includes('开机自动启动') && text().includes('简体中文'), 'General settings not localized');
   await nav('模型服务');
   assert(text().includes('测试连接') && text().includes('English provider name') && text().includes('模型支持图像'), 'Provider labels or user name changed');
@@ -56,7 +56,7 @@ const nav = async (label: string) => action(() => { const found = Array.from(doc
   assert(text().includes('在 Azure 门户创建语音资源') && text().includes('获取音色列表'), 'Voice help not localized');
   await nav('编程 Agent');
   assert(text().includes('未登录') && text().includes('浏览器中完成登录'), 'Agent help not localized');
-  await nav('工作空间');
+  await nav('通用');
   assert(text().includes('已有项目仍保留在原位置'), 'Workspace help not localized');
   await switchLanguage('en');
   assert(text().includes('Default workspace') && !text().includes('已有项目仍保留在原位置'), 'Settings did not switch back live');
@@ -83,7 +83,7 @@ const nav = async (label: string) => action(() => { const found = Array.from(doc
   assert(text().includes('视频保存在哪里'), 'Workspace step missing');
   await action(() => button('继续').click());
   assert(text().includes('选择创作方式'), 'Assistant step missing');
-  await action(() => button('模型服务').click());
+  await action(() => Array.from(document.querySelectorAll<HTMLButtonElement>('.setup-options button')).find(node => node.textContent?.includes('模型服务'))!.click());
   await action(() => button('返回原页面').click());
   assert(text().includes('选择创作方式'), 'Settings return lost onboarding step');
   await action(() => button('先体验模板').click());

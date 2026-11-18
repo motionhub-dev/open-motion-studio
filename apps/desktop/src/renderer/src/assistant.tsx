@@ -24,6 +24,7 @@ import {
   applyEvent,
 } from '../../shared/api';
 import type { FilmInfo } from '../../shared/preview';
+import { PastConversations } from './past-conversations';
 import {
   type Row,
   type Step,
@@ -409,8 +410,7 @@ interface Props {
   onUndone(): void;
   /** Hides the assistant; the top bar and [ bring it back. */
   onHide(): void;
-  /** Opens the project's history, the turns' checkpoints, in the project tools. */
-  onHistory(): void;
+
 }
 
 /** What the workspace asks of the assistant. */
@@ -449,7 +449,6 @@ export function Assistant({
   onFresh,
   onUndone,
   onHide,
-  onHistory,
   onWorking,
   refs,
   version,
@@ -488,6 +487,8 @@ export function Assistant({
       removeEventListener('keydown', escape);
     };
   }, [adding]);
+  /** The project's past conversations are shown in the log's place. */
+  const [past, setPast] = useState(false);
   /** The project's turns added up, from its usage log, for the header. */
   const [usage, setUsage] = useState<UsageTotals | null>(null);
   const refreshUsage = () =>
@@ -778,7 +779,14 @@ export function Assistant({
           </span>
         )}
 
-        <button type="button" className="icon-button" aria-label={tr("History")} data-tip={tr("History: go back to before a turn")} onClick={onHistory}>
+        <button
+          type="button"
+          className="icon-button"
+          aria-label={tr("Past conversations")}
+          aria-pressed={past}
+          data-tip={tr("Past conversations")}
+          onClick={() => setPast(!past)}
+        >
           <History size={15} />
         </button>
         <button
@@ -792,7 +800,9 @@ export function Assistant({
           <SquarePen size={15} />
         </button>
       </div>
+      {past && <PastConversations onClose={() => setPast(false)} />}
       <div
+        hidden={past}
         className={`log${asking ? ' dimmed' : ''}`}
         ref={log}
         aria-live="polite"
