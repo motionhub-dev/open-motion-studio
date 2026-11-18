@@ -7,7 +7,8 @@ Every key change to OpenMotionStudio, newest first, by date. What counts as key 
 
 - **What:** A row's actions in the outline sit on the row in its colour, muted until pointed at, instead of in a
   floating box with a shadow. Adding a row to the message is @, as in the composer, instead of a speech bubble; playing
-  a layer alone is ▷ in a square instead of stacked squares.
+  a layer alone is ▷ in a square instead of stacked squares. They show on hover or keyboard focus, and no longer stay over a row's
+  end after it is clicked.
 - **Why:** The stacked squares read as copy and the bubble as a comment, and the box covered the row it acted on.
 - **Breaking:** None.
 - **Upgrade:** Nothing.

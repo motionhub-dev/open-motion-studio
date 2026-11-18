@@ -2573,8 +2573,9 @@ kbd {
   background: color-mix(in srgb, var(--text) 8%, transparent);
   color: var(--text);
 }
+/* On hover, or reached by the keyboard; a row clicked keeps its focus, which must not keep its actions over it. */
 .outline-row:hover > .row-actions,
-.outline-row:focus-within > .row-actions {
+.outline-row:has(:focus-visible) > .row-actions {
   display: flex;
 }
 @media (prefers-reduced-motion: reduce) {
