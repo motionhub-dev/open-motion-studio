@@ -72,13 +72,17 @@ A top bar over a grid of panels (`project-view.tsx`):
   button whose chevron holds the other ways to export (a Remotion project), and which shows progress and cancels while
   running. The bar has no Settings button: OpenMotionStudio's settings are the app's, not the film's, and open from
   Ctrl/⌘ , or from their row in the shortcuts dialog (on Home they are in its sidebar); a model and a voice are set up where they
-  are used, from the assistant's model menu and the Voice panel. Voice opens the Voice panel in the project
-  tools (a back arrow and its title, as History and Checks): with no voice provider set up, the four as cards, each
-  opening it in Settings; with no `<Film voice>`, Voice settings and Generate with agent; then a card with the film's
+  are used, from the assistant's model menu and the voice. Voice (`voice-view.tsx`) opens a view of its own across the
+  workspace beside the assistant, as the motion library does, in place of the stage, the timeline and the project
+  tools (the film stays loaded and plays out of sight): its head holds Picture (or Esc) back, its title and how many
+  lines are voiced and waiting. In the middle the script read straight through, a card for each scene (its number,
+  its span and Play this scene) and a row for each line in large type, with ▷ to play it in the film, its length or
+  Waiting in cobalt, and @ on hover to add it to the message; the line being said is lit in cobalt while the film
+  plays. At the right, always in reach, what the voice still needs (with no provider set up, the four as cards, each
+  opening it in Settings; with no `<Film voice>`, Voice settings and Generate with agent), or a card with the film's
   voice, its provider and how its captions show, with Voice settings and, when another voice is selected, Use that
-  voice instead (through the agent); the lines by scene, each with ▶ to play it in place in the film and its length,
-  or Waiting in cobalt; and at the panel's foot, which stays in reach, Voice N lines with the characters it will
-  speak, its progress line by line and what it did. On a Mac the window has no title bar (`hiddenInset`): its buttons sit over the top bar, which
+  voice instead (through the agent), and under it Voice N lines with the characters it will speak, its progress line
+  by line and what it did. Asking the agent to apply a voice goes back to the picture. On a Mac the window has no title bar (`hiddenInset`): its buttons sit over the top bar, which
   leaves them room and moves the window; Home keeps a strip at its top to move it by.
 - **Assistant** down the whole left, the **stage** in the middle, the **project tools** on the right, the **timeline**
   along the bottom under the stage and the project tools. A shown panel hides from its own head (the assistant's left

@@ -3,6 +3,17 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-18 — Voice is a view of its own
+
+- **What:** Voice (配音) opens across the workspace beside the assistant, as the motion library does, instead of in
+  the side panel: the script read straight through, a card for each scene with Play this scene and a row for each
+  line in large type, played in place, added to the message with @, and lit while it is said; at the right, what the
+  voice still needs, or the voice and voicing the lines waiting. The script shows while the voice is being set up.
+- **Why:** In the side panel the script was a narrow list, and it was hidden until a voice could speak.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/voice-view.tsx` (replacing `voice-panel.tsx`), `apps/desktop/src/renderer/src/project-view.tsx`.
+
 ## 2026-11-18 — The motion library is a view of its own
 
 - **What:** Motions (动效库) opens across the workspace beside the assistant, in place of the stage, the timeline and

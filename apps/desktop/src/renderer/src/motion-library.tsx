@@ -233,7 +233,7 @@ export function MotionLibrary({
 
   const ours = held.map((m) => shown(m.id)).filter((m): m is Shown => !!m);
   return (
-    <div className="centre-view motion-library">
+    <div className="centre-view centre-wide motion-library">
       <div className="library-head">
         <button type="button" className="button quiet" onClick={onClose} data-tip={tr("Back to the picture")} data-key="Esc">
           <ArrowLeft size={14} />

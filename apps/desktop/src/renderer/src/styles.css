@@ -641,8 +641,8 @@ button.status:hover {
   grid-row: 1;
 }
 
-/* The motion library takes the stage's place, the timeline's and the project tools', beside the assistant. */
-.workspace > .motion-library {
+/* The motion library and the voice take the stage's place, the timeline's and the project tools', beside the assistant. */
+.workspace > .centre-wide {
   grid-column: 2 / -1;
   grid-row: 1 / -1;
   min-height: 0;
@@ -6057,109 +6057,142 @@ input.switch:disabled {
   }
 }
 
-/* The film's voice in the project tools: its card, its lines by scene, and voicing those waiting at the panel's foot. */
-.voice-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+/* The film's voice, a view of its own: the script read straight through, and the voice and its voicing beside it. */
+.voice-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
 }
-
-.voice-card {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-button);
-  background: var(--bg);
+.voice-script {
+  min-height: 0;
+  overflow: auto;
+  padding: 18px 22px 28px;
 }
-
-.voice-card > strong {
-  font-size: 13px;
-  overflow-wrap: anywhere;
+.voice-setup .voice-providers {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
 }
-
-.voice-card .note {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.voice-card .note svg {
-  color: var(--good);
-}
-
-.voice-summary {
-  margin: 0;
-  font-size: 11px;
-  color: var(--muted);
-}
-
-.voice-lines,
-.voice-lines ol {
+.voice-scenes,
+.voice-scenes ol {
   list-style: none;
   margin: 0;
   padding: 0;
+}
+.voice-scenes {
+  max-width: 820px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.voice-scene-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+  overflow: hidden;
+}
+.voice-scene-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px 8px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.voice-scene-head .spacer {
+  flex: 1;
+}
+.voice-scene-head .note {
+  margin: 0;
+  font-size: 11px;
+}
+.voice-scene-head .button {
+  height: 26px;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.voice-scene-card ol {
+  padding: 6px;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
-
-.voice-lines {
-  gap: 10px;
-}
-
-.voice-scene > .eyebrow {
-  display: block;
-  margin-bottom: 4px;
-}
-
 .voice-line {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: start;
-  gap: 6px;
-  padding: 4px 6px 4px 2px;
+  gap: 8px;
+  padding: 6px 6px 6px 4px;
   border-radius: var(--r-control);
 }
-
 .voice-line:hover {
   background: var(--s2);
 }
-
+/* The line being said, while the film plays it. */
+.voice-line.now {
+  background: color-mix(in srgb, var(--annotate) 12%, transparent);
+  box-shadow: inset 2px 0 var(--annotate);
+}
 .voice-text {
   padding-top: 4px;
-  color: var(--text2);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text);
   overflow-wrap: anywhere;
 }
-
 .voice-state {
-  padding-top: 5px;
+  padding-top: 7px;
   font-size: 11px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-
 .voice-line.waiting .voice-state {
   color: var(--annotate);
 }
-
-/* Voicing stays in reach at the panel's foot while the lines scroll above it. */
-.voice-footer {
-  position: sticky;
-  /* Over the body's 12 px bottom padding too, so no line shows beneath it. */
-  bottom: -12px;
+.voice-ask {
+  opacity: 0;
+}
+.voice-line:hover .voice-ask,
+.voice-ask:focus-visible {
+  opacity: 1;
+}
+.voice-side {
+  min-height: 0;
+  overflow: auto;
+  padding: 18px 16px;
+  border-left: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: 6px;
-  margin: auto -12px -12px;
-  padding: 10px 12px 12px;
-  border-top: 1px solid var(--line);
-  background: var(--sheet);
+  gap: 12px;
 }
-
-.voice-footer p {
+.voice-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+}
+.voice-card > strong {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.voice-card .note {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   margin: 0;
+}
+.voice-card .note svg {
+  color: var(--good);
+}
+.voice-generate .button {
+  justify-content: center;
+}
+.voice-view > .error {
+  margin: 0 14px 12px;
 }

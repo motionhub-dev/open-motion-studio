@@ -301,6 +301,7 @@ export const zh: Record<string, string> = {
   "The element around it": "外层元素",
   "The element inside": "内层元素",
   "Add mark": "添加标记",
+  "Voice the film": "为视频配音",
   "Tags": "标签",
   "All": "全部",
   "Its colours, parts and notes show once it is in the project.": "加入项目后可查看它的配色、组件和说明。",
