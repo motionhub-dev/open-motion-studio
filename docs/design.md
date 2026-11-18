@@ -257,8 +257,10 @@ agents and exports continue. Sessions are retained for this app run; explicit Qu
   line, its number, start and length; a fold at its end), its layers under it topmost first by name, and the rest of
   its lines as quotes. The rail's node is hollow before a scene, filled after, filled and ringed while it plays, and the
   line fills as far into the scene as the playhead is. The scene the playhead enters opens and the one it leaves closes,
-  unless the person folded or opened it; selecting something elsewhere opens its scene. Actions float over a row's end
-  on hover or focus: Play and Ask on a scene, Solo and Ask on a layer, Ask on a line. A layer hovered here or on the
+  unless the person folded or opened it; selecting something elsewhere opens its scene. Actions sit on a row's end
+  on hover or focus, in the row's own colour with its text fading under them and muted until pointed at: Play (▷)
+  and Ask on a scene, Solo (▷ in a square, playing the layer alone) and Ask on a layer, Ask on a line; Ask is @, as
+  in the composer, since it adds the row to the message. A layer hovered here or on the
   timeline is lit in both, and its declared box drawn dashed on a cobalt tint on the picture while its scene is on screen.
 - **Motions** (`motion-panel.tsx`): the project's motions as poster cards (initials when a motion has no poster); one
   opened is its page — poster, name, line, its colour tokens as swatches, its components with their previews, and its

@@ -3,6 +3,16 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-17 — The outline's row actions say what they do
+
+- **What:** A row's actions in the outline sit on the row in its colour, muted until pointed at, instead of in a
+  floating box with a shadow. Adding a row to the message is @, as in the composer, instead of a speech bubble; playing
+  a layer alone is ▷ in a square instead of stacked squares.
+- **Why:** The stacked squares read as copy and the bubble as a comment, and the box covered the row it acted on.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/outline.tsx`, `apps/desktop/src/renderer/src/styles.css` (`.row-actions`).
+
 ## 2026-11-17 — The film's size and frame rate are chosen on the stage
 
 - **What:** The film's size and rate at the stage's foot open a menu of the usual sizes — landscape 16:9 (1920×1080,

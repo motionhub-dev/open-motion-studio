@@ -7,7 +7,7 @@
 
 import { usePreferences } from './preferences';
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Layers, MessageSquare, Play, SquareStack } from 'lucide-react';
+import { AtSign, ChevronDown, Layers, Play, SquarePlay } from 'lucide-react';
 import type { Reference, SceneStills } from '../../shared/api';
 import type { FilmInfo, LayerBox, SceneInfo } from '../../shared/preview';
 import { timecode } from './preview';
@@ -120,7 +120,7 @@ export function Outline({
         onReference(ref);
       }}
     >
-      <MessageSquare size={13} />
+      <AtSign size={14} />
     </button>
   );
   const classes = (ref: Reference, extra = '') =>
@@ -153,7 +153,7 @@ export function Outline({
               data-tip={tr("Play this layer alone")}
               onClick={() => onPlay(scene.start, scene.start + scene.duration, layer.id)}
             >
-              <SquareStack size={13} />
+              <SquarePlay size={14} />
             </button>
           )}
           {ask(ref)}
@@ -228,7 +228,7 @@ export function Outline({
                   data-tip={tr("Play this scene")}
                   onClick={() => onPlay(scene.start, scene.start + scene.duration)}
                 >
-                  <Play size={13} />
+                  <Play size={14} />
                 </button>
                 {ask(ref)}
               </span>
