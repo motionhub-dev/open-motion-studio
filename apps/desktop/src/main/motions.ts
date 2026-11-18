@@ -9,7 +9,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { lstat, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
-import { STATE_DIR } from './project';
+import { STATE_DIR, projectSource } from './project';
 import type { CatalogueMotion, MotionDetail, ProjectMotion } from '../shared/api';
 
 /** The CLI's library is ESM with top-level await, so the CommonJS main process imports it when first needed. */
@@ -61,10 +61,26 @@ export async function useMotion(dir: string, id: unknown, base = HUB): Promise<P
   const taken = await getMotion(id, out, base, await rows(base));
   lock.motions[id] = { version: taken.version, sha256: taken.package.sha256 };
   writeLock(lock, dir);
-  return described(dir, id, taken.version);
+  return described(dir, id, taken.version, '');
 }
 
-async function described(dir: string, id: string, version: string | null): Promise<ProjectMotion> {
+/**
+ * Takes motion `id` from the hub out of the project again: its folder and its line in the lock. Refused for a motion of
+ * the project's own, which the hub cannot give back, and for one the film's code still names.
+ */
+export async function removeMotion(dir: string, id: unknown): Promise<void> {
+  if (typeof id !== 'string' || !/^@[A-Za-z0-9-]+\/[a-z0-9-]+$/.test(id)) throw new Error('Only a motion taken from motionhub can be removed here.');
+  const { motionPath, readLock, writeLock } = await hub();
+  const folder = motionPath(id, dir);
+  if (!existsSync(folder)) throw new Error(`The project does not hold ${id}.`);
+  if ((await projectSource(dir)).includes(id)) throw new Error(`The film still uses ${id}. Ask the assistant to stop using it first.`);
+  await rm(folder, { recursive: true, force: true });
+  const lock = readLock(dir);
+  delete lock.motions[id];
+  writeLock(lock, dir);
+}
+
+async function described(dir: string, id: string, version: string | null, source: string): Promise<ProjectMotion> {
   const folder = join(dir, MOTIONS, ...id.split('/'));
   let manifest: { name?: Record<string, string>; line?: Record<string, string> } = {};
   try {
@@ -80,6 +96,8 @@ async function described(dir: string, id: string, version: string | null): Promi
     line: english(manifest.line),
     version,
     fromHub: id.startsWith('@'),
+    // The film's code imports a motion from its folder, whose path holds its id.
+    used: source.includes(id),
     poster: existsSync(join(folder, 'poster.jpg')) ? web(join(path, 'poster.jpg')) : null,
   };
 }
@@ -158,7 +176,8 @@ async function motionIds(dir: string): Promise<string[]> {
 /** The motions the project holds: from the hub (motions/@scope/slug) and its own (motions/name). */
 export async function projectMotions(dir: string): Promise<ProjectMotion[]> {
   const lock = (await hub()).readLock(dir);
-  return Promise.all((await motionIds(dir)).map((id) => described(dir, id, lock.motions[id]?.version ?? null)));
+  const source = await projectSource(dir);
+  return Promise.all((await motionIds(dir)).map((id) => described(dir, id, lock.motions[id]?.version ?? null, source)));
 }
 
 /** A CSS string for `text`: quoted, its quotes and backslashes escaped, and nothing that ends a line or a rule. */

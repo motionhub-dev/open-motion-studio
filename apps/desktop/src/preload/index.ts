@@ -1,7 +1,7 @@
 // The bridge: exposes StudioApi to the sandboxed renderer as `window.studio`, and
 // nothing else (no ipcRenderer, no Node).
 
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
+import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron';
 import { CHANNELS, EVENTS, type StudioApi } from '../shared/api';
 
 function subscribe<T>(channel: string, listener: (value: T) => void): () => void {
@@ -33,6 +33,16 @@ const api: StudioApi = {
   openExample: (id) => ipcRenderer.invoke(CHANNELS.openExample, id),
   projectAssets: () => ipcRenderer.invoke(CHANNELS.projectAssets),
   importAssets: () => ipcRenderer.invoke(CHANNELS.importAssets),
+  projectFiles: () => ipcRenderer.invoke(CHANNELS.projectFiles),
+  readProjectFile: (path) => ipcRenderer.invoke(CHANNELS.readProjectFile, path),
+  openProjectFile: (path) => ipcRenderer.invoke(CHANNELS.openProjectFile, path),
+  renameAsset: (path, name) => ipcRenderer.invoke(CHANNELS.renameAsset, path, name),
+  trashAsset: (path) => ipcRenderer.invoke(CHANNELS.trashAsset, path),
+  importDroppedAssets: (files) =>
+    ipcRenderer.invoke(
+      CHANNELS.importDroppedAssets,
+      [...files].map((file) => webUtils.getPathForFile(file)).filter(Boolean),
+    ),
   reviewFilm: () => ipcRenderer.invoke(CHANNELS.reviewFilm),
   history: () => ipcRenderer.invoke(CHANNELS.history),
   restoreCheckpoint: (id) => ipcRenderer.invoke(CHANNELS.restoreCheckpoint, id),
@@ -56,6 +66,7 @@ const api: StudioApi = {
   projectMotions: () => ipcRenderer.invoke(CHANNELS.projectMotions),
   searchMotions: (words) => ipcRenderer.invoke(CHANNELS.searchMotions, words),
   useMotion: (id) => ipcRenderer.invoke(CHANNELS.useMotion, id),
+  removeMotion: (id) => ipcRenderer.invoke(CHANNELS.removeMotion, id),
   motionReel: (id) => ipcRenderer.invoke(CHANNELS.motionReel, id),
   motionDetail: (id) => ipcRenderer.invoke(CHANNELS.motionDetail, id),
   providers: () => ipcRenderer.invoke(CHANNELS.providers),

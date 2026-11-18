@@ -68,16 +68,18 @@ A top bar over a grid of panels (`project-view.tsx`):
 - **Top bar**: on the left where the person is and what it is: a Home icon (it returns to Home; the project keeps
   running), a chevron, the project's name (its path on hover; a double-click renames it in place) with its menu, and its
   status (building, built with the last check's issue count, or does not build), which opens Checks. On the right what
-  to do with it: keyboard shortcuts, Voice (when the film has lines or a voice) and Export, which shows progress and
-  cancels while running, with a menu beside it for a Remotion project; then, set apart by a rule, the gear, which is
-  OpenMotionStudio's settings, the same page as Home's, never the project's. Voice opens the Voice panel in the project
+  to do with it: keyboard shortcuts (a question mark, the key that opens them, in a wide dialog with its groups side by side), the motion library (Motions, with how many the project holds), Voice (when the film has lines or a voice) and Export MP4, one vermilion split
+  button whose chevron holds the other ways to export (a Remotion project), and which shows progress and cancels while
+  running. The bar has no Settings button: OpenMotionStudio's settings are the app's, not the film's, and open from
+  Ctrl/⌘ , or from their row in the shortcuts dialog (Home keeps its gear); a model and a voice are set up where they
+  are used, from the assistant's model menu and the Voice panel. Voice opens the Voice panel in the project
   tools (a back arrow and its title, as History and Checks): with no voice provider set up, the four as cards, each
   opening it in Settings; with no `<Film voice>`, Voice settings and Generate with agent; then a card with the film's
   voice, its provider and how its captions show, with Voice settings and, when another voice is selected, Use that
   voice instead (through the agent); the lines by scene, each with ▶ to play it in place in the film and its length,
   or Waiting in cobalt; and at the panel's foot, which stays in reach, Voice N lines with the characters it will
   speak, its progress line by line and what it did. On a Mac the window has no title bar (`hiddenInset`): its buttons sit over the top bar, which
-  leaves them room and moves the window; Home keeps a strip at its top to move it by. The top bar also opens Settings.
+  leaves them room and moves the window; Home keeps a strip at its top to move it by.
 - **Assistant** down the whole left, the **stage** in the middle, the **project tools** on the right, the **timeline**
   along the bottom under the stage and the project tools. A shown panel hides from its own head (the assistant's left
   corner, the tools' right corner, the timeline's chevron) and leaves a 40 px rail in its place (the timeline its head),
@@ -87,8 +89,16 @@ A top bar over a grid of panels (`project-view.tsx`):
   the frame, and its foot is the controls (previous frame, play, next frame, the time, loop, and sound on or off for a
   film with sounds; then Pick, Region and
   Guides as one labelled group, the film's size and rate, and full screen). A narrow stage keeps the group's icons and
-  drops the size. Full screen is the stage alone, picture and foot, with no corners; Esc or the button leaves it.
-- The **project tools** are four tabs, Outline, Inspector, Assets and Motions. History opens from the assistant's head
+  drops the size. The size and rate open, upward over the picture, the usual sizes by shape with where each is used
+  (landscape 16:9 at 1920×1080, 3840×2160 and 1280×720; portrait 9:16 at 1080×1920; portrait 4:5 at 1080×1350; square
+  1:1 at 1080×1080) as tiles two to a row, and the rates 24, 25, 30 and 60, the film's own marked with a dot. Choosing
+  changes nothing yet: a size and a rate can both be chosen, and the menu's foot says what will change (from → to) and
+  what the agent will do, with Cancel and Change the film, which alone asks the agent. The agent writes it in film.tsx: a new rate keeps everything else, a frame of the same shape is scaled, and a new shape lays
+  every scene out again; the scenes keep their lengths in seconds. It waits while the agent is not ready or is working.
+  Full screen is the stage alone, picture and foot, with no corners; Esc or the button leaves it.
+- The **project tools** are three tabs, Outline, Assets (with how many it holds) and Code. The motion library opens
+  from the top bar, as Voice does, with a back arrow and its title. Files from the computer dropped anywhere on the workspace (dashed while they are over it) are imported and go
+  with the next message; Start from a look, on an empty conversation, opens the motion library. History opens from the assistant's head
   and Checks from the status; either shows its title with a way back to the tabs.
 - The assistant's and the right panel's widths are dragged at their edges, and the timeline's height is the least it
   has: it takes whatever the stage leaves (handles take the arrow keys too). The timeline folds to its head, and the
@@ -109,7 +119,11 @@ A top bar over a grid of panels (`project-view.tsx`):
   with its scene. Ctrl and the wheel zoom about the pointer (1× to 32×); a playhead out of view is a chip at the edge
   it went past.
 - A mark being made is a dashed cobalt box with its number, and beside it a floating sheet that asks what should change
-  there: below the mark, else above, right or left, kept inside the stage. A mark in hand in the composer is drawn lit
+  there: below the mark, else above, right or left, kept inside the stage, and where no side has room, wherever it
+  covers least of the mark. For a picked element the sheet also holds its properties — its words when it holds nothing
+  else, size, weight and colour when it has words, its fill where one is drawn, and its opacity — each change shown on the
+  picture at once. With a change made, its actions are Add to message and Apply, which sends it to the agent now;
+  Cancel puts the picture back. A mark's row in the composer counts its changes. A mark in hand in the composer is drawn lit
   (thicker, with a soft cobalt halo) on the picture and the timeline.
 - The stage draws the film's frame contained and centred on ink with a shadow.
 - Keys, grouped in one table (`SHORTCUTS` in `project-view.tsx`) that ? lists in a dialog: Space or K plays, ← → step
@@ -126,8 +140,9 @@ A top bar over a grid of panels (`project-view.tsx`):
 
 ## Home
 
-Home (`home.tsx`) is a header (the icon and **OpenMotionStudio**, Open project, New film, which creates a fresh
-directory in the default workspace, and Settings), a 176 px navigation rail (Home, My projects, Templates, each with
+Home (`home.tsx`) is a header (the icon and **OpenMotionStudio**, the language as 中文 or EN that switches to the
+other, the theme as one icon that turns it over — a moon in light, a sun in dark — and Settings, which keeps Follow
+system for both; Open project sits in the prompt beside Start creating, the two ways to begin; a new film is made from the prompt below, a template, or Ctrl/⌘ N), a 176 px navigation rail (Home, My projects, Templates, each with
 its icon; at its foot the workspace folder's name, which opens Settings → Workspace, and Help, which lists the
 shortcuts) and the content.
 
@@ -140,8 +155,8 @@ shortcuts) and the content.
   Then Continue creating: the project opened last as a large card (its cover beside its name and **Continue
   editing**), the next four in a row, and Start from a template.
 - **My projects** is every project in the library with search (`/` goes to it), a sort (recently opened, recently modified, name) and a
-  grid or a list. A card is the project's cover (a still of its film from `.motion-studio/cover.jpg`, else its
-  initials), its name and when it was last opened. A task over it is a badge: a ring filling with its progress (turning
+  grid or a list. A card is the project's cover (a still of its film from `.motion-studio/cover.jpg`, drawn whole
+  on the stage's dark, so a portrait or square film is not cropped; else its initials), its name and when it was last opened. A task over it is a badge: a ring filling with its progress (turning
   while it has none) and Working, or a pulsing cobalt dot and Needs you; a running task with progress also draws a
   line along the cover's foot. Home's task line takes the same cobalt dot while anything needs the person. Its ⋯ menu opens it in an editor
   window, shows its folder, or removes it from the list, saying that the files stay. A project whose folder is gone
@@ -191,15 +206,14 @@ each message is looked up by its English text in `src/shared/translations.ts`. A
 names, a model's reply and every identifier (a model, a path, a key's name) are never translated. In Chinese, an
 English error the Studio has no translation for is summarized, with its exact text one click away.
 
-The Chinese keeps one word for each thing: a project (a folder) is 项目, a film (`film.tsx`) is 影片, the workspace is
+The Chinese keeps one word for each thing: a project (a folder) is 项目, a film (`film.tsx`) is 视频, the workspace is
 工作空间, a template is 模板, a motion is 动效, and an agent stays Agent.
 
-The project's menu has what can be done to this project: Rename… (the folder, refused while a task runs; the editor
-comes back on the renamed folder where it was), Show in folder, Duplicate as a new project (a copy beside it without
+The project's menu is about this project alone, each row led by its icon: Rename… (the folder, refused while a task
+runs; the editor comes back on the renamed folder where it was), Duplicate as a new project (a copy beside it without
 the Studio's state, which opens), and Open in its own window (also Ctrl/Cmd+Shift+N), which moves its existing view
-into a dedicated window, or Move back to the main window when it is in one; then the film's size, rate and length,
-which the assistant changes. Below, Switch to lists the projects with a task running (those that need the person in
-cobalt) and the five opened last, and Home returns Home without stopping a task. Closing a dedicated window only detaches the view; reopening restores the same conversation, draft and
+into a dedicated window, or Move back to the main window when it is in one. Below a rule, Show in folder over the folder's path, written out and wrapping. Home and
+the other projects are reached from the Home icon beside the title. Closing a dedicated window only detaches the view; reopening restores the same conversation, draft and
 pending requests. A project appears in one editing surface at a time. Hidden views pause preview playback while
 agents and exports continue. Sessions are retained for this app run; explicit Quit ends them.
 
@@ -233,11 +247,13 @@ agents and exports continue. Sessions are retained for this app run; explicit Qu
   dashed outline; on Claude Code, Enter adds a message of words to the turn instead, as a bubble in the conversation
   where it was sent. Items the last turn changed are ringed in green in the outline and the timeline for four seconds, and
   the stage says the agent is working in a dark pill over its top left. The composer grows with its text up to 180px; Enter
-  sends, Shift+Enter breaks the line, + and @ at its start, and Send (or Stop) at its end. The assistant's head is hide, the
-  project's agent as a round chip, its tokens, then History and New conversation as icons. The chip has a dot (green
+  sends, Shift+Enter breaks the line, + and @ at its start (+ opens, upward, Import files…, From the assets and From
+  the motion library, each with a line saying what it does), and at its end its agent as a quiet chip and Send (or
+  Stop): what the message goes to sits beside the button that sends it. The assistant's head is hide, then the project's
+  tokens, History and New conversation as icons. The chip has a dot (green
   ready, `--bad` signed out or too old, hollow not installed or no model) and the built-in agent's model, or the
   person's own agent with the model chosen for it ("Claude Code · opus"; ADR 0008), the rest on hover. It opens a menu
-  downward: the built-in agent on its provider, Codex and Claude Code with their versions or what they need
+  upward, as wide as the composer, as @ does: the built-in agent on its provider, Codex and Claude Code with their versions or what they need
   (installing, updating, signing in), for the person's own agent its Model and Effort as two selects that take at
   once, and Models. Until the project's agent is known it says so, and nothing sends.
 - **Outline** (`outline.tsx`): the scene count and length with Collapse all / Expand all; the film's own layers folded
@@ -245,16 +261,35 @@ agents and exports continue. Sessions are retained for this app run; explicit Qu
   line, its number, start and length; a fold at its end), its layers under it topmost first by name, and the rest of
   its lines as quotes. The rail's node is hollow before a scene, filled after, filled and ringed while it plays, and the
   line fills as far into the scene as the playhead is. The scene the playhead enters opens and the one it leaves closes,
-  unless the person folded or opened it; selecting something elsewhere opens its scene. Actions float over a row's end
-  on hover or focus: Play and Ask on a scene, Solo and Ask on a layer, Ask on a line. A layer hovered here or on the
+  unless the person folded or opened it; selecting something elsewhere opens its scene. Actions sit on a row's end
+  on hover or focus, in the row's own colour with its text fading under them and muted until pointed at: Play (▷)
+  and Ask on a scene, Solo (▷ in a square, playing the layer alone) and Ask on a layer, Ask on a line, and on each
+  Show its code (</>), which opens film.tsx across the stage at the lines that write it; Ask is @, as in the composer,
+  since it adds the row to the message. A layer hovered here or on the
   timeline is lit in both, and its declared box drawn dashed on a cobalt tint on the picture while its scene is on screen.
-- **Motions** (`motion-panel.tsx`): the project's motions as poster cards (initials when a motion has no poster); one
-  opened is its page — poster, name, line, its colour tokens as swatches, its components with their previews, and its
-  MOTION.md. The catalogue search answers as cards with Use.
-- **Inspector** (`inspector.tsx`): the element last picked, which the panel switches to — its name and path, the
-  moment (clicked, the stage goes there), the scene and layer it is in, its position and size in the film's pixels, its words, its look (font, size,
-  weight, colour with a swatch, and background, opacity and transform where set) and its attributes. It stays after its
-  mark is sent.
+- **Motions** (`motion-panel.tsx`, 动效库 in Chinese): a line on what a motion is, then the project's motions as poster
+  cards (initials when a motion has no poster), each marked In use or Not used yet by whether the film's code names it,
+  with Apply to the video while unused, ▷ to preview its reel and, for one from the hub the film does not use, Remove
+  (asked first; its folder and its line in the lock go). One opened is its page — poster, name, line, its colour tokens
+  as swatches, its components with their previews, and its MOTION.md. Below, motionhub's whole catalogue as cards from
+  the moment the panel opens, the search narrowing it: poster with Preview, name, what it is for in two lines, Apply to
+  the video and Add only. Apply asks first, then takes the motion if the project does not hold it and asks the agent to
+  restyle the film with it (`applyRequest`), keeping the film's words, scenes, order and timing.
+- **Code** (`code-view.tsx`): the project's files as a tree (folders first; motions/, media/ and voice/ start folded),
+  each code file opening across the stage in place of the picture, which keeps its film loaded out of sight; anything
+  else opens in its own program. The code is read-only, on the panels' paper rather than the stage's ink: its path and
+  line count, Picture (or Esc) back, Add lines (the lines selected, as a reference `film.tsx:3-5` with their text),
+  Copy, and Open in your editor; a line under the head says the assistant writes the code. Line numbers stay at the
+  left; syntax is coloured by sugar-high in the Studio's own few colours (cobalt keywords, green strings, muted signs
+  and comments), and the lines asked for from the outline are lit in cobalt and brought to the middle. What is shown
+  is read again when the film is rebuilt or the window comes back.
+- **Assets** (`assets-panel.tsx`): images, fonts and sounds under `media/`, each a card dragged onto the picture (a
+  mark where it falls, Put it here, with the asset as a reference) or onto the composer (a reference); @ on its corner
+  adds it to the message. A sound plays in place with its length, a typeface shows itself (Aa 永), and a file the
+  film's code names is marked In use. When some are not used, a line says how many, with Show only these. A file
+  opened shows large; one the video does not use can be renamed there (its extension kept beside the field) or moved
+  to the system's trash, and one it uses says why it cannot be. The list is read again when the window comes back
+  into focus or the film is rebuilt; there is no refresh button.
 - **Model Providers** (Settings): two panes. The providers down the left, an initial for each, the active one badged; the
   selected one, or a new one, as a form on the right. A new one starts from a service card (each with its protocol);
   the address and model are in mono, the key field says it is sealed in the keychain and never shown again. **Test

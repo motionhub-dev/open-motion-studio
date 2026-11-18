@@ -52,13 +52,15 @@ import { soundPeaks } from './film/mix';
 import { voiceFilm } from './narration';
 import { speak, voicesOf } from './voice';
 import { EXAMPLES } from './examples';
-import { ASSET_EXTENSIONS, importAssets, projectAssets } from './assets';
+import { ASSET_EXTENSIONS, importAssets, projectAssets, renameAsset, trashAsset } from './assets';
+import { projectFileToOpen, projectFiles, readProjectFile } from './files';
 import { reviewBuild } from './film/review';
 import { FILM, FILM_SKILL, startFilm, watchFilm } from './film/film';
 import { type ExportedSpeech, exportedSpeech, writeRemotionProject } from './film/remotion-export';
-import { motionDetail, motionReel, projectMotions, searchMotions, useMotion } from './motions';
+import { motionDetail, motionReel, projectMotions, searchMotions, useMotion, removeMotion } from './motions';
 import { STATE_DIR, projectAt, rememberProject } from './project';
-import { describeReferences, filmSpans, readReferences } from './agent/references';
+import { describeReferences, readReferences } from './agent/references';
+import { filmSpans } from '../shared/spans';
 import { type FileNote, ProjectHistory, changesBetween, inProject, noteFiles, putBack } from './history';
 import { NO_TOKENS, type Spent, readUsage, recordUsage, totals } from './usage';
 import { randomUUID } from 'node:crypto';
@@ -84,7 +86,7 @@ export function createWorkspace(host: WorkspaceHost, renderSession: Session, cha
   let needsInput = false;
   const taskChannels = new Set<string>([
     CHANNELS.sendMessage, CHANNELS.exportFilm, CHANNELS.exportRemotion, CHANNELS.voiceFilm,
-    CHANNELS.importAssets, CHANNELS.useMotion, CHANNELS.undoTurn, CHANNELS.restoreCheckpoint,
+    CHANNELS.importAssets, CHANNELS.importDroppedAssets, CHANNELS.useMotion, CHANNELS.undoTurn, CHANNELS.restoreCheckpoint,
   ]);
   const handle = (channel: string, listener: Handler) => handlers.set(channel, (event, ...args) => {
     const tracked = taskChannels.has(channel) && !working && !exporting && tasks.size === 0 && open;
@@ -633,6 +635,35 @@ export function createWorkspace(host: WorkspaceHost, renderSession: Session, cha
         if (working === controller) working = null;
       }
     });
+    handle(CHANNELS.projectFiles, () => projectFiles(requireOpen().project.path));
+    handle(CHANNELS.readProjectFile, (_event, path: unknown) => readProjectFile(requireOpen().project.path, path));
+    handle(CHANNELS.openProjectFile, async (_event, path: unknown) => {
+      const error = await shell.openPath(await projectFileToOpen(requireOpen().project.path, path));
+      if (error) throw new Error(error);
+    });
+    handle(CHANNELS.renameAsset, async (_event, path: unknown, name: unknown) => {
+      const state = requireOpen();
+      if (working || exporting) throw new Error('Finish the current task before renaming a file.');
+      return renameAsset(state.project.path, path, name);
+    });
+    handle(CHANNELS.trashAsset, async (_event, path: unknown) => {
+      const state = requireOpen();
+      if (working || exporting) throw new Error('Finish the current task before removing a file.');
+      return trashAsset(state.project.path, path, (file) => shell.trashItem(file));
+    });
+    handle(CHANNELS.importDroppedAssets, async (_event, paths: unknown) => {
+      const state = requireOpen();
+      if (working || exporting) throw new Error('Finish the current task before importing files.');
+      if (!Array.isArray(paths) || paths.length > 50 || !paths.every((p) => typeof p === 'string' && isAbsolute(p)))
+        throw new Error('Drop files from your computer to import them.');
+      const controller = new AbortController();
+      working = controller;
+      try {
+        return await importAssets(state.project.path, paths as string[]);
+      } finally {
+        if (working === controller) working = null;
+      }
+    });
 
 
     handle(CHANNELS.startFilm, async () => {
@@ -771,6 +802,11 @@ export function createWorkspace(host: WorkspaceHost, renderSession: Session, cha
       } finally {
         if (working === controller) working = null;
       }
+    });
+    handle(CHANNELS.removeMotion, async (_event, id: unknown) => {
+      const state = requireOpen();
+      if (working || exporting) throw new Error('Finish the current task before removing a motion.');
+      await removeMotion(state.project.path, id);
     });
     handle(CHANNELS.motionReel, (_event, id: unknown) => motionReel(requireOpen().project.path, id));
     handle(CHANNELS.motionDetail, (_event, id: unknown) => motionDetail(requireOpen().project.path, id));

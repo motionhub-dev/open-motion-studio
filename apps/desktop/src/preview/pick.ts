@@ -6,9 +6,10 @@
 //   oms:pick {x, y, depth}  -> oms:picked {element, box, levels}: the visible element drawn there,
 //                              or the one `depth` steps out from it, described
 //   oms:solo {layer}  -> every <Layer> but that one hidden, until oms:solo {layer: null}
+//   oms:tweak {styles, text}  -> the element last picked tried with that look (and words), until the next tweak or pick
 //   window.__omsMark(box | null)  outlines a box (fractions of the frame) for a still of a mark
 
-import type { FilmInfo, FromPreview, PickedElement, ToPreview } from '../shared/preview';
+import { type FilmInfo, type FromPreview, type PickedElement, TWEAKABLE, type ToPreview } from '../shared/preview';
 
 declare global {
   interface Window {
@@ -80,8 +81,47 @@ function describe(element: Element, frame: DOMRect): PickedElement & { box: Box 
   // In a film of scenes, the <Scene> and <Layer> it is drawn in (the runtime marks their boxes).
   const scene = element.closest('[data-scene]')?.getAttribute('data-scene');
   const layer = element.closest('[data-layer]')?.getAttribute('data-layer');
-  return { path: path.join(' > '), text, attributes, styles, ...(scene ? { scene } : {}), ...(layer ? { layer } : {}), box };
+  // Words can be tried only on an element of text alone: replacing its text then loses nothing drawn inside it.
+  const ownText = element.childElementCount === 0 && element.textContent?.trim() ? element.textContent.slice(0, 500) : undefined;
+  return { path: path.join(' > '), text, attributes, styles, ...(scene ? { scene } : {}), ...(layer ? { layer } : {}), ...(ownText !== undefined ? { ownText } : {}), box };
 }
+
+/** The element last picked, which a tweak tries a look on. */
+let picked: Element | null = null;
+/** The look tried on it: its rule, and its words as the film drew them, to put back. */
+let tweak: { element: Element; rule: HTMLStyleElement; words: string | null } | null = null;
+
+/** Puts the picked element back as the film draws it. */
+function untweak(): void {
+  if (!tweak) return;
+  tweak.rule.remove();
+  tweak.element.removeAttribute('data-oms-tweak');
+  if (tweak.words !== null && tweak.element.isConnected) tweak.element.textContent = tweak.words;
+  tweak = null;
+}
+
+/** A value fit to stand in a rule: no character that could end the declaration or the rule. */
+const safe = (value: unknown): string | null => (typeof value === 'string' && value.length <= 60 && !/[;{}<>\\]/.test(value) ? value.trim() : null);
+
+addEventListener('message', (event: MessageEvent<ToPreview>) => {
+  if (event.source !== parent || event.data?.type !== 'oms:tweak') return;
+  untweak();
+  const element = picked;
+  if (!element?.isConnected) return;
+  const { styles, text } = event.data;
+  // !important over the film's own inline styles, which it may write again on every frame.
+  const declarations = TWEAKABLE.map((property) => [property, safe(styles?.[property])] as const)
+    .filter(([, value]) => value)
+    .map(([property, value]) => `${property}: ${value} !important;`);
+  const words = typeof text === 'string' && element.childElementCount === 0 ? text.slice(0, 500) : null;
+  if (!declarations.length && words === null) return;
+  const rule = document.createElement('style');
+  rule.textContent = `[data-oms-tweak] { ${declarations.join(' ')} }`;
+  document.head.appendChild(rule);
+  element.setAttribute('data-oms-tweak', '');
+  tweak = { element, rule, words: words === null ? null : (element.textContent ?? '') };
+  if (words !== null) element.textContent = words;
+});
 
 let solo: HTMLStyleElement | null = null;
 addEventListener('message', (event: MessageEvent<ToPreview>) => {
@@ -108,6 +148,9 @@ addEventListener('message', (event: MessageEvent<ToPreview>) => {
   for (let e: Element | null = innermost ?? null; e && e !== document.body && e.id !== 'root'; e = e.parentElement)
     if (visible(e)) chain.push(e);
   const element = chain[Math.max(0, Math.min(chain.length - 1, Math.floor(event.data.depth ?? 0)))];
+  // A new pick ends the look tried on the last one.
+  untweak();
+  picked = element ?? null;
   let message: FromPreview;
   if (element) {
     const { box, ...picked } = describe(element, frame);

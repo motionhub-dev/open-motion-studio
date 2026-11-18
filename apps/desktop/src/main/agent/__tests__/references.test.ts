@@ -1,5 +1,6 @@
 import { expect, it } from 'vitest';
-import { describeReferences, filmSpans, readReferences, transcriptReferences } from '../references';
+import { describeReferences, readReferences, transcriptReferences } from '../references';
+import { filmSpans, spanLines } from '../../../shared/spans';
 import { transcript } from '../loop';
 it('keeps references separate from the creator’s words, including after reload', () => {
   const refs = readReferences([{ kind: 'layer', label: 'Title', scene: 'intro', layer: 'title', time: 1 }]);
@@ -54,6 +55,9 @@ it('finds where film.tsx writes a scene, a layer and a line', () => {
   expect(locate({ layer: 'logo' })).toBe('film.tsx:5');
   expect(locate({ line: 'hello' })).toBe('film.tsx:7');
   expect(locate({ scene: 'missing' })).toBeNull();
+  expect(spanLines(locate({ scene: 'intro' }))).toEqual({ from: 6, to: 11 });
+  expect(spanLines(locate({ layer: 'logo' }))).toEqual({ from: 5, to: 5 });
+  expect(spanLines(null)).toBeNull();
   const text = describeReferences([{ kind: 'scene', label: 'Intro', scene: 'intro' }, { kind: 'asset', label: 'a.png', path: 'media/a.png' }], 1, locate);
   expect(transcriptReferences(text).refs).toEqual([
     { kind: 'scene', label: 'Intro', scene: 'intro', source: 'film.tsx:6-11' },

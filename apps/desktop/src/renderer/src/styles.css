@@ -396,7 +396,7 @@ button.status:hover {
   font-weight: 600;
 }
 
-/* A menu's group and its notes: what the items below are about, and a fact that is not an action. */
+/* A menu's group: what the items below are about. */
 .menu .menu-label {
   padding: 8px 10px 2px;
   font-size: 10px;
@@ -411,48 +411,70 @@ button.status:hover {
   border-top: 1px solid var(--line);
 }
 
-.menu .menu-note {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin: 0;
-  padding: 6px 10px 8px;
-  font-size: 11px;
+/* A menu row led by its icon; a key it answers to sits at its end. */
+.menu [role='menuitem'].icon-item {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.menu .icon-item > svg {
+  flex: none;
   color: var(--muted);
 }
 
-.menu .menu-note .mono {
-  color: var(--text2);
+.menu .icon-item > kbd {
+  margin-left: auto;
 }
 
-.menu [role='menuitem'].with-key {
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+/* The folder's row: what it does over where the folder is, the path wrapping rather than widening the menu. */
+.menu [role='menuitem'].folder-item {
+  align-items: flex-start;
 }
 
-.menu [role='menuitem'] span.waiting {
-  color: var(--annotate);
+.menu .folder-item > svg {
+  margin-top: 2px;
 }
 
-/* The app's settings sit apart at the bar's end: they are the app's, not the project's. */
-.topbar-divider {
-  width: 1px;
-  height: 20px;
-  margin: 0 4px;
-  background: var(--line);
+.menu .folder-item .folder-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.menu .folder-item .folder-text b {
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.menu .folder-item .folder-text .mono {
+  font-size: 11px;
+  overflow-wrap: anywhere;
 }
 
 .topbar .spacer {
   flex: 1;
 }
 
+/* Export is one split button: the MP4 on its left, the other ways to export behind the chevron on its right. */
 .export {
   position: relative;
   display: flex;
-  align-items: center;
-  gap: 2px;
+  align-items: stretch;
+}
+
+.export > .button.accent:first-child {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.export > .export-more {
+  padding: 0 8px;
+  border-left-color: color-mix(in srgb, var(--on-accent) 35%, var(--accent));
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
 }
 
 .menu {
@@ -754,11 +776,138 @@ button.status:hover {
   flex: 1;
 }
 
+.spec-picker {
+  position: relative;
+  margin-left: 4px;
+}
+
+/* The film's size and rate, which open the usual ones to ask the agent for. */
 .stage-bar .spec {
-  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--r-button);
+  background: none;
   font-size: 12px;
   color: rgb(255 255 255 / 0.55);
   white-space: nowrap;
+}
+
+.stage-bar .spec:hover:not(:disabled),
+.stage-bar .spec[aria-expanded='true'] {
+  background: rgb(255 255 255 / 0.12);
+  color: #fff;
+}
+
+.stage-bar .spec:disabled {
+  cursor: default;
+}
+
+.stage-bar .spec:disabled svg {
+  display: none;
+}
+
+/* It opens upward, over the picture, from the stage's foot. */
+.spec-menu {
+  top: auto;
+  bottom: calc(100% + 8px);
+  width: 380px;
+}
+
+.spec-menu > * {
+  flex: none;
+}
+
+.spec-menu .eyebrow {
+  padding: 8px 6px 6px;
+}
+
+/* The sizes as tiles, two to a row, so the menu stays shorter than the stage. */
+.spec-sizes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 0 4px;
+}
+
+.spec-rates {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  padding: 0 4px 6px;
+}
+
+.menu .spec-sizes [role='menuitemradio'],
+.menu .spec-rates [role='menuitemradio'] {
+  min-width: 0;
+  border: 1px solid var(--line);
+}
+
+.menu .spec-sizes [role='menuitemradio'] {
+  gap: 1px;
+  padding: 6px 8px;
+}
+
+.menu .spec-sizes span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.menu .spec-rates [role='menuitemradio'] {
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 6px 0;
+  font: 12px var(--font-mono);
+}
+
+/* Never taller than the room above the stage's foot. */
+.spec-menu {
+  max-height: min(540px, 70vh);
+  overflow-y: auto;
+}
+
+/* The film's own size and rate, marked while another is chosen. */
+.menu .spec-sizes .current strong::after,
+.menu .spec-rates .current::after {
+  content: ' ●';
+  font-size: 8px;
+  vertical-align: middle;
+  color: var(--muted);
+}
+
+.menu .spec-sizes [role='menuitemradio'][aria-checked='true'],
+.menu .spec-rates [role='menuitemradio'][aria-checked='true'] {
+  border-color: var(--text);
+}
+
+.spec-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 2px;
+  padding: 8px 6px 4px;
+  border-top: 1px solid var(--line);
+}
+
+.spec-confirm .note {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.spec-confirm .note strong {
+  font: 12px var(--font-mono);
+  color: var(--text);
 }
 
 .pointing {
@@ -884,7 +1033,7 @@ button.status:hover {
 .mark-ask {
   position: absolute;
   z-index: 3;
-  width: 288px;
+  width: 300px;
   max-width: calc(100% - 16px);
   display: flex;
   flex-direction: column;
@@ -912,6 +1061,62 @@ button.status:hover {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* What can be tried on a picked element: shown at once on the picture, made so by the agent. */
+.mark-look {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px 8px;
+  padding: 8px 0 2px;
+  border-top: 1px solid var(--line);
+}
+
+.mark-look label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.mark-look label.wide {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.mark-look input:not([type='range']),
+.mark-look select {
+  width: 100%;
+  min-width: 0;
+  height: 26px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--bg);
+  color: var(--text);
+  padding: 0 6px;
+  font: 12px var(--font-ui);
+}
+
+.mark-look input[type='color'] {
+  padding: 2px;
+  cursor: pointer;
+}
+
+.mark-look input[type='range'] {
+  width: 100%;
+  accent-color: var(--annotate);
+}
+
+.mark-look output {
+  min-width: 34px;
+  text-align: right;
+  font: 11px var(--font-mono);
+  color: var(--text);
 }
 
 .ask-actions {
@@ -1760,8 +1965,58 @@ button.status:hover {
   flex-direction: column;
 }
 
-button.motion-card:hover {
+button.motion-card:hover,
+.motion-card:has(.motion-open:hover) {
   border-color: var(--text);
+}
+
+/* A held motion's card opens its page; its actions sit along its foot. */
+.motion-open {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+}
+
+.motion-title strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Whether the video uses it: in use in green, else quiet. */
+.motion-state {
+  flex: none;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.motion-state.used {
+  border-color: color-mix(in srgb, var(--good) 40%, transparent);
+  color: var(--good);
+}
+
+.motion-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px 12px;
+}
+
+.motion-actions .button {
+  height: 28px;
+  font-size: 12px;
+}
+
+.motion-actions .note {
+  margin: 0;
 }
 
 .motion-title {
@@ -1784,20 +2039,23 @@ button.motion-card:hover {
   white-space: nowrap;
 }
 
+/* The catalogue as cards wide enough for their poster and both of their actions. */
 .catalogue {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
 }
 
 .catalogue .motion-title {
-  padding: 8px 10px 4px;
+  padding: 8px 12px 8px;
 }
 
-.catalogue .button {
-  margin: 0 10px 10px;
-  height: 28px;
-  font-size: 12px;
+/* What a motion is for, in two lines at most; its whole text is the card's title. */
+.catalogue .motion-title p {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .back {
@@ -1886,72 +2144,6 @@ button.motion-card:hover {
   color: var(--text);
 }
 
-/* The inspector. */
-
-.inspector {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.inspector .note {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-}
-
-.inspector .note > svg {
-  flex: none;
-  margin-top: 2px;
-}
-
-.inspected {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.inspected .path {
-  font-size: 11px;
-  color: var(--muted);
-}
-
-.inspector dl {
-  display: grid;
-  grid-template-columns: minmax(72px, auto) 1fr;
-  gap: 6px 12px;
-  margin: 0;
-  font-size: 12px;
-}
-
-.inspector dt {
-  color: var(--muted);
-}
-
-.inspector dd {
-  margin: 0;
-  min-width: 0;
-  overflow-wrap: anywhere;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.inspector dd .quiet {
-  padding: 0;
-  font-size: 12px;
-}
-
-.swatch-dot {
-  flex: none;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 1px solid var(--line);
-}
-
 /* Keys, in tooltips, the shortcuts dialog and notes. */
 
 kbd {
@@ -1996,8 +2188,19 @@ kbd {
   color: var(--sheet);
 }
 
+/* Wide rather than tall: the groups side by side, each kept whole in its column. */
 .dialog.shortcuts {
-  width: min(460px, 100%);
+  width: min(980px, calc(100vw - 48px));
+}
+
+.shortcut-groups {
+  columns: 3 280px;
+  column-gap: 32px;
+}
+
+.shortcut-groups > section {
+  break-inside: avoid;
+  margin-bottom: 18px;
 }
 
 .shortcuts dl {
@@ -2009,14 +2212,15 @@ kbd {
 
 .shortcuts dl > div {
   display: grid;
-  grid-template-columns: 140px 1fr;
-  align-items: center;
-  gap: 12px;
-  font-size: 13px;
+  grid-template-columns: 136px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  font-size: 12px;
 }
 
 .shortcuts dt {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
 }
 
@@ -2306,7 +2510,15 @@ kbd {
 }
 .outline-row.selected {
   background: color-mix(in srgb, var(--annotate) 12%, transparent);
-  box-shadow: inset 0 0 0 1px var(--annotate);
+}
+/* Its outline is drawn over the row, so the actions on its end never cover it. */
+.outline-row.selected::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--annotate);
+  border-radius: inherit;
+  pointer-events: none;
 }
 .outline-scene.playing > .outline-scene-row:not(.selected):not(:hover) {
   background: color-mix(in srgb, var(--text) 5%, transparent);
@@ -2394,29 +2606,37 @@ kbd {
   border-left: 2px solid var(--line);
 }
 /* Actions float over the row's end on hover or focus, so a name keeps the row's width. */
+/* A row's actions sit on the row itself, in its colour, the text under them fading out rather than boxed over. */
 .row-actions {
+  --row: var(--s2);
   position: absolute;
   right: 28px;
   top: 50%;
   transform: translateY(-50%);
   display: none;
-  gap: 2px;
-  padding: 2px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-button);
-  background: var(--sheet);
-  box-shadow: var(--float-shadow);
+  gap: 0;
+  padding-left: 16px;
+  background: linear-gradient(to right, transparent, var(--row) 16px);
+}
+.outline-row.selected > .row-actions {
+  --row: color-mix(in srgb, var(--annotate) 12%, var(--sheet));
 }
 .outline-children .row-actions,
 .outline-global .row-actions {
   right: 4px;
 }
 .row-actions .icon-button {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
+  color: var(--muted);
 }
+.row-actions .icon-button:hover {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  color: var(--text);
+}
+/* On hover, or reached by the keyboard; a row clicked keeps its focus, which must not keep its actions over it. */
 .outline-row:hover > .row-actions,
-.outline-row:focus-within > .row-actions {
+.outline-row:has(:focus-visible) > .row-actions {
   display: flex;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -2917,13 +3137,285 @@ kbd {
   font-size: 10px;
   color: var(--muted);
 }
-.asset-use {
+/* An asset is dragged from its card; its play and @ sit over its picture's corners. */
+.asset-grid > li {
+  position: relative;
+  cursor: grab;
+}
+.asset-grid > li:active {
+  cursor: grabbing;
+}
+.asset-grid .icon-button.asset-use,
+.asset-grid .icon-button.asset-play {
+  position: absolute;
+  top: 6px;
+  width: 26px;
+  height: 26px;
+  background: var(--sheet);
+  box-shadow: var(--lift-shadow);
+}
+.asset-grid .asset-use {
+  right: 6px;
+}
+.asset-grid .asset-play {
+  left: 6px;
+}
+/* How many files the video leaves out, and a way to see only those. */
+.asset-filter {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 8px;
+  justify-content: space-between;
+  gap: 8px;
+}
+.asset-filter .note {
+  margin: 0;
+}
+.asset-filter .quiet[aria-pressed='true'] {
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* An asset's name, its extension kept beside the field, and Rename. */
+.asset-rename {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.asset-rename label {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.asset-rename label > span:first-child {
+  grid-column: 1 / -1;
+}
+.asset-rename input {
+  min-width: 0;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--bg);
+  color: var(--text);
+  font: 13px var(--font-ui);
+}
+.dialog-actions .spacer {
+  flex: 1;
+}
+.asset-trash {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--bad);
+}
+
+.asset-used {
+  margin-right: 6px;
+  color: var(--good);
+  font-weight: 500;
+}
+.font-preview {
+  font-size: 26px;
+  color: var(--text);
+}
+/* A drop target says it will take what is dragged over it. */
+/* The + menu opens upward over the composer, as wide as it, as @ does. */
+.add-picker {
+  display: contents;
+}
+.composer .add-menu {
+  top: auto;
+  bottom: calc(100% + 6px);
+  left: -1px;
+  right: -1px;
+  min-width: 0;
+}
+
+/* How many a tab holds, quiet beside its name. */
+.tab-count {
+  margin-left: 5px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--s2);
+  color: var(--muted);
   font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Files from the computer over the workspace: it says it will import them. */
+.workspace.file-drop {
+  outline: 2px dashed var(--annotate);
+  outline-offset: -6px;
+}
+
+/* The code view, across the stage in place of the picture: light like the panels, its type the code's own. */
+.workspace > .code-view {
+  background: var(--sheet);
+  border: 1px solid var(--line);
+}
+.code-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.code-head h2 {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+}
+.code-head .note {
+  margin: 0;
+  white-space: nowrap;
+}
+.code-head .button {
+  height: 28px;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.code-note {
+  margin: 0;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--muted);
+}
+.code-text {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 10px 0;
+  overflow: auto;
+  font: 12px/1.7 var(--font-mono);
+  font-variant-ligatures: none;
+  color: var(--text);
+  user-select: text;
+}
+.code-text:focus-visible {
+  outline: 2px solid var(--annotate);
+  outline-offset: -2px;
+}
+.code-text code {
+  display: block;
+  width: max-content;
+  min-width: 100%;
+}
+.code-line {
+  display: flex;
+}
+/* The lines that write what was asked for from the outline, lit in the annotation's cobalt. */
+.code-line.lit {
+  background: color-mix(in srgb, var(--annotate) 12%, transparent);
+  box-shadow: inset 2px 0 var(--annotate);
+}
+.code-number {
+  position: sticky;
+  left: 0;
+  flex: none;
+  padding: 0 14px 0 10px;
+  text-align: right;
+  color: var(--muted);
+  background: var(--sheet);
+  user-select: none;
+}
+.code-line.lit .code-number {
+  background: color-mix(in srgb, var(--annotate) 12%, var(--sheet));
+}
+.code-tokens {
+  white-space: pre;
+  padding-right: 14px;
+}
+/* Syntax in the Studio's own few colours, quiet: the film is the loud thing. */
+.tok-keyword {
+  color: var(--annotate);
+}
+.tok-string {
+  color: var(--good);
+}
+.tok-entity,
+.tok-class {
+  color: color-mix(in srgb, var(--annotate) 60%, var(--text));
+}
+.tok-property,
+.tok-jsxliterals {
+  color: var(--text);
+}
+.tok-comment {
+  color: var(--muted);
+  font-style: italic;
+}
+.tok-sign {
+  color: var(--muted);
+}
+
+/* The project's files in the project tools: folders first, code that opens across the stage, the rest listed. */
+.code-tree,
+.code-tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.code-file,
+.code-folder {
   width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  padding: 2px 8px;
+  border: 0;
+  border-radius: var(--r-control);
+  background: none;
+  color: var(--text2);
+  font: 12px var(--font-mono);
+  text-align: left;
+}
+.code-file span,
+.code-folder span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.code-file:hover,
+.code-folder:hover {
+  background: var(--s2);
+  color: var(--text);
+}
+.code-file[aria-current='page'] {
+  background: color-mix(in srgb, var(--annotate) 12%, transparent);
+  color: var(--text);
+}
+.code-folder svg:first-child {
+  flex: none;
+  transition: transform 0.15s;
+}
+.code-folder[aria-expanded='true'] svg:first-child {
+  transform: rotate(90deg);
+}
+.code-file svg,
+.code-folder svg {
+  flex: none;
+  color: var(--muted);
+}
+
+.picture.dropping,
+.composer.dropping {
+  outline: 2px dashed var(--annotate);
+  outline-offset: -4px;
 }
 .asset-audio {
   display: block;
@@ -3512,10 +4004,6 @@ kbd {
   color: inherit;
 }
 
-.shortcuts section + section {
-  margin-top: 16px;
-}
-
 .shortcuts h3 {
   margin: 0 0 8px;
 }
@@ -3772,6 +4260,27 @@ kbd {
 /* The @ picker, over the composer: what the message can point at, in groups. */
 .composer-actions .spacer {
   flex: 1;
+}
+
+/* At the composer's foot the agent's chip is quiet, and its menu opens upward as wide as the composer, as @ does. */
+.composer-actions .agent-picker {
+  position: static;
+  margin-right: 6px;
+}
+.composer-actions .agent-chip {
+  border-color: transparent;
+  color: var(--muted);
+}
+.composer-actions .agent-chip:hover:not(:disabled),
+.composer-actions .agent-chip[aria-expanded='true'] {
+  color: var(--text);
+}
+.composer .agent-menu {
+  top: auto;
+  bottom: calc(100% + 6px);
+  left: -1px;
+  right: -1px;
+  min-width: 0;
 }
 .reference-picker {
   position: absolute;
@@ -4359,6 +4868,12 @@ input.switch:disabled {
   background: var(--sheet);
 }
 
+.home-language {
+  gap: 6px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+
 .home-brand {
   display: flex;
   align-items: center;
@@ -4497,10 +5012,15 @@ input.switch:disabled {
   color: var(--muted);
 }
 
+/* A cover is drawn whole, as the film is framed: a portrait or square film stands on the stage's dark, not cropped. */
+.project-art:has(img) {
+  background: var(--stage);
+}
+
 .project-art img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .project-art .badge {
@@ -4991,7 +5511,7 @@ input.switch:disabled {
 .home-prompt-foot {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   padding: 8px 12px 12px 16px;
 }
 

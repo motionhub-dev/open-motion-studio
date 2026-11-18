@@ -5,15 +5,32 @@
 
 import { SystemMessage, Translated, usePreferences } from './preferences';
 import { translate } from '../../shared/i18n';
-import { Settings as SettingsIcon, ArrowLeft, ChevronDown, ChevronRight, Download, Home, Keyboard, Mic, PanelLeftOpen, PanelRightClose, PanelRightOpen, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import {
+  ArrowLeft,
+  ChevronDown,
+  ChevronRight,
+  CircleHelp,
+  Copy,
+  Download,
+  FolderOpen,
+  Home,
+  Mic,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
+  Pencil,
+  SquareArrowDownLeft,
+  SquareArrowOutUpRight,
+  X,
+  Sparkles,
+} from 'lucide-react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import {
   type AgentKind,
   type VoiceKind,
   type AgentSettings,
   type Agents,
   type BuildResult,
-  type LibraryProject,
   MAX_MARKS,
   ofPicture,
   type Mark,
@@ -24,20 +41,19 @@ import {
   type FilmReview,
   type SceneStills,
 } from '../../shared/api';
-import { Assistant } from './assistant';
-import { AssetsPanel } from './assets-panel';
+import { Assistant, type AssistantHandle } from './assistant';
+import { AssetsPanel, assetReference } from './assets-panel';
+import { CodeFiles, type CodeFocus, CodeView } from './code-view';
 import { ReviewPanel } from './review-panel';
 import { ExportDialog } from './export-dialog';
 import { VoicePanel } from './voice-panel';
 import { type Hovered, Outline } from './outline';
 import { HistoryPanel } from './history-panel';
-import { Inspector } from './inspector';
 import { LIMITS, Splitter, useLayout } from './layout';
 import { MotionPanel } from './motion-panel';
-import { Stage, timecode, usePlayer } from './preview';
+import { Stage, usePlayer } from './preview';
 import { Fold, Timeline } from './timeline';
 import { reason } from './reason';
-import type { FilmInfo } from '../../shared/preview';
 
 type Toast = { text: string; error: boolean; file?: string };
 
@@ -73,8 +89,10 @@ const SHORTCUTS: [group: string, keys: string[], what: string][] = [
   ['App', ['Ctrl/⌘', ','], 'Open Settings'],
 ];
 
-function Shortcuts({ onClose }: { onClose(): void }) {
+function Shortcuts({ onClose, onSettings }: { onClose(): void; onSettings(): void }) {
   const { t: tr } = usePreferences();
+  // The editor's bar has no Settings button: its row here opens them, as well as naming the key.
+  const actions: Record<string, () => void> = { 'Open Settings': onSettings };
   return (
     <div className="dialog-backdrop" role="presentation" onClick={onClose}>
       <div
@@ -90,6 +108,7 @@ function Shortcuts({ onClose }: { onClose(): void }) {
             <X size={16} />
           </button>
         </div>
+        <div className="shortcut-groups">
         {[...new Set(SHORTCUTS.map(([group]) => group))].map((group) => (
           <section key={group}>
             <h3 className="eyebrow">{tr(group)}</h3>
@@ -101,27 +120,41 @@ function Shortcuts({ onClose }: { onClose(): void }) {
                       <kbd key={key}>{key}</kbd>
                     ))}
                   </dt>
-                  <dd>{tr(what)}</dd>
+                  <dd>
+                    {actions[what] ? (
+                      <button
+                        type="button"
+                        className="link"
+                        onClick={() => {
+                          onClose();
+                          actions[what]?.();
+                        }}
+                      >
+                        {tr(what)}
+                      </button>
+                    ) : (
+                      tr(what)
+                    )}
+                  </dd>
                 </div>
               ))}
             </dl>
           </section>
         ))}
+        </div>
       </div>
     </div>
   );
 }
 
 /**
- * The project's title and its menu. First what can be done to this project: rename it (a double-click on the title
- * does too), show its folder, copy it as a new project, and move it between the main window and a window of its own;
- * and its film's size, rate and length. Then the other projects to go to, those with a task running first and then
- * those opened last, and Home.
+ * The project's title and its menu, about this project alone: rename it (a double-click on the title does too), copy
+ * it as a new project, and move it between the main window and a window of its own; and where its folder is, which
+ * opens it. Home and the other projects are reached from Home.
  */
-function ProjectMenu({ project, film, onError }: { project: Project; film: FilmInfo | null; onError(error: unknown): void }) {
+function ProjectMenu({ project, onError }: { project: Project; onError(error: unknown): void }) {
   const { t: tr } = usePreferences();
   const [tasks, setTasks] = useState<ProjectTask[]>([]);
-  const [library, setLibrary] = useState<LibraryProject[]>([]);
   const [open, setOpen] = useState(false);
   /** The name being typed while the title is being renamed. */
   const [naming, setNaming] = useState<string | null>(null);
@@ -132,9 +165,6 @@ function ProjectMenu({ project, film, onError }: { project: Project; film: FilmI
     return stop;
   }, []);
   useEffect(() => {
-    if (open) window.studio.projectLibrary().then(setLibrary, onError);
-  }, [open]);
-  useEffect(() => {
     if (!open) return;
     const close = (event: globalThis.PointerEvent) => { if (!ref.current?.contains(event.target as Node)) setOpen(false); };
     const key = (event: globalThis.KeyboardEvent) => { if (event.key === 'Escape') setOpen(false); };
@@ -144,11 +174,6 @@ function ProjectMenu({ project, film, onError }: { project: Project; film: FilmI
   }, [open]);
 
   const separate = tasks.find((task) => task.project.path === project.path)?.separate ?? false;
-  const working = tasks.filter((task) => task.project.path !== project.path && (task.status === 'running' || task.status === 'waiting'));
-  const recent = library
-    .filter((other) => other.path !== project.path && !other.missing && !working.some((task) => task.project.path === other.path))
-    .sort((a, b) => b.lastOpened - a.lastOpened)
-    .slice(0, 5);
   /** Closes the menu and runs one of its actions, saying what went wrong. */
   const act = (action: () => Promise<unknown>) => {
     setOpen(false);
@@ -199,56 +224,40 @@ function ProjectMenu({ project, film, onError }: { project: Project; film: FilmI
       {open && (
         <div className="menu project-menu" role="menu">
           <span className="menu-label">{tr("This project")}</span>
-          <button type="button" role="menuitem" onClick={() => { setOpen(false); setNaming(project.name); }}>
+          <button type="button" role="menuitem" className="icon-item" onClick={() => { setOpen(false); setNaming(project.name); }}>
+            <Pencil size={15} aria-hidden="true" />
             {tr("Rename…")}
           </button>
-          <button type="button" role="menuitem" onClick={() => act(() => window.studio.libraryAction(project.path, 'show'))}>
-            {tr("Show in folder")}
-          </button>
-          <button type="button" role="menuitem" onClick={() => act(() => window.studio.libraryAction(project.path, 'duplicate'))}>
+          <button type="button" role="menuitem" className="icon-item" onClick={() => act(() => window.studio.libraryAction(project.path, 'duplicate'))}>
+            <Copy size={15} aria-hidden="true" />
             {tr("Duplicate as a new project")}
           </button>
           {separate ? (
-            <button type="button" role="menuitem" onClick={() => act(() => window.studio.openTask(project.path, false))}>
+            <button type="button" role="menuitem" className="icon-item" onClick={() => act(() => window.studio.openTask(project.path, false))}>
+              <SquareArrowDownLeft size={15} aria-hidden="true" />
               {tr("Move back to the main window")}
             </button>
           ) : (
-            <button type="button" role="menuitem" className="with-key" onClick={() => act(() => window.studio.newWindow())}>
+            <button type="button" role="menuitem" className="icon-item" onClick={() => act(() => window.studio.newWindow())}>
+              <SquareArrowOutUpRight size={15} aria-hidden="true" />
               {tr("Open in its own window")}
               <kbd>{'Ctrl/⌘ Shift N'}</kbd>
             </button>
           )}
-          {film && (
-            <p className="menu-note">
-              <span className="mono">
-                {film.width}×{film.height} · {Math.round(film.fps * 100) / 100} {tr("fps")} · {timecode(film.seconds)}
-              </span>
-              {tr("Ask the assistant to change them.")}
-            </p>
-          )}
-          {(working.length > 0 || recent.length > 0) && (
-            <>
-              <hr />
-              <span className="menu-label">{tr("Switch to")}</span>
-              {working.map((task) => (
-                <button type="button" role="menuitem" key={task.project.path} onClick={() => act(() => window.studio.openTask(task.project.path))}>
-                  <strong>{task.project.name}</strong>
-                  <span className={task.status === 'waiting' ? 'waiting' : undefined}>
-                    <SystemMessage text={task.status === 'waiting' ? 'Needs you' : task.activity} />
-                  </span>
-                </button>
-              ))}
-              {recent.map((other) => (
-                <button type="button" role="menuitem" key={other.path} onClick={() => act(() => window.studio.openRecent(other.path))}>
-                  <strong>{other.name}</strong>
-                  <span title={other.path}>{other.display}</span>
-                </button>
-              ))}
-            </>
-          )}
           <hr />
-          <button type="button" role="menuitem" onClick={() => act(() => window.studio.closeProject())}>
-            {tr("Home")}
+          {/* Where the project is: its folder, written out, and a way to open it. */}
+          <button
+            type="button"
+            role="menuitem"
+            className="icon-item folder-item"
+            title={project.path}
+            onClick={() => act(() => window.studio.libraryAction(project.path, 'show'))}
+          >
+            <FolderOpen size={15} aria-hidden="true" />
+            <span className="folder-text">
+              <b>{tr("Show in folder")}</b>
+              <span className="mono">{project.display}</span>
+            </span>
           </button>
         </div>
       )}
@@ -283,7 +292,14 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
   const [checking, setChecking] = useState(false);
   const [checkError, setCheckError] = useState('');
   const [exportOpen, setExportOpen] = useState(false);
-  const assistant = useRef<{ send(text: string): void }>(null);
+  const assistant = useRef<AssistantHandle>(null);
+  /** A mark was added to be sent at once: the message goes once the tray has it. */
+  const [applying, setApplying] = useState(false);
+  useEffect(() => {
+    if (!applying) return;
+    setApplying(false);
+    assistant.current?.submit();
+  }, [applying]);
   const [progress, setProgress] = useState<number | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
   /** The places marked on the picture, and the stretches on the timeline, for the next message. */
@@ -292,9 +308,10 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
   const [lit, setLit] = useState<number | null>(null);
   /** Asks the composer to put the cursor in a mark's note: its index, and a count that makes each ask new. */
   const [noteRequest, setNoteRequest] = useState({ index: -1, n: 0 });
-  /** The element last picked, which the inspector shows; it stays after its mark is sent. */
-  const [inspected, setInspected] = useState<Mark | null>(null);
-  const [side, setSide] = useState<'outline' | 'motions' | 'inspector' | 'history' | 'review' | 'assets' | 'voice'>('outline');
+  const [side, setSide] = useState<'outline' | 'motions' | 'code' | 'history' | 'review' | 'assets' | 'voice'>('outline');
+  /** The file across the stage in place of the picture, and the lines it is asked to show, or null for the picture. */
+  const [code, setCode] = useState<{ path: string; focus: CodeFocus | null } | null>(null);
+  const closeCode = useCallback(() => setCode(null), []);
   const [shortcuts, setShortcuts] = useState(false);
   /** Whether the menu of other ways to export is open. */
   const [menu, setMenu] = useState(false);
@@ -347,7 +364,6 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
   function restored() {
     setHistoryRevision((n) => n + 1);
     setMarks([]);
-    setInspected(null);
   }
   const focusLayout = useRef({ assistant: true, side: true });
   function toggleFocus() {
@@ -364,6 +380,11 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
     } else setLayout({ side: show });
   }
   /** Asks the project's agent to give the film a voice (the selected one, or one it chooses) and speak its lines. */
+  /** Sends the agent a request of the workspace's own (a size, a motion to apply), with the assistant in view. */
+  function ask(text: string) {
+    setLayout({ assistant: true });
+    assistant.current?.send(text);
+  }
   function generateNarration(voice?: string) {
     setLayout({ assistant: true });
     assistant.current?.send(
@@ -371,6 +392,21 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
     );
   }
   /** Opens one of the project tools, showing them if they are hidden. */
+  /** Files from the computer are being dragged over the workspace, which says it will import them. */
+  const [fileDrop, setFileDrop] = useState(false);
+  /** How many assets and motions the project holds, for their tabs; counted again when either may have changed. */
+  const [counts, setCounts] = useState<{ assets: number; motions: number } | null>(null);
+  useEffect(() => {
+    if (importing) return;
+    let live = true;
+    Promise.all([window.studio.projectAssets(), window.studio.projectMotions()]).then(
+      ([assets, motions]) => live && setCounts({ assets: assets.length, motions: motions.length }),
+      (e: unknown) => console.error('Counting the assets and motions failed:', e),
+    );
+    return () => {
+      live = false;
+    };
+  }, [importing, build?.version]);
   function openSide(panel: typeof side) {
     setSide(panel);
     if (!showSide) showTools(true);
@@ -405,6 +441,8 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
     : agents.current !== 'built-in'
       ? agents.harnesses.find((h) => h.kind === agents.current)?.state === 'ready'
       : !!active?.ready;
+  /** Whether the agent can take a request of the workspace's own now. */
+  const canAsk = ready && !busy && !importing && !checking && progress === null;
   /**
    * Counts the person's switches of agent, each of which starts a new conversation the assistant loads afresh. Not the
    * agent itself: finding it out when the project opens must not draw the assistant again and drop what is in it.
@@ -423,7 +461,6 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
 
   useEffect(() => {
     setBuild(null);
-    setInspected(null);
     const stop = window.studio.onBuild(setBuild);
     void window.studio.lastBuild().then((last) => last && setBuild((b) => b ?? last));
     return stop;
@@ -605,7 +642,6 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
     setRefs([]);
     setSelected(null);
     setSelection(null);
-    setInspected(null);
   }, [build?.version]);
 
   /** Selects a scene, a layer or a line in a panel: it is shown, and goes with the next message unless put aside. */
@@ -636,18 +672,22 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
     setRefs((current) => (current.some((r) => JSON.stringify(r) === JSON.stringify(ref)) ? current : [...current, ref]));
     setFocusRequest((n) => n + 1);
   }
-  /** Imports images or fonts into the project's assets, and puts the new ones in the next message's tray. */
-  async function importForMessage() {
+  /**
+   * Imports images, fonts or sounds into the project's assets (picked, or dropped on the window), and puts the new ones
+   * in the next message's tray.
+   */
+  async function importForMessage(dropped?: File[]) {
     if (busy || importing || checking || progress !== null) return;
     setImporting(true);
     try {
       const before = new Set((await window.studio.projectAssets()).map((a) => a.path));
-      const added = (await window.studio.importAssets()).filter((a) => !before.has(a.path));
+      const after = dropped ? await window.studio.importDroppedAssets(dropped) : await window.studio.importAssets();
+      const added = after.filter((a) => !before.has(a.path));
       if (!added.length) return;
       const room = 8 - refs.length;
       setRefs((current) => [
         ...current,
-        ...added.slice(0, room).map((a): Reference => ({ kind: 'asset', label: a.name, path: a.path, detail: `Use this local ${a.kind}: ${a.path}` })),
+        ...added.slice(0, room).map(assetReference),
       ]);
       if (added.length > room) {
         setToast({ text: translate("Imported {0} files; a message carries up to eight references, so {1} wait in Assets.", false, {0: added.length, 1: added.length - room}), error: false });
@@ -677,7 +717,7 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
           <Home size={18} />
         </button>
         <ChevronRight size={14} className="muted" aria-hidden="true" />
-        <ProjectMenu project={project} film={player.film} onError={(e) => setToast({ text: reason(e), error: true })} />
+        <ProjectMenu project={project} onError={(e) => setToast({ text: reason(e), error: true })} />
         {project.film && status}
         <span className="spacer" />
         <button
@@ -688,8 +728,21 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
           data-key="?"
           onClick={() => setShortcuts(true)}
         >
-          <Keyboard size={16} />
+          <CircleHelp size={16} />
         </button>
+        {project.film && (
+          <button
+            type="button"
+            className="button"
+            data-tip={tr("A look from motionhub to apply to the video")}
+            aria-pressed={showSide && side === 'motions'}
+            onClick={() => openSide('motions')}
+          >
+            <Sparkles size={15} />
+            <Translated text="Motions" />
+            {counts?.motions ? <span className="tab-count">{counts.motions}</span> : null}
+          </button>
+        )}
         {player.film && (player.film.voice || player.film.scenes.some((scene) => scene.lines.length > 0)) && (
           <button
             type="button"
@@ -716,11 +769,11 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
                 disabled={!build?.ok || busy || importing || checking}
               >
                 <Download size={15} />
-                <Translated text="Export" />
+                <Translated text="Export MP4" />
               </button>
               <button
                 type="button"
-                className="icon-button"
+                className="button accent export-more"
                 aria-label={t("Other ways to export")}
                 aria-expanded={menu}
                 data-tip={t("Other ways to export")}
@@ -744,15 +797,26 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
               {tr("Exporting")} {Math.round(progress * 100)}%
             </button>
           ))}
-        <span className="topbar-divider" aria-hidden="true" />
-        <button className="icon-button" aria-label={t("OpenMotionStudio settings")} data-tip={t("OpenMotionStudio settings")} onClick={onGlobalSettings}>
-          <SettingsIcon size={16} />
-        </button>
       </header>
 
       {project.film ? (
         <div
-          className="workspace"
+          className={`workspace${fileDrop ? ' file-drop' : ''}`}
+          onDragOver={(event) => {
+            if (!event.dataTransfer.types.includes('Files')) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = busy || importing || checking || progress !== null ? 'none' : 'copy';
+            setFileDrop(true);
+          }}
+          onDragLeave={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFileDrop(false);
+          }}
+          onDrop={(event) => {
+            setFileDrop(false);
+            if (!event.dataTransfer.files.length) return;
+            event.preventDefault();
+            void importForMessage([...event.dataTransfer.files]);
+          }}
           style={{
             // A panel put away keeps a rail in its column, as the folded timeline keeps its head.
             gridTemplateColumns: `${layout.assistant ? layout.left : RAIL}px minmax(0, 1fr) ${showSide ? layout.right : RAIL}px`,
@@ -792,6 +856,7 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
               onBriefTaken={() => setBrief(null)}
               onReference={reference}
               onImport={() => void importForMessage()}
+              onOpenPanel={(panel) => openSide(panel)}
               onRemoveRef={(i) => setRefs((items) => items.filter((_, n) => n !== i))}
               onSettings={onSettings}
               marks={marks}
@@ -804,6 +869,7 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
               noteRequest={noteRequest}
               selection={selection}
               onDropSelection={() => setSelection(null)}
+              onDropAsset={reference}
               onSent={() => {
                 setMarks([]);
                 setRefs([]);
@@ -814,10 +880,7 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
               onSelect={select}
               film={player.film}
               onFresh={(keys) => setFresh(new Set(keys))}
-              onUndone={() => {
-                setMarks([]);
-                setInspected(null);
-              }}
+              onUndone={() => setMarks([])}
               onHide={() => setLayout({ assistant: false })}
               onHistory={() => openSide('history')}
             />
@@ -830,7 +893,11 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
               style={{ right: -7 }}
             />
           </section>
+          {code && (
+            <CodeView path={code.path} revision={build?.version ?? 0} focus={code.focus} onClose={closeCode} onReference={reference} />
+          )}
           <Stage
+            hidden={code !== null}
             player={player}
             build={build}
             marks={marks}
@@ -842,8 +909,15 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
             onGuides={() => setGuides(!guides)}
             onFix={(label, detail) => reference({ kind: 'issue', label, detail })}
             disabled={busy || importing || checking || !build?.ok}
-            onMark={(next) => {
+            canApply={canAsk}
+            onAsk={ask}
+            onDropAsset={(asset, next) => {
               mark(next);
+              reference(assetReference(asset));
+            }}
+            onMark={(next, apply) => {
+              mark(next);
+              if (apply) setApplying(true);
               const { element } = next;
               if (element) {
                 setSelected({
@@ -853,8 +927,6 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
                   layer: element.layer,
                   time: next.t,
                 });
-                setInspected(next);
-                setSide('inspector');
               }
             }}
           />
@@ -875,27 +947,30 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
             <div className="side-content">
               {/* The four tools at hand are tabs; History opens from the assistant and Checks from the status. */}
               <div className="side-tabs">
-                {side === 'history' || side === 'review' || side === 'voice' ? (
+                {side === 'history' || side === 'review' || side === 'voice' || side === 'motions' ? (
                   <>
                     <button type="button" className="icon-button" aria-label={tr("Back to the outline")} data-tip={tr("Back")} onClick={() => setSide('outline')}>
                       <ArrowLeft size={15} />
                     </button>
-                    <h2>{side === 'history' ? tr("History") : side === 'voice' ? tr("Voice") : tr("Checks")}</h2>
+                    <h2>{side === 'history' ? tr("History") : side === 'voice' ? tr("Voice") : side === 'motions' ? tr("Motions") : tr("Checks")}</h2>
                   </>
                 ) : (
                   <nav aria-label={tr("Project tools")}>
                     {(
                       [
                         { id: 'outline', label: tr("Outline") },
-                        { id: 'inspector', label: tr("Inspector") },
                         { id: 'assets', label: tr("Assets") },
-                        { id: 'motions', label: tr("Motions") },
+                        { id: 'code', label: tr("Code") },
                       ] as const
-                    ).map(({ id, label }) => (
-                      <button key={id} type="button" aria-pressed={side === id} onClick={() => setSide(id)}>
-                        {label}
-                      </button>
-                    ))}
+                    ).map(({ id, label }) => {
+                      const count = id === 'assets' ? counts?.assets : undefined;
+                      return (
+                        <button key={id} type="button" aria-pressed={side === id} onClick={() => setSide(id)}>
+                          {label}
+                          {count ? <span className="tab-count">{count}</span> : null}
+                        </button>
+                      );
+                    })}
                   </nav>
                 )}
                 <span className="spacer" />
@@ -911,7 +986,7 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
                 </button>
               </div>
               {side === 'assets' ? (
-                <AssetsPanel disabled={busy || checking || progress !== null} onBusy={setImporting} onReference={reference} />
+                <AssetsPanel disabled={busy || checking || progress !== null} revision={build?.version ?? 0} onBusy={setImporting} onReference={reference} />
               ) : side === 'review' ? (
                 <ReviewPanel
                   review={review}
@@ -936,6 +1011,7 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
                   onSelect={select}
                   onReference={reference}
                   onPlay={player.playRange}
+                  onCode={(target) => setCode((was) => ({ path: 'film.tsx', focus: { target, n: (was?.focus?.n ?? 0) + 1 } }))}
                 />
               ) : side === 'voice' && player.film ? (
                 <VoicePanel
@@ -952,11 +1028,16 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
                   revision={build?.version ?? 0}
                   onRestored={restored}
                 />
+              ) : side === 'code' ? (
+                <CodeFiles revision={build?.version ?? 0} open={code?.path ?? null} onOpen={(path) => setCode({ path, focus: null })} />
               ) : side === 'motions' ? (
-                <MotionPanel onBusy={setImporting} disabled={busy || importing || checking || progress !== null} />
-              ) : (
-                <Inspector mark={inspected} film={player.film} onSeek={seek} />
-              )}
+                <MotionPanel
+                  onBusy={setImporting}
+                  disabled={busy || importing || checking || progress !== null}
+                  canAsk={canAsk}
+                  onAsk={ask}
+                />
+              ) : null}
             </div>
             <Splitter
               axis="x"
@@ -1053,7 +1134,7 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
           }}
         />
       )}
-      {shortcuts && <Shortcuts onClose={() => setShortcuts(false)} />}
+      {shortcuts && <Shortcuts onClose={() => setShortcuts(false)} onSettings={onGlobalSettings} />}
 
       {toast && (
         <div className={`toast${toast.error ? ' bad' : ''}`} role={toast.error ? 'alert' : 'status'}>

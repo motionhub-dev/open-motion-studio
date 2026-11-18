@@ -132,8 +132,11 @@ export const SCENE_STILLS = 6;
 /** The width the timeline's frames are kept at, in pixels; small, since they are drawn small. */
 const STILL_WIDTH = 160;
 
-/** The width a project's cover is kept at: sharp on Home's cards on a high-density screen. */
-const COVER_WIDTH = 640;
+/**
+ * The long side a project's cover is kept at, landscape or portrait: sharp on Home's largest card (560 px wide) on a
+ * screen of twice the density.
+ */
+export const COVER_SIDE = 1280;
 /** How far into the first scene the cover is taken: after an entrance has settled, before an exit. */
 const COVER_AT = 0.6;
 
@@ -142,9 +145,32 @@ async function takeCover(dir: string, stage: Stage): Promise<void> {
   const first = stage.film.scenes[0];
   if (!first) return;
   const image = await stage.frame(first.start + COVER_AT * first.duration);
+  const { width, height } = image.getSize();
   const file = join(dir, STATE_DIR, COVER);
-  await writeFile(`${file}.partial`, image.resize({ width: COVER_WIDTH }).toJPEG(82));
+  await writeFile(`${file}.partial`, image.resize(width >= height ? { width: COVER_SIDE } : { height: COVER_SIDE }).toJPEG(85));
   await rename(`${file}.partial`, file);
+}
+
+/** A JPEG's size from its frame header, or null for bytes that are not a JPEG whose size can be read. */
+export function jpegSize(bytes: Buffer): { width: number; height: number } | null {
+  if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;
+  for (let at = 2; at + 9 < bytes.length; ) {
+    if (bytes[at] !== 0xff) return null;
+    const marker = bytes[at + 1]!;
+    // A start of frame (SOF0 to SOF15, not DHT, JPG or DAC) holds the height and then the width.
+    if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc)
+      return { height: bytes.readUInt16BE(at + 5), width: bytes.readUInt16BE(at + 7) };
+    at += 2 + bytes.readUInt16BE(at + 2);
+  }
+  return null;
+}
+
+/** Whether a project has a cover as sharp as the Studio takes them; one taken smaller, before, is taken again. */
+async function covered(dir: string): Promise<boolean> {
+  const bytes = await readFile(join(dir, STATE_DIR, COVER)).catch(() => null);
+  if (!bytes) return false;
+  const size = jpegSize(bytes);
+  return !size || Math.max(size.width, size.height) >= COVER_SIDE;
 }
 
 /** Where a project keeps the timeline's frames: one file for the build they are of, named by that build's hash. */
@@ -154,7 +180,7 @@ export const stillsDir = (dir: string): string => join(dir, STATE_DIR, 'thumbs')
  * Each scene of build `version` as SCENE_STILLS small frames, by scene id, as data URLs. They are kept in
  * `.motion-studio/thumbs/<hash of the build>.json`, so the same film is photographed once; making them for a new
  * build removes the files of the others there, and nothing outside that folder is written or removed but the
- * project's cover, taken with them (and taken alone when the frames are kept but the cover is not).
+ * project's cover, taken with them (and taken alone when the frames are kept but the cover is not, or is smaller).
  */
 export async function sceneStills(dir: string, version: number, open: (version: number) => Promise<Stage>): Promise<SceneStills> {
   const hash = createHash('sha256')
@@ -170,8 +196,7 @@ export async function sceneStills(dir: string, version: number, open: (version: 
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
   }
   if (kept) {
-    const covered = await readFile(join(dir, STATE_DIR, COVER)).then(() => true, () => false);
-    if (!covered) {
+    if (!(await covered(dir))) {
       const stage = await open(version);
       try {
         await takeCover(dir, stage);

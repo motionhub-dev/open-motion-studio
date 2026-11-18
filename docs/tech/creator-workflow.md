@@ -1,6 +1,6 @@
 # The creator's workflow
 
-> **Status:** Current · **Updated:** 2026-11-15
+> **Status:** Current · **Updated:** 2026-11-17
 
 How a creator explores a film, points at a change, checks the result and returns to earlier source.
 
@@ -30,8 +30,14 @@ The Motions panel can preview a catalogue reel before adding it. The main proces
 `.motion-studio/reels/`, capped at 50 MB, and the renderer plays the local preview URL. HTML players use an opaque sandbox and a separate catalogue host/CSP
 that cannot fetch project files; all remote asset requests remain in the main process. A film reaches only the film
 host, by fetch or by navigation, so it can never have the main process fetch a URL it wrote. A missing reel is explained.
-The Assets panel lists images, fonts and sounds (MP3, WAV, M4A, OGG, played in place) under `media/`, imports through the native file picker, and attaches their
-project-relative paths to messages. Imports keep originals, avoid overwriting names, and are capped at 50 MB per file.
+The Assets panel lists images, fonts and sounds (MP3, WAV, M4A, OGG, played in place) under `media/`, imports through the native file picker or files dropped on the workspace, and attaches their
+project-relative paths to messages: with @, or dragged onto the composer, or dragged onto the picture as a mark asking
+for the file there. A file the film's code names is marked in use. A dropped file's path is read by the preload from the
+dropped File itself (`importDroppedAssets`, Electron's `webUtils.getPathForFile`; a File the page makes has none), so
+the renderer still names no path; the main process takes absolute paths only, at most 50, and checks each as an import
+from the picker is checked. A file the video does not use can be renamed beside itself, keeping its extension
+(`renameAsset`), or moved to the system's trash (`trashAsset`, Electron's `shell.trashItem`), never deleted
+outright; both take only a path the Studio listed, and refuse one the film's code names. Imports keep originals, avoid overwriting names, and are capped at 50 MB per file.
 A font is listed, not installed into the operating system. A film's sounds are `<Sound>` elements
 (see the architecture, "Sound"); video playback and media generation are outside this slice.
 
@@ -47,8 +53,9 @@ creator's words in the composer and transcript. What was last selected in the ou
 next message as a reference, marked Selected, unless it is put aside. A scene, layer or line, marked or referenced,
 tells the agent where film.tsx writes it.
 Structural references and marks belong to the current build. A changed preview clears pending references with a
-notice when the agent is not working, and the main process refuses stale picture references. The inspector still
-shows actual computed styles of a picked element. The composer keeps its words and marks when a request is rejected.
+notice when the agent is not working, and the main process refuses stale picture references. A picked element's
+properties in the mark's sheet start from its actual computed styles, and what the creator tries there goes to the agent
+as exact changes. The composer keeps its words and marks when a request is rejected.
 
 The assistant reports thinking, editing, checking and reviewing from actual model/tool events, with elapsed time and
 a stop action. These phases are activities, not a claim of percentage completion or that the model checked every frame.

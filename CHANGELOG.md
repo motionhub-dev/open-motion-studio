@@ -3,6 +3,194 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-17 — The motion library opens from the top bar
+
+- **What:** Motions (动效库) is a button in the editor's top bar beside Voice, with how many motions the project holds,
+  and opens its panel in the project tools as Voice does, with a back arrow and its title. Its tab is gone: the
+  project tools are Outline, Assets and Code.
+- **Why:** Applying a motion restyles the whole video, as voicing it speaks the whole video; it was the third of four
+  tabs, where few found it.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/project-view.tsx`.
+
+## 2026-11-17 — A read-only code view
+
+- **What:** A Code tab lists the project's files; a code file opens across the stage in place of the picture,
+  read-only, with line numbers and its syntax coloured, Copy and Open in your editor. A scene, layer or line of the
+  outline shows the lines of film.tsx that write it, and lines selected go with the next message as a reference
+  (`film.tsx:3-5`, with their text). The assistant stays beside it.
+- **Why:** The film is code the agent writes, and there was no way to read it, or point at a part of it, without
+  leaving the Studio.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/code-view.tsx`, `apps/desktop/src/main/files.ts`, `apps/desktop/src/shared/spans.ts`;
+  `sugar-high` 2.6.0 (a dev dependency, bundled into the renderer).
+
+## 2026-11-17 — Assets are renamed, trashed and kept current
+
+- **What:** A file the video does not use is renamed (its extension kept) or moved to the system's trash from its
+  dialog in Assets; one it uses says why it cannot be. Assets say how many files the video leaves out, with Show only
+  these. The list is read again when the window comes back into focus or the film is rebuilt, and its refresh button
+  is gone.
+- **Why:** A file once imported could only be renamed or cleared away in the file manager, and the list showed what
+  was there only after a press of refresh.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/main/assets.ts` (`renameAsset`, `trashAsset`), `apps/desktop/src/renderer/src/assets-panel.tsx`.
+
+## 2026-11-17 — Assets and motions are reached from the composer and by dropping files
+
+- **What:** The composer's + opens Import files…, From the assets and From the motion library. Files from the
+  computer dropped anywhere on the workspace are imported into `media/` and go with the next message. The Assets and
+  Motions tabs say how many they hold, and Start from a look opens the motion library.
+- **Why:** Both panels sat behind the Outline with nothing in the way of making a film leading to them.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/assistant.tsx`, `apps/desktop/src/renderer/src/project-view.tsx`,
+  `apps/desktop/src/preload/index.ts` (`importDroppedAssets`).
+
+## 2026-11-17 — Motions are applied to the video, and assets dragged where they go
+
+- **What:** The Motions panel (动效库 in Chinese) opens on motionhub's whole catalogue instead of an empty search, and
+  a motion is applied to the video: it is taken into the project if needed and the agent is asked, after a
+  confirmation, to restyle the film with it, keeping the film's words, scenes and timing. The project's motions are
+  marked in use or not, preview their reel, and one from the hub the film does not use can be removed (its folder
+  and its line in `motions.lock.json`). Assets are dragged onto the picture (a mark there asking for the file) or
+  onto the composer; a sound plays in place with its length, a typeface shows itself, and a file the film uses is
+  marked In use. The Chinese tray now says 一个区域 for a region.
+- **Why:** Use and Import only copied files into the project, so nothing on screen changed, and the catalogue showed
+  nothing until someone guessed a word to search for.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/motion-panel.tsx`, `apps/desktop/src/renderer/src/assets-panel.tsx`,
+  `apps/desktop/src/main/motions.ts` (`removeMotion`), `apps/desktop/src/main/project.ts` (`projectSource`).
+
+## 2026-11-17 — Home's covers are sharp and whole
+
+- **What:** A project's cover is kept with its long side at 1280 px (it was 640 px wide) and drawn whole on the stage's
+  dark: a portrait or square film shows its full frame instead of a cropped, enlarged middle. A cover taken smaller
+  before is taken again the next time the project is opened.
+- **Why:** On a high-density screen Home's large card enlarged a 640 px cover about twice, and a portrait film's
+  cover was cropped to its middle third and enlarged again, so it looked blurred.
+- **Breaking:** None.
+- **Upgrade:** Nothing: a project opened once has its new cover.
+- **Refs:** `apps/desktop/src/main/film/capture.ts` (`COVER_SIDE`, `jpegSize`), `apps/desktop/src/renderer/src/styles.css`
+  (`.project-art`).
+
+## 2026-11-17 — Home's header switches the theme and the language
+
+- **What:** Home's header has the language as 中文 or EN and the theme as one icon (a moon in light, a sun in dark),
+  each switching to the other at a click and saved as the preference Settings holds; Follow system stays in Settings.
+  Its New video button is removed: the prompt below it, a template and Ctrl/⌘ N make one. Open project moves into the
+  prompt, beside Start creating.
+- **Why:** The look and the language were three clicks away, and New video said twice what Home's prompt is for.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/home.tsx` (`Home`).
+
+## 2026-11-17 — The Chinese interface says 视频, not 影片
+
+- **What:** Every Chinese label, message and hint that named the film (`film.tsx`) as 影片 names it 视频, counted with
+  个 (这个视频, 第一个视频): 新建视频, 导出视频, 视频预览 and the rest. The English is unchanged.
+- **Why:** 影片 reads as a cinema film; what people make here are videos, and 视频 is the word they use for them.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/shared/translations.ts`, `docs/design.md`.
+
+## 2026-11-17 — A film made without a name is film-<id>
+
+- **What:** New film, and a film whose brief leaves no usable name, makes its folder `film-` and six random letters and
+  digits (`film-k3x9q2`) instead of `Untitled film`, `Untitled film 2`, …; a taken one is drawn again. Names given
+  (a brief's first line, a template's name, a copy) are kept as they were, numbered when taken.
+- **Why:** A folder name with a space has to be quoted in a shell and escaped in a URL, and numbered untitled films
+  said nothing a random ID does not.
+- **Breaking:** None. Existing projects keep their folders.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/main/project.ts` (`newFilmName`, `createInWorkspace`).
+
+## 2026-11-17 — The outline's row actions say what they do
+
+- **What:** A row's actions in the outline sit on the row in its colour, muted until pointed at, instead of in a
+  floating box with a shadow. Adding a row to the message is @, as in the composer, instead of a speech bubble; playing
+  a layer alone is ▷ in a square instead of stacked squares. They show on hover or keyboard focus, and no longer stay over a row's
+  end after it is clicked, nor cover a selected row's outline.
+- **Why:** The stacked squares read as copy and the bubble as a comment, and the box covered the row it acted on.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/outline.tsx`, `apps/desktop/src/renderer/src/styles.css` (`.row-actions`).
+
+## 2026-11-17 — The film's size and frame rate are chosen on the stage
+
+- **What:** The film's size and rate at the stage's foot open a menu of the usual sizes — landscape 16:9 (1920×1080,
+  3840×2160, 1280×720), portrait 9:16 (1080×1920), portrait 4:5 (1080×1350) and square (1080×1080), each with where it
+  is used — and the rates 24, 25, 30 and 60. A size and a rate chosen there change nothing until Change the film
+  confirms them, under a line saying what will change and what the agent will do; then they go to the agent as one
+  exact request: it changes
+  `export const film` in film.tsx, keeps the scenes' lengths in seconds, scales a frame of the same shape and lays every
+  scene out again for a new one. The menu waits while the agent is not ready or is working.
+- **Why:** A film made for one platform often needs another's frame; the size was shown but could only be changed by
+  describing it. The Studio still does not write film.tsx: a new shape needs the scenes laid out again,
+  which is the agent's work.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/preview.tsx` (`SpecMenu`, `specRequest`).
+
+## 2026-11-17 — The agent is chosen at the composer's foot
+
+- **What:** The chip that chooses the project's agent and model moves from the assistant's head to the composer's foot,
+  left of Send. Its menu opens upward, as wide as the composer. The project's tokens stay in the head, before History
+  and New conversation.
+- **Why:** Which agent a message goes to belongs beside the button that sends it.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/assistant.tsx` (`AgentChip`), `apps/desktop/src/renderer/src/styles.css`.
+
+## 2026-11-17 — The editor's bar has no Settings button
+
+- **What:** The gear at the end of the editor's top bar is removed. OpenMotionStudio's settings open from Ctrl/⌘ , or
+  from the Open Settings row of the keyboard shortcuts dialog, which is now a button; Home keeps its gear, and a model
+  or a voice is still set up from the assistant's model menu and the Voice panel.
+- **Why:** The settings it opened are the app's (theme, language, launch at login), not the film's; in the editor's bar
+  it competed with Voice and Export MP4 for what the bar is about.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/project-view.tsx` (`Shortcuts`).
+
+## 2026-11-17 — A picked element's properties are changed on the picture; the Inspector is gone
+
+- **What:** Picking an element on the picture opens its properties in the mark's sheet: its words (when it holds
+  nothing else), size, weight, colour, fill and opacity. Each change shows on the picture at once; Apply sends it to the
+  agent as exact changes to make in film.tsx (Add to message keeps it for the next message, Cancel puts the picture
+  back). A mark carries the changes (`Mark.changes`), checked in the main process against the properties a mark can
+  change. The Inspector tab, which only showed the element last picked, is removed; the project tools are Outline,
+  Assets and Motions.
+- **Why:** The Inspector showed what an element was but changed nothing, away from the picture. Trying a size or a
+  colour where it is seen, then having the agent write it at its source, is the shorter way to the change.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/preview/pick.ts` (`oms:tweak`), `apps/desktop/src/renderer/src/preview.tsx` (`Stage`),
+  `apps/desktop/src/main/agent/marks.ts`, `apps/desktop/src/shared/preview.ts` (`TWEAKABLE`).
+
+## 2026-11-17 — Export MP4 is one split button
+
+- **What:** The top bar's Export reads Export MP4 and is joined with the chevron beside it into one split button: the
+  MP4 on its left, the other ways to export (a Remotion project) behind the chevron on its right.
+- **Why:** The chevron sat apart in another style, so it did not read as part of exporting, and Export did not say what
+  it makes.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/project-view.tsx`, `apps/desktop/src/renderer/src/styles.css` (`.export`).
+
+## 2026-11-17 — Keyboard shortcuts open from a question mark, in a wide dialog
+
+- **What:** The top bar's keyboard shortcuts button is a question mark, the key that opens them, and the dialog is wide
+  with its groups side by side in up to three columns instead of one tall list.
+- **Why:** The keyboard icon did not say what it opened, and the tall list scrolled on a short window.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/project-view.tsx` (`Shortcuts`), `apps/desktop/src/renderer/src/styles.css`.
+
 ## 2026-11-17 — Voice is a panel with every line
 
 - **What:** Voice opens a panel in the project tools instead of a dialog. It shows the film's voice, its provider and
@@ -15,6 +203,17 @@ Every key change to OpenMotionStudio, newest first, by date. What counts as key 
 - **Breaking:** None.
 - **Upgrade:** Nothing.
 - **Refs:** `apps/desktop/src/renderer/src/voice-panel.tsx`, `apps/desktop/src/renderer/src/project-view.tsx`.
+
+## 2026-11-17 — The title menu is about the project alone
+
+- **What:** The editor's title menu no longer lists other projects, Home or the film's size, rate and length; Show in
+  folder moves to its foot with the folder's path written out, and every row has its icon (rename, duplicate, the
+  window move, the folder).
+- **Why:** Switching projects and going Home already have their place (the Home icon beside the title, and Home's
+  library); in the project's own menu they made it long and mixed what is this project's with what is not.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/project-view.tsx` (`ProjectMenu`), `apps/desktop/src/renderer/src/styles.css`.
 
 ## 2026-11-17 — The project's title menu holds what can be done to the project
 

@@ -12,14 +12,16 @@ import {
   Folder,
   FolderOpen,
   Home as HomeIcon,
+  Languages,
   LayoutGrid,
   List,
+  Moon,
   MoreHorizontal,
   Pause,
   Play,
-  Plus,
   Search,
   Settings as SettingsIcon,
+  Sun,
 } from 'lucide-react';
 import { MAX_BRIEF } from '../../shared/api';
 import type { Agents, Example, LibraryProject, Project, ProjectTask, Providers, WorkspaceSettings } from '../../shared/api';
@@ -415,12 +417,14 @@ const STARTERS = ['A 15-second launch teaser for ', 'A 30-second explainer on ho
  * What the person wants to make, in their words: a new project named from it, opened, with the words as the agent's
  * first message. Without an assistant they wait in the project's composer.
  */
-function Prompt({ field, available, disabled, onCreate, onSetUp }: {
+function Prompt({ field, available, disabled, onCreate, onOpen, onSetUp }: {
   field: RefObject<HTMLTextAreaElement | null>;
   available: boolean;
   disabled: boolean;
   /** Creates the project; the words stay in the field until it has. */
   onCreate(brief: string): Promise<boolean>;
+  /** Opens a folder the person already has, the other way to start. */
+  onOpen(): void;
   onSetUp(): void;
 }) {
   const { t } = usePreferences();
@@ -461,6 +465,10 @@ function Prompt({ field, available, disabled, onCreate, onSetUp }: {
             </button>
           ))}
         </div>
+        <button type="button" className="button" disabled={disabled} onClick={onOpen}>
+          <Folder size={15} />
+          {t('Open project')}
+        </button>
         <button className="button primary" type="submit" disabled={disabled || !brief.trim()}>
           {t('Start creating')}
           <ArrowRight size={15} />
@@ -495,7 +503,9 @@ export function Home({ providers, workspace, tasks, examples, busy, error, revis
   onAction(action: () => Promise<Project | null>): Promise<boolean>;
   onSettings(target?: SettingsTarget): void;
 }) {
-  const { t, preferences, ready, save } = usePreferences();
+  const { t, chinese, preferences, ready, save } = usePreferences();
+  /** The theme on screen, Follow system resolved, which the header's switch turns over. */
+  const dark = preferences.theme === 'dark' || (preferences.theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
   const [page, setPage] = useState<Page>('home');
   const [library, setLibrary] = useState<LibraryProject[] | null>(null);
   const [agents, setAgents] = useState<Agents | null>(null);
@@ -708,6 +718,7 @@ export function Home({ providers, workspace, tasks, examples, busy, error, revis
               available={available}
               disabled={disabled}
               onCreate={(brief) => onAction(() => window.studio.createProject(brief))}
+              onOpen={() => void onAction(window.studio.openProject)}
               onSetUp={() => onSettings({ models: true })}
             />
           </section>
@@ -790,13 +801,25 @@ export function Home({ providers, workspace, tasks, examples, busy, error, revis
           <strong>OpenMotionStudio</strong>
         </div>
         <span className="spacer" />
-        <button className="button" disabled={disabled} onClick={() => void onAction(window.studio.openProject)}>
-          <Folder size={15} />
-          {t('Open project')}
+        {/* The language and the look, one click each; Follow system stays in Settings. */}
+        <button
+          className="button quiet home-language"
+          aria-label={t('Switch the language to {0}', {0: chinese ? 'English' : '简体中文'})}
+          data-tip={t('Switch the language to {0}', {0: chinese ? 'English' : '简体中文'})}
+          disabled={!ready}
+          onClick={() => void save({ language: chinese ? 'en' : 'zh-CN' }).catch((e) => console.error('Saving the language failed:', e))}
+        >
+          <Languages size={16} />
+          {chinese ? '中文' : 'EN'}
         </button>
-        <button className="button primary" disabled={disabled} onClick={() => void onAction(() => window.studio.createProject())}>
-          <Plus size={15} />
-          {t('New film')}
+        <button
+          className="icon-button"
+          aria-label={dark ? t('Switch to the light theme') : t('Switch to the dark theme')}
+          data-tip={dark ? t('Switch to the light theme') : t('Switch to the dark theme')}
+          disabled={!ready}
+          onClick={() => void save({ theme: dark ? 'light' : 'dark' }).catch((e) => console.error('Saving the theme failed:', e))}
+        >
+          {dark ? <Sun size={17} /> : <Moon size={17} />}
         </button>
         <button className="icon-button" aria-label={t('OpenMotionStudio settings')} data-tip={t('OpenMotionStudio settings')} onClick={() => onSettings()}>
           <SettingsIcon size={18} />

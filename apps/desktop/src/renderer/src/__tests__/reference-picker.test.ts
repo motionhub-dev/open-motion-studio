@@ -23,7 +23,7 @@ const film: FilmInfo = {
 };
 const assets: Asset[] = [{ path: 'assets/logo.png', name: 'logo.png', kind: 'image', bytes: 10 }];
 const motions: ProjectMotion[] = [
-  { id: '@hub/kinetic-title', path: 'motions/@hub/kinetic-title', name: 'Kinetic title', line: 'Words that land', version: '1.0.0', fromHub: true, poster: null },
+  { id: '@hub/kinetic-title', path: 'motions/@hub/kinetic-title', name: 'Kinetic title', line: 'Words that land', version: '1.0.0', fromHub: true, used: false, poster: null },
 ];
 
 describe('the @ picker', () => {

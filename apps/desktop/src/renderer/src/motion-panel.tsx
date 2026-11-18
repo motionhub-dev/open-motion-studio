@@ -3,7 +3,7 @@
 // from. A project's own images are read through the preview scheme's /project/.
 
 import { SystemMessage, Translated, usePreferences } from './preferences';
-import { ArrowLeft, Loader, Search, Play, X } from 'lucide-react';
+import { ArrowLeft, Loader, Search, Play, Trash2, X } from 'lucide-react';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import type { CatalogueMotion, MotionDetail, ProjectMotion } from '../../shared/api';
 import { Dialog } from './dialog';
@@ -89,7 +89,29 @@ function Page({ id, onBack }: { id: string; onBack(): void }) {
   );
 }
 
-export function MotionPanel({ disabled = false, onBusy }: { disabled?: boolean; onBusy(value: boolean): void }) {
+/**
+ * What the agent is asked when a motion is applied: to restyle the film with it from its own folder, keeping what the
+ * film says and when.
+ */
+export const applyRequest = (motion: { id: string; name: string }) =>
+  `Apply the motion ${motion.id} ("${motion.name}") to this film. It is in motions/${motion.id}/: read its MOTION.md and use its colours, its type and those of its components that fit each scene. Keep the film's words, scenes, order and timing. Then check the result.`;
+
+/** A motion asked about before anything happens: applied to the film, or taken out of the project. */
+type Confirm = { kind: 'apply' | 'remove'; id: string; name: string; held: boolean };
+
+export function MotionPanel({
+  disabled = false,
+  onBusy,
+  canAsk,
+  onAsk,
+}: {
+  disabled?: boolean;
+  onBusy(value: boolean): void;
+  /** Whether the agent can take a message now, which applying a motion sends. */
+  canAsk: boolean;
+  /** Sends the agent a request of the panel's own: a motion to apply. */
+  onAsk(text: string): void;
+}) {
   const { t: tr } = usePreferences();
   const [held, setHeld] = useState<ProjectMotion[]>([]);
   const [words, setWords] = useState('');
@@ -97,6 +119,7 @@ export function MotionPanel({ disabled = false, onBusy }: { disabled?: boolean; 
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<Confirm | null>(null);
   const [reel, setReel] = useState<{ name: string; src: string | null } | null>(null);
   const [reelError, setReelError] = useState('');
   const reelRequest = useRef(0);
@@ -106,7 +129,7 @@ export function MotionPanel({ disabled = false, onBusy }: { disabled?: boolean; 
     },
     [],
   );
-  async function preview(motion: CatalogueMotion) {
+  async function preview(motion: { id: string; name: string }) {
     const request = ++reelRequest.current;
     setReel({ name: motion.name, src: null });
     setReelError('');
@@ -121,7 +144,6 @@ export function MotionPanel({ disabled = false, onBusy }: { disabled?: boolean; 
   }
 
   const refresh = () => window.studio.projectMotions().then(setHeld, (e) => setError(reason(e)));
-  useEffect(() => void refresh(), []);
 
   async function search(event?: FormEvent) {
     event?.preventDefault();
@@ -135,14 +157,46 @@ export function MotionPanel({ disabled = false, onBusy }: { disabled?: boolean; 
       setBusy(null);
     }
   }
+  // The catalogue is there on opening, all of it: nobody has to know a word to search for first.
+  useEffect(() => {
+    void refresh();
+    void search();
+  }, []);
 
-  async function use(id: string) {
-    if (disabled) return;
+  /** Takes a motion into the project; true once it is there. */
+  async function take(id: string): Promise<boolean> {
+    if (disabled) return false;
     setError(null);
     setBusy(id);
     onBusy(true);
     try {
       await window.studio.useMotion(id);
+      await refresh();
+      return true;
+    } catch (e) {
+      setError(reason(e));
+      return false;
+    } finally {
+      setBusy(null);
+      onBusy(false);
+    }
+  }
+
+  async function confirmed() {
+    if (!confirm) return;
+    const { kind, id, name } = confirm;
+    setConfirm(null);
+    if (kind === 'apply') {
+      if (!holds.has(id) && !(await take(id))) return;
+      onAsk(applyRequest({ id, name }));
+      return;
+    }
+    setError(null);
+    setBusy(id);
+    onBusy(true);
+    try {
+      await window.studio.removeMotion(id);
+      if (open === id) setOpen(null);
       await refresh();
     } catch (e) {
       setError(reason(e));
@@ -153,36 +207,77 @@ export function MotionPanel({ disabled = false, onBusy }: { disabled?: boolean; 
   }
 
   const holds = new Set(held.map((m) => m.id));
+  const applyTip = canAsk ? tr("The assistant restyles the video with it") : tr("Waits until the agent is ready");
+  const applyButton = (motion: { id: string; name: string }, used = false) => (
+    <button
+      type="button"
+      className="button primary"
+      disabled={disabled || busy !== null || !canAsk || used}
+      data-tip={used ? tr("The video already uses it") : applyTip}
+      onClick={() => setConfirm({ kind: 'apply', id: motion.id, name: motion.name, held: holds.has(motion.id) })}
+    >
+      {used ? tr("In use") : tr("Apply to the video")}
+    </button>
+  );
 
   return (
     <>
       {open ? (
         <Page id={open} onBack={() => setOpen(null)} />
       ) : (
-        <div className="body">
-          {held.length === 0 ? (
-            <p className="note">{tr("None in this project yet. Take one from motionhub, or let the film draw freely.")}</p>
-          ) : (
-            <ul className="motion-cards">
-              {held.map((m) => (
-                <li key={m.id}>
-                  <button type="button" className="motion-card" onClick={() => setOpen(m.id)}>
-                    <Poster src={m.poster && projectFile(m.poster)} label={m.name} />
-                    <span className="motion-title">
-                      <strong>{m.name}</strong>
-                      <span className="path mono">
-                        {m.id}
-                        {m.version ? ` · ${m.version}` : ''}
+        <div className="body motion-panel">
+          <div className="panel-intro">
+            <span className="eyebrow">{tr("A look to build on")}</span>
+            <p>{tr("A motion brings colours, type and animated parts from motionhub. Apply one and the assistant restyles the video with it.")}</p>
+          </div>
+          {error && (
+            <p className="error" role="alert">
+              <SystemMessage text={error} error />
+            </p>
+          )}
+          {held.length > 0 && (
+            <>
+              <span className="label">{tr("This project's motions")}</span>
+              <ul className="motion-cards">
+                {held.map((m) => (
+                  <li key={m.id} className="motion-card">
+                    <button type="button" className="motion-open" onClick={() => setOpen(m.id)} aria-label={tr("Open {0}", {0: m.name})}>
+                      <Poster src={m.poster && projectFile(m.poster)} label={m.name} />
+                      <span className="motion-title">
+                        <strong>
+                          {m.name}
+                          <span className={`motion-state${m.used ? ' used' : ''}`}>{m.used ? tr("In use") : tr("Not used yet")}</span>
+                        </strong>
+                        {m.line && <p>{m.line}</p>}
                       </span>
-                      {m.line && <p>{m.line}</p>}
+                    </button>
+                    <span className="motion-actions">
+                      {!m.used && applyButton(m)}
+                      {m.fromHub && (
+                        <button type="button" className="icon-button" aria-label={tr("Preview {0}", {0: m.name})} data-tip={tr("Preview")} onClick={() => void preview(m)}>
+                          <Play size={14} />
+                        </button>
+                      )}
+                      {m.fromHub && !m.used && (
+                        <button
+                          type="button"
+                          className="icon-button"
+                          aria-label={tr("Remove {0}", {0: m.name})}
+                          data-tip={tr("Remove from the project")}
+                          disabled={disabled || busy !== null}
+                          onClick={() => setConfirm({ kind: 'remove', id: m.id, name: m.name, held: true })}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
                     </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
 
-          <span className="label">motionhub</span>
+          <span className="label">{tr("From motionhub")}</span>
           <form className="search" onSubmit={search}>
             <input
               type="search"
@@ -195,11 +290,7 @@ export function MotionPanel({ disabled = false, onBusy }: { disabled?: boolean; 
               {busy === 'search' ? <Loader size={14} className="spin" /> : <Search size={14} />}
             </button>
           </form>
-          {error && (
-            <p className="error" role="alert">
-              <SystemMessage text={error} error />
-            </p>
-          )}
+          {found === null && busy === 'search' && <p className="note">{tr("Loading motionhub…")}</p>}
           {found && found.length === 0 && <p className="note">{tr("No motion has all of those words.")}</p>}
           <ul className="catalogue">
             {found?.map((m) => (
@@ -213,15 +304,45 @@ export function MotionPanel({ disabled = false, onBusy }: { disabled?: boolean; 
                 </button>
                 <span className="motion-title">
                   <strong>{m.name}</strong>
-                  <span className="path mono">{m.id}</span>
+                  {(m.fit || m.line) && <p>{m.fit || m.line}</p>}
                 </span>
-                <button type="button" className="button" disabled={disabled || busy !== null || holds.has(m.id)} onClick={() => use(m.id)}>
-                  {holds.has(m.id) ? tr("In this project") : busy === m.id ? tr("Taking…") : tr("Use")}
-                </button>
+                <span className="motion-actions">
+                  {holds.has(m.id) ? (
+                    <span className="note">{tr("In this project")}</span>
+                  ) : (
+                    <>
+                      {applyButton(m)}
+                      <button type="button" className="button quiet" disabled={disabled || busy !== null} onClick={() => void take(m.id)}>
+                        {busy === m.id ? tr("Taking…") : tr("Add only")}
+                      </button>
+                    </>
+                  )}
+                </span>
               </li>
             ))}
           </ul>
         </div>
+      )}
+      {confirm && (
+        <Dialog label={confirm.name} onClose={() => setConfirm(null)}>
+          <div className="panel-head">
+            <h2>{confirm.kind === 'apply' ? tr("Apply {0} to the video?", {0: confirm.name}) : tr("Remove {0}?", {0: confirm.name})}</h2>
+          </div>
+          <p className="note">
+            {confirm.kind === 'apply'
+              ? tr("The assistant uses its colours, type and the parts that fit each scene, keeping the video's words, scenes, order and timing. This takes a turn.")
+              : tr("Its folder and its line in motions.lock.json are removed. It can be taken from motionhub again.")}
+          </p>
+          {confirm.kind === 'apply' && !confirm.held && <p className="note">{tr("It is added to the project first.")}</p>}
+          <div className="dialog-actions">
+            <button type="button" className="button ghost" onClick={() => setConfirm(null)}>
+              <Translated text="Cancel" />
+            </button>
+            <button type="button" className="button primary" disabled={confirm.kind === 'apply' && !canAsk} onClick={() => void confirmed()}>
+              {confirm.kind === 'apply' ? tr("Apply to the video") : tr("Remove")}
+            </button>
+          </div>
+        </Dialog>
       )}
       {reel && (
         <Dialog

@@ -11,7 +11,7 @@ afterEach(() => { rmSync(root, { recursive: true, force: true }); });
 it('persists spawn diagnostics as one JSON line and appends across restarts', () => {
   const first = new RuntimeLog(root);
   const error = Object.assign(new Error('spawn ENOTDIR'), { code: 'ENOTDIR', syscall: 'spawn', path: '/Applications/OpenMotionStudio.app/Contents/Resources/app.asar/node_modules/@esbuild/darwin-arm64/bin/esbuild' });
-  first.write('film.bundler-failed', { error, projectPath: '/Users/creator/Documents/OpenMotionStudio/Untitled film' });
+  first.write('film.bundler-failed', { error, projectPath: '/Users/creator/Documents/OpenMotionStudio/film-k3x9q2' });
   new RuntimeLog(root).write('app.start', { platform: 'darwin', arch: 'arm64' });
   const records = readFileSync(first.file, 'utf8').trim().split('\n').map(line => JSON.parse(line));
   expect(records).toHaveLength(2);

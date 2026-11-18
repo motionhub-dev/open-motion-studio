@@ -44,6 +44,7 @@ import {
 import { Brief } from './brief';
 import { Markdown } from './markdown';
 import { elementName, timecode } from './preview';
+import { assetReference, carriesAsset, droppedAsset } from './assets-panel';
 import { reason } from './reason';
 import { type Pickable, ReferencePicker, matchPicks, mentionAt, pickables, useProjectFiles } from './reference-picker';
 import { ModelEffort, useAgentModels } from './settings';
@@ -214,10 +215,10 @@ const PHASES: [Phase, string][] = [
 ];
 
 /** Ways to begin, for an empty conversation: each puts the start of a message in the box, or opens the brief. */
-const STARTS: { title: string; line: string; draft?: string }[] = [
+const STARTS: { title: string; line: string; draft?: string; panel?: 'motions' }[] = [
   { title: 'Explain an idea', line: 'How something works, step by step', draft: 'A 30-second explainer on how ' },
   { title: 'Introduce something', line: 'A product, a person, an event', draft: 'A 15-second introduction to ' },
-  { title: 'Start from a look', line: 'A motion from motionhub to build on', draft: 'Find three motions that look ' },
+  { title: 'Start from a look', line: 'A motion from motionhub to build on', panel: 'motions' },
   { title: 'Write a brief', line: 'What, for whom, how long, what shape' },
 ];
 
@@ -355,7 +356,7 @@ function AgentChip({
 const STATE_WORDS: Record<HarnessState, string> = { ready: 'ready', 'signed-out': 'not signed in', old: 'needs an update', missing: 'not installed' };
 
 interface Props {
-  ref?: Ref<{ send(text: string): void }>;
+  ref?: Ref<AssistantHandle>;
   active: ProviderView | undefined;
   /** The project's agent and the person's own coding agents (ADR 0008). */
   agents: Agents | null;
@@ -376,6 +377,8 @@ interface Props {
   onReference(ref: Reference): void;
   /** Imports images or fonts into the project and adds them to the next message. */
   onImport(): void;
+  /** Opens the project's assets or the motion library beside the stage. */
+  onOpenPanel(panel: 'assets' | 'motions'): void;
   focusRequest: number;
   /** What the person asked for on Home when they created the project: the first message, sent once it can go. */
   brief: string | null;
@@ -391,6 +394,8 @@ interface Props {
   selection: Reference | null;
   onDropSelection(): void;
   onSent(): void;
+  /** An asset dropped on the composer, to go with the next message. */
+  onDropAsset(ref: Reference): void;
   onWorking(working: boolean): void;
   /** Takes the film to a moment. */
   onSeek(t: number): void;
@@ -406,6 +411,14 @@ interface Props {
   onHide(): void;
   /** Opens the project's history, the turns' checkpoints, in the project tools. */
   onHistory(): void;
+}
+
+/** What the workspace asks of the assistant. */
+export interface AssistantHandle {
+  /** Sends words of the workspace's own, without what is in the tray. */
+  send(text: string): void;
+  /** Sends the composer and its tray, as the send button does. */
+  submit(): void;
 }
 
 /** The composer grows with its text to about eight lines. */
@@ -429,6 +442,7 @@ export function Assistant({
   selection,
   onDropSelection,
   onSent,
+  onDropAsset,
   onSeek,
   onSelect,
   film,
@@ -442,6 +456,7 @@ export function Assistant({
   onRemoveRef,
   onReference,
   onImport,
+  onOpenPanel,
   focusRequest,
   brief,
   onBriefTaken,
@@ -456,6 +471,23 @@ export function Assistant({
   const [showEarlier, setShowEarlier] = useState(false);
   /** The film when the last message went, which the turn's end keeps. */
   const filmAtSend = useRef<FilmInfo | null>(null);
+  /** An asset is being dragged over the composer, which says it will take it. */
+  const [dropping, setDropping] = useState(false);
+  /** The + menu is open. */
+  const [adding, setAdding] = useState(false);
+  useEffect(() => {
+    if (!adding) return;
+    const close = (event: PointerEvent) => {
+      if (!(event.target instanceof Element && event.target.closest('.add-picker'))) setAdding(false);
+    };
+    const escape = (event: globalThis.KeyboardEvent) => event.key === 'Escape' && setAdding(false);
+    addEventListener('pointerdown', close);
+    addEventListener('keydown', escape);
+    return () => {
+      removeEventListener('pointerdown', close);
+      removeEventListener('keydown', escape);
+    };
+  }, [adding]);
   /** The project's turns added up, from its usage log, for the header. */
   const [usage, setUsage] = useState<UsageTotals | null>(null);
   const refreshUsage = () =>
@@ -656,7 +688,7 @@ export function Assistant({
   }
 
   // Workspace actions use the same conversation, progress and error handling as a message from the composer.
-  useImperativeHandle(ref, () => ({ send: (text: string) => void sendText(text, [], []) }));
+  useImperativeHandle(ref, () => ({ send: (text: string) => void sendText(text, [], []), submit: () => void send() }));
 
   function onKey(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (mention && !event.nativeEvent.isComposing) {
@@ -736,16 +768,7 @@ export function Assistant({
           <PanelLeftClose size={15} />
         </button>
         <h2 className="visually-hidden"><Translated text="Assistant" /></h2>
-        <AgentChip
-          active={active}
-          agents={agents}
-          disabled={working}
-          onUseAgent={onUseAgent}
-          onRefreshAgents={onRefreshAgents}
-          onAgentSettings={onAgentSettings}
-          onSettings={onSettings}
-          openRequest={agentMenu}
-        />
+        <span className="spacer" />
         {usage && usage.turns > 0 && (
           <span
             className="usage-total"
@@ -754,7 +777,7 @@ export function Assistant({
             {tokenCount(allTokens(usage))} {tr("tokens")}
           </span>
         )}
-        <span className="spacer" />
+
         <button type="button" className="icon-button" aria-label={tr("History")} data-tip={tr("History: go back to before a turn")} onClick={onHistory}>
           <History size={15} />
         </button>
@@ -795,8 +818,9 @@ export function Assistant({
                 <button
                   key={tr(start.title)}
                   type="button"
-                  className={`start${start.draft === undefined && briefing ? ' selected' : ''}`}
+                  className={`start${start.draft === undefined && !start.panel && briefing ? ' selected' : ''}`}
                   onClick={() => {
+                    if (start.panel) return onOpenPanel(start.panel);
                     if (start.draft === undefined) return setBriefing(!briefing);
                     setDraft(tr(start.draft));
                     requestAnimationFrame(() => {
@@ -1123,8 +1147,11 @@ export function Assistant({
               <button type="button" className="mark-locate" title={tr("Go to {0}", {0: when(mark)})} onClick={() => onSeek(mark.t)}>
                 <span className="number">{i + 1}</span>
                 <span className="mark-what">
-                  <strong>{markLabel(mark)}</strong>
-                  <small className="mono">{when(mark)}</small>
+                  <strong>{mark.element ? markLabel(mark) : tr(markLabel(mark))}</strong>
+                  <small className="mono">
+                    {when(mark)}
+                    {mark.changes?.length ? ` · ${tr("{0} changes", {0: mark.changes.length})}` : ''}
+                  </small>
                 </span>
               </button>
               <input
@@ -1204,7 +1231,27 @@ export function Assistant({
           </div>
         </div>
       )}
-      <form className="composer" onSubmit={send} hidden={asking}>
+      <form
+        className={`composer${dropping ? ' dropping' : ''}`}
+        onSubmit={send}
+        hidden={asking}
+        onDragOver={(event) => {
+          if (!carriesAsset(event) || working) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = 'copy';
+          setDropping(true);
+        }}
+        onDragLeave={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropping(false);
+        }}
+        onDrop={(event) => {
+          setDropping(false);
+          const asset = droppedAsset(event);
+          if (!asset || working) return;
+          event.preventDefault();
+          onDropAsset(assetReference(asset));
+        }}
+      >
         {mention && (
           <ReferencePicker
             matches={matches}
@@ -1240,16 +1287,45 @@ export function Assistant({
           onKeyDown={onKey}
         />
         <div className="composer-actions">
-          <button
-            type="button"
-            className="icon-button"
-            aria-label={tr("Import images or fonts for this message")}
-            data-tip={tr("Import images or fonts")}
-            disabled={working || disabled}
-            onClick={onImport}
-          >
-            <Plus size={15} />
-          </button>
+          {/* What can go with a message: a file from the computer, one of the project's, or a look from the library. */}
+          <span className="add-picker">
+            <button
+              type="button"
+              className="icon-button"
+              aria-label={tr("Add to the message")}
+              aria-haspopup="menu"
+              aria-expanded={adding}
+              data-tip={tr("Add files, assets or a motion")}
+              disabled={working || disabled}
+              onClick={() => setAdding(!adding)}
+            >
+              <Plus size={15} />
+            </button>
+            {adding && (
+              <span className="menu add-menu" role="menu">
+                {(
+                  [
+                    ['Import files…', 'Images, fonts and sounds from your computer', () => onImport()],
+                    ['From the assets', 'Drag one onto the picture or the message', () => onOpenPanel('assets')],
+                    ['From the motion library', 'A look from motionhub to apply', () => onOpenPanel('motions')],
+                  ] as const
+                ).map(([label, line, act]) => (
+                  <button
+                    key={label}
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setAdding(false);
+                      act();
+                    }}
+                  >
+                    {tr(label)}
+                    <span>{tr(line)}</span>
+                  </button>
+                ))}
+              </span>
+            )}
+          </span>
           <button
             type="button"
             className="icon-button"
@@ -1263,6 +1339,17 @@ export function Assistant({
             <AtSign size={15} />
           </button>
           <span className="spacer" />
+          {/* What the message goes to, beside the button that sends it. */}
+          <AgentChip
+            active={active}
+            agents={agents}
+            disabled={working}
+            onUseAgent={onUseAgent}
+            onRefreshAgents={onRefreshAgents}
+            onAgentSettings={onAgentSettings}
+            onSettings={onSettings}
+            openRequest={agentMenu}
+          />
           {working ? (
             <button
               type="button"

@@ -1,6 +1,6 @@
 # Sound, narration and captions
 
-> **Status:** Plan, slices A, B and C built · **Updated:** 2026-11-15
+> **Status:** Plan, slices A, B and C built · **Updated:** 2026-11-17
 
 How a film gets sound, a spoken narration and captions, in three slices: music and effects that play and export, captions
 drawn from a film's lines, and a narration synthesized line by line whose word times time the captions.
@@ -27,7 +27,7 @@ changes land in `motionhub-dev/motions` (`packages/runtime`) before the Studio u
 ## Slice A: sound in and out
 
 *Built*, as below (`@motionhub/runtime` 0.7.0 gives `<Sound>`), with three differences:
-- The Inspector does not show a sound: a click on its band seeks to it, and hovering shows its level, loop and fades.
+- No panel shows a sound: a click on its band seeks to it, and hovering shows its level, loop and fades.
 - The Remotion export plays the sounds through `@motionhub/remotion` 0.5's `<FilmAudio>`, each file copied into its
   `public/`.
 - Overlapping sounds take rows of their own on the timeline, and the waveform is drawn on a decibel scale.
@@ -102,7 +102,7 @@ in the app with the run-desktop skill; A and C each end with a real export liste
 
 | Slice | Runtime (motions) | Main | Renderer | Docs |
 | --- | --- | --- | --- | --- |
-| A | `<Sound>` | `assets.ts`, `film/capture.ts`, `film/remotion-export.ts`, `agent/tools.ts`, `film/film.md` | `preview/core.tsx`, `timeline.tsx`, `inspector.tsx` | ADR 0010, `architecture.md`, `design.md`, CHANGELOG |
+| A | `<Sound>` | `assets.ts`, `film/capture.ts`, `film/remotion-export.ts`, `agent/tools.ts`, `film/film.md` | `preview/core.tsx`, `timeline.tsx` | ADR 0010, `architecture.md`, `design.md`, CHANGELOG |
 | B | `<Line at dur>`, `<Film captions>`, `<Caption line>` | `film/capture.ts` | `timeline.tsx`, `export-dialog.tsx` | `design.md`, CHANGELOG |
 | C | `<Film voice>`, `useLine` | new `voice.ts`, `providers.ts`, `agent/tools.ts`, `usage.ts` | `settings.tsx`, stage bar | ADR 0011, `architecture.md`, `design.md`, CHANGELOG |
 

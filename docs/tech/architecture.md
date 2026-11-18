@@ -124,8 +124,8 @@ agent hold the folder, refuses while a task runs, and opens the editor again on 
 was in; the library forgets the old path and remembers the new one. Each task the main process lists says whether its
 project is in a window of its own (`ProjectTask.separate`). A
 folder that is gone stays, marked missing. A project's cover is not in the library: it is the first scene's still,
-written to the project's own `.motion-studio/cover.jpg` when the timeline's stills are made, and read back as a data URL
-when Home lists the library.
+written to the project's own `.motion-studio/cover.jpg` (its long side 1280 px) when the timeline's stills are made, or
+again when the one there is smaller, and read back as a data URL when Home lists the library.
 
 Home plays each bundled template as a video the Studio's own export made of it: `pnpm templates`
 (`scripts/render-templates.mjs`) drives the built app in a hidden window with an isolated profile, exports every
@@ -377,10 +377,9 @@ panels, built and planned, each a projection of the project:
 | Panel | What it does | Writes |
 | --- | --- | --- |
 | **Assistant** | The conversation, the agent's words as Markdown, each run of tool calls one line of plain words with its stills beside it (one clicked seeks to its moment and opens large), what each turn changed in the film, the agent's questions as cards, a message waiting for the turn or steering it (built); the turn's spend is planned | Through the agent |
-| **Preview** | The film's preview with transport and full screen; the mark tools (pick an element, drag a region) ask what should change there and attach it to the next message, flagged on the timeline (built) | Nothing |
-| **Motion** | The project's motions as poster cards; one opened shows its colours, its components with their previews and its MOTION.md (`motionDetail`); the catalogue search with Use (built). Reels are planned | Through `useMotion` |
-| **Inspector** | The element last picked: its path, moment, scene and layer, box in the film's pixels, words, computed look (`PickedElement.styles`, which the agent also reads) and attributes (built) | Nothing |
-| **Files** | The tree and a read-only CodeMirror view; open in the person's own editor | Nothing |
+| **Preview** | The film's preview with transport and full screen; the mark tools (pick an element, drag a region) ask what should change there and attach it to the next message, flagged on the timeline. A picked element's words, type, colours and opacity can be tried on the picture (`oms:tweak`, a rule on that element inside the frame, gone at the next pick or when the mark closes) and go with the mark as exact changes (`Mark.changes`, validated against `TWEAKABLE`) for the agent to make in film.tsx. The film's size and rate open the usual sizes and rates, one chosen asked of the agent as an exact request (`specRequest`) (built) | Through the agent |
+| **Motion** | The project's motions as poster cards, each marked used when the film's code names it (`projectSource`); one opened shows its colours, its components with their previews and its MOTION.md (`motionDetail`); the whole catalogue from the start, searched to narrow it; Apply to the video takes a motion and asks the agent to restyle the film with it; a hub motion the film does not use is removed with its line in the lock (`removeMotion`) (built) | Through `useMotion`, `removeMotion` and the agent |
+| **Code** | The project's files as a tree (`projectFiles`, without dot folders or node_modules), a code file read-only across the stage with its syntax coloured by sugar-high (`readProjectFile`: text up to 1 MB, inside the project, through no symbolic link), opened in the person's own program (`openProjectFile`); the outline's rows show the lines of film.tsx that write them (`filmSpans`, now in `shared/spans.ts`), and lines selected go with the message as a `code` reference (built) | Nothing: lines picked go to the agent |
 | **Timeline** | Read-only: a ruler to seek on (the moment under the pointer named with its scene), the film's scenes, each with a strip of its frames (a scene clicked seeks to its start), the marks (a drag along their lane marks a stretch), the check's issues at their moments (clicked, to the assistant) and the playhead; zoom about the pointer, a view that follows the playhead while it plays, and a chip that brings back a playhead out of view (built) | Nothing |
 | **Export** | Queue, progress, open the file | Nothing |
 | **Settings** | A page over Home or the editor: General (theme, language, launch at login), providers and keys in two panes, with a connection test (`testProvider`: one call as the form stands, asking for a tool call, with the typed key or the stored one; the reply carries no key), and the person's own coding agents with where each stands and the one action that fixes it (built); permissions are planned | App settings |

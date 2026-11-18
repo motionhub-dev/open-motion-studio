@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { SCENE_STILLS, type Stage, sceneStills, stillsDir } from '../capture';
+import { COVER_SIDE, SCENE_STILLS, type Stage, jpegSize, sceneStills, stillsDir } from '../capture';
 import { buildDir } from '../film';
 import type { FilmInfo } from '../../../shared/preview';
 
@@ -28,7 +28,7 @@ function fakeStage() {
     frame: async (t) => {
       times.push(t);
       const bytes = Buffer.from(`frame at ${t}`);
-      return { resize: () => ({ toJPEG: () => bytes }) } as never;
+      return { getSize: () => ({ width: film.width, height: film.height }), resize: () => ({ toJPEG: () => bytes }) } as never;
     },
     close: vi.fn(),
   };
@@ -65,11 +65,11 @@ describe('the scenes photographed for the timeline', () => {
     const frame = stage.frame;
     stage.frame = async (t) => {
       const image = await frame(t);
-      return { resize: ({ width }: { width: number }) => (widths.push(width), image.resize({ width })) } as never;
+      return { getSize: image.getSize, resize: ({ width }: { width: number }) => (widths.push(width), image.resize({ width })) } as never;
     };
     await sceneStills(dir, 1, async () => stage);
     expect(times.at(-1)).toBeCloseTo(0.6 * 4);
-    expect(widths.at(-1)).toBeGreaterThan(widths[0]! * 3);
+    expect(widths.at(-1)).toBe(COVER_SIDE);
     expect(String(await readFile(join(dir, '.motion-studio', 'cover.jpg')))).toBe(`frame at ${times.at(-1)}`);
 
     await rm(join(dir, '.motion-studio', 'cover.jpg'));
@@ -78,6 +78,26 @@ describe('the scenes photographed for the timeline', () => {
     expect(again.times).toHaveLength(1);
     expect(again.stage.close).toHaveBeenCalled();
     expect(String(await readFile(join(dir, '.motion-studio', 'cover.jpg')))).toBe(`frame at ${again.times[0]}`);
+  });
+
+  it('takes again a cover kept smaller than the Studio takes them now, and keeps one as large', async () => {
+    const jpeg = (width: number, height: number) => {
+      const sof = Buffer.from([0xff, 0xc0, 0, 17, 8, 0, 0, 0, 0, 3, 1, 0x22, 0, 2, 0x11, 1, 3, 0x11, 1]);
+      sof.writeUInt16BE(height, 5);
+      sof.writeUInt16BE(width, 7);
+      return Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 4, 0, 0]), sof]);
+    };
+    expect(jpegSize(jpeg(640, 1138))).toEqual({ width: 640, height: 1138 });
+    expect(jpegSize(Buffer.from('not a picture'))).toBeNull();
+    await sceneStills(dir, 1, fakeStage().open);
+    await writeFile(join(dir, '.motion-studio', 'cover.jpg'), jpeg(640, 1138));
+    const small = fakeStage();
+    await sceneStills(dir, 1, small.open);
+    expect(small.times).toHaveLength(1);
+    await writeFile(join(dir, '.motion-studio', 'cover.jpg'), jpeg(720, 1280));
+    const large = fakeStage();
+    await sceneStills(dir, 1, large.open);
+    expect(large.open).not.toHaveBeenCalled();
   });
 
   it('keeps one file, in .motion-studio/thumbs, and photographs the same build only once', async () => {

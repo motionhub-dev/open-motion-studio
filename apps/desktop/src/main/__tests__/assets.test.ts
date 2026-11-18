@@ -2,7 +2,7 @@ import { mkdtemp, readFile, mkdir, writeFile, rm, symlink } from 'node:fs/promis
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { importAssets, projectAssets } from '../assets';
+import { importAssets, projectAssets, renameAsset, trashAsset } from '../assets';
 vi.mock('electron', () => ({}));
 let root: string;
 beforeEach(async () => {
@@ -47,4 +47,46 @@ it('takes music and sound effects beside images and fonts', async () => {
     ['media/loop.ogg', 'audio'],
     ['media/voice.m4a', 'audio'],
   ]);
+});
+it('says a file is used when the film’s own code names its path', async () => {
+  const dir = join(root, 'project');
+  const files = ['logo.png', 'bed.mp3'].map((name) => join(root, 'source', name));
+  for (const file of files) await writeFile(file, 'bytes');
+  await importAssets(dir, files);
+  await writeFile(join(dir, 'film.tsx'), `const logo = 'media/logo.png';`);
+  expect((await projectAssets(dir)).map((a) => [a.name, a.used])).toEqual([
+    ['bed.mp3', false],
+    ['logo.png', true],
+  ]);
+});
+it('renames a file the video does not use, keeping its extension, and refuses the rest', async () => {
+  const dir = join(root, 'project');
+  const files = ['logo.png', 'used.png', 'other.png'].map((name) => join(root, 'source', name));
+  for (const file of files) await writeFile(file, 'bytes');
+  await importAssets(dir, files);
+  await writeFile(join(dir, 'film.tsx'), `const used = 'media/used.png';`);
+  expect((await renameAsset(dir, 'media/logo.png', 'brand')).map((a) => a.name)).toEqual(['brand.png', 'other.png', 'used.png']);
+  expect(await readFile(join(dir, 'media', 'brand.png'), 'utf8')).toBe('bytes');
+  await expect(renameAsset(dir, 'media/brand.png', 'brand.jpg')).rejects.toThrow('Keep the .png');
+  await expect(renameAsset(dir, 'media/brand.png', 'other.png')).rejects.toThrow('already a file');
+  await expect(renameAsset(dir, 'media/brand.png', '../escape.png')).rejects.toThrow('single folder name');
+  await expect(renameAsset(dir, 'media/used.png', 'x')).rejects.toThrow('The video uses used.png');
+  await expect(renameAsset(dir, 'film.tsx', 'x')).rejects.toThrow('not among');
+});
+it('moves a file the video does not use to the trash, never one it uses', async () => {
+  const dir = join(root, 'project');
+  const files = ['logo.png', 'used.png'].map((name) => join(root, 'source', name));
+  for (const file of files) await writeFile(file, 'bytes');
+  await importAssets(dir, files);
+  await writeFile(join(dir, 'film.tsx'), `const used = 'media/used.png';`);
+  const trashed: string[] = [];
+  const trash = async (file: string) => {
+    trashed.push(file);
+    await rm(file);
+  };
+  expect((await trashAsset(dir, 'media/logo.png', trash)).map((a) => a.name)).toEqual(['used.png']);
+  expect(trashed).toEqual([join(dir, 'media', 'logo.png')]);
+  await expect(trashAsset(dir, 'media/used.png', trash)).rejects.toThrow('The video uses');
+  await expect(trashAsset(dir, '../outside.png', trash)).rejects.toThrow('not among');
+  expect(trashed).toHaveLength(1);
 });
