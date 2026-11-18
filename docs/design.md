@@ -104,8 +104,9 @@ A top bar over a grid of panels (`project-view.tsx`):
   Full screen is the stage alone, picture and foot, with no corners; Esc or the button leaves it.
 - The **project tools** are three tabs, Outline, Assets (with how many it holds) and Code. The motion library opens
   from the top bar across the workspace, in place of the stage, the timeline and the project tools. Files from the computer dropped anywhere on the workspace (dashed while they are over it) are imported and go
-  with the next message; Start from a look, on an empty conversation, opens the motion library. History opens from the assistant's head
-  and Checks from the status; either shows its title with a way back to the tabs.
+  with the next message; Start from a look, on an empty conversation, opens the motion library. Versions (the turns'
+  checkpoints) opens from the project's title menu and Checks from the status; either shows its title with a way back to
+  the tabs.
 - The assistant's and the right panel's widths are dragged at their edges, and the timeline's height is the least it
   has: it takes whatever the stage leaves (handles take the arrow keys too). The timeline folds to its head, and the
   stage then takes the rest; `layout.tsx` keeps the sizes in that window's session-local storage.
@@ -223,7 +224,7 @@ The Chinese keeps one word for each thing: a project (a folder) is 项目, a fil
 
 The project's menu is about this project alone, each row led by its icon: Rename… (the folder, refused while a task
 runs; the editor comes back on the renamed folder where it was), Duplicate as a new project (a copy beside it without
-the Studio's state, which opens), and Open in its own window (also Ctrl/Cmd+Shift+N), which moves its existing view
+the Studio's state, which opens), Versions… (the turns' checkpoints, in the project tools), and Open in its own window (also Ctrl/Cmd+Shift+N), which moves its existing view
 into a dedicated window, or Move back to the main window when it is in one. Below a rule, Show in folder over the folder's path, written out and wrapping. Home and
 the other projects are reached from the Home icon beside the title. Closing a dedicated window only detaches the view; reopening restores the same conversation, draft and
 pending requests. A project appears in one editing surface at a time. Hidden views pause preview playback while
@@ -262,7 +263,10 @@ agents and exports continue. Sessions are retained for this app run; explicit Qu
   sends, Shift+Enter breaks the line, + and @ at its start (+ opens, upward, Import files…, From the assets and From
   the motion library, each with a line saying what it does), and at its end its agent as a quiet chip and Send (or
   Stop): what the message goes to sits beside the button that sends it. The assistant's head is hide, then the project's
-  tokens, History and New conversation as icons. The chip has a dot (green
+  tokens, Past conversations and New conversation as icons. New conversation keeps the one before; Past conversations
+  (`past-conversations.tsx`) shows, in the log's place, those kept, newest first, by when and their first message, and
+  one opened read-only as it was: the person's words, the agent's replies and each tool's line. What was done to the
+  film is in Versions; this is what was said. The chip has a dot (green
   ready, `--bad` signed out or too old, hollow not installed or no model) and the built-in agent's model, or the
   person's own agent with the model chosen for it ("Claude Code · opus"; ADR 0008), the rest on hover. It opens a menu
   upward, as wide as the composer, as @ does: the built-in agent on its provider, Codex and Claude Code with their versions or what they need
@@ -292,7 +296,7 @@ agents and exports continue. Sessions are retained for this app run; explicit Qu
   line in the lock go). Apply asks first, then takes the motion if the project does not hold it, goes back to the
   picture and asks the agent to restyle the film with it (`applyRequest`), keeping its words, scenes, order and timing.
 - **Code** (`code-view.tsx`): the project's files as a tree (folders first; motions/, media/ and voice/ start folded),
-  each code file opening across the stage in place of the picture, which keeps its film loaded out of sight; anything
+  each code file opening across the stage in place of the picture, which keeps its film loaded out of sight, the timeline folding to its head while it is open (and opening again after, unless it was folded before); anything
   else opens in its own program. The code is read-only, on the panels' paper rather than the stage's ink: its path and
   line count, Picture (or Esc) back, Add lines (the lines selected, as a reference `film.tsx:3-5` with their text),
   Copy, and Open in your editor; a line under the head says the assistant writes the code. Line numbers stay at the

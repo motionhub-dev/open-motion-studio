@@ -54,6 +54,7 @@ import { speak, voicesOf } from './voice';
 import { EXAMPLES } from './examples';
 import { ASSET_EXTENSIONS, importAssets, projectAssets, renameAsset, trashAsset } from './assets';
 import { projectFileToOpen, projectFiles, readProjectFile } from './files';
+import { archiveConversation, pastConversation, pastConversations } from './conversations';
 import { reviewBuild } from './film/review';
 import { FILM, FILM_SKILL, startFilm, watchFilm } from './film/film';
 import { type ExportedSpeech, exportedSpeech, writeRemotionProject } from './film/remotion-export';
@@ -891,9 +892,14 @@ export function createWorkspace(host: WorkspaceHost, renderSession: Session, cha
       const agent = await agentOf(open);
       return agent.kind === 'built-in' ? transcript(await conversation(open)) : agent.items;
     });
+    handle(CHANNELS.pastConversations, () => pastConversations(requireOpen().project.path));
+    handle(CHANNELS.pastConversation, (_event, id: unknown) => pastConversation(requireOpen().project.path, id));
     handle(CHANNELS.clearConversation, async () => {
       const state = requireOpen();
       if (working || exporting) throw new Error('Finish the current task before starting a new conversation.');
+      // The conversation set aside is kept, as it was shown, among the project's past ones.
+      const before = await agentOf(state);
+      await archiveConversation(state.project.path, before.kind === 'built-in' ? transcript(await conversation(state)) : before.items);
       state.messages = [];
       state.lastTurn = undefined;
       await saveConversation(state.project.path, []);

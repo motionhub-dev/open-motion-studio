@@ -3,6 +3,27 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-18 — The timeline folds while code is read
+
+- **What:** Opening a file in the code view folds the timeline to its head, and leaving the code view opens it again,
+  unless it was folded before.
+- **Why:** Code is read line by line down the page; the timeline took a third of its height and showed nothing of it.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/project-view.tsx`.
+
+## 2026-11-18 — Past conversations are kept; History is Versions
+
+- **What:** New conversation keeps the one before in the project's `.motion-studio/conversations/` (as it was shown,
+  without stills), and the assistant's clock opens Past conversations: those kept, newest first, each read as it was.
+  The turns' checkpoints the clock used to open are now Versions, opened from the project's title menu.
+- **Why:** The clock beside New conversation read as the conversation's history but showed the film's checkpoints, and
+  New conversation threw the conversation away with no way back to it.
+- **Breaking:** None. A conversation cleared before this is not recovered.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/main/conversations.ts`, `apps/desktop/src/renderer/src/past-conversations.tsx`,
+  `apps/desktop/src/renderer/src/project-view.tsx` (`ProjectMenu`).
+
 ## 2026-11-18 — The film's voice is chosen and heard in the voice view
 
 - **What:** The voice view lists the voices of each provider set up, searched by name, language or id; each is heard

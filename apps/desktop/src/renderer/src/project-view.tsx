@@ -23,6 +23,7 @@ import {
   SquareArrowOutUpRight,
   X,
   Sparkles,
+  GitCommitVertical,
 } from 'lucide-react';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
@@ -152,7 +153,7 @@ function Shortcuts({ onClose, onSettings }: { onClose(): void; onSettings(): voi
  * it as a new project, and move it between the main window and a window of its own; and where its folder is, which
  * opens it. Home and the other projects are reached from Home.
  */
-function ProjectMenu({ project, onError }: { project: Project; onError(error: unknown): void }) {
+function ProjectMenu({ project, onError, onVersions }: { project: Project; onError(error: unknown): void; onVersions(): void }) {
   const { t: tr } = usePreferences();
   const [tasks, setTasks] = useState<ProjectTask[]>([]);
   const [open, setOpen] = useState(false);
@@ -231,6 +232,18 @@ function ProjectMenu({ project, onError }: { project: Project; onError(error: un
           <button type="button" role="menuitem" className="icon-item" onClick={() => act(() => window.studio.libraryAction(project.path, 'duplicate'))}>
             <Copy size={15} aria-hidden="true" />
             {tr("Duplicate as a new project")}
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className="icon-item"
+            onClick={() => {
+              setOpen(false);
+              onVersions();
+            }}
+          >
+            <GitCommitVertical size={15} aria-hidden="true" />
+            {tr("Versions…")}
           </button>
           {separate ? (
             <button type="button" role="menuitem" className="icon-item" onClick={() => act(() => window.studio.openTask(project.path, false))}>
@@ -321,6 +334,18 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
   const voicing = centre?.kind === 'voice';
   /** A view that takes the timeline's and the project tools' places too. */
   const wide = library || voicing;
+  // The code view wants height, not the timeline: it folds the timeline to its head while it is open, and opens it
+  // again on leaving, unless the person had folded it themselves.
+  const foldedForCode = useRef(false);
+  useEffect(() => {
+    if (code && !layout.folded) {
+      foldedForCode.current = true;
+      setLayout({ folded: true });
+    } else if (!code && foldedForCode.current) {
+      foldedForCode.current = false;
+      setLayout({ folded: false });
+    }
+  }, [code !== null]);
   const [shortcuts, setShortcuts] = useState(false);
   /** Whether the menu of other ways to export is open. */
   const [menu, setMenu] = useState(false);
@@ -726,7 +751,7 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
           <Home size={18} />
         </button>
         <ChevronRight size={14} className="muted" aria-hidden="true" />
-        <ProjectMenu project={project} onError={(e) => setToast({ text: reason(e), error: true })} />
+        <ProjectMenu project={project} onError={(e) => setToast({ text: reason(e), error: true })} onVersions={() => openSide('history')} />
         {project.film && status}
         <span className="spacer" />
         <button
@@ -892,7 +917,6 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
               onFresh={(keys) => setFresh(new Set(keys))}
               onUndone={() => setMarks([])}
               onHide={() => setLayout({ assistant: false })}
-              onHistory={() => openSide('history')}
             />
             <Splitter
               axis="x"
@@ -994,7 +1018,7 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
                     <button type="button" className="icon-button" aria-label={tr("Back to the outline")} data-tip={tr("Back")} onClick={() => setSide('outline')}>
                       <ArrowLeft size={15} />
                     </button>
-                    <h2>{side === 'history' ? tr("History") : tr("Checks")}</h2>
+                    <h2>{side === 'history' ? tr("Versions") : tr("Checks")}</h2>
                   </>
                 ) : (
                   <nav aria-label={tr("Project tools")}>

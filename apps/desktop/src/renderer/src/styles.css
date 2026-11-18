@@ -3655,6 +3655,78 @@ kbd {
   color: var(--muted);
 }
 
+/* Past conversations, in the assistant's log's place: a list, then one read as it was. */
+.past-conversations {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.past-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.past-head .button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+}
+.past-when {
+  margin: 0;
+}
+.past-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.past-list button {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-button);
+  background: var(--bg);
+  text-align: left;
+}
+.past-list button:hover {
+  border-color: var(--text);
+}
+.past-list button > svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--muted);
+}
+.past-list span {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.past-list strong {
+  font-size: 13px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.past-list small {
+  font-size: 11px;
+  color: var(--muted);
+}
+.past-tool {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .picture.dropping,
 .composer.dropping {
   outline: 2px dashed var(--annotate);
