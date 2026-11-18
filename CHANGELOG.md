@@ -3,6 +3,22 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-17 — Motions are applied to the video, and assets dragged where they go
+
+- **What:** The Motions panel (动效库 in Chinese) opens on motionhub's whole catalogue instead of an empty search, and
+  a motion is applied to the video: it is taken into the project if needed and the agent is asked, after a
+  confirmation, to restyle the film with it, keeping the film's words, scenes and timing. The project's motions are
+  marked in use or not, preview their reel, and one from the hub the film does not use can be removed (its folder
+  and its line in `motions.lock.json`). Assets are dragged onto the picture (a mark there asking for the file) or
+  onto the composer; a sound plays in place with its length, a typeface shows itself, and a file the film uses is
+  marked In use. The Chinese tray now says 一个区域 for a region.
+- **Why:** Use and Import only copied files into the project, so nothing on screen changed, and the catalogue showed
+  nothing until someone guessed a word to search for.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/motion-panel.tsx`, `apps/desktop/src/renderer/src/assets-panel.tsx`,
+  `apps/desktop/src/main/motions.ts` (`removeMotion`), `apps/desktop/src/main/project.ts` (`projectSource`).
+
 ## 2026-11-17 — Home's covers are sharp and whole
 
 - **What:** A project's cover is kept with its long side at 1280 px (it was 640 px wide) and drawn whole on the stage's

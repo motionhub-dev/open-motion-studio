@@ -44,6 +44,7 @@ import {
 import { Brief } from './brief';
 import { Markdown } from './markdown';
 import { elementName, timecode } from './preview';
+import { assetReference, carriesAsset, droppedAsset } from './assets-panel';
 import { reason } from './reason';
 import { type Pickable, ReferencePicker, matchPicks, mentionAt, pickables, useProjectFiles } from './reference-picker';
 import { ModelEffort, useAgentModels } from './settings';
@@ -391,6 +392,8 @@ interface Props {
   selection: Reference | null;
   onDropSelection(): void;
   onSent(): void;
+  /** An asset dropped on the composer, to go with the next message. */
+  onDropAsset(ref: Reference): void;
   onWorking(working: boolean): void;
   /** Takes the film to a moment. */
   onSeek(t: number): void;
@@ -437,6 +440,7 @@ export function Assistant({
   selection,
   onDropSelection,
   onSent,
+  onDropAsset,
   onSeek,
   onSelect,
   film,
@@ -464,6 +468,8 @@ export function Assistant({
   const [showEarlier, setShowEarlier] = useState(false);
   /** The film when the last message went, which the turn's end keeps. */
   const filmAtSend = useRef<FilmInfo | null>(null);
+  /** An asset is being dragged over the composer, which says it will take it. */
+  const [dropping, setDropping] = useState(false);
   /** The project's turns added up, from its usage log, for the header. */
   const [usage, setUsage] = useState<UsageTotals | null>(null);
   const refreshUsage = () =>
@@ -1122,7 +1128,7 @@ export function Assistant({
               <button type="button" className="mark-locate" title={tr("Go to {0}", {0: when(mark)})} onClick={() => onSeek(mark.t)}>
                 <span className="number">{i + 1}</span>
                 <span className="mark-what">
-                  <strong>{markLabel(mark)}</strong>
+                  <strong>{mark.element ? markLabel(mark) : tr(markLabel(mark))}</strong>
                   <small className="mono">
                     {when(mark)}
                     {mark.changes?.length ? ` · ${tr("{0} changes", {0: mark.changes.length})}` : ''}
@@ -1206,7 +1212,27 @@ export function Assistant({
           </div>
         </div>
       )}
-      <form className="composer" onSubmit={send} hidden={asking}>
+      <form
+        className={`composer${dropping ? ' dropping' : ''}`}
+        onSubmit={send}
+        hidden={asking}
+        onDragOver={(event) => {
+          if (!carriesAsset(event) || working) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = 'copy';
+          setDropping(true);
+        }}
+        onDragLeave={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropping(false);
+        }}
+        onDrop={(event) => {
+          setDropping(false);
+          const asset = droppedAsset(event);
+          if (!asset || working) return;
+          event.preventDefault();
+          onDropAsset(assetReference(asset));
+        }}
+      >
         {mention && (
           <ReferencePicker
             matches={matches}

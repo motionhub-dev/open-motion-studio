@@ -24,8 +24,9 @@ import {
   SquareDashed,
   X,
 } from 'lucide-react';
-import { type PointerEvent, type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { type BuildResult, MARK_NOTE, MAX_MARKS, type Mark, type MarkChange, type Reference } from '../../shared/api';
+import { type DragEvent, type PointerEvent, type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { carriesAsset, droppedAsset } from './assets-panel';
+import { type Asset, type BuildResult, MARK_NOTE, MAX_MARKS, type Mark, type MarkChange, type Reference } from '../../shared/api';
 import type { Box, FilmInfo, FromPreview, PickedElement, ToPreview } from '../../shared/preview';
 import { type Hovered, sameHovered } from './outline';
 
@@ -321,6 +322,7 @@ export function Stage({
   onMark,
   canApply,
   onAsk,
+  onDropAsset,
   selected,
   hovered = null,
   working,
@@ -340,6 +342,8 @@ export function Stage({
   canApply: boolean;
   /** Sends the agent a request of the stage's own, such as a new size for the film. */
   onAsk(text: string): void;
+  /** An asset dropped on the picture: a mark where it fell, asking for it there. */
+  onDropAsset(asset: Pick<Asset, 'path' | 'name' | 'kind'>, mark: Mark): void;
   selected: Reference | null;
   /** The layer under the pointer in the outline or on the timeline, drawn as its declared box. */
   hovered?: Hovered;
@@ -376,6 +380,8 @@ export function Stage({
   const [drag, setDrag] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [note, setNote] = useState('');
+  /** An asset is being dragged over the picture, which says it will take it. */
+  const [dropping, setDropping] = useState(false);
   /** What the person is trying on the picked element, shown at once on the picture. */
   const [look, setLook] = useState<Look>({});
   const ask = useRef<HTMLDivElement>(null);
@@ -452,7 +458,7 @@ export function Stage({
   }, [draft]);
 
   /** A point on the stage as fractions of the frame, or null outside it. */
-  function point(event: PointerEvent) {
+  function point(event: Pick<PointerEvent, 'clientX' | 'clientY'>) {
     if (!box || !stage.current) return null;
     const r = stage.current.getBoundingClientRect();
     const x = (event.clientX - r.left - INSET - box.left) / box.width;
@@ -517,6 +523,18 @@ export function Stage({
   const changes = draft?.element ? changesOf(draft.element, look) : [];
   const shown = draft?.element ? { ...lookOf(draft.element), ...look } : {};
 
+  /** Where an asset falls on the picture: a box a tenth of the frame's width around it, kept inside the frame. */
+  function drop(event: DragEvent) {
+    const asset = droppedAsset(event);
+    const p = point(event);
+    if (!asset || !p || disabled || full) return;
+    event.preventDefault();
+    const w = 0.1;
+    const h = film ? (w * film.width) / film.height : w;
+    const box = { x: Math.min(1 - w, Math.max(0, p.x - w / 2)), y: Math.min(1 - h, Math.max(0, p.y - h / 2)), w, h: Math.min(1, h) };
+    onDropAsset(asset, { t, box, element: null, note: tr("Put {0} here", {0: asset.name}).slice(0, MARK_NOTE) });
+  }
+
   function add(apply = false) {
     if (!draft || full || (apply && !canApply)) return;
     onMark({ t: draft.t, box: draft.box, element: draft.element, note: note.trim().slice(0, MARK_NOTE), ...(changes.length ? { changes } : {}) }, apply);
@@ -533,7 +551,24 @@ export function Stage({
 
   return (
     <div className="stage" ref={root}>
-      <div className="picture" ref={stage} style={{ padding: INSET }}>
+      <div
+        className={`picture${dropping ? ' dropping' : ''}`}
+        ref={stage}
+        style={{ padding: INSET }}
+        onDragOver={(event) => {
+          if (!carriesAsset(event) || disabled || full) return;
+          event.preventDefault();
+          event.dataTransfer.dropEffect = 'copy';
+          setDropping(true);
+        }}
+        onDragLeave={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropping(false);
+        }}
+        onDrop={(event) => {
+          setDropping(false);
+          drop(event);
+        }}
+      >
         {/* The picture asks for the film's own shape, so the stage is no taller than its frame where there is room. */}
         <div className="fit" style={{ aspectRatio: film ? `${film.width} / ${film.height}` : '16 / 9' }} />
         {box && film && <div className="plate" style={place({ x: 0, y: 0, w: 1, h: 1 }) ?? undefined} />}

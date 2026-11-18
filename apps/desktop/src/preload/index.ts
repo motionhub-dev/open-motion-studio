@@ -56,6 +56,7 @@ const api: StudioApi = {
   projectMotions: () => ipcRenderer.invoke(CHANNELS.projectMotions),
   searchMotions: (words) => ipcRenderer.invoke(CHANNELS.searchMotions, words),
   useMotion: (id) => ipcRenderer.invoke(CHANNELS.useMotion, id),
+  removeMotion: (id) => ipcRenderer.invoke(CHANNELS.removeMotion, id),
   motionReel: (id) => ipcRenderer.invoke(CHANNELS.motionReel, id),
   motionDetail: (id) => ipcRenderer.invoke(CHANNELS.motionDetail, id),
   providers: () => ipcRenderer.invoke(CHANNELS.providers),

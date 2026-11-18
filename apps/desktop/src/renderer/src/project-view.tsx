@@ -41,7 +41,7 @@ import {
   type SceneStills,
 } from '../../shared/api';
 import { Assistant, type AssistantHandle } from './assistant';
-import { AssetsPanel } from './assets-panel';
+import { AssetsPanel, assetReference } from './assets-panel';
 import { ReviewPanel } from './review-panel';
 import { ExportDialog } from './export-dialog';
 import { VoicePanel } from './voice-panel';
@@ -375,6 +375,11 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
     } else setLayout({ side: show });
   }
   /** Asks the project's agent to give the film a voice (the selected one, or one it chooses) and speak its lines. */
+  /** Sends the agent a request of the workspace's own (a size, a motion to apply), with the assistant in view. */
+  function ask(text: string) {
+    setLayout({ assistant: true });
+    assistant.current?.send(text);
+  }
   function generateNarration(voice?: string) {
     setLayout({ assistant: true });
     assistant.current?.send(
@@ -416,6 +421,8 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
     : agents.current !== 'built-in'
       ? agents.harnesses.find((h) => h.kind === agents.current)?.state === 'ready'
       : !!active?.ready;
+  /** Whether the agent can take a request of the workspace's own now. */
+  const canAsk = ready && !busy && !importing && !checking && progress === null;
   /**
    * Counts the person's switches of agent, each of which starts a new conversation the assistant loads afresh. Not the
    * agent itself: finding it out when the project opens must not draw the assistant again and drop what is in it.
@@ -656,7 +663,7 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
       const room = 8 - refs.length;
       setRefs((current) => [
         ...current,
-        ...added.slice(0, room).map((a): Reference => ({ kind: 'asset', label: a.name, path: a.path, detail: `Use this local ${a.kind}: ${a.path}` })),
+        ...added.slice(0, room).map(assetReference),
       ]);
       if (added.length > room) {
         setToast({ text: translate("Imported {0} files; a message carries up to eight references, so {1} wait in Assets.", false, {0: added.length, 1: added.length - room}), error: false });
@@ -809,6 +816,7 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
               noteRequest={noteRequest}
               selection={selection}
               onDropSelection={() => setSelection(null)}
+              onDropAsset={reference}
               onSent={() => {
                 setMarks([]);
                 setRefs([]);
@@ -844,10 +852,11 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
             onGuides={() => setGuides(!guides)}
             onFix={(label, detail) => reference({ kind: 'issue', label, detail })}
             disabled={busy || importing || checking || !build?.ok}
-            canApply={ready && !busy && !importing && !checking && progress === null}
-            onAsk={(text) => {
-              setLayout({ assistant: true });
-              assistant.current?.send(text);
+            canApply={canAsk}
+            onAsk={ask}
+            onDropAsset={(asset, next) => {
+              mark(next);
+              reference(assetReference(asset));
             }}
             onMark={(next, apply) => {
               mark(next);
@@ -958,7 +967,12 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
                   onRestored={restored}
                 />
               ) : side === 'motions' ? (
-                <MotionPanel onBusy={setImporting} disabled={busy || importing || checking || progress !== null} />
+                <MotionPanel
+                  onBusy={setImporting}
+                  disabled={busy || importing || checking || progress !== null}
+                  canAsk={canAsk}
+                  onAsk={ask}
+                />
               ) : null}
             </div>
             <Splitter

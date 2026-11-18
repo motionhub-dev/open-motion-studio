@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { catalogueResource, motionDetail, motionFaces, motionReel, projectMotions, searchMotions, useMotion } from '../motions';
+import { catalogueResource, motionDetail, motionFaces, motionReel, projectMotions, removeMotion, searchMotions, useMotion } from '../motions';
 
 const ID = '@someone/paper-cut';
 let root: string;
@@ -95,7 +95,7 @@ describe('searchMotions', () => {
 describe('useMotion', () => {
   it('takes the motion into motions/<id>/ and records it in the lock, as the motionhub CLI does', async () => {
     const used = await useMotion(project, ID, base);
-    expect(used).toMatchObject({ id: ID, name: 'Paper Cut', version: '1.2.0', fromHub: true });
+    expect(used).toMatchObject({ id: ID, name: 'Paper Cut', version: '1.2.0', fromHub: true, used: false });
     expect(await readFile(join(project, 'motions', '@someone', 'paper-cut', 'react', 'parts', 'title.tsx'), 'utf8')).toContain('Title');
     const lock = JSON.parse(await readFile(join(project, 'motions.lock.json'), 'utf8'));
     expect(lock.motions[ID].version).toBe('1.2.0');
@@ -118,8 +118,34 @@ describe('projectMotions', () => {
     await mkdir(join(project, 'motions', 'house-look'), { recursive: true });
     await writeFile(join(project, 'motions', 'house-look', 'motion.json'), JSON.stringify({ name: { en: 'House look' } }));
     expect(await projectMotions(project)).toEqual([
-      { id: 'house-look', path: join('motions', 'house-look'), name: 'House look', line: '', version: null, fromHub: false, poster: null },
+      { id: 'house-look', path: join('motions', 'house-look'), name: 'House look', line: '', version: null, fromHub: false, used: false, poster: null },
     ]);
+  });
+
+  it('says a motion is used when the film’s own code names it, never the motion’s own files', async () => {
+    await useMotion(project, ID, base);
+    expect((await projectMotions(project))[0]?.used).toBe(false);
+    await writeFile(join(project, 'film.tsx'), `import { Title } from './motions/${ID}/react/parts/title';`);
+    expect((await projectMotions(project))[0]?.used).toBe(true);
+  });
+});
+
+describe('removeMotion', () => {
+  it('takes a motion the film does not use out of the project and the lock', async () => {
+    await useMotion(project, ID, base);
+    await removeMotion(project, ID);
+    expect(await projectMotions(project)).toEqual([]);
+    const lock = JSON.parse(await readFile(join(project, 'motions.lock.json'), 'utf8'));
+    expect(lock.motions[ID]).toBeUndefined();
+  });
+
+  it('refuses one the film uses, one of the project’s own, and one it does not hold', async () => {
+    await useMotion(project, ID, base);
+    await writeFile(join(project, 'film.tsx'), `import { Title } from './motions/${ID}/react/parts/title';`);
+    await expect(removeMotion(project, ID)).rejects.toThrow('still uses');
+    expect((await projectMotions(project))).toHaveLength(1);
+    for (const id of ['house-look', '@a/../../etc', 42]) await expect(removeMotion(project, id)).rejects.toThrow('Only a motion taken from motionhub');
+    await expect(removeMotion(project, '@someone/other')).rejects.toThrow('does not hold');
   });
 });
 

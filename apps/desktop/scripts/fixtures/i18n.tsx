@@ -71,8 +71,8 @@ const nav = async (label: string) => action(() => { const found = Array.from(doc
   await action(() => button('关闭').click());
   await action(() => button('素材').click());
   assert(text().includes('图片、字体与声音') && text().includes('原始文件保持不变'), 'Assets help not localized');
-  await action(() => button('动效').click());
-  assert(text().includes('此项目尚未添加动效'), 'Motion empty state not localized');
+  await action(() => button('动效库').click());
+  assert(text().includes('动效来自 motionhub'), 'Motions intro not localized');
   await switchLanguage('en');
   assert(text().includes('What should this film do?') && text().includes('English project name'), 'Editor did not switch back live');
   await action(() => root.render(<></>));

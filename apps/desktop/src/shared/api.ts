@@ -49,6 +49,8 @@ export interface ProjectMotion {
   /** The version the lock records, or null. */
   version: string | null;
   fromHub: boolean;
+  /** Whether the film's code uses it. */
+  used: boolean;
   /** Its poster, relative to the project, or null. */
   poster: string | null;
 }
@@ -413,6 +415,8 @@ export interface Asset {
   name: string;
   kind: 'image' | 'font' | 'audio';
   bytes: number;
+  /** Whether the film's code names it. */
+  used?: boolean;
 }
 
 /** Each scene's frames for the timeline, by scene id, as data URLs, evenly through the scene. */
@@ -545,6 +549,8 @@ export interface StudioApi {
   searchMotions(words: string): Promise<CatalogueMotion[]>;
   /** Takes a motion from the catalogue into the open project. */
   useMotion(id: string): Promise<ProjectMotion>;
+  /** Takes a motion from motionhub out of the open project, when the film no longer uses it. */
+  removeMotion(id: string): Promise<void>;
   /** What a motion the open project holds says and has. */
   motionDetail(id: string): Promise<MotionDetail>;
   motionReel(id: string): Promise<string | null>;
@@ -658,6 +664,7 @@ export const CHANNELS = {
   projectMotions: 'motions:project',
   searchMotions: 'motions:search',
   useMotion: 'motions:use',
+  removeMotion: 'motions:remove',
   motionDetail: 'motions:detail',
   motionReel: 'motions:reel',
   providers: 'providers:list',

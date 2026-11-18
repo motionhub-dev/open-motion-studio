@@ -48,3 +48,14 @@ it('takes music and sound effects beside images and fonts', async () => {
     ['media/voice.m4a', 'audio'],
   ]);
 });
+it('says a file is used when the film’s own code names its path', async () => {
+  const dir = join(root, 'project');
+  const files = ['logo.png', 'bed.mp3'].map((name) => join(root, 'source', name));
+  for (const file of files) await writeFile(file, 'bytes');
+  await importAssets(dir, files);
+  await writeFile(join(dir, 'film.tsx'), `const logo = 'media/logo.png';`);
+  expect((await projectAssets(dir)).map((a) => [a.name, a.used])).toEqual([
+    ['bed.mp3', false],
+    ['logo.png', true],
+  ]);
+});

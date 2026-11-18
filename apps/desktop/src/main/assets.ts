@@ -5,6 +5,7 @@ import { copyFile, mkdir, readdir, realpath, stat } from 'node:fs/promises';
 import { basename, dirname, extname, join, relative } from 'node:path';
 import type { Asset } from '../shared/api';
 import { writablePath } from './agent/tools';
+import { projectSource } from './project';
 const IMAGES = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif', '.svg']);
 const FONTS = new Set(['.woff', '.woff2', '.ttf', '.otf']);
 /** What a <Sound> plays (ADR 0010), and what the preview's Web Audio and the export's ffmpeg both read. */
@@ -40,6 +41,9 @@ export async function projectAssets(dir: string): Promise<Asset[]> {
     }
   };
   await walk(folder);
+  // A file is in use when the film's code names it by its path in the project.
+  const source = assets.length ? await projectSource(dir) : '';
+  for (const asset of assets) asset.used = source.includes(asset.path);
   return assets.sort((a, b) => a.name.localeCompare(b.name));
 }
 export async function importAssets(dir: string, paths: string[]): Promise<Asset[]> {

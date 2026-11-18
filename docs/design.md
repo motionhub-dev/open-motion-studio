@@ -263,9 +263,18 @@ agents and exports continue. Sessions are retained for this app run; explicit Qu
   and Ask on a scene, Solo (▷ in a square, playing the layer alone) and Ask on a layer, Ask on a line; Ask is @, as
   in the composer, since it adds the row to the message. A layer hovered here or on the
   timeline is lit in both, and its declared box drawn dashed on a cobalt tint on the picture while its scene is on screen.
-- **Motions** (`motion-panel.tsx`): the project's motions as poster cards (initials when a motion has no poster); one
-  opened is its page — poster, name, line, its colour tokens as swatches, its components with their previews, and its
-  MOTION.md. The catalogue search answers as cards with Use.
+- **Motions** (`motion-panel.tsx`, 动效库 in Chinese): a line on what a motion is, then the project's motions as poster
+  cards (initials when a motion has no poster), each marked In use or Not used yet by whether the film's code names it,
+  with Apply to the video while unused, ▷ to preview its reel and, for one from the hub the film does not use, Remove
+  (asked first; its folder and its line in the lock go). One opened is its page — poster, name, line, its colour tokens
+  as swatches, its components with their previews, and its MOTION.md. Below, motionhub's whole catalogue as cards from
+  the moment the panel opens, the search narrowing it: poster with Preview, name, what it is for in two lines, Apply to
+  the video and Add only. Apply asks first, then takes the motion if the project does not hold it and asks the agent to
+  restyle the film with it (`applyRequest`), keeping the film's words, scenes, order and timing.
+- **Assets** (`assets-panel.tsx`): images, fonts and sounds under `media/`, each a card dragged onto the picture (a
+  mark where it falls, Put it here, with the asset as a reference) or onto the composer (a reference); @ on its corner
+  adds it to the message. A sound plays in place with its length, a typeface shows itself (Aa 永), and a file the
+  film's code names is marked In use.
 - **Model Providers** (Settings): two panes. The providers down the left, an initial for each, the active one badged; the
   selected one, or a new one, as a form on the right. A new one starts from a service card (each with its protocol);
   the address and model are in mono, the key field says it is sealed in the keychain and never shown again. **Test

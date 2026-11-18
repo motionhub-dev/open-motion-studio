@@ -56,7 +56,7 @@ import { ASSET_EXTENSIONS, importAssets, projectAssets } from './assets';
 import { reviewBuild } from './film/review';
 import { FILM, FILM_SKILL, startFilm, watchFilm } from './film/film';
 import { type ExportedSpeech, exportedSpeech, writeRemotionProject } from './film/remotion-export';
-import { motionDetail, motionReel, projectMotions, searchMotions, useMotion } from './motions';
+import { motionDetail, motionReel, projectMotions, searchMotions, useMotion, removeMotion } from './motions';
 import { STATE_DIR, projectAt, rememberProject } from './project';
 import { describeReferences, filmSpans, readReferences } from './agent/references';
 import { type FileNote, ProjectHistory, changesBetween, inProject, noteFiles, putBack } from './history';
@@ -771,6 +771,11 @@ export function createWorkspace(host: WorkspaceHost, renderSession: Session, cha
       } finally {
         if (working === controller) working = null;
       }
+    });
+    handle(CHANNELS.removeMotion, async (_event, id: unknown) => {
+      const state = requireOpen();
+      if (working || exporting) throw new Error('Finish the current task before removing a motion.');
+      await removeMotion(state.project.path, id);
     });
     handle(CHANNELS.motionReel, (_event, id: unknown) => motionReel(requireOpen().project.path, id));
     handle(CHANNELS.motionDetail, (_event, id: unknown) => motionDetail(requireOpen().project.path, id));
