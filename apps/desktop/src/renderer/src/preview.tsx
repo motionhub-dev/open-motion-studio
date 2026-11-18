@@ -6,6 +6,7 @@
 
 import { Translated, usePreferences } from './preferences';
 import {
+  ChevronDown,
   ChevronsDown,
   ChevronsUp,
   Crosshair,
@@ -239,6 +240,41 @@ export function askPlace(mark: { left: number; top: number; width: number; heigh
  */
 type Draft = { t: number; box: Box; element: PickedElement | null; picked?: { depth: number; levels: number; x: number; y: number } };
 
+/** The film's usual sizes, by shape, with where each is used; the agent makes the film so, as it writes all of film.tsx. */
+export const SIZES: { shape: string; use: string; sizes: [number, number][] }[] = [
+  { shape: 'Landscape 16:9', use: 'YouTube, Bilibili, presentations', sizes: [[1920, 1080], [3840, 2160], [1280, 720]] },
+  { shape: 'Portrait 9:16', use: 'Douyin, Channels, Reels, Shorts', sizes: [[1080, 1920]] },
+  { shape: 'Portrait 4:5', use: 'Xiaohongshu, Instagram feed', sizes: [[1080, 1350]] },
+  { shape: 'Square 1:1', use: 'Social feeds', sizes: [[1080, 1080]] },
+];
+export const RATES = [24, 25, 30, 60];
+
+/**
+ * What the agent is asked to make of the film's size or rate: exactly what changes in `export const film`, the scenes'
+ * lengths kept in seconds, and, for a new shape, every scene laid out again for it.
+ */
+export function specRequest(film: Pick<FilmInfo, 'width' | 'height' | 'fps'>, next: { width?: number; height?: number; fps?: number }): string {
+  const width = next.width ?? film.width;
+  const height = next.height ?? film.height;
+  const fps = next.fps ?? film.fps;
+  const sized = width !== film.width || height !== film.height;
+  const changes = [
+    ...(sized ? [`size from ${film.width}×${film.height} to ${width}×${height}`] : []),
+    ...(fps !== film.fps ? [`frame rate from ${film.fps} to ${fps} fps`] : []),
+  ];
+  const parts = [`Change the film's ${changes.join(' and its ')} in \`export const film\` in film.tsx.`];
+  parts.push("Keep every scene's length, and every moment in it, in seconds.");
+  if (!sized) parts.push('Change nothing else.');
+  else if (Math.abs(width / height - film.width / film.height) < 0.01)
+    parts.push(`The frame keeps its shape: scale every position, size, type size and stroke by ${Math.round((width / film.width) * 1000) / 1000}, and nothing else.`);
+  else
+    parts.push(
+      `The frame changes shape (${film.width > film.height ? 'landscape' : film.width < film.height ? 'portrait' : 'square'} to ${width > height ? 'landscape' : width < height ? 'portrait' : 'square'}): lay every scene out again for the new frame, its layers' declared boxes (x, y, w, h) inside it, the words inside the title-safe area (80%), and type sized for the new frame, keeping each scene's content, order and motion.`,
+    );
+  parts.push('Then check the result.');
+  return parts.join(' ');
+}
+
 /** What the person tried on a picked element: a value for each property they changed. */
 type Look = Partial<Record<MarkChange['property'], string>>;
 
@@ -284,6 +320,7 @@ export function Stage({
   lit,
   onMark,
   canApply,
+  onAsk,
   selected,
   hovered = null,
   working,
@@ -299,8 +336,10 @@ export function Stage({
   lit: number | null;
   /** Adds a mark to the next message, and with `apply` sends that message at once. */
   onMark(mark: Mark, apply?: boolean): void;
-  /** Whether the agent can take a message now, which applying changes sends. */
+  /** Whether the agent can take a message now, which applying changes and changing the film's size send. */
   canApply: boolean;
+  /** Sends the agent a request of the stage's own, such as a new size for the film. */
+  onAsk(text: string): void;
   selected: Reference | null;
   /** The layer under the pointer in the outline or on the timeline, drawn as its declared box. */
   hovered?: Hovered;
@@ -755,6 +794,8 @@ export function Stage({
         disabled={disabled}
         guides={guides}
         onGuides={onGuides}
+        canAsk={canApply}
+        onAsk={onAsk}
         fullscreen={fullscreen}
         onFullscreen={() => {
           const done = fullscreen ? document.exitFullscreen() : root.current?.requestFullscreen();
@@ -777,6 +818,8 @@ function Controls({
   disabled,
   guides,
   onGuides,
+  canAsk,
+  onAsk,
   fullscreen,
   onFullscreen,
 }: {
@@ -786,6 +829,8 @@ function Controls({
   disabled: boolean;
   guides: boolean;
   onGuides(): void;
+  canAsk: boolean;
+  onAsk(text: string): void;
   fullscreen: boolean;
   onFullscreen(): void;
 }) {
@@ -893,11 +938,7 @@ function Controls({
           <span>{tr("Guides")}</span>
         </button>
       </span>
-      {film && (
-        <span className="spec">
-          {film.width}×{film.height} · {Math.round(film.fps * 100) / 100} {tr("fps")}
-        </span>
-      )}
+      {film && <SpecMenu film={film} canAsk={canAsk} onAsk={onAsk} />}
       <button
         type="button"
         className="icon-button"
@@ -909,5 +950,124 @@ function Controls({
         {fullscreen ? <Minimize size={15} /> : <Maximize size={15} />}
       </button>
     </div>
+  );
+}
+
+/** The film's size and rate, which open the usual sizes and rates to ask the agent for. */
+function SpecMenu({ film, canAsk, onAsk }: { film: FilmInfo; canAsk: boolean; onAsk(text: string): void }) {
+  const { t: tr } = usePreferences();
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: globalThis.PointerEvent) => {
+      if (!(event.target instanceof Element && event.target.closest('.spec-picker'))) setOpen(false);
+    };
+    const escape = (event: KeyboardEvent) => event.key === 'Escape' && setOpen(false);
+    addEventListener('pointerdown', close);
+    addEventListener('keydown', escape);
+    return () => {
+      removeEventListener('pointerdown', close);
+      removeEventListener('keydown', escape);
+    };
+  }, [open]);
+  const fps = Math.round(film.fps * 100) / 100;
+  /** What is chosen and not yet asked for: nothing goes to the agent until it is confirmed. */
+  const [chosen, setChosen] = useState<{ width: number; height: number; fps: number } | null>(null);
+  useEffect(() => {
+    if (!open) setChosen(null);
+  }, [open]);
+  const next = chosen ?? { width: film.width, height: film.height, fps };
+  const sized = next.width !== film.width || next.height !== film.height;
+  const changed = sized || next.fps !== fps;
+  const reshaped = sized && Math.abs(next.width / next.height - film.width / film.height) >= 0.01;
+  const choose = (change: Partial<typeof next>) => setChosen({ ...next, ...change });
+  const confirm = () => {
+    if (!changed || !canAsk) return;
+    setOpen(false);
+    onAsk(specRequest(film, next));
+  };
+  return (
+    <span className="spec-picker">
+      <button
+        type="button"
+        className="spec"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={tr("Film size and frame rate: {0}", {0: `${film.width}×${film.height} · ${fps}`})}
+        data-tip={canAsk ? tr("Change the size or frame rate") : tr("Waits until the agent is ready")}
+        disabled={!canAsk}
+        onClick={() => setOpen(!open)}
+      >
+        {film.width}×{film.height} · {fps} {tr("fps")}
+        <ChevronDown size={12} />
+      </button>
+      {open && (
+        <span className="menu spec-menu" role="menu" aria-label={tr("Film size and frame rate")}>
+          <span className="eyebrow">{tr("Size")}</span>
+          <span className="spec-sizes">
+          {SIZES.flatMap(({ shape, use, sizes }) =>
+            sizes.map(([width, height]) => (
+              <button
+                key={`${width}x${height}`}
+                type="button"
+                role="menuitemradio"
+                aria-checked={width === next.width && height === next.height}
+                className={width === film.width && height === film.height ? 'current' : undefined}
+                onClick={() => choose({ width, height })}
+              >
+                <strong>
+                  {width}×{height}
+                </strong>
+                <span title={`${tr(shape)} · ${tr(use)}`}>{tr(shape)} · {tr(use)}</span>
+              </button>
+            )),
+          )}
+          </span>
+          <span className="eyebrow">{tr("Frame rate")}</span>
+          <span className="spec-rates">
+            {RATES.map((rate) => (
+              <button
+                key={rate}
+                type="button"
+                role="menuitemradio"
+                aria-checked={rate === next.fps}
+                className={rate === fps ? 'current' : undefined}
+                onClick={() => choose({ fps: rate })}
+              >
+                {rate}
+              </button>
+            ))}
+          </span>
+          {/* Nothing changes until it is confirmed: what will change, what it costs, and the one button that asks for it. */}
+          <span className="spec-confirm">
+            <span className="note">
+              {changed ? (
+                <>
+                  <strong>
+                    {film.width}×{film.height} · {fps} → {next.width}×{next.height} · {next.fps} {tr("fps")}
+                  </strong>
+                  {reshaped
+                    ? tr("The agent lays every scene out again for the new frame. This takes a turn.")
+                    : sized
+                      ? tr("The agent scales every scene to the new size.")
+                      : tr("The agent changes the frame rate alone.")}
+                </>
+              ) : (
+                tr("Choose a size or a frame rate, then confirm. The agent makes the change.")
+              )}
+            </span>
+            <span className="ask-actions">
+              <span className="spacer" />
+              <button type="button" className="button ghost" onClick={() => setOpen(false)}>
+                <Translated text="Cancel" />
+              </button>
+              <button type="button" className="button primary" disabled={!changed || !canAsk} onClick={confirm}>
+                {tr("Change the film")}
+              </button>
+            </span>
+          </span>
+        </span>
+      )}
+    </span>
   );
 }

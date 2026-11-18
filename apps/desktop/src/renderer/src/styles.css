@@ -776,11 +776,138 @@ button.status:hover {
   flex: 1;
 }
 
+.spec-picker {
+  position: relative;
+  margin-left: 4px;
+}
+
+/* The film's size and rate, which open the usual ones to ask the agent for. */
 .stage-bar .spec {
-  margin-left: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--r-button);
+  background: none;
   font-size: 12px;
   color: rgb(255 255 255 / 0.55);
   white-space: nowrap;
+}
+
+.stage-bar .spec:hover:not(:disabled),
+.stage-bar .spec[aria-expanded='true'] {
+  background: rgb(255 255 255 / 0.12);
+  color: #fff;
+}
+
+.stage-bar .spec:disabled {
+  cursor: default;
+}
+
+.stage-bar .spec:disabled svg {
+  display: none;
+}
+
+/* It opens upward, over the picture, from the stage's foot. */
+.spec-menu {
+  top: auto;
+  bottom: calc(100% + 8px);
+  width: 380px;
+}
+
+.spec-menu > * {
+  flex: none;
+}
+
+.spec-menu .eyebrow {
+  padding: 8px 6px 6px;
+}
+
+/* The sizes as tiles, two to a row, so the menu stays shorter than the stage. */
+.spec-sizes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 0 4px;
+}
+
+.spec-rates {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  padding: 0 4px 6px;
+}
+
+.menu .spec-sizes [role='menuitemradio'],
+.menu .spec-rates [role='menuitemradio'] {
+  min-width: 0;
+  border: 1px solid var(--line);
+}
+
+.menu .spec-sizes [role='menuitemradio'] {
+  gap: 1px;
+  padding: 6px 8px;
+}
+
+.menu .spec-sizes span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.menu .spec-rates [role='menuitemradio'] {
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 6px 0;
+  font: 12px var(--font-mono);
+}
+
+/* Never taller than the room above the stage's foot. */
+.spec-menu {
+  max-height: min(540px, 70vh);
+  overflow-y: auto;
+}
+
+/* The film's own size and rate, marked while another is chosen. */
+.menu .spec-sizes .current strong::after,
+.menu .spec-rates .current::after {
+  content: ' ●';
+  font-size: 8px;
+  vertical-align: middle;
+  color: var(--muted);
+}
+
+.menu .spec-sizes [role='menuitemradio'][aria-checked='true'],
+.menu .spec-rates [role='menuitemradio'][aria-checked='true'] {
+  border-color: var(--text);
+}
+
+.spec-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 2px;
+  padding: 8px 6px 4px;
+  border-top: 1px solid var(--line);
+}
+
+.spec-confirm .note {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.spec-confirm .note strong {
+  font: 12px var(--font-mono);
+  color: var(--text);
 }
 
 .pointing {

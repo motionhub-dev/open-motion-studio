@@ -845,6 +845,10 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
             onFix={(label, detail) => reference({ kind: 'issue', label, detail })}
             disabled={busy || importing || checking || !build?.ok}
             canApply={ready && !busy && !importing && !checking && progress === null}
+            onAsk={(text) => {
+              setLayout({ assistant: true });
+              assistant.current?.send(text);
+            }}
             onMark={(next, apply) => {
               mark(next);
               if (apply) setApplying(true);

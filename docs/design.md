@@ -89,7 +89,13 @@ A top bar over a grid of panels (`project-view.tsx`):
   the frame, and its foot is the controls (previous frame, play, next frame, the time, loop, and sound on or off for a
   film with sounds; then Pick, Region and
   Guides as one labelled group, the film's size and rate, and full screen). A narrow stage keeps the group's icons and
-  drops the size. Full screen is the stage alone, picture and foot, with no corners; Esc or the button leaves it.
+  drops the size. The size and rate open, upward over the picture, the usual sizes by shape with where each is used
+  (landscape 16:9 at 1920×1080, 3840×2160 and 1280×720; portrait 9:16 at 1080×1920; portrait 4:5 at 1080×1350; square
+  1:1 at 1080×1080) as tiles two to a row, and the rates 24, 25, 30 and 60, the film's own marked with a dot. Choosing
+  changes nothing yet: a size and a rate can both be chosen, and the menu's foot says what will change (from → to) and
+  what the agent will do, with Cancel and Change the film, which alone asks the agent. The agent writes it in film.tsx: a new rate keeps everything else, a frame of the same shape is scaled, and a new shape lays
+  every scene out again; the scenes keep their lengths in seconds. It waits while the agent is not ready or is working.
+  Full screen is the stage alone, picture and foot, with no corners; Esc or the button leaves it.
 - The **project tools** are three tabs, Outline, Assets and Motions. History opens from the assistant's head
   and Checks from the status; either shows its title with a way back to the tabs.
 - The assistant's and the right panel's widths are dragged at their edges, and the timeline's height is the least it

@@ -3,6 +3,22 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-17 — The film's size and frame rate are chosen on the stage
+
+- **What:** The film's size and rate at the stage's foot open a menu of the usual sizes — landscape 16:9 (1920×1080,
+  3840×2160, 1280×720), portrait 9:16 (1080×1920), portrait 4:5 (1080×1350) and square (1080×1080), each with where it
+  is used — and the rates 24, 25, 30 and 60. A size and a rate chosen there change nothing until Change the film
+  confirms them, under a line saying what will change and what the agent will do; then they go to the agent as one
+  exact request: it changes
+  `export const film` in film.tsx, keeps the scenes' lengths in seconds, scales a frame of the same shape and lays every
+  scene out again for a new one. The menu waits while the agent is not ready or is working.
+- **Why:** A film made for one platform often needs another's frame; the size was shown but could only be changed by
+  describing it. The Studio still does not write film.tsx: a new shape needs the scenes laid out again,
+  which is the agent's work.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/preview.tsx` (`SpecMenu`, `specRequest`).
+
 ## 2026-11-17 — The agent is chosen at the composer's foot
 
 - **What:** The chip that chooses the project's agent and model moves from the assistant's head to the composer's foot,
