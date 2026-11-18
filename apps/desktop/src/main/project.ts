@@ -4,7 +4,7 @@
 // ("Components").
 
 import { cp, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, randomInt } from 'node:crypto';
 import { homedir } from 'node:os';
 import { basename, dirname, join, resolve, sep } from 'node:path';
 import type { LibraryProject, Project } from '../shared/api';
@@ -60,9 +60,10 @@ const RESERVED = /^(con|prn|aux|nul|com\d|lpt\d)$/i;
 
 /**
  * A folder name for a film from what the person said they want to make: its first line, without the characters a
- * folder name cannot hold, at most 40 characters at a word's end where there is one. Untitled film when nothing is left.
+ * folder name cannot hold, at most 40 characters at a word's end where there is one. None when nothing is left, and the
+ * film is named as one made without a brief.
  */
-export function filmName(brief: string): string {
+export function filmName(brief: string): string | undefined {
   const line = brief.trim().split(/\r?\n/)[0] ?? '';
   const clean = line.replace(/[\\/:*?"<>|\x00-\x1f]/g, ' ').replace(/\s+/g, ' ').trim();
   const chars = [...clean];
@@ -73,7 +74,13 @@ export function filmName(brief: string): string {
   }
   // No trailing dot or space (Windows drops them) and no punctuation left hanging where the words were cut.
   name = name.replace(/[\s.,;:!?，。、；：！？]+$/u, '');
-  return name && !RESERVED.test(name) ? name : 'Untitled film';
+  return name && !RESERVED.test(name) ? name : undefined;
+}
+
+/** A film made without a name: a fixed prefix and six random letters and digits, with no space for a shell or a URL. */
+export function newFilmName(): string {
+  const letters = 'abcdefghijkmnpqrstuvwxyz23456789';
+  return `film-${Array.from({ length: 6 }, () => letters[randomInt(letters.length)]).join('')}`;
 }
 
 /**
@@ -87,12 +94,15 @@ export function folderName(name: unknown): string {
   return trimmed;
 }
 
-/** Reserves a fresh child directory atomically; existing files, directories and symlinks are never reused. */
-export async function createInWorkspace(workspace: string, name = 'Untitled film'): Promise<Project> {
-  name = folderName(name);
+/**
+ * Reserves a fresh child directory atomically; existing files, directories and symlinks are never reused. A name given
+ * is numbered when taken (` 2`, ` 3`, …); without one the film is `film-<id>`, drawn again when taken.
+ */
+export async function createInWorkspace(workspace: string, given?: string): Promise<Project> {
+  const name = given === undefined ? undefined : folderName(given);
   await mkdir(workspace, { recursive: true });
   for (let number = 1; ; number++) {
-    const dir = join(workspace, number === 1 ? name : `${name} ${number}`);
+    const dir = join(workspace, name === undefined ? newFilmName() : number === 1 ? name : `${name} ${number}`);
     try {
       await mkdir(dir);
     } catch (error) {

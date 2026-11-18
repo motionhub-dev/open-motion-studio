@@ -94,14 +94,20 @@ describe('createProject', () => {
 describe('createInWorkspace', () => {
   it('creates a workspace and an initialized project without reusing an existing folder or file', async () => {
     const workspace = join(root, 'Workspace');
-    const first = await createInWorkspace(workspace);
+    const first = await createInWorkspace(workspace, 'A film');
     await writeFile(join(first.path, 'film.tsx'), 'keep my film');
-    await writeFile(join(workspace, 'Untitled film 2'), 'keep my file');
-    const next = await createInWorkspace(workspace);
-    expect(next.path).toBe(join(workspace, 'Untitled film 3'));
+    await writeFile(join(workspace, 'A film 2'), 'keep my file');
+    const next = await createInWorkspace(workspace, 'A film');
+    expect(next.path).toBe(join(workspace, 'A film 3'));
     expect((await stat(join(next.path, '.motion-studio'))).isDirectory()).toBe(true);
     expect(await readFile(join(first.path, 'film.tsx'), 'utf8')).toBe('keep my film');
-    expect(await readFile(join(workspace, 'Untitled film 2'), 'utf8')).toBe('keep my file');
+    expect(await readFile(join(workspace, 'A film 2'), 'utf8')).toBe('keep my file');
+  });
+
+  it('names a film made without a name film-<id>, with no space, and never the same twice', async () => {
+    const made = await Promise.all(Array.from({ length: 4 }, () => createInWorkspace(root)));
+    for (const project of made) expect(project.name).toMatch(/^film-[a-z0-9]{6}$/);
+    expect(new Set(made.map((p) => p.path)).size).toBe(4);
   });
 
   it('reserves different folders for simultaneous creations', async () => {
@@ -128,13 +134,13 @@ describe('filmName', () => {
   });
   it('keeps at most 40 characters, at a word end where there is one', () => {
     const name = filmName('A thirty second explainer on how solar panels turn light into power');
-    expect([...name].length).toBeLessThanOrEqual(40);
+    expect([...(name ?? '')].length).toBeLessThanOrEqual(40);
     expect(name).toBe('A thirty second explainer on how solar');
     expect(filmName('Reading app launch teaser: calm, warm, 15 seconds')).toBe('Reading app launch teaser calm, warm');
     expect(filmName('为阅读应用做一段发布短片。')).toBe('为阅读应用做一段发布短片');
   });
-  it('falls back to Untitled film for nothing usable or a reserved name', () => {
-    for (const brief of ['   ', '???', 'CON', 'nul.', '...']) expect(filmName(brief)).toBe('Untitled film');
+  it('gives no name for nothing usable or a reserved name', () => {
+    for (const brief of ['   ', '???', 'CON', 'nul.', '...']) expect(filmName(brief)).toBeUndefined();
   });
   it('gives a name createInWorkspace accepts', async () => {
     const project = await createInWorkspace(root, filmName('Kinetic type: “Make it move”'));

@@ -3,12 +3,23 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-17 — A film made without a name is film-<id>
+
+- **What:** New film, and a film whose brief leaves no usable name, makes its folder `film-` and six random letters and
+  digits (`film-k3x9q2`) instead of `Untitled film`, `Untitled film 2`, …; a taken one is drawn again. Names given
+  (a brief's first line, a template's name, a copy) are kept as they were, numbered when taken.
+- **Why:** A folder name with a space has to be quoted in a shell and escaped in a URL, and numbered untitled films
+  said nothing a random ID does not.
+- **Breaking:** None. Existing projects keep their folders.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/main/project.ts` (`newFilmName`, `createInWorkspace`).
+
 ## 2026-11-17 — The outline's row actions say what they do
 
 - **What:** A row's actions in the outline sit on the row in its colour, muted until pointed at, instead of in a
   floating box with a shadow. Adding a row to the message is @, as in the composer, instead of a speech bubble; playing
   a layer alone is ▷ in a square instead of stacked squares. They show on hover or keyboard focus, and no longer stay over a row's
-  end after it is clicked.
+  end after it is clicked, nor cover a selected row's outline.
 - **Why:** The stacked squares read as copy and the bubble as a comment, and the box covered the row it acted on.
 - **Breaking:** None.
 - **Upgrade:** Nothing.
