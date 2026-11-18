@@ -3,6 +3,17 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-17 — The motion library opens from the top bar
+
+- **What:** Motions (动效库) is a button in the editor's top bar beside Voice, with how many motions the project holds,
+  and opens its panel in the project tools as Voice does, with a back arrow and its title. Its tab is gone: the
+  project tools are Outline, Assets and Code.
+- **Why:** Applying a motion restyles the whole video, as voicing it speaks the whole video; it was the third of four
+  tabs, where few found it.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/project-view.tsx`.
+
 ## 2026-11-17 — A read-only code view
 
 - **What:** A Code tab lists the project's files; a code file opens across the stage in place of the picture,

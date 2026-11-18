@@ -306,6 +306,7 @@ export const zh: Record<string, string> = {
   "The element around it": "外层元素",
   "The element inside": "内层元素",
   "Add mark": "添加标记",
+  "A look from motionhub to apply to the video": "从 motionhub 选一个风格应用到视频",
   "Code": "代码",
   "code": "代码",
   "Show its code": "查看代码",

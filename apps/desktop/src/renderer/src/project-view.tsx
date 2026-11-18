@@ -22,6 +22,7 @@ import {
   SquareArrowDownLeft,
   SquareArrowOutUpRight,
   X,
+  Sparkles,
 } from 'lucide-react';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import {
@@ -729,6 +730,19 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
         >
           <CircleHelp size={16} />
         </button>
+        {project.film && (
+          <button
+            type="button"
+            className="button"
+            data-tip={tr("A look from motionhub to apply to the video")}
+            aria-pressed={showSide && side === 'motions'}
+            onClick={() => openSide('motions')}
+          >
+            <Sparkles size={15} />
+            <Translated text="Motions" />
+            {counts?.motions ? <span className="tab-count">{counts.motions}</span> : null}
+          </button>
+        )}
         {player.film && (player.film.voice || player.film.scenes.some((scene) => scene.lines.length > 0)) && (
           <button
             type="button"
@@ -933,12 +947,12 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
             <div className="side-content">
               {/* The four tools at hand are tabs; History opens from the assistant and Checks from the status. */}
               <div className="side-tabs">
-                {side === 'history' || side === 'review' || side === 'voice' ? (
+                {side === 'history' || side === 'review' || side === 'voice' || side === 'motions' ? (
                   <>
                     <button type="button" className="icon-button" aria-label={tr("Back to the outline")} data-tip={tr("Back")} onClick={() => setSide('outline')}>
                       <ArrowLeft size={15} />
                     </button>
-                    <h2>{side === 'history' ? tr("History") : side === 'voice' ? tr("Voice") : tr("Checks")}</h2>
+                    <h2>{side === 'history' ? tr("History") : side === 'voice' ? tr("Voice") : side === 'motions' ? tr("Motions") : tr("Checks")}</h2>
                   </>
                 ) : (
                   <nav aria-label={tr("Project tools")}>
@@ -946,11 +960,10 @@ export function ProjectView({ onGlobalSettings, settingsOpen, project, providers
                       [
                         { id: 'outline', label: tr("Outline") },
                         { id: 'assets', label: tr("Assets") },
-                        { id: 'motions', label: tr("Motions") },
                         { id: 'code', label: tr("Code") },
                       ] as const
                     ).map(({ id, label }) => {
-                      const count = id === 'assets' ? counts?.assets : id === 'motions' ? counts?.motions : undefined;
+                      const count = id === 'assets' ? counts?.assets : undefined;
                       return (
                         <button key={id} type="button" aria-pressed={side === id} onClick={() => setSide(id)}>
                           {label}

@@ -68,7 +68,7 @@ A top bar over a grid of panels (`project-view.tsx`):
 - **Top bar**: on the left where the person is and what it is: a Home icon (it returns to Home; the project keeps
   running), a chevron, the project's name (its path on hover; a double-click renames it in place) with its menu, and its
   status (building, built with the last check's issue count, or does not build), which opens Checks. On the right what
-  to do with it: keyboard shortcuts (a question mark, the key that opens them, in a wide dialog with its groups side by side), Voice (when the film has lines or a voice) and Export MP4, one vermilion split
+  to do with it: keyboard shortcuts (a question mark, the key that opens them, in a wide dialog with its groups side by side), the motion library (Motions, with how many the project holds), Voice (when the film has lines or a voice) and Export MP4, one vermilion split
   button whose chevron holds the other ways to export (a Remotion project), and which shows progress and cancels while
   running. The bar has no Settings button: OpenMotionStudio's settings are the app's, not the film's, and open from
   Ctrl/⌘ , or from their row in the shortcuts dialog (Home keeps its gear); a model and a voice are set up where they
@@ -96,8 +96,8 @@ A top bar over a grid of panels (`project-view.tsx`):
   what the agent will do, with Cancel and Change the film, which alone asks the agent. The agent writes it in film.tsx: a new rate keeps everything else, a frame of the same shape is scaled, and a new shape lays
   every scene out again; the scenes keep their lengths in seconds. It waits while the agent is not ready or is working.
   Full screen is the stage alone, picture and foot, with no corners; Esc or the button leaves it.
-- The **project tools** are four tabs, Outline, Assets, Motions and Code, Assets and Motions with how many they hold beside their
-  name. Files from the computer dropped anywhere on the workspace (dashed while they are over it) are imported and go
+- The **project tools** are three tabs, Outline, Assets (with how many it holds) and Code. The motion library opens
+  from the top bar, as Voice does, with a back arrow and its title. Files from the computer dropped anywhere on the workspace (dashed while they are over it) are imported and go
   with the next message; Start from a look, on an empty conversation, opens the motion library. History opens from the assistant's head
   and Checks from the status; either shows its title with a way back to the tabs.
 - The assistant's and the right panel's widths are dragged at their edges, and the timeline's height is the least it
