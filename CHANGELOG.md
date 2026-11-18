@@ -3,6 +3,18 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-17 — Home's covers are sharp and whole
+
+- **What:** A project's cover is kept with its long side at 1280 px (it was 640 px wide) and drawn whole on the stage's
+  dark: a portrait or square film shows its full frame instead of a cropped, enlarged middle. A cover taken smaller
+  before is taken again the next time the project is opened.
+- **Why:** On a high-density screen Home's large card enlarged a 640 px cover about twice, and a portrait film's
+  cover was cropped to its middle third and enlarged again, so it looked blurred.
+- **Breaking:** None.
+- **Upgrade:** Nothing: a project opened once has its new cover.
+- **Refs:** `apps/desktop/src/main/film/capture.ts` (`COVER_SIDE`, `jpegSize`), `apps/desktop/src/renderer/src/styles.css`
+  (`.project-art`).
+
 ## 2026-11-17 — Home's header switches the theme and the language
 
 - **What:** Home's header has the language as 中文 or EN and the theme as one icon (a moon in light, a sun in dark),

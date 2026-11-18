@@ -4687,10 +4687,15 @@ input.switch:disabled {
   color: var(--muted);
 }
 
+/* A cover is drawn whole, as the film is framed: a portrait or square film stands on the stage's dark, not cropped. */
+.project-art:has(img) {
+  background: var(--stage);
+}
+
 .project-art img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .project-art .badge {

@@ -124,8 +124,8 @@ agent hold the folder, refuses while a task runs, and opens the editor again on 
 was in; the library forgets the old path and remembers the new one. Each task the main process lists says whether its
 project is in a window of its own (`ProjectTask.separate`). A
 folder that is gone stays, marked missing. A project's cover is not in the library: it is the first scene's still,
-written to the project's own `.motion-studio/cover.jpg` when the timeline's stills are made, and read back as a data URL
-when Home lists the library.
+written to the project's own `.motion-studio/cover.jpg` (its long side 1280 px) when the timeline's stills are made, or
+again when the one there is smaller, and read back as a data URL when Home lists the library.
 
 Home plays each bundled template as a video the Studio's own export made of it: `pnpm templates`
 (`scripts/render-templates.mjs`) drives the built app in a hidden window with an isolated profile, exports every

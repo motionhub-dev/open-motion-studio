@@ -153,8 +153,8 @@ shortcuts) and the content.
   Then Continue creating: the project opened last as a large card (its cover beside its name and **Continue
   editing**), the next four in a row, and Start from a template.
 - **My projects** is every project in the library with search (`/` goes to it), a sort (recently opened, recently modified, name) and a
-  grid or a list. A card is the project's cover (a still of its film from `.motion-studio/cover.jpg`, else its
-  initials), its name and when it was last opened. A task over it is a badge: a ring filling with its progress (turning
+  grid or a list. A card is the project's cover (a still of its film from `.motion-studio/cover.jpg`, drawn whole
+  on the stage's dark, so a portrait or square film is not cropped; else its initials), its name and when it was last opened. A task over it is a badge: a ring filling with its progress (turning
   while it has none) and Working, or a pulsing cobalt dot and Needs you; a running task with progress also draws a
   line along the cover's foot. Home's task line takes the same cobalt dot while anything needs the person. Its ⋯ menu opens it in an editor
   window, shows its folder, or removes it from the list, saying that the files stay. A project whose folder is gone
