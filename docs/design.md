@@ -238,9 +238,9 @@ agents and exports continue. Sessions are retained for this app run; explicit Qu
   dashed outline; on Claude Code, Enter adds a message of words to the turn instead, as a bubble in the conversation
   where it was sent. Items the last turn changed are ringed in green in the outline and the timeline for four seconds, and
   the stage says the agent is working in a dark pill over its top left. The composer grows with its text up to 180px; Enter
-  sends, Shift+Enter breaks the line, + and @ at its start, and at its end the project's tokens, its agent as a quiet
-  chip, and Send (or Stop): what the message goes to sits beside the button that sends it. The assistant's head is hide,
-  then History and New conversation as icons. The chip has a dot (green
+  sends, Shift+Enter breaks the line, + and @ at its start, and at its end its agent as a quiet chip and Send (or
+  Stop): what the message goes to sits beside the button that sends it. The assistant's head is hide, then the project's
+  tokens, History and New conversation as icons. The chip has a dot (green
   ready, `--bad` signed out or too old, hollow not installed or no model) and the built-in agent's model, or the
   person's own agent with the model chosen for it ("Claude Code · opus"; ADR 0008), the rest on hover. It opens a menu
   upward, as wide as the composer, as @ does: the built-in agent on its provider, Codex and Claude Code with their versions or what they need

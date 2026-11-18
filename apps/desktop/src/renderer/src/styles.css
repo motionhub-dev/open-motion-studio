@@ -3795,9 +3795,6 @@ kbd {
 }
 
 /* At the composer's foot the agent's chip is quiet, and its menu opens upward as wide as the composer, as @ does. */
-.composer-actions .usage-total {
-  margin-right: 4px;
-}
 .composer-actions .agent-picker {
   position: static;
   margin-right: 6px;

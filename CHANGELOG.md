@@ -3,12 +3,12 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
-## 2026-11-17 — The agent and the tokens are at the composer's foot
+## 2026-11-17 — The agent is chosen at the composer's foot
 
-- **What:** The chip that chooses the project's agent and model, and the project's tokens, move from the assistant's
-  head to the composer's foot, left of Send. The chip's menu opens upward, as wide as the composer. The head keeps hide,
-  History and New conversation.
-- **Why:** Which agent a message goes to, and what the project has spent, belong beside the button that sends it.
+- **What:** The chip that chooses the project's agent and model moves from the assistant's head to the composer's foot,
+  left of Send. Its menu opens upward, as wide as the composer. The project's tokens stay in the head, before History
+  and New conversation.
+- **Why:** Which agent a message goes to belongs beside the button that sends it.
 - **Breaking:** None.
 - **Upgrade:** Nothing.
 - **Refs:** `apps/desktop/src/renderer/src/assistant.tsx` (`AgentChip`), `apps/desktop/src/renderer/src/styles.css`.
