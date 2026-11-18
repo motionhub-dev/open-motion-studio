@@ -3,6 +3,16 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-17 — Home's header switches the theme and the language
+
+- **What:** Home's header has the theme as one icon (a moon in light, a sun in dark) and the language as 中文 or EN,
+  each switching to the other at a click and saved as the preference Settings holds; Follow system stays in Settings.
+  Its New video button is removed: the prompt below it, a template and Ctrl/⌘ N make one.
+- **Why:** The look and the language were three clicks away, and New video said twice what Home's prompt is for.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/home.tsx` (`Home`).
+
 ## 2026-11-17 — The Chinese interface says 视频, not 影片
 
 - **What:** Every Chinese label, message and hint that named the film (`film.tsx`) as 影片 names it 视频, counted with

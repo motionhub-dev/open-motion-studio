@@ -138,8 +138,9 @@ A top bar over a grid of panels (`project-view.tsx`):
 
 ## Home
 
-Home (`home.tsx`) is a header (the icon and **OpenMotionStudio**, Open project, New film, which creates a fresh
-directory in the default workspace, and Settings), a 176 px navigation rail (Home, My projects, Templates, each with
+Home (`home.tsx`) is a header (the icon and **OpenMotionStudio**, Open project, the theme as one icon that turns it
+over — a moon in light, a sun in dark — the language as 中文 or EN that switches to the other, and Settings, which keeps
+Follow system for both; a new film is made from the prompt below, a template, or Ctrl/⌘ N), a 176 px navigation rail (Home, My projects, Templates, each with
 its icon; at its foot the workspace folder's name, which opens Settings → Workspace, and Help, which lists the
 shortcuts) and the content.
 

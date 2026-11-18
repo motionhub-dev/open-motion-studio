@@ -4543,6 +4543,12 @@ input.switch:disabled {
   background: var(--sheet);
 }
 
+.home-language {
+  gap: 6px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+
 .home-brand {
   display: flex;
   align-items: center;
