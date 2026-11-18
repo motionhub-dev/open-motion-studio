@@ -5,9 +5,10 @@ Every key change to OpenMotionStudio, newest first, by date. What counts as key 
 
 ## 2026-11-17 — Home's header switches the theme and the language
 
-- **What:** Home's header has the theme as one icon (a moon in light, a sun in dark) and the language as 中文 or EN,
+- **What:** Home's header has the language as 中文 or EN and the theme as one icon (a moon in light, a sun in dark),
   each switching to the other at a click and saved as the preference Settings holds; Follow system stays in Settings.
-  Its New video button is removed: the prompt below it, a template and Ctrl/⌘ N make one.
+  Its New video button is removed: the prompt below it, a template and Ctrl/⌘ N make one. Open project moves into the
+  prompt, beside Start creating.
 - **Why:** The look and the language were three clicks away, and New video said twice what Home's prompt is for.
 - **Breaking:** None.
 - **Upgrade:** Nothing.
