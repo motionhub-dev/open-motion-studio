@@ -3,6 +3,14 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-19 — Windows releases are signed through SignPath Foundation
+
+- **What:** A Windows release built by CI (a `v*` tag, or a run that prepares a draft release) sends its program and then its installer to SignPath, which signs both with SignPath Foundation's certificate once an approver accepts; CI stops unless both carry a valid signature. The `WIN_CSC_LINK` and `WIN_CSC_KEY_PASSWORD` secrets are gone, replaced by the `SIGNPATH_API_TOKEN` secret and the `SIGNPATH_ORGANIZATION_ID` variable. The code signing policy, team roles and privacy statement are in `docs/ops/code-signing.md`, linked from the README and from the download section of studio.motionhub.dev.
+- **Why:** A code-signing certificate's key now has to live in hardware, so a `.pfx` in a secret can no longer be had; SignPath Foundation signs open-source releases for free, from CI only.
+- **Breaking:** None.
+- **Upgrade:** Nothing. Builds stay unsigned until the SignPath settings are set; pushes and pull requests are never signed.
+- **Refs:** `.github/workflows/build.yml`, `apps/desktop/scripts/check-signing.mjs`, `docs/ops/code-signing.md`, `site/index.html`.
+
 ## 2026-11-18 — The Studio has its own mark
 
 - **What:** The app's icon, its window and tray icon and Home's logo are the Studio's own mark, the eased square: a rounded square split by an ease-in-out curve into deep and mid vermilion, in place of motionhub's two balls. Export stays vermilion, in the mark's colour, and marks on the picture stay cobalt.

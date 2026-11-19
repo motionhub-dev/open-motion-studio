@@ -16,6 +16,10 @@ Read [positioning](prd/positioning.md) first, then [the architecture](tech/archi
 
 - [Desktop updates](tech/desktop-updates.md) — proposed update delivery, restart behavior and packaged upgrade tests.
 
+## Operations
+
+- [Code signing](ops/code-signing.md) — the signing policy, who approves, the privacy statement, and how CI signs a Windows release through SignPath.
+
 ## Decisions
 
 - [0001 The Studio is engine-neutral](adr/0001-the-studio-is-engine-neutral.md) — Remotion, HyperFrames or native; superseded by 0005.

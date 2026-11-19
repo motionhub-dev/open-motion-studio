@@ -1,6 +1,6 @@
 # Architecture
 
-> **Status:** Plan — steps 1 to 3 and 6 built, 7 under way; signing waits for certificates · **Updated:** 2026-11-18
+> **Status:** Plan — steps 1 to 3 and 6 built, 7 under way; signing waits for its accounts · **Updated:** 2026-11-19
 
 The components of the Studio and what each owns, the film, the agent and its providers, what is expensive to change, and the order of work.
 
@@ -404,7 +404,8 @@ Each step is a vertical slice that runs end to end before the next begins.
    settled first because signing and notarisation are what most often block a desktop app late. *Built*: the app opens a
    folder, makes an empty one a project (its `.motion-studio/`, ignored by git) and remembers the projects opened;
    `.github/workflows/build.yml` runs the gate and packages a DMG and zip, an NSIS installer, and an AppImage and tarball,
-   signed and notarised once the secrets in `CLAUDE.md` are set, unsigned until then.
+   signed and notarised once the secrets in `CLAUDE.md` are set, unsigned until then; a Windows release is signed
+   through SignPath Foundation ([code signing](../ops/code-signing.md)).
 2. **A film, one provider**: a film, a motion from motionhub, the agent on one Anthropic-protocol model, the preview,
    `still`, export to MP4. This is the whole product. *Built*, and driven end to end in the app:
    a motion taken from a local copy of the catalogue and its reel played as a film, a turn of the agent against a
@@ -471,7 +472,8 @@ What gates what: 2 gates everything; 3 gates nothing else; 7 needs nothing after
   - how much of a reopened session the CLI gives back, and so whether the panel redraws a reopened conversation from
     it or keeps its own copy.
 
-- **Signing**: an Apple Developer ID and a Windows code-signing certificate, whose account they are under, and their cost.
+- **Signing**: an Apple Developer ID, whose account it is under, and its cost. Windows is decided: SignPath Foundation
+  signs releases for free, in its own name ([code signing](../ops/code-signing.md)).
 - **ffmpeg**: the app ships `ffmpeg-static`'s build for now, which is GPL (it holds x264). Shipping it beside an
   Apache-2.0 app is aggregation, but owes its licence and an offer of its source; an LGPL build without x264 would need
   another H.264 encoder (the platform's own, or OpenH264).

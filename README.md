@@ -8,7 +8,8 @@ A film is React drawn by time with `@motionhub/runtime`, which the Studio plays 
 
 Its page is [studio.motionhub.dev](https://studio.motionhub.dev/) (`site/`).
 
-Licensed under the [Apache License 2.0](LICENSE).
+Licensed under the [Apache License 2.0](LICENSE). Windows releases are signed under our
+[code signing policy](docs/ops/code-signing.md): free code signing provided by SignPath.io, certificate by SignPath Foundation.
 
 ## Development
 

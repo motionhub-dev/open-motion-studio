@@ -1,6 +1,7 @@
 # Installers for macOS, Windows and Linux. Signing is driven by environment variables
 # that CI fills from secrets (CLAUDE.md, "Commands"); without them a build is unsigned.
 # macOS is notarised when APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD and APPLE_TEAM_ID are set.
+# Windows is not signed here: CI sends a release's program and installer to SignPath (docs/ops/code-signing.md).
 appId: dev.motionhub.studio
 productName: OpenMotionStudio
 artifactName: open-motion-studio-${version}-${os}-${arch}.${ext}
