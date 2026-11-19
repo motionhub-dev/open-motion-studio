@@ -1,6 +1,7 @@
 // One tray-backed main window, with project-owned editor views that can move into dedicated windows.
 
 import './logging-startup';
+import { StudioUpdates, downloads } from './updates';
 import { BaseWindow, BrowserWindow, Menu, Tray, app, dialog, ipcMain, nativeImage, webContents, session, shell, type Session, type WebContents } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { mkdir, realpath, open as openFile, rm } from 'node:fs/promises';
@@ -344,12 +345,19 @@ else {
     })().catch(error => { console.error('OpenMotionStudio could not finish shutting down:', error); quitReady = true; app.quit(); });
   });
   void app.whenReady().then(async () => {
+    const updates = new StudioUpdates(app.getVersion(), (url, options) => session.defaultSession.fetch(url, options), state => {
+      for (const id of surfaces.keys()) webContents.fromId(id)?.send(EVENTS.update, state);
+    });
     for (const channel of Object.values(CHANNELS)) ipcMain.handle(channel, async (event, ...args) => {
       const started = Date.now();
       try {
         const workspace = surfaces.get(event.sender.id);
         if (quitting || !workspace || event.senderFrame !== event.sender.mainFrame) throw new Error('This view cannot call the Studio.');
         const entry = [...editors.values()].find(e => e.view.webContents.id === event.sender.id);
+        if (channel === CHANNELS.updateStatus) return updates.state;
+        if (channel === CHANNELS.checkForUpdates) return updates.check();
+        if (channel === CHANNELS.dismissUpdate) return updates.dismiss(args[0]);
+        if (channel === CHANNELS.openUpdateDownload) return shell.openExternal(downloads);
         if (channel === CHANNELS.projectLibrary) return projectLibrary(libraryFile());
         if (channel === CHANNELS.validateWorkspace) {
           const { path } = await workspaceSettings();
@@ -467,6 +475,14 @@ else {
       { role: 'editMenu' }, { role: 'windowMenu' },
     ]) : null);
     await createMain();
+    if (app.isPackaged) {
+      const check = async () => {
+        if (!quitting && (await providers().preferences()).checkUpdatesAutomatically !== false) await updates.check();
+      };
+      const background = () => { void check().catch(error => logFailure('updates.check', error)); };
+      setTimeout(background, 10000).unref();
+      setInterval(background, 6 * 60 * 60 * 1000).unref();
+    }
     log('app.ready');
     app.on('activate', showMain);
   });

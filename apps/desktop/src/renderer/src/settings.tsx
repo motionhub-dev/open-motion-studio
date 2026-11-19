@@ -3,6 +3,7 @@
 // Provider secrets remain in the main process and are never read back.
 
 import { SystemMessage, Translated, usePreferences } from './preferences';
+import { UpdateSettings } from './updates';
 import { Select } from './select';
 import { ArrowLeft, Check, ExternalLink, Folder, KeyRound, Loader, Plus, RefreshCw, Volume2 } from 'lucide-react';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
@@ -943,6 +944,7 @@ export function Settings({
         {section === 'general' ? (
           <>
             <GeneralPane />
+            <UpdateSettings />
             <WorkspacePane key={reload} />
           </>
         ) : section === 'diagnostics' ? (

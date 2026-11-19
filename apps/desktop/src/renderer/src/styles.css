@@ -541,6 +541,17 @@ button.status:hover {
   box-shadow: var(--float-shadow);
 }
 
+.update-notice {
+  top: 52px;
+  bottom: auto;
+}
+
+.update-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .toast.bad {
   background: var(--bad);
   color: var(--sheet);

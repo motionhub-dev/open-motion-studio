@@ -190,7 +190,8 @@ export class ProviderStore {
   async savePreferences(input: unknown): Promise<StudioPreferences> {
     if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('Invalid preferences.');
     const value = input as Record<string, unknown>;
-    if (Object.keys(value).some(key => key !== 'theme' && key !== 'language' && key !== 'onboardingComplete' && key !== 'backgroundNoticeSeen') ||
+    if (Object.keys(value).some(key => key !== 'theme' && key !== 'language' && key !== 'onboardingComplete' && key !== 'backgroundNoticeSeen' && key !== 'checkUpdatesAutomatically') ||
+        ('checkUpdatesAutomatically' in value && typeof value.checkUpdatesAutomatically !== 'boolean') ||
         ('backgroundNoticeSeen' in value && typeof value.backgroundNoticeSeen !== 'boolean') ||
         ('onboardingComplete' in value && typeof value.onboardingComplete !== 'boolean') ||
         ('theme' in value && !['system', 'light', 'dark'].includes(value.theme as string)) ||

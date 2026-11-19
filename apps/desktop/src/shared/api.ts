@@ -477,6 +477,7 @@ export interface StudioPreferences {
   onboardingComplete?: boolean;
   /** The person has been told that closing the main window keeps tasks running. */
   backgroundNoticeSeen?: boolean;
+  checkUpdatesAutomatically?: boolean;
   theme: 'system' | 'light' | 'dark';
   language: 'system' | 'en' | 'zh-CN';
 }
@@ -487,7 +488,19 @@ export interface SystemStartup {
   enabled: boolean;
 }
 
+export interface StudioUpdate {
+  installed: string;
+  status: 'idle' | 'checking' | 'checked' | 'error';
+  available: string | null;
+  dismissed: string | null;
+}
+
 export interface StudioApi {
+  updateStatus(): Promise<StudioUpdate>;
+  checkForUpdates(): Promise<void>;
+  openUpdateDownload(): Promise<void>;
+  dismissUpdate(version: string): Promise<void>;
+  onUpdateChanged(listener: (state: StudioUpdate) => void): () => void;
   /** Every project the person has opened, most recent first, missing folders included. */
   projectLibrary(): Promise<LibraryProject[]>;
   /**
@@ -660,6 +673,10 @@ export interface StudioApi {
 
 /** Invoked channels, one per request method of StudioApi. */
 export const CHANNELS = {
+  updateStatus: 'updates:status',
+  checkForUpdates: 'updates:check',
+  openUpdateDownload: 'updates:download',
+  dismissUpdate: 'updates:dismiss',
   projectLibrary: 'library:list',
   libraryAction: 'library:action',
   validateWorkspace: 'workspace:validate',
@@ -736,6 +753,7 @@ export const CHANNELS = {
 
 /** Events the main process sends. */
 export const EVENTS = {
+  update: 'updates:changed',
   viewVisibility: 'view:visibility',
   tasks: 'tasks:changed',
   build: 'film:built',

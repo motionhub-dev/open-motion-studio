@@ -2,6 +2,7 @@
 // open project. Global settings belongs to both: on Home it is one of Home's pages, its sections in Home's sidebar; over
 // the open project it is a page of its own, which preserves the editor beneath it.
 
+import { StudioUpdateProvider } from './updates';
 import { Home } from './home';
 import { SystemMessage, Translated, usePreferences } from './preferences';
 import { useEffect, useState } from 'react';
@@ -11,6 +12,10 @@ import { reason } from './reason';
 import { Settings } from './settings';
 
 export function App() {
+  return <StudioUpdateProvider><WorkspaceApp /></StudioUpdateProvider>;
+}
+
+function WorkspaceApp() {
   const [project, setProject] = useState<Project | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);

@@ -4,7 +4,7 @@ An open-source desktop IDE for making motion video with an agent: pick a motion 
 talk to an agent on the model and provider of your choice, watch it play, point at what to change, and export an MP4.
 A film is React drawn by time with `@motionhub/runtime`, which the Studio plays and exports itself: nothing else to install.
 
-**v0.1.0 is available for macOS, Windows and Linux.** [Download OpenMotionStudio](https://studio.motionhub.dev/#get) or read the [release notes](https://github.com/motionhub-dev/open-motion-studio/releases/tag/v0.1.0). To get started, open one of the sample films from the launcher. See [the documentation](docs/README.md) for more about the editor.
+**v0.1.1 is available for macOS, Windows and Linux.** [Download OpenMotionStudio](https://studio.motionhub.dev/#get) or read the [release notes](https://github.com/motionhub-dev/open-motion-studio/releases/tag/v0.1.1). To get started, open one of the sample films from the launcher. See [the documentation](docs/README.md) for more about the editor.
 
 Its page is [studio.motionhub.dev](https://studio.motionhub.dev/) (`site/`).
 

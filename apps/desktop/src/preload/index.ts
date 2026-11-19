@@ -11,6 +11,11 @@ function subscribe<T>(channel: string, listener: (value: T) => void): () => void
 }
 
 const api: StudioApi = {
+  updateStatus: () => ipcRenderer.invoke(CHANNELS.updateStatus),
+  checkForUpdates: () => ipcRenderer.invoke(CHANNELS.checkForUpdates),
+  openUpdateDownload: () => ipcRenderer.invoke(CHANNELS.openUpdateDownload),
+  dismissUpdate: version => ipcRenderer.invoke(CHANNELS.dismissUpdate, version),
+  onUpdateChanged: listener => subscribe(EVENTS.update, listener),
   projectLibrary: () => ipcRenderer.invoke(CHANNELS.projectLibrary),
   libraryAction: (path, action, name) => ipcRenderer.invoke(CHANNELS.libraryAction, path, action, name),
   validateWorkspace: () => ipcRenderer.invoke(CHANNELS.validateWorkspace),

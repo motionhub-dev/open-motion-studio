@@ -3,6 +3,14 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-18 — Check for Studio updates (v0.1.1)
+
+- **What:** General settings shows the installed version and checks GitHub for newer stable releases. Installed apps also check in the background unless the preference is switched off. A dismissible notice opens the official download page.
+- **Why:** Creators can find a new desktop release while their project continues running.
+- **Breaking:** None.
+- **Upgrade:** Install a desktop build containing this change to see the new controls.
+- **Refs:** `apps/desktop/src/main/updates.ts`, `apps/desktop/src/renderer/src/updates.tsx`.
+
 ## 2026-11-18 — First desktop release (v0.1.0)
 
 - **What:** OpenMotionStudio packages the editor for macOS (Apple silicon and Intel), Windows (x64) and Linux (x64 and arm64).

@@ -1,5 +1,17 @@
 // Interface messages only; never translate project content or model identifiers.
 export const zh: Record<string, string> = {
+  "Studio updates": "软件更新",
+  "Download update": "下载更新",
+  "Open studio.motionhub.dev in your browser to download the update.": "请在浏览器打开 studio.motionhub.dev 下载更新。",
+  "OpenMotionStudio {version} is available.": "OpenMotionStudio {version} 已可下载。",
+  "Later": "稍后提醒",
+  "Installed version: {version}": "当前版本：{version}",
+  "Automatically check for updates": "自动检查更新",
+  "Checking for updates\u2026": "正在检查更新…",
+  "Check for updates": "检查更新",
+  "You have the latest version.": "已是最新版本。",
+  "Could not check for updates. Try again later.": "无法检查更新，请稍后重试。",
+  "Could not complete this action. Please try again.": "操作未完成，请重试。",
   "Select an option": "请选择",
   "No matching options": "没有匹配的选项",
   "General": "通用",

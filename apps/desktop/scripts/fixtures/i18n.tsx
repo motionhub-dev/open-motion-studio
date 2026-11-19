@@ -1,3 +1,4 @@
+import type { StudioUpdate } from '../../src/shared/api';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from '../../src/renderer/src/app';
@@ -13,7 +14,22 @@ let created = 0;
 const listeners = new Set<() => void>();
 const providers = { active: 'test', weakKeyStorage: false, providers: [{id: 'test', name: 'English provider name', model: 'model-English', protocol: 'openai', baseUrl: 'https://example.com', images: true, hasKey: true, ready: true}] };
 const agents = {current: 'built-in', settings: {claude: {model: '', effort: '', fallbackModel: '', budgetUsd: null}, codex: {model: '', effort: ''}}, harnesses: [{kind: 'codex', name: 'Codex', state: 'signed-out', version: '1.0', hint: 'Sign in with your ChatGPT account'}]};
+let update: StudioUpdate = { installed: '0.1.0', available: null, dismissed: null, status: 'idle' };
+let openedDownloads = 0;
+const updateListeners = new Set<(state: StudioUpdate) => void>();
+function publishUpdate(change: Partial<StudioUpdate>) {
+  update = { ...update, ...change };
+  updateListeners.forEach(listener => listener(update));
+}
 const api = {
+  updateStatus: async () => update,
+  onUpdateChanged: (listener: (state: StudioUpdate) => void) => {
+    updateListeners.add(listener);
+    return () => updateListeners.delete(listener);
+  },
+  checkForUpdates: async () => publishUpdate({ available: '0.2.0', status: 'checked' }),
+  openUpdateDownload: async () => { openedDownloads++; },
+  dismissUpdate: async (dismissed: string) => publishUpdate({ dismissed }),
   preferences: async () => ({ theme: 'light', language, onboardingComplete: complete }),
   onPreferencesChanged: (callback: () => void) => { listeners.add(callback); return () => listeners.delete(callback); },
   savePreferences: async (input: any) => { if (input.onboardingComplete !== undefined) complete = input.onboardingComplete; if (input.language) language = input.language; listeners.forEach(callback => callback()); return {theme:'light',language,onboardingComplete:complete}; },
@@ -50,6 +66,13 @@ const nav = async (label: string) => action(() => { const found = Array.from(doc
   assert(text().includes('打开项目') && text().includes('用数字讲故事'), 'Home not localized');
   await nav('通用');
   assert(text().includes('开机自动启动') && text().includes('简体中文'), 'General settings not localized');
+  await action(() => button('检查更新').click());
+  assert(text().includes('OpenMotionStudio 0.2.0 已可下载。'), 'Missing available version');
+  assert(document.querySelector('.update-notice'), 'Missing update notice');
+  await action(() => button('下载更新').click());
+  assert(openedDownloads === 1, 'Download action did not reach Studio');
+  await action(() => button('稍后提醒').click());
+  assert(!document.querySelector('.update-notice') && text().includes('下载更新'), 'Dismissal hid Settings download');
   await nav('模型服务');
   assert(text().includes('测试连接') && text().includes('English provider name') && text().includes('模型支持图像'), 'Provider labels or user name changed');
   await nav('语音服务');

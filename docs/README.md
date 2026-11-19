@@ -14,6 +14,8 @@ Read [positioning](prd/positioning.md) first, then [the architecture](tech/archi
 - [Sound, narration and captions](tech/sound-and-captions.md) — plan: music and effects in and out, captions from lines, a narration per line that times them.
 - [The assistant panel](tech/assistant-panel.md) — how it was rebuilt in five slices: turns' tokens and time, turns as blocks, the coding agents' settings, the composer, questions and errors.
 
+- [Desktop updates](tech/desktop-updates.md) — proposed update delivery, restart behavior and packaged upgrade tests.
+
 ## Decisions
 
 - [0001 The Studio is engine-neutral](adr/0001-the-studio-is-engine-neutral.md) — Remotion, HyperFrames or native; superseded by 0005.
