@@ -401,6 +401,16 @@ body::before {
 .open .fine {
   max-width: 52ch;
 }
+/* The agents named on the first screen, each with its maker's mark: Claude's in its own colour, OpenAI's in the
+   text colour (motionhub's brand/BRAND.md). */
+.with {
+  white-space: nowrap;
+}
+.agent-mark {
+  display: inline-block;
+  margin-right: 4px;
+  vertical-align: -2px;
+}
 /* Under the download button: which file it gives, and the way to the others. */
 .hero-file {
   margin-top: -10px;
@@ -948,9 +958,19 @@ body::before {
   border-radius: 12px;
 }
 .os b {
+  display: flex;
+  align-items: center;
+  gap: 9px;
   color: var(--text);
   font-weight: 600;
   font-size: 17px;
+}
+.os-icon {
+  flex: none;
+}
+/* The hero's button carries the icon of the system it downloads for. */
+.button .os-icon {
+  margin-right: 9px;
 }
 .os span {
   display: flex;

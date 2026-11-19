@@ -271,6 +271,7 @@ async function offerDownload() {
   const name = row.querySelector("b").textContent;
   const hero = document.querySelector("#hero-get");
   hero.textContent = "Download for " + name;
+  hero.prepend(row.querySelector(".os-icon").cloneNode(true));
   hero.href = chosen.href;
   const version = /\/download\/(v[\d.]+)\//.exec(chosen.href)?.[1];
   document.querySelector("#hero-build").textContent = [name, chosen.textContent.trim(), version].filter(Boolean).join(" · ");
