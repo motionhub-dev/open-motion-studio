@@ -1,4 +1,4 @@
-// studio.motionhub.dev: the hero's loop of the real app, the tour, the looks, the two cuts and the transport bar.
+// openmotion.studio: the hero's loop of the real app, the tour, the looks, the two cuts and the transport bar.
 const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const pad = (n) => String(n).padStart(2, "0");
 // SMPTE timecode at 24 fps: hh:mm:ss:ff.

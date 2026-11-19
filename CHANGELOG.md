@@ -3,6 +3,14 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-19 — The website moves to openmotion.studio
+
+- **What:** The introduction page is served at openmotion.studio. studio.motionhub.dev and www.openmotion.studio answer with a permanent redirect to the same page there, path, query and `#` kept. The Studio's update notice now sends people to openmotion.studio to download an update.
+- **Why:** The Studio has its own name and now its own address.
+- **Breaking:** None. Links to studio.motionhub.dev, including the update notice in v0.1.0 to v0.1.2, keep working through the redirect.
+- **Upgrade:** Nothing.
+- **Refs:** `site/wrangler.jsonc`, `site/worker.js`, `apps/desktop/src/main/updates.ts`, `README.md`.
+
 ## 2026-11-19 — OpenMotionStudio v0.1.2
 
 - **What:** A release with the Studio's own mark, the eased square, as the app's icon, window and tray icon and Home's logo, and with Windows releases set up to be signed through SignPath Foundation. Installers for macOS (Apple silicon and Intel), Windows (x64) and Linux (x64 and ARM64 AppImages) are on GitHub Releases.

@@ -1,12 +1,17 @@
-// The introduction page, served at studio.motionhub.dev by a Worker that holds these static files
-// (.github/workflows/site.yml deploys it). Its one piece of code, worker.js, answers byte ranges of the films so a
-// browser can seek them; it runs only for /media/*.mp4. No other binding, no other route.
+// The introduction page, served at openmotion.studio by a Worker that holds these static files
+// (.github/workflows/site.yml deploys it). Its one piece of code, worker.js, sends www.openmotion.studio and the old
+// studio.motionhub.dev (which released apps still open) to openmotion.studio, and answers byte ranges of the films so a
+// browser can seek them. No other binding.
 {
   "name": "open-motion-studio-site",
   "compatibility_date": "2026-11-06",
   "main": "worker.js",
-  "assets": { "directory": ".", "binding": "ASSETS", "run_worker_first": ["/media/*.mp4"] },
+  "assets": { "directory": ".", "binding": "ASSETS", "run_worker_first": true },
   "workers_dev": false,
   "preview_urls": false,
-  "routes": [{ "pattern": "studio.motionhub.dev", "custom_domain": true }]
+  "routes": [
+    { "pattern": "openmotion.studio", "custom_domain": true },
+    { "pattern": "www.openmotion.studio", "custom_domain": true },
+    { "pattern": "studio.motionhub.dev", "custom_domain": true }
+  ]
 }

@@ -1,8 +1,20 @@
-// The site's one piece of code: answer a byte range of a film, which static assets alone do not. A browser seeks a
-// video (the hero's steps, the tour's chapters) by asking for a range; answered with the whole file it can only play
-// from the start. Only /media/*.mp4 reaches this (wrangler.jsonc, run_worker_first); every other file is served as is.
+// The site's one piece of code. Every host but openmotion.studio is sent there for good, path and query kept (the
+// browser keeps the #fragment): www, and studio.motionhub.dev, which v0.1.x apps open to download an update. And a byte
+// range of a film is answered, which static assets alone do not: a browser seeks a video (the hero's steps, the tour's
+// chapters) by asking for a range; answered with the whole file it can only play from the start.
+export const home = 'openmotion.studio';
+
 export default {
   async fetch(request, env) {
+    const url = new URL(request.url);
+    if (url.hostname !== home) {
+      url.protocol = 'https:';
+      url.hostname = home;
+      url.port = '';
+      return Response.redirect(url.toString(), 301);
+    }
+    if (!/^\/media\/.*\.mp4$/.test(url.pathname)) return env.ASSETS.fetch(request);
+
     const whole = await env.ASSETS.fetch(request);
     const asked = request.headers.get('range');
     if (!asked || whole.status !== 200) return withRanges(whole);

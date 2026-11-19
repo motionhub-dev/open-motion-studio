@@ -1,7 +1,7 @@
 import type { StudioUpdate } from '../shared/api';
 
 const releaseApi = 'https://api.github.com/repos/motionhub-dev/open-motion-studio/releases/latest';
-export const downloads = 'https://studio.motionhub.dev/#get';
+export const downloads = 'https://openmotion.studio/#get';
 
 // Public Studio release tags are vMAJOR.MINOR.PATCH. Ignore draft and prerelease metadata.
 function newerStableVersion(installed: string, release: unknown): string | null {

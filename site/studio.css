@@ -1,4 +1,4 @@
-/* studio.motionhub.dev: the page is one film. Native scroll is the playhead; the transport bar at the foot carries
+/* openmotion.studio: the page is one film. Native scroll is the playhead; the transport bar at the foot carries
    the timecode and the scenes. Light by default and dark on request (the toggle in the top bar, kept in the browser),
    in motionhub's paper and ink (brand/brand.tokens.json in motionhub-dev/motions); colour belongs to the films and
    the app. Vermilion is the Studio's mark (the eased square, docs/design.md) and Download, and nothing else; cobalt,

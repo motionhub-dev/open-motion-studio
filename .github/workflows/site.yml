@@ -1,6 +1,6 @@
-# The introduction page: site/ as it is (no build), deployed to studio.motionhub.dev as a static-assets Worker
+# The introduction page: site/ as it is (no build), deployed to openmotion.studio as a static-assets Worker
 # (site/wrangler.jsonc) on a push to main that changes it. Needs the CLOUDFLARE_DEPLOY_TOKEN and
-# CLOUDFLARE_ACCOUNT_ID repository secrets of the Cloudflare account that holds motionhub.dev.
+# CLOUDFLARE_ACCOUNT_ID repository secrets of the Cloudflare account that holds openmotion.studio and motionhub.dev.
 name: Site
 
 on:
@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: site
-      url: https://studio.motionhub.dev/
+      url: https://openmotion.studio/
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

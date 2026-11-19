@@ -65,7 +65,7 @@ apps/desktop/
   src/shared/          what both sides agree on: StudioApi, the preview bridge's messages, and the interface's
                        messages in Chinese (i18n.ts, translations.ts)
   src/renderer/        React UI
-site/                  the introduction page at studio.motionhub.dev: static HTML, recordings of the app and films made in it, no build,
+site/                  the introduction page at openmotion.studio: static HTML, recordings of the app and films made in it, no build,
                        served by a static-assets Worker whose one script, worker.js, answers byte ranges of the films so they
                        can be seeked (wrangler.jsonc; .github/workflows/site.yml deploys it on a push to main)
 ```

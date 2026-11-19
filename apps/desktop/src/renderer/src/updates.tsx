@@ -12,7 +12,7 @@ function DownloadUpdate() {
       setFailed(false);
       void window.studio.openUpdateDownload().catch(() => setFailed(true));
     }}>{t('Download update')}</button>
-    {failed && <small role="alert">{t('Open studio.motionhub.dev in your browser to download the update.')}</small>}
+    {failed && <small role="alert">{t('Open openmotion.studio in your browser to download the update.')}</small>}
   </>;
 }
 
