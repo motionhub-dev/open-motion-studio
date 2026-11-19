@@ -16,9 +16,9 @@ asarUnpack:
   - '**/node_modules/@esbuild/**'
   - '**/node_modules/ffmpeg-static/**'
 npmRebuild: false
-# motionhub's app icon (brand/logo/ in motionhub-dev/motions): a 1024 px picture electron-builder turns into the
-# .icns and Linux's PNGs, and for Windows an .ico whose 16 px is the brand's one-ball icon-16. The window takes
-# the same files (src/main/index.ts).
+# The Studio's eased-square icon (resources/icon.svg, docs/design.md): a 1024 px picture electron-builder turns
+# into the .icns and Linux's PNGs, and for Windows an .ico of 16 to 256 px. The window takes the same files
+# (src/main/index.ts).
 icon: resources/icon.png
 # No update channel yet (auto-update is not in the first version), so no update metadata.
 publish: null

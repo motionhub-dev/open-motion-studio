@@ -3,6 +3,14 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-18 — The Studio has its own mark
+
+- **What:** The app's icon, its window and tray icon and Home's logo are the Studio's own mark, the eased square: a rounded square split by an ease-in-out curve into deep and mid vermilion, in place of motionhub's two balls. Export stays vermilion, in the mark's colour, and marks on the picture stay cobalt.
+- **Why:** The Studio needs a face of its own beside the catalogue's.
+- **Breaking:** None.
+- **Upgrade:** Nothing. A new install shows the new icon; a pinned shortcut may keep the old one until the system refreshes its icon cache.
+- **Refs:** `apps/desktop/resources/icon.svg`, `icon.png`, `icon.ico`, `docs/design.md`.
+
 ## 2026-11-18 — Check for Studio updates (v0.1.1)
 
 - **What:** General settings shows the installed version and checks GitHub for newer stable releases. Installed apps also check in the background unless the preference is switched off. A dismissible notice opens the official download page.

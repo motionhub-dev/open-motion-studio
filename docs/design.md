@@ -6,21 +6,23 @@ The Studio's visual system: its identity, colour, type, shape, icons, the worksp
 
 ## Identity
 
-The Studio is motionhub's workbench, so it wears motionhub's brand (`brand/BRAND.md` in `motionhub-dev/motions`):
-paper and ink, one ordinary type family, and the mark, a ball in flight rising up and to the right (the
-brand's `logo/mark.svg`). Home uses the Studio's application icon (`logo.tsx`). The interface stays quiet so the film is loud: no colour on screen but the film's, the film
-sits on ink, and each colour has one job.
+The Studio keeps motionhub's paper, ink and type (`brand/BRAND.md` in `motionhub-dev/motions`) and has a mark of its
+own, apart from the catalogue's ball in flight: the **eased square**, a rounded square split by an ease-in-out curve
+into a deep and a mid vermilion, the curve drawn light along the seam. It is animation's slow, fast, slow, and reads
+as the S of Studio. Vermilion is the mark and the one action a screen asks for; cobalt, the one cool colour, is what a
+person marks on the picture. The interface stays quiet so the film is loud: no colour on screen but the film's, the
+film sits on ink, and each colour has one job.
 
-- **Vermilion (`--accent`)** is Export, and nothing else: the one action a screen asks for.
-- **The mark's vermilion (`--mark`)** is the mark, and nothing else, as the brand's `mark` token.
+- **Vermilion (`--accent`)** is Export, and nothing else: the one action a screen asks for, in the mark's colour.
 - **Cobalt (`--annotate`)** is what the person marks on the picture (a box, its number, its flag on the timeline, its
-  chip by the message). It is not vermilion, which is the brand's.
+  chip by the message): the cool counterpoint to the mark's vermilion.
 - Buttons, links, focus and the playhead are ink (`--text`), never a colour.
 
-The mark and the app's icon are motionhub's (`brand/logo/` in `motionhub-dev/motions`) and change there first. The
-icon is two vermilion balls on an ink tile: `apps/desktop/resources/icon.png` is `icon.svg` at 1024 px, from which
-electron-builder makes the Mac's and Linux's icons; `icon.ico` is Windows', its 16 px the one-ball `icon-16.svg` and
-its larger sizes `icon.svg`. The window takes the same files on Windows and Linux.
+The mark is the app's icon, full bleed: `apps/desktop/resources/icon.svg` (vermilion `#8A3021`, `#EE6348` and the
+curve `#FFB4A1`, corners at 22.5 %) is its source. `icon.png` is it at 1024 px, from which electron-builder makes the
+Mac's and Linux's icons, and `icon.ico` is Windows', 16 to 256 px; both are rendered from `icon.svg` and change with
+it. The window, the tray and Home's logo (`logo.tsx`) take the same files. The website (`site/favicon.svg`) uses the
+same drawing.
 
 The window has no menu bar on Windows and Linux; on a Mac the system's menu bar keeps the app's menu, File, Edit and
 Window, for their keys (Quit, New Window, copy and paste in text, minimise).
@@ -40,8 +42,8 @@ choice, or the one chosen in Settings → General, set as `data-theme` on `<html
 | `--text2` | `#4A453E` | `#D3CABC` | body copy |
 | `--muted` | `#6B645A` | `#A89E90` | labels, times, counts |
 | `--stage` | `#2A2622` | `#0F0D0B` | the ink under the film |
-| `--accent` | `#C4381F` | `#FF6A4D` | Export |
-| `--mark` | `#E2442B` | `#FF6A4D` | the mark (`logo.tsx`), and nothing else: the brand's `mark` |
+| `--accent` | `#C4381F` | `#FF6A4D` | Export, in the mark's vermilion |
+| `--on-accent` | `#FBF8F2` | `#1A1714` | the label on Export |
 | `--annotate` | `#2B59C3` | `#8FA8FF` | marks on the picture |
 | `--good` | `#2E7D4F` | `#6CC08B` | built, done |
 | `--bad` | `#A1301B` | `#FF8A73` | does not build, failed |
