@@ -1,686 +1,364 @@
 <!doctype html>
-<!-- OpenMotionStudio's introduction at studio.motionhub.dev, a static-assets Worker (site/wrangler.jsonc, .github/workflows/site.yml).
-     One static page and its screenshots, no build. Colours are docs/design.md's tokens; the screenshots are the
-     app itself, taken from the built Studio. -->
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>OpenMotionStudio</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <title>OpenMotionStudio — make motion video with an AI agent</title>
     <meta
       name="description"
-      content="An open-source desktop app for making motion video with an agent: pick a motion, talk to the model of your choice, point at what to change, export an MP4."
+      content="OpenMotionStudio is a free, open-source desktop studio for making motion video with an AI agent. Describe the film, point at what to change on the picture, export an MP4."
     />
-    <meta property="og:title" content="OpenMotionStudio" />
-    <meta property="og:description" content="Make motion video with an agent, on your own model, on your own disk." />
-    <meta property="og:image" content="https://studio.motionhub.dev/workspace.webp" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
-      rel="stylesheet"
+    <meta property="og:title" content="OpenMotionStudio — You have the eye. Now you have the hands." />
+    <meta
+      property="og:description"
+      content="A free, open-source desktop studio for making motion video with an AI agent. Point at the frame, say what to change, export an MP4."
     />
-    <link
-      rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22 width=%2264%22 height=%2264%22 role=%22img%22 aria-label=%22motionhub%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2214%22 fill=%22%232A2622%22/%3E%3Ccircle cx=%2222%22 cy=%2238%22 r=%228%22 fill=%22%23FF6A4D%22 fill-opacity=%220.4%22/%3E%3Ccircle cx=%2238%22 cy=%2228%22 r=%2213%22 fill=%22%23FF6A4D%22/%3E%3C/svg%3E"
-    />
-    <style>
-      :root {
-        --bg: #f3eee4;
-        --sheet: #fbf8f2;
-        --s2: #eae2d4;
-        --line: #ddd3c3;
-        --text: #2a2622;
-        --text2: #4a453e;
-        --muted: #6b645a;
-        --stage: #2a2622;
-        --accent: #c4381f;
-        --mark: #e2442b;
-        --annotate: #2b59c3;
-        --on-ink: #f1ebe0;
-        color-scheme: light dark;
-      }
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --bg: #1a1714;
-          --sheet: #221e1a;
-          --s2: #2c2722;
-          --line: #3b342d;
-          --text: #f1ebe0;
-          --text2: #d3cabc;
-          --muted: #a89e90;
-          --stage: #0f0d0b;
-          --accent: #ff6a4d;
-          --mark: #ff6a4d;
-          --annotate: #8fa8ff;
-          --on-ink: #f1ebe0;
-        }
-      }
-      * {
-        box-sizing: border-box;
-      }
-      html {
-        -webkit-text-size-adjust: 100%;
-      }
-      body {
-        margin: 0;
-        background: var(--bg);
-        color: var(--text2);
-        font: 16px/1.6 Inter, system-ui, sans-serif;
-        -webkit-font-smoothing: antialiased;
-      }
-      a {
-        color: var(--text);
-      }
-      code,
-      pre,
-      .mono {
-        font-family: 'JetBrains Mono', ui-monospace, monospace;
-      }
-      .wrap {
-        max-width: 1160px;
-        margin: 0 auto;
-        padding: 0 24px;
-      }
-      h1,
-      h2,
-      h3 {
-        color: var(--text);
-        margin: 0;
-        letter-spacing: -0.02em;
-      }
-
-      /* top bar */
-      .bar {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        height: 72px;
-      }
-      .brand {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-weight: 600;
-        color: var(--text);
-        text-decoration: none;
-        font-size: 15px;
-      }
-      .bar nav {
-        margin-left: auto;
-        display: flex;
-        gap: 22px;
-        font-size: 14px;
-      }
-      .bar nav a {
-        color: var(--muted);
-        text-decoration: none;
-      }
-      .bar nav a:hover {
-        color: var(--text);
-      }
-
-      /* hero */
-      .hero {
-        padding: 72px 0 40px;
-        display: grid;
-        gap: 24px;
-        max-width: 820px;
-      }
-      .eyebrow {
-        font: 500 12px/1 'JetBrains Mono', ui-monospace, monospace;
-        letter-spacing: 0.12em;
-        text-transform: uppercase;
-        color: var(--muted);
-      }
-      .hero h1 {
-        font-size: clamp(40px, 6.4vw, 76px);
-        line-height: 1.02;
-        font-weight: 800;
-        letter-spacing: -0.035em;
-      }
-      .hero p {
-        font-size: clamp(17px, 2vw, 20px);
-        margin: 0;
-        max-width: 640px;
-      }
-      .actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        margin-top: 8px;
-      }
-      .button {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        height: 44px;
-        padding: 0 18px;
-        border-radius: 8px;
-        font-weight: 600;
-        font-size: 15px;
-        text-decoration: none;
-        border: 1px solid var(--line);
-        background: var(--sheet);
-        color: var(--text);
-      }
-      .button.primary {
-        background: var(--text);
-        border-color: var(--text);
-        color: var(--bg);
-      }
-      .button:focus-visible,
-      .bar nav a:focus-visible,
-      .brand:focus-visible {
-        outline: 2px solid var(--text);
-        outline-offset: 3px;
-      }
-
-      /* screenshots */
-      .shot {
-        margin: 0;
-        border-radius: 12px;
-        overflow: hidden;
-        border: 1px solid var(--line);
-        background: var(--sheet);
-        box-shadow: 0 24px 60px -24px rgba(42, 38, 34, 0.35);
-      }
-      .shot img {
-        display: block;
-        width: 100%;
-        height: auto;
-      }
-      .hero-shot {
-        margin: 16px 0 96px;
-      }
-      figcaption {
-        font-size: 13px;
-        color: var(--muted);
-        padding: 12px 16px;
-        border-top: 1px solid var(--line);
-      }
-
-      section {
-        padding: 72px 0;
-        border-top: 1px solid var(--line);
-      }
-      .section-head {
-        display: grid;
-        gap: 12px;
-        max-width: 680px;
-        margin-bottom: 40px;
-      }
-      .section-head h2 {
-        font-size: clamp(28px, 3.6vw, 40px);
-        line-height: 1.1;
-        font-weight: 700;
-      }
-      .section-head p {
-        margin: 0;
-      }
-
-      /* the path */
-      .steps {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 12px;
-        counter-reset: step;
-      }
-      .steps li {
-        background: var(--sheet);
-        border: 1px solid var(--line);
-        border-radius: 12px;
-        padding: 20px;
-        counter-increment: step;
-      }
-      .steps li::before {
-        content: counter(step, decimal-leading-zero);
-        display: block;
-        font: 500 12px/1 'JetBrains Mono', ui-monospace, monospace;
-        color: var(--muted);
-        margin-bottom: 14px;
-      }
-      .steps h3 {
-        font-size: 17px;
-        margin-bottom: 6px;
-      }
-      .steps p {
-        margin: 0;
-        font-size: 15px;
-      }
-      .mark {
-        color: var(--annotate);
-        font-weight: 600;
-      }
-      .export {
-        color: var(--accent);
-        font-weight: 600;
-      }
-
-      /* features */
-      .features {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1px;
-        background: var(--line);
-        border: 1px solid var(--line);
-        border-radius: 12px;
-        overflow: hidden;
-      }
-      .feature {
-        background: var(--sheet);
-        padding: 28px;
-      }
-      .feature h3 {
-        font-size: 18px;
-        margin-bottom: 8px;
-      }
-      .feature p {
-        margin: 0;
-        font-size: 15px;
-      }
-
-      /* split */
-      .split {
-        display: grid;
-        grid-template-columns: 5fr 7fr;
-        gap: 48px;
-        align-items: center;
-      }
-
-      /* instead of */
-      .instead {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-        display: grid;
-        gap: 0;
-        border-top: 1px solid var(--line);
-      }
-      .instead li {
-        display: grid;
-        grid-template-columns: 240px 1fr;
-        gap: 24px;
-        padding: 18px 0;
-        border-bottom: 1px solid var(--line);
-      }
-      .instead strong {
-        color: var(--text);
-        font-weight: 600;
-      }
-
-      /* the film */
-      pre {
-        margin: 0;
-        background: var(--stage);
-        color: var(--on-ink);
-        border-radius: 12px;
-        padding: 24px;
-        font-size: 13.5px;
-        line-height: 1.7;
-        overflow-x: auto;
-      }
-      pre .c {
-        color: #a89e90;
-      }
-      pre .k {
-        color: #ff8a73;
-      }
-      pre .t {
-        color: #8fa8ff;
-      }
-      .note {
-        font-size: 14px;
-        color: var(--muted);
-      }
-
-      /* get it */
-      .get {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 24px;
-        align-items: start;
-      }
-      .downloads {
-        margin: 0;
-      }
-      .downloads > div {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: baseline;
-        gap: 4px 16px;
-        padding: 10px 0;
-        border-bottom: 1px solid var(--line);
-      }
-      .downloads dt {
-        min-width: 72px;
-        font-weight: 600;
-      }
-      .downloads dd {
-        margin: 0;
-      }
-      .get pre {
-        font-size: 13px;
-      }
-
-      footer {
-        border-top: 1px solid var(--line);
-        padding: 32px 0 48px;
-        font-size: 14px;
-        color: var(--muted);
-      }
-      footer .wrap {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px 24px;
-        align-items: center;
-      }
-      footer a {
-        color: var(--muted);
-      }
-      footer .right {
-        margin-left: auto;
-      }
-
-      @media (max-width: 860px) {
-        .steps {
-          grid-template-columns: 1fr;
-        }
-        .features {
-          grid-template-columns: 1fr;
-        }
-        .split,
-        .get {
-          grid-template-columns: 1fr;
-          gap: 32px;
-        }
-        .instead li {
-          grid-template-columns: 1fr;
-          gap: 4px;
-        }
-        .bar nav a.optional {
-          display: none;
-        }
-        .hero {
-          padding-top: 40px;
-        }
-        section {
-          padding: 56px 0;
-        }
-        .hero-shot {
-          margin-bottom: 64px;
-        }
-        footer .right {
-          margin-left: 0;
-        }
-      }
-      @media (max-width: 440px) {
-        .bar {
-          flex-wrap: wrap;
-          height: auto;
-          gap: 8px 16px;
-          padding-block: 16px;
-        }
-        .bar nav {
-          flex-wrap: wrap;
-          gap: 12px;
-        }
-      }
-      .get details,
-      .get > div {
-        min-width: 0;
-      }
-    </style>
+    <meta property="og:image" content="https://studio.motionhub.dev/media/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#0F0D0B" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="studio.css" />
+    <script src="studio.js" defer></script>
   </head>
   <body>
-    <header class="wrap bar">
-      <a class="brand" href="./">
-        <svg width="30" height="17.5" viewBox="0 0 96 56" aria-hidden="true">
-          <circle cx="10" cy="40" r="5" fill="var(--mark)" fill-opacity=".2" />
-          <circle cx="27" cy="31" r="7" fill="var(--mark)" fill-opacity=".38" />
-          <circle cx="47" cy="24" r="9" fill="var(--mark)" fill-opacity=".62" />
-          <circle cx="72" cy="21" r="14" fill="var(--mark)" />
-        </svg>
-        OpenMotionStudio
-      </a>
-      <nav aria-label="Page">
-        <a class="optional" href="#how">How it works</a>
-        <a class="optional" href="#film">The film</a>
-        <a href="https://motionhub.dev">motionhub</a>
-        <a href="https://github.com/motionhub-dev/open-motion-studio">GitHub</a>
-      </nav>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="top gut">
+      <a class="brand" href="#open"
+        ><img src="favicon.svg" alt="" width="26" height="26" />OpenMotionStudio</a
+      >
+      <a class="top-link" href="#tour">Tour</a>
+      <a class="top-link" href="https://github.com/motionhub-dev/open-motion-studio">GitHub</a>
+      <a class="top-get" href="#get">Download</a>
     </header>
 
-    <main>
-      <div class="wrap">
-        <div class="hero">
-          <span class="eyebrow">Open source · macOS, Windows, Linux</span>
-          <h1>Make motion video with an agent.</h1>
-          <p>
-            Open a folder, pick a motion from motionhub, and talk to an agent on the model you choose. Watch it play,
-            point at what is wrong on the picture, and export an MP4. No account, no credits, no server: your files stay
-            on your disk.
-          </p>
-          <div class="actions">
-            <a class="button primary" href="#get">Download v0.1.1</a>
-            <a class="button" href="https://github.com/motionhub-dev/open-motion-studio">View the source</a>
-          </div>
-        </div>
-        <figure class="shot hero-shot">
-          <img
-            src="workspace.webp"
-            width="2880"
-            height="1746"
-            alt="The Studio's workspace: the assistant on the left, a film titled MAKE IT MOVE on the stage, its scenes and layers in the outline on the right, and the timeline below."
-          />
-          <figcaption>The workspace: the assistant, the stage, the film's outline and its scenes on the timeline.</figcaption>
-        </figure>
-      </div>
-
-      <section id="how">
-        <div class="wrap">
-          <div class="section-head">
-            <span class="eyebrow">How it works</span>
-            <h2>One path, from an empty folder to an MP4.</h2>
-          </div>
-          <ol class="steps">
-            <li>
-              <h3>Start a film</h3>
-              <p>Open a folder, start a new film, or begin from one of the starting points that play without a model.</p>
-            </li>
-            <li>
-              <h3>Pick a motion</h3>
-              <p>Search motionhub, watch a motion's reel, and use it: its look, its rules for the agent and its components.</p>
-            </li>
-            <li>
-              <h3>Bring your model</h3>
-              <p>Any server that speaks Anthropic Messages or OpenAI Chat Completions, in the cloud or on this computer.</p>
-            </li>
-            <li>
-              <h3>Ask for a video</h3>
-              <p>The agent writes the film, looks at stills of its own work, and fixes what it sees.</p>
-            </li>
-            <li>
-              <h3>Point at the picture</h3>
-              <p><span class="mark">Mark</span> a region or pick an element, and ask for the change right where it is.</p>
-            </li>
-            <li>
-              <h3>Export</h3>
-              <p><span class="export">Export</span> an MP4, or the film as a Remotion project to carry on elsewhere.</p>
-            </li>
-          </ol>
-        </div>
-      </section>
-
-      <section>
-        <div class="wrap">
-          <div class="section-head">
-            <span class="eyebrow">What makes it different</span>
-            <h2>The agent sees what you point at. You see what it looked at.</h2>
-          </div>
-          <div class="features">
-            <div class="feature">
-              <h3>Your model, your key</h3>
-              <p>
-                Choose the provider and pay it directly. Keys are sealed with your system's keychain, and calls go from
-                your machine to your provider, with no proxy of ours between.
-              </p>
-            </div>
-            <div class="feature">
-              <h3>Marks on the picture</h3>
-              <p>
-                Draw a box or pick an element on the stage. The agent receives where it is, which scene and layer it
-                belongs to, and a still of the moment.
-              </p>
-            </div>
-            <div class="feature">
-              <h3>Motions from motionhub</h3>
-              <p>
-                A motion is a look you can reuse: colour tokens, React components and the rules the agent follows. Use
-                one from the open catalogue, or none.
-              </p>
-            </div>
-            <div class="feature">
-              <h3>Scenes you can find</h3>
-              <p>
-                The outline and the timeline show the film's scenes, layers and lines. Play one scene, inspect a layer, or
-                bring it into the conversation.
-              </p>
-            </div>
-            <div class="feature">
-              <h3>Go back safely</h3>
-              <p>
-                Every agent turn is a checkpoint. Restore an earlier one without Git; your own edits are never silently
-                overwritten, and a restore can be undone.
-              </p>
-            </div>
-            <div class="feature">
-              <h3>Nothing else to install</h3>
-              <p>
-                The Studio builds, plays, photographs and exports the film itself, with the ffmpeg it ships. No Node, no
-                dev server, no render script.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="film">
-        <div class="wrap split">
-          <div class="section-head" style="margin: 0">
-            <span class="eyebrow">The film</span>
-            <h2>A film is a file you can read.</h2>
-            <p>
-              A film is <code>film.tsx</code>: scenes of layers, drawn by time with <code>@motionhub/runtime</code>. The
-              agent writes it, you can open it in any editor, and it lives in your folder next to its motions and media.
+    <main id="main">
+      <!-- OPEN: what it is, in one screen, over the real app -->
+      <section class="open gut" id="open" data-scene="OPEN" aria-labelledby="title">
+        <div class="max open-grid">
+          <div class="open-copy">
+            <p class="kicker">Free desktop app · macOS · Windows · Linux</p>
+            <h1 id="title">You have the eye.<span>Now you have the hands.</span></h1>
+            <p class="what">
+              OpenMotionStudio is an open-source studio for making motion video with an AI agent. Describe the film,
+              point at what to change on the picture, and export an MP4.
             </p>
-            <p class="note">There is one engine, the Studio's own: nobody picks a renderer before making anything.</p>
-          </div>
-          <pre aria-label="An example film.tsx"><span class="k">import</span> { Film, Scene, Layer, Line } <span class="k">from</span> <span class="t">'@motionhub/runtime'</span>;
-
-<span class="k">export const</span> film = { width: 1920, height: 1080, fps: 30 };
-
-<span class="k">export default function</span> Main() {
-  <span class="k">return</span> (
-    &lt;Film&gt;
-      &lt;Scene id=<span class="t">"opening"</span> duration={4}&gt;
-        &lt;Layer id=<span class="t">"title"</span> x={120} y={360} w={1680} h={360}&gt;
-          &lt;Title text=<span class="t">"MAKE IT MOVE"</span> /&gt;
-        &lt;/Layer&gt;
-        &lt;Line id=<span class="t">"intro"</span>&gt;A few words. A little momentum.&lt;/Line&gt;
-      &lt;/Scene&gt;
-      &lt;Scene id=<span class="t">"closing"</span> duration={3}&gt;<span class="c">{/* … */}</span>&lt;/Scene&gt;
-    &lt;/Film&gt;
-  );
-}</pre>
-        </div>
-      </section>
-
-      <section>
-        <div class="wrap">
-          <div class="section-head">
-            <span class="eyebrow">What it is instead of</span>
-            <h2>The pieces you would otherwise wire together.</h2>
-          </div>
-          <ul class="instead">
-            <li>
-              <strong>A terminal agent beside a browser tab</strong>
-              <span>It works, but the agent cannot see what you point at, you cannot see what it looked at, and the model is the agent vendor's.</span>
-            </li>
-            <li>
-              <strong>A hosted AI video service</strong>
-              <span>No account, no credits and no server: the files stay on your disk and the calls go to your provider.</span>
-            </li>
-            <li>
-              <strong>A preview and render UI</strong>
-              <span>Remotion Studio and HyperFrames Studio preview and render; their agent, if any, lives outside them.</span>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <section>
-        <div class="wrap split">
-          <div class="section-head" style="margin: 0">
-            <span class="eyebrow">Try it</span>
-            <h2>Start with something moving.</h2>
-            <p>
-              Three starting-point films open straight from the launcher. Play, inspect and export them before you have
-              set up a model; then ask the agent to make one yours.
+            <div class="cta">
+              <a class="button" id="hero-get" href="#get">Download OpenMotionStudio</a>
+              <a class="text-link watch" href="#tour"><i class="play" aria-hidden="true"></i>Watch the 90-second tour</a>
+            </div>
+            <p class="fine">
+              Works with Claude, GPT and local models, or the Claude Code and Codex you already use. Apache-2.0, no
+              account.
             </p>
           </div>
-          <figure class="shot">
-            <img
-              src="launcher.webp"
-              width="2160"
-              height="1230"
-              alt="The launcher: Open folder and New film, and three starting-point films titled MAKE IT MOVE, MEET SOMETHING NEW and SMALL STEPS. BIG CHANGE."
-            />
+
+          <figure class="app">
+            <div class="window">
+              <video
+                id="loop"
+                width="1440"
+                height="810"
+                muted
+                loop
+                playsinline
+                preload="auto"
+                poster="media/studio-loop.webp"
+                src="media/studio-loop.mp4"
+                aria-label="OpenMotionStudio in use: a brief is sent to Codex, the film is built, the title is marked on the picture with a note, Codex edits it, and the two cuts are compared."
+              ></video>
+            </div>
+            <figcaption>
+              <ol class="steps" id="steps">
+                <li><button type="button" data-at="0"><span>01</span>Brief the agent</button></li>
+                <li><button type="button" data-at="3"><span>02</span>It builds the film</button></li>
+                <li><button type="button" data-at="6.5"><span>03</span>Mark the frame</button></li>
+                <li><button type="button" data-at="16.5"><span>04</span>It edits only that</button></li>
+                <li><button type="button" data-at="20"><span>05</span>Compare the cuts</button></li>
+              </ol>
+            </figcaption>
           </figure>
         </div>
       </section>
 
-      <section id="get">
-        <div class="wrap get">
-          <div class="section-head" style="margin: 0">
-            <span class="eyebrow">Desktop app · v0.1.1</span>
-            <h2>Download OpenMotionStudio</h2>
-            <p>Choose a download for your computer. If you use v0.1.0, install this version manually to get update notifications.</p>
-            <dl class="downloads">
-              <div><dt>macOS</dt><dd><a href="https://github.com/motionhub-dev/open-motion-studio/releases/download/v0.1.1/open-motion-studio-0.1.1-mac-arm64.dmg">Apple silicon</a> · <a href="https://github.com/motionhub-dev/open-motion-studio/releases/download/v0.1.1/open-motion-studio-0.1.1-mac-x64.dmg">Intel</a></dd></div>
-              <div><dt>Windows</dt><dd><a href="https://github.com/motionhub-dev/open-motion-studio/releases/download/v0.1.1/open-motion-studio-0.1.1-win-x64.exe">x64 installer (unsigned)</a></dd></div>
-              <div><dt>Linux</dt><dd><a href="https://github.com/motionhub-dev/open-motion-studio/releases/download/v0.1.1/open-motion-studio-0.1.1-linux-x86_64.AppImage">x64 AppImage</a> · <a href="https://github.com/motionhub-dev/open-motion-studio/releases/download/v0.1.1/open-motion-studio-0.1.1-linux-arm64.AppImage">ARM64 AppImage</a></dd></div>
-            </dl>
-            <p class="note"><a href="https://github.com/motionhub-dev/open-motion-studio/releases/tag/v0.1.1">Release notes, archives and checksums</a></p>
+      <!-- TOUR: one real project, start to finish -->
+      <section class="tour gut" id="tour" data-scene="TOUR" aria-labelledby="tour-title">
+        <div class="max">
+          <div class="head">
+            <div>
+              <p class="kicker">Tour · 1:33</p>
+              <h2 id="tour-title">One film, start to finish.</h2>
+            </div>
+            <p class="lede">
+              A photograph becomes a seven-second magazine cover: open the project, brief Codex, mark the title, compare
+              the cuts and export. Waits for the agent and the export are shortened.
+            </p>
           </div>
-          <div class="section-head" style="margin: 0">
-            <h3>Your first film</h3>
-            <p>Open a sample from the launcher, play a scene and export an MP4. When you want to ask for an edit, connect your model in Settings.</p>
-            <details>
-              <summary>Run from source</summary>
-              <p>Use Node 22 and pnpm.</p>
-              <pre><code>git clone --branch v0.1.1 https://github.com/motionhub-dev/open-motion-studio
+          <div class="filmstage">
+            <video
+              id="tour-player"
+              width="1440"
+              height="810"
+              controls
+              muted
+              playsinline
+              preload="none"
+              poster="media/workspace-tour.webp"
+              aria-label="Walkthrough: making the Stillform cover film in OpenMotionStudio"
+              src="media/edit.mp4"
+            >
+              <track kind="captions" src="media/edit.vtt" srclang="en" label="English" default />
+              <track kind="captions" src="media/edit-zh.vtt" srclang="zh" label="中文" />
+            </video>
+            <button class="play-cover" id="play-tour" type="button" hidden>
+              <i class="play" aria-hidden="true"></i><span>Play the tour</span><time datetime="PT1M33S">1:33</time>
+            </button>
+          </div>
+          <div class="tour-bar">
+            <nav class="chapters" id="chapters" aria-label="Tour chapters" hidden></nav>
+            <div class="tour-options" id="tour-options" hidden>
+              <label for="tour-language"
+                ><span id="captions-label">Captions</span>
+                <select id="tour-language">
+                  <option value="en">English</option>
+                  <option value="zh">中文</option>
+                  <option value="off">Off</option>
+                </select>
+              </label>
+              <label for="tour-speed"
+                ><span id="speed-label">Speed</span>
+                <select id="tour-speed">
+                  <option value="1">1×</option>
+                  <option value="1.5">1.5×</option>
+                  <option value="2">2×</option>
+                </select>
+              </label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- LOOKS: one brief in three MotionHub looks, made in the Studio; scroll changes the look -->
+      <section class="scene taste" id="looks" data-scene="LOOKS" aria-labelledby="looks-title">
+        <div class="pin gut">
+          <div class="max taste-grid">
+            <div class="taste-copy">
+              <p class="kicker">Looks</p>
+              <h2 id="looks-title">Start from someone’s <em>taste.</em></h2>
+              <p class="lede">
+                A look on MotionHub is a designer’s rules, type, colour and components. The agent draws with them. Here
+                one brief, “A study in motion,” made in the Studio with three looks.
+              </p>
+              <div class="look-index" id="look-index" role="group" aria-label="Choose a look">
+                <button type="button" aria-pressed="true"><span class="n">01</span>Riso Pop<small>PRINT</small></button>
+                <button type="button" aria-pressed="false"><span class="n">02</span>Stage Light<small>PRODUCT</small></button>
+                <button type="button" aria-pressed="false"><span class="n">03</span>Night Diagram<small>DATA</small></button>
+              </div>
+            </div>
+            <figure>
+              <div class="reel" id="reel">
+                <video class="look on" muted loop playsinline preload="metadata" poster="media/look-editorial.webp" src="media/look-editorial.mp4" aria-label="A study in motion, in Riso Pop"></video>
+                <video class="look" muted loop playsinline preload="none" poster="media/look-product.webp" src="media/look-product.mp4" aria-label="A study in motion, in Stage Light"></video>
+                <video class="look" muted loop playsinline preload="none" poster="media/look-data.webp" src="media/look-data.mp4" aria-label="A study in motion, in Night Diagram"></video>
+              </div>
+              <figcaption class="reel-cap">
+                <span id="look-name">Riso Pop by SuoSi</span>
+                <a id="look-link" href="https://motionhub.dev/@iamsuosi/riso-pop/">Open on MotionHub</a>
+              </figcaption>
+              <p class="credit">
+                Studies made in OpenMotionStudio from SuoSi’s looks.
+                <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> descriptions · MIT components.
+              </p>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- EDIT: the real first cut and revised cut at the same instant -->
+      <section class="edit gut" id="edit" data-scene="EDIT" aria-labelledby="edit-title">
+        <div class="max edit-grid">
+          <div>
+            <div class="compare" id="compare">
+              <img
+                src="media/same-frame-original.webp"
+                width="1440"
+                height="810"
+                loading="lazy"
+                alt="First cut at 0.30 seconds: the Stillform title is already on the photograph"
+              />
+              <img
+                class="compare-top"
+                src="media/same-frame-revised.webp"
+                width="1440"
+                height="810"
+                loading="lazy"
+                alt="Revised cut at 0.30 seconds: the photograph on its own, the title not yet in"
+              />
+              <span class="compare-line" aria-hidden="true"></span>
+              <span class="tag left" aria-hidden="true">v1 · 00:00:00:07</span>
+              <span class="tag right" aria-hidden="true">v2 · 00:00:00:07</span>
+              <input type="range" id="compare-range" min="0" max="100" value="50" aria-label="Slide between the first and the revised cut" />
+            </div>
+            <div class="cuts">
+              <figure>
+                <video controls muted playsinline preload="none" width="1440" height="810" poster="media/same-frame-original.webp" src="media/original.mp4"></video>
+                <figcaption>v1 · first cut</figcaption>
+              </figure>
+              <figure>
+                <video controls muted playsinline preload="none" width="1440" height="810" poster="media/same-frame-revised.webp" src="media/revised.mp4"></video>
+                <figcaption>v2 · title half a second later</figcaption>
+              </figure>
+            </div>
+          </div>
+          <div>
+            <p class="kicker">Versions</p>
+            <h2 id="edit-title">Change one thing. <em>Keep the rest.</em></h2>
+            <p class="lede">
+              Your film is a project, not a take. A note on the picture becomes one edit, kept as a version on your disk.
+              Same frame, every render.
+            </p>
+            <ol class="log">
+              <li><span class="v">v1</span><p>First cut, from the brief<code>title enters at 0.08 s</code></p></li>
+              <li class="on">
+                <span class="v">v2</span
+                ><p>“Let the photograph breathe. Bring the title in half a second later.”<code>title enters at 0.58 s · nothing else moved</code></p>
+              </li>
+            </ol>
+            <p class="credit">
+              <cite>The Tetons—Snake River</cite> (1942), Ansel Adams. Public domain, held by the
+              <a href="https://www.archives.gov/research/still-pictures/highlights/the-tetons-snake-river">U.S. National Archives</a>.
+              Stillform is a fictional magazine made for this film.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- YOURS: what the person owns, as end credits -->
+      <section class="credits gut" id="yours" data-scene="YOURS" aria-labelledby="yours-title">
+        <div class="max">
+          <p class="kicker center">Credits</p>
+          <h2 id="yours-title">Yours.</h2>
+          <p class="lede center">No account, no credits, no server of ours between you and your film.</p>
+          <dl class="roll">
+            <div><dt>Directed by</dt><dd>You</dd></div>
+            <div>
+              <dt>Animated by</dt>
+              <dd>
+                An agent on the model you choose<small
+                  >Anthropic, OpenAI-compatible, a local model, or the Claude Code or Codex you already use</small
+                >
+              </dd>
+            </div>
+            <div><dt>Looks by</dt><dd>Designers on MotionHub</dd></div>
+            <div><dt>Footage</dt><dd>Yours, including clips you generated elsewhere</dd></div>
+            <div><dt>Voice</dt><dd>The voice provider you pick<small>with captions timed to every line</small></dd></div>
+            <div><dt>Filed in</dt><dd>A folder on your disk</dd></div>
+            <div><dt>Keys kept in</dt><dd>Your system’s keychain</dd></div>
+            <div><dt>Engine &amp; export</dt><dd>Included. Nothing else to install</dd></div>
+            <div><dt>Licence</dt><dd>Apache-2.0</dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <!-- FITS: three sentences, upstream and downstream -->
+      <section class="fits gut" id="fits" data-scene="FITS" aria-labelledby="fits-title">
+        <div class="max">
+          <p class="kicker">Where it fits</p>
+          <h2 id="fits-title">Make footage anywhere. Make the film here.</h2>
+          <div class="fit-row">
+            <div>
+              <span class="who">Generative video</span>
+              <p>Makes footage, a new take each time. Bring the clips in as shots; the Studio sets the type, timing and brand around them.</p>
+            </div>
+            <div>
+              <span class="who">Remotion · HyperFrames</span>
+              <p>
+                Engines for people who write code. MotionHub looks work in both, and the Studio exports a Remotion project
+                when you need one.
+              </p>
+            </div>
+            <div class="ours">
+              <span class="who">OpenMotionStudio</span>
+              <p>For directing. You look, point and decide; the agent writes the film and checks its own frames.</p>
+            </div>
+          </div>
+          <details class="dev">
+            <summary>For developers</summary>
+            <p>
+              A film is <code>film.tsx</code>: scenes, layers and media drawn over time with
+              <code>@motionhub/runtime</code>, which the Studio plays and exports itself.
+              <a href="https://github.com/motionhub-dev/open-motion-studio/tree/main/docs">Read the documentation</a>
+            </p>
+            <pre><code>git clone --branch v0.1.1 https://github.com/motionhub-dev/open-motion-studio
 cd open-motion-studio
 corepack enable
 pnpm install --frozen-lockfile
 pnpm dev</code></pre>
-            </details>
+          </details>
+        </div>
+      </section>
+
+      <!-- ROLL: download -->
+      <section class="get gut" id="get" data-scene="ROLL" aria-labelledby="get-title">
+        <div class="max">
+          <p class="kicker">v0.1.1 · desktop</p>
+          <h2 id="get-title">Roll.</h2>
+          <p class="lede">Open a sample film, point at something, and watch it change. Connect your model when you are ready.</p>
+          <div class="os" id="os">
+            <div data-os="mac">
+              <b>macOS</b>
+              <span
+                ><a href="https://github.com/motionhub-dev/open-motion-studio/releases/download/v0.1.1/open-motion-studio-0.1.1-mac-arm64.dmg"
+                  >Apple silicon</a
+                ><a href="https://github.com/motionhub-dev/open-motion-studio/releases/download/v0.1.1/open-motion-studio-0.1.1-mac-x64.dmg"
+                  >Intel</a
+                ></span
+              >
+            </div>
+            <div data-os="win">
+              <b>Windows</b>
+              <span
+                ><a href="https://github.com/motionhub-dev/open-motion-studio/releases/download/v0.1.1/open-motion-studio-0.1.1-win-x64.exe"
+                  >x64 installer (unsigned)</a
+                ></span
+              >
+            </div>
+            <div data-os="linux">
+              <b>Linux</b>
+              <span
+                ><a
+                  href="https://github.com/motionhub-dev/open-motion-studio/releases/download/v0.1.1/open-motion-studio-0.1.1-linux-x86_64.AppImage"
+                  >x64 AppImage</a
+                ><a
+                  href="https://github.com/motionhub-dev/open-motion-studio/releases/download/v0.1.1/open-motion-studio-0.1.1-linux-arm64.AppImage"
+                  >ARM64 AppImage</a
+                ></span
+              >
+            </div>
           </div>
+          <p class="fine">
+            <a href="https://github.com/motionhub-dev/open-motion-studio/releases/tag/v0.1.1">Release notes, archives and checksums</a>
+            · Using v0.1.0? Install this release once to receive update notifications.
+          </p>
         </div>
       </section>
     </main>
 
-    <footer>
-      <div class="wrap">
-        <span>OpenMotionStudio is open source under the Apache-2.0 licence.</span>
-        <a href="https://github.com/motionhub-dev/open-motion-studio">GitHub</a>
-        <a href="https://motionhub.dev">motionhub.dev</a>
-        <a href="https://github.com/motionhub-dev/motions">The motion format</a>
-        <span class="right">Part of motionhub.</span>
+    <footer class="gut">
+      <div class="max foot">
+        <a class="brand" href="#open"><img src="favicon.svg" alt="" width="22" height="22" />OpenMotionStudio</a
+        ><span>Open source · Apache-2.0</span><a href="https://motionhub.dev/">Looks on MotionHub</a
+        ><a href="https://github.com/motionhub-dev/open-motion-studio">GitHub</a>
       </div>
     </footer>
+
+    <nav class="transport gut" aria-label="Scenes">
+      <span class="tc" id="tc">00:00:00:00</span>
+      <span class="now" id="now">OPEN</span>
+      <div class="track" id="track">
+        <span class="line"></span><span class="fill" id="fill"></span><span class="head" id="head"></span>
+      </div>
+    </nav>
   </body>
 </html>

@@ -1,6 +1,6 @@
 # Architecture
 
-> **Status:** Plan — steps 1 to 3 and 6 built, 7 under way; signing waits for certificates · **Updated:** 2026-11-17
+> **Status:** Plan — steps 1 to 3 and 6 built, 7 under way; signing waits for certificates · **Updated:** 2026-11-18
 
 The components of the Studio and what each owns, the film, the agent and its providers, what is expensive to change, and the order of work.
 
@@ -65,7 +65,7 @@ apps/desktop/
   src/shared/          what both sides agree on: StudioApi, the preview bridge's messages, and the interface's
                        messages in Chinese (i18n.ts, translations.ts)
   src/renderer/        React UI
-site/                  the introduction page at studio.motionhub.dev: static HTML and screenshots of the app, no build,
+site/                  the introduction page at studio.motionhub.dev: static HTML, recordings of the app and films made in it, no build,
                        served by a static-assets Worker (wrangler.jsonc; .github/workflows/site.yml deploys it on a push to main)
 ```
 

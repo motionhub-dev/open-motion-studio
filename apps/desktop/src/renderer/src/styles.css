@@ -1,8 +1,9 @@
 /*
- * The Studio's visual system (docs/design.md): motionhub's paper and ink. The interface
- * stays quiet so the film is loud: no colour but the film's, `--accent` for Export alone,
- * `--annotate` for what the person marks on the picture. Every colour is a token here,
- * light and dark; nothing below names a colour.
+ * The Studio's visual system (docs/design.md): paper and ink, and the vermilion of its mark.
+ * The interface stays quiet so the film is loud: no colour but the film's, `--accent`
+ * (vermilion) for Export alone, `--annotate` (cobalt, the one cool colour) for what the person
+ * marks on the picture. Every colour is a token here, light and dark; nothing below names a
+ * colour.
  */
 
 :root {
@@ -15,7 +16,6 @@
   --muted: #6b645a;
   --stage: #2a2622;
   --accent: #c4381f;
-  --mark: #e2442b;
   --on-accent: #fbf8f2;
   --annotate: #2b59c3;
   --on-annotate: #fbf8f2;
@@ -50,7 +50,6 @@
     --muted: #a89e90;
     --stage: #0f0d0b;
     --accent: #ff6a4d;
-    --mark: #ff6a4d;
     --on-accent: #1a1714;
     --annotate: #8fa8ff;
     --on-annotate: #1a1714;

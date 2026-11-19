@@ -3,6 +3,22 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-18 — The Studio has its own mark
+
+- **What:** The app's icon, its window and tray icon and Home's logo are the Studio's own mark, the eased square: a rounded square split by an ease-in-out curve into deep and mid vermilion, in place of motionhub's two balls. Export stays vermilion, in the mark's colour, and marks on the picture stay cobalt.
+- **Why:** The Studio needs a face of its own beside the catalogue's.
+- **Breaking:** None.
+- **Upgrade:** Nothing. A new install shows the new icon; a pinned shortcut may keep the old one until the system refreshes its icon cache.
+- **Refs:** `apps/desktop/resources/icon.svg`, `icon.png`, `icon.ico`, `docs/design.md`.
+
+## 2026-11-18 — The website shows the real Studio
+
+- **What:** studio.motionhub.dev is rebuilt as one film in a dark screening room, with a transport bar at the foot carrying the timecode and the scenes. Its first screen says what the Studio is beside a 24-second loop of the real app (brief, build, mark the frame, edit, compare) whose five steps light as it plays. Then a 93-second tour of one real project with chapters and English and Chinese captions; one brief made in the Studio with three MotionHub looks (Riso Pop, Stage Light, Night Diagram, by SuoSi); the real first and revised cuts at the same instant; what the person owns, told as end credits; and the Studio beside generative video, Remotion and HyperFrames in three sentences. The page wears the Studio's eased-square mark.
+- **Why:** Creators decide on what they see: the first screen has to show the app doing the work.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `site/index.html`, `site/studio.css`, `site/studio.js`, `site/favicon.svg`, `site/media/`.
+
 ## 2026-11-18 — Check for Studio updates (v0.1.1)
 
 - **What:** General settings shows the installed version and checks GitHub for newer stable releases. Installed apps also check in the background unless the preference is switched off. A dismissible notice opens the official download page.
