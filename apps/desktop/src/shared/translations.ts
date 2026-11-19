@@ -2,7 +2,7 @@
 export const zh: Record<string, string> = {
   "Studio updates": "软件更新",
   "Download update": "下载更新",
-  "Open studio.motionhub.dev in your browser to download the update.": "请在浏览器打开 studio.motionhub.dev 下载更新。",
+  "Open openmotion.studio in your browser to download the update.": "请在浏览器打开 openmotion.studio 下载更新。",
   "OpenMotionStudio {version} is available.": "OpenMotionStudio {version} 已可下载。",
   "Later": "稍后提醒",
   "Installed version: {version}": "当前版本：{version}",
