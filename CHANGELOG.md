@@ -3,6 +3,14 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-18 — First desktop release (v0.1.0)
+
+- **What:** OpenMotionStudio packages the editor for macOS (Apple silicon and Intel), Windows (x64) and Linux (x64 and arm64).
+- **Why:** People can start from a sample film, use a motion from motionhub, direct edits on the preview and export an MP4 from the installed app.
+- **Breaking:** None.
+- **Upgrade:** First install. Choose the download for your operating system and processor.
+- **Refs:** `apps/desktop/package.json`, `apps/desktop/electron-builder.yml`, `.github/workflows/build.yml`.
+
 ## 2026-11-18 — The timeline folds while code is read
 
 - **What:** Opening a file in the code view folds the timeline to its head, and leaving the code view opens it again,

@@ -8,6 +8,11 @@ on:
     tags: ['v*']
   pull_request:
   workflow_dispatch:
+    inputs:
+      draft_release:
+        description: Prepare a draft GitHub Release after all packages pass
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -17,7 +22,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
+        # Package on the target CPU so esbuild and ffmpeg match Electron.
+        os: [macos-latest, macos-15-intel, windows-latest, ubuntu-latest, ubuntu-24.04-arm]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -58,9 +64,19 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+      - name: Check the packaged video tools
+        shell: bash
+        run: |
+          suffix=""
+          if [[ "$RUNNER_OS" == "Windows" ]]; then suffix=".exe"; fi
+          tools_dir=$(find apps/desktop/dist -type d -name app.asar.unpacked -print -quit)
+          ffmpeg=$(find "$tools_dir" -path "*/ffmpeg-static/ffmpeg$suffix" -type f -print -quit)
+          esbuild=$(find "$tools_dir" -path "*/@esbuild/*/esbuild$suffix" -type f -print -quit)
+          "$ffmpeg" -version
+          "$esbuild" --version
       - uses: actions/upload-artifact@v4
         with:
-          name: installers-${{ runner.os }}
+          name: installers-${{ runner.os }}-${{ runner.arch }}
           path: |
             apps/desktop/dist/*.dmg
             apps/desktop/dist/*.zip
@@ -68,3 +84,30 @@ jobs:
             apps/desktop/dist/*.AppImage
             apps/desktop/dist/*.tar.gz
           if-no-files-found: error
+
+  release:
+    if: github.event_name == 'workflow_dispatch' && inputs.draft_release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: installers-*
+          path: installers
+          merge-multiple: true
+      - name: Attach the installers and their checksums to a draft
+        working-directory: installers
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v$(node -p "require('../apps/desktop/package.json').version")"
+          sha256sum open-motion-studio-* > SHA256SUMS.txt
+          if ! gh release view "$tag" > /dev/null 2>&1; then
+            gh release create "$tag" --target "$GITHUB_SHA" --draft --generate-notes --title "OpenMotionStudio $tag"
+          fi
+          test "$(gh release view "$tag" --json isDraft --jq .isDraft)" = true
+          test "$(gh release view "$tag" --json targetCommitish --jq .targetCommitish)" = "$GITHUB_SHA"
+          gh release upload "$tag" open-motion-studio-* SHA256SUMS.txt --clobber
