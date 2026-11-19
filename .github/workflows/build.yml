@@ -1,5 +1,6 @@
 # The gate, then an installer for each platform. Signing and notarisation use the
 # secrets named in CLAUDE.md ("Commands"); without them the installers are unsigned.
+# Windows releases are signed by SignPath Foundation (docs/ops/code-signing.md).
 name: Build
 
 on:
@@ -25,6 +26,16 @@ jobs:
         # Package on the target CPU so esbuild and ffmpeg match Electron.
         os: [macos-latest, macos-15-intel, windows-latest, ubuntu-latest, ubuntu-24.04-arm]
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      # SignPath's action reads this job and downloads the artifacts it is sent.
+      actions: read
+    env:
+      # Only a release is signed on Windows, since every signing there waits for an approver:
+      # a v* tag, or a run that prepares a draft release.
+      SIGN_WINDOWS: >-
+        ${{ matrix.os == 'windows-latest' && vars.SIGNPATH_ORGANIZATION_ID != ''
+        && (startsWith(github.ref, 'refs/tags/v') || inputs.draft_release == true) }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -43,14 +54,14 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
-          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+          SIGNPATH_ORGANIZATION_ID: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
       - name: Package
         # An empty secret still arrives as an empty variable, and electron-builder reads an empty CSC_LINK as a path
         # (the working directory: "not a file"), so each one that is empty is unset before packaging.
         shell: bash
         run: |
-          for name in CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID WIN_CSC_LINK WIN_CSC_KEY_PASSWORD; do
+          for name in CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
             [ -n "${!name}" ] || unset "$name"
           done
           pnpm package
@@ -62,8 +73,73 @@ jobs:
           APPLE_ID: ${{ runner.os == 'macOS' && secrets.APPLE_ID || '' }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ runner.os == 'macOS' && secrets.APPLE_APP_SPECIFIC_PASSWORD || '' }}
           APPLE_TEAM_ID: ${{ runner.os == 'macOS' && secrets.APPLE_TEAM_ID || '' }}
-          WIN_CSC_LINK: ${{ runner.os == 'Windows' && secrets.WIN_CSC_LINK || '' }}
-          WIN_CSC_KEY_PASSWORD: ${{ runner.os == 'Windows' && secrets.WIN_CSC_KEY_PASSWORD || '' }}
+      # Windows, signed in two rounds: NSIS packs the program into the installer, so the program is signed first
+      # (dist/win-unpacked, which `pnpm package` leaves beside the installer), the installer is built again around
+      # the signed program, and then the installer itself is signed. The artifact configurations SignPath applies,
+      # app and installer, are in docs/ops/code-signing.md.
+      - name: Upload the Windows app for signing
+        id: unsigned-app
+        if: env.SIGN_WINDOWS == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-app-windows
+          path: apps/desktop/dist/win-unpacked/
+          if-no-files-found: error
+      - name: Sign the Windows app
+        if: env.SIGN_WINDOWS == 'true'
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: open-motion-studio
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: app
+          github-artifact-id: ${{ steps.unsigned-app.outputs.artifact-id }}
+          # A release signing waits for an approver in SignPath.
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: apps/desktop/signed-app
+      - name: Build the Windows installer around the signed app
+        if: env.SIGN_WINDOWS == 'true'
+        working-directory: apps/desktop
+        shell: bash
+        run: |
+          rm -rf dist
+          mkdir dist
+          mv signed-app dist/win-unpacked
+          pnpm exec electron-builder --win nsis --prepackaged dist/win-unpacked --publish never
+      - name: Upload the Windows installer for signing
+        id: unsigned-installer
+        if: env.SIGN_WINDOWS == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-installer-windows
+          path: apps/desktop/dist/*.exe
+          if-no-files-found: error
+      - name: Sign the Windows installer
+        if: env.SIGN_WINDOWS == 'true'
+        uses: signpath/github-action-submit-signing-request@v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: open-motion-studio
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: installer
+          github-artifact-id: ${{ steps.unsigned-installer.outputs.artifact-id }}
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: apps/desktop/signed-installer
+      - name: Put the signed Windows installer in place
+        if: env.SIGN_WINDOWS == 'true'
+        working-directory: apps/desktop
+        shell: bash
+        run: |
+          mv -f signed-installer/*.exe dist/
+          rm -rf signed-installer
+          # The installer and the program inside it each carry a valid signature, or the release stops here.
+          for file in dist/*.exe dist/win-unpacked/OpenMotionStudio.exe; do
+            status=$(powershell -NoProfile -Command "(Get-AuthenticodeSignature '$file').Status" | tr -d '\r')
+            echo "$file: $status"
+            [ "$status" = "Valid" ]
+          done
       - name: Check the packaged video tools
         shell: bash
         run: |

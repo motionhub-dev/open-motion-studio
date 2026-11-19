@@ -66,10 +66,11 @@ Windows and Linux before packaging. Run it before every push. Tests are Vitest a
 `__tests__/`; a suite that needs the DOM opts in with `// @vitest-environment jsdom`.
 
 Signing is driven by CI secrets, and a build without them is unsigned: `CSC_LINK` and `CSC_KEY_PASSWORD` (the macOS
-Developer ID certificate), `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID` (notarisation), and
-`WIN_CSC_LINK` and `WIN_CSC_KEY_PASSWORD` (Windows). Each is set whole or not at all: CI refuses a certificate without its
-password, a password without its certificate, or part of Apple's credentials before it packages
-(`apps/desktop/scripts/check-signing.mjs`). Never commit a certificate or a key.
+Developer ID certificate), `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID` (notarisation), and the
+`SIGNPATH_API_TOKEN` secret with the `SIGNPATH_ORGANIZATION_ID` variable (Windows, signed by SignPath Foundation on a
+release only: [`docs/ops/code-signing.md`](docs/ops/code-signing.md)). Each is set whole or not at all: CI refuses a
+certificate without its password, a password without its certificate, part of Apple's credentials, or half of
+SignPath's before it packages (`apps/desktop/scripts/check-signing.mjs`). Never commit a certificate or a key.
 
 ## Architecture rules
 

@@ -1,6 +1,7 @@
 // Run in CI before packaging (.github/workflows/build.yml): signing is configured whole or not at all. A certificate
 // without its password, a password without its certificate, notarisation without a certificate or with only part of
-// Apple's credentials, or a certificate that is neither base64, an https URL nor a file, stops the build here, naming
+// Apple's credentials, a SignPath token without its organisation (or the reverse), or a certificate that is neither
+// base64, an https URL nor a file, stops the build here, naming
 // the variables and never their values. Nothing set is fine: the installers are then unsigned.
 
 import { existsSync } from 'node:fs';
@@ -22,7 +23,11 @@ function pair(certificate, password) {
 }
 
 pair('CSC_LINK', 'CSC_KEY_PASSWORD');
-pair('WIN_CSC_LINK', 'WIN_CSC_KEY_PASSWORD');
+
+// Windows is signed by SignPath (docs/ops/code-signing.md): its API token and the organisation it belongs to, or neither.
+if (set('SIGNPATH_API_TOKEN') !== set('SIGNPATH_ORGANIZATION_ID')) {
+  problems.push('Windows signing needs both the SIGNPATH_API_TOKEN secret and the SIGNPATH_ORGANIZATION_ID variable.');
+}
 
 const apple = ['APPLE_ID', 'APPLE_APP_SPECIFIC_PASSWORD', 'APPLE_TEAM_ID'];
 const given = apple.filter(set);
@@ -35,4 +40,4 @@ if (problems.length) {
   console.error(['Signing is configured only in part (repository secrets, CLAUDE.md "Commands"):', ...problems.map((p) => `- ${p}`)].join('\n'));
   process.exit(1);
 }
-console.log(set('CSC_LINK') || set('WIN_CSC_LINK') ? 'Signing is configured.' : 'No signing secrets: the installers will be unsigned.');
+console.log(set('CSC_LINK') || set('SIGNPATH_API_TOKEN') ? 'Signing is configured.' : 'No signing secrets: the installers will be unsigned.');
