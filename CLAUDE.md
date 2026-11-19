@@ -6,21 +6,18 @@ change, and exports an MP4. A film is `film.tsx`, drawn by the Studio's one engi
 ([ADR 0005](docs/adr/0005-the-studio-has-one-engine-its-own.md)). Read [`docs/prd/positioning.md`](docs/prd/positioning.md) and
 [`docs/tech/architecture.md`](docs/tech/architecture.md) first; the decisions are in [`docs/adr/`](docs/adr/).
 
-## Stage: Building
+## Stage: First public release
 
-**This repository is in the Building stage**: nothing has shipped and nobody depends on it. Moving to another stage is the
-developer's decision and a deliberate edit to this line, never something a task concludes.
+**OpenMotionStudio v0.1.0 is public.** The published installers are available on GitHub Releases.
 
-- **Compatibility is not a constraint yet.** Change a settings shape, a file under `.motion-studio/`, an IPC channel or
-  the film's format freely. Do not version them, keep an old field beside a new one, or write a shim for a caller that
-  does not exist.
+- **People can have projects and settings from a released version.** Account for those files when changing an on-disk format.
 - **Build vertical slices, not layers.** One path working end to end (open a folder → agent → preview → MP4) teaches more
   than three layers that have never met. A layer with no caller is a guess with a build step.
 - **Replace a wrong design; never wrap it.** No flag beside the old path.
 - **Test the decisions, not the scaffolding.** Pin what would be expensive to get wrong silently: what reaches the disk
   and where, keys, the IPC surface, the preview bridge, the provider protocol translations. Leave code about to be
   rewritten uncovered on purpose.
-- **Building is licence to change the design, not to land a red branch.** The gate runs before every push.
+- **The gate runs before every push.**
 
 The floor holds in every stage: never lose a person's files, never leak a key, never swallow an error.
 

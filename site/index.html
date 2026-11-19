@@ -344,6 +344,24 @@
         gap: 24px;
         align-items: start;
       }
+      .downloads {
+        margin: 0;
+      }
+      .downloads > div {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 4px 16px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .downloads dt {
+        min-width: 72px;
+        font-weight: 600;
+      }
+      .downloads dd {
+        margin: 0;
+      }
       .get pre {
         font-size: 13px;
       }
@@ -399,6 +417,22 @@
           margin-left: 0;
         }
       }
+      @media (max-width: 440px) {
+        .bar {
+          flex-wrap: wrap;
+          height: auto;
+          gap: 8px 16px;
+          padding-block: 16px;
+        }
+        .bar nav {
+          flex-wrap: wrap;
+          gap: 12px;
+        }
+      }
+      .get details,
+      .get > div {
+        min-width: 0;
+      }
     </style>
   </head>
   <body>
@@ -431,7 +465,7 @@
             on your disk.
           </p>
           <div class="actions">
-            <a class="button primary" href="#get">Get it</a>
+            <a class="button primary" href="#get">Download v0.1.0</a>
             <a class="button" href="https://github.com/motionhub-dev/open-motion-studio">View the source</a>
           </div>
         </div>
@@ -612,23 +646,29 @@
       <section id="get">
         <div class="wrap get">
           <div class="section-head" style="margin: 0">
-            <span class="eyebrow">Get it</span>
-            <h2>Install, or build it yourself.</h2>
-            <p>
-              Installers for macOS, Windows and Linux will be published on
-              <a href="https://github.com/motionhub-dev/open-motion-studio/releases">the releases page</a>; until the
-              first release, run it from the source. You need Node (the version in <code>.nvmrc</code>) and pnpm.
-            </p>
+            <span class="eyebrow">Desktop app · v0.1.0</span>
+            <h2>Download OpenMotionStudio</h2>
+            <p>Choose a download for your computer.</p>
+            <dl class="downloads">
+              <div><dt>macOS</dt><dd><a href="https://github.com/motionhub-dev/open-motion-studio/releases/download/v0.1.0/open-motion-studio-0.1.0-mac-arm64.dmg">Apple silicon</a> · <a href="https://github.com/motionhub-dev/open-motion-studio/releases/download/v0.1.0/open-motion-studio-0.1.0-mac-x64.dmg">Intel</a></dd></div>
+              <div><dt>Windows</dt><dd><a href="https://github.com/motionhub-dev/open-motion-studio/releases/download/v0.1.0/open-motion-studio-0.1.0-win-x64.exe">x64 installer (unsigned)</a></dd></div>
+              <div><dt>Linux</dt><dd><a href="https://github.com/motionhub-dev/open-motion-studio/releases/download/v0.1.0/open-motion-studio-0.1.0-linux-x86_64.AppImage">x64 AppImage</a> · <a href="https://github.com/motionhub-dev/open-motion-studio/releases/download/v0.1.0/open-motion-studio-0.1.0-linux-arm64.AppImage">ARM64 AppImage</a></dd></div>
+            </dl>
+            <p class="note"><a href="https://github.com/motionhub-dev/open-motion-studio/releases/tag/v0.1.0">Release notes, archives and checksums</a></p>
           </div>
-          <pre aria-label="Run from the source"><span class="c"># clone and run with hot reload</span>
-git clone https://github.com/motionhub-dev/open-motion-studio
+          <div class="section-head" style="margin: 0">
+            <h3>Your first film</h3>
+            <p>Open a sample from the launcher, play a scene and export an MP4. When you want to ask for an edit, connect your model in Settings.</p>
+            <details>
+              <summary>Run from source</summary>
+              <p>Use Node 22 and pnpm.</p>
+              <pre><code>git clone --branch v0.1.0 https://github.com/motionhub-dev/open-motion-studio
 cd open-motion-studio
 corepack enable
-pnpm install
-pnpm dev
-
-<span class="c"># an installer for this platform</span>
-pnpm package</pre>
+pnpm install --frozen-lockfile
+pnpm dev</code></pre>
+            </details>
+          </div>
         </div>
       </section>
     </main>
