@@ -1,20 +1,93 @@
+<div align="center">
+
+<a href="https://studio.motionhub.dev/"><img src="apps/desktop/resources/icon.svg" width="88" height="88" alt="OpenMotionStudio" /></a>
+
 # OpenMotionStudio
 
-An open-source desktop IDE for making motion video with an agent: pick a motion from [motionhub.dev](https://motionhub.dev),
-talk to an agent on the model and provider of your choice, watch it play, point at what to change, and export an MP4.
-A film is React drawn by time with `@motionhub/runtime`, which the Studio plays and exports itself: nothing else to install.
+**You have the eye. Now you have the hands.**
 
-**v0.1.2 is available for macOS, Windows and Linux.** [Download OpenMotionStudio](https://studio.motionhub.dev/#get) or read the [release notes](https://github.com/motionhub-dev/open-motion-studio/releases/tag/v0.1.2). To get started, open one of the sample films from the launcher. See [the documentation](docs/README.md) for more about the editor.
+An open-source desktop studio for making motion video with an AI agent.<br />
+Describe the film, point at what to change on the picture, and export an MP4.
 
-Its page is [studio.motionhub.dev](https://studio.motionhub.dev/) (`site/`).
+[![Release](https://img.shields.io/github/v/release/motionhub-dev/open-motion-studio?color=EE6348&label=release)](https://github.com/motionhub-dev/open-motion-studio/releases/latest)
+[![Build](https://img.shields.io/github/actions/workflow/status/motionhub-dev/open-motion-studio/build.yml?branch=main&label=build)](https://github.com/motionhub-dev/open-motion-studio/actions/workflows/build.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-8A3021)](LICENSE)
+![Platforms](https://img.shields.io/badge/macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-desktop-555)
 
-Licensed under the [Apache License 2.0](LICENSE). Windows releases are signed under our
-[code signing policy](docs/ops/code-signing.md): free code signing provided by SignPath.io, certificate by SignPath Foundation.
+[**Download**](https://studio.motionhub.dev/#get) ·
+[Website](https://studio.motionhub.dev/) ·
+[90-second tour](https://studio.motionhub.dev/#tour) ·
+[Documentation](docs/README.md) ·
+[Changelog](CHANGELOG.md)
 
-## Development
+<br />
+
+<a href="https://studio.motionhub.dev/#tour"><img src="site/media/workspace-tour.webp" width="900" alt="The OpenMotionStudio workspace: the agent's conversation on the left, the film playing in the middle, its outline on the right and the timeline below" /></a>
+
+</div>
+
+## How it works
+
+1. **Pick a look.** Start from a motion on [motionhub.dev](https://motionhub.dev): a designer's rules, type, colour and
+   components, which the agent draws with. Or start from nothing.
+2. **Say what you want.** An agent on the model you choose writes the film, plays it and checks its own frames.
+3. **Point at the picture.** Pick an element or draw a region on a frame, say what should change, and the change lands
+   as one edit, kept as a version on your disk.
+4. **Export an MP4.** The Studio bundles, plays and renders the film itself. There is nothing else to install.
+
+## One brief, three looks
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <a href="https://motionhub.dev/@iamsuosi/riso-pop/"><img src="site/media/look-editorial.webp" alt="A study in motion, in Riso Pop" /></a>
+      <br /><sub><b>Riso Pop</b> · print</sub>
+    </td>
+    <td align="center" width="33%">
+      <a href="https://motionhub.dev/@iamsuosi/stage-light/"><img src="site/media/look-product.webp" alt="A study in motion, in Stage Light" /></a>
+      <br /><sub><b>Stage Light</b> · product</sub>
+    </td>
+    <td align="center" width="33%">
+      <a href="https://motionhub.dev/@iamsuosi/night-diagram/"><img src="site/media/look-data.webp" alt="A study in motion, in Night Diagram" /></a>
+      <br /><sub><b>Night Diagram</b> · data</sub>
+    </td>
+  </tr>
+</table>
+
+<sub>The same brief, “A study in motion,” made in the Studio with three looks by SuoSi on MotionHub.</sub>
+
+## Yours
+
+No account, no credits, no server of ours between you and your film.
+
+|                      |                                                                                                    |
+| -------------------- | -------------------------------------------------------------------------------------------------- |
+| **Directed by**      | You                                                                                                |
+| **Animated by**      | An agent on the model you choose: Anthropic, OpenAI-compatible, a local model, or the Claude Code or Codex you already use |
+| **Looks by**         | Designers on [MotionHub](https://motionhub.dev)                                                    |
+| **Footage**          | Yours, including clips you generated elsewhere                                                     |
+| **Voice**            | The voice provider you pick, with captions timed to every line                                     |
+| **Filed in**         | A folder on your disk                                                                              |
+| **Keys kept in**     | Your system's keychain                                                                             |
+| **Engine & export**  | Included. Nothing else to install                                                                  |
+| **Licence**          | Apache-2.0                                                                                         |
+
+## For developers
+
+A film is `film.tsx`: scenes, layers and media drawn over time with `@motionhub/runtime`, which the Studio plays and
+exports itself. Read [positioning](docs/prd/positioning.md) and [the architecture](docs/tech/architecture.md) first; the
+decisions are in [`docs/adr/`](docs/adr/).
 
 ```bash
 corepack enable
 pnpm install
 pnpm dev
 ```
+
+Use the Node version in `.nvmrc`. Before a push, run the gate CI runs on all three platforms:
+`pnpm typecheck && pnpm test && pnpm build`.
+
+## License
+
+Licensed under the [Apache License 2.0](LICENSE). Windows releases are signed under our
+[code signing policy](docs/ops/code-signing.md): free code signing provided by SignPath.io, certificate by SignPath Foundation.
