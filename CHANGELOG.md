@@ -3,6 +3,14 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-19 — OpenMotionStudio v0.1.2
+
+- **What:** A release with the Studio's own mark, the eased square, as the app's icon, window and tray icon and Home's logo, and with Windows releases set up to be signed through SignPath Foundation. Installers for macOS (Apple silicon and Intel), Windows (x64) and Linux (x64 and ARM64 AppImages) are on GitHub Releases.
+- **Why:** To bring the Studio's new face to the people who use it; v0.1.1 announces it to them as an update.
+- **Breaking:** None.
+- **Upgrade:** Install v0.1.2 over v0.1.1. A pinned shortcut may keep the old icon until the system refreshes its icon cache. The Windows installer stays unsigned until SignPath is set up.
+- **Refs:** `apps/desktop/package.json`, `README.md`.
+
 ## 2026-11-19 — The website's first film is re-shot, its films can be seeked, and it is light by default
 
 - **What:** The first screen's loop is a new take of the real Studio: the bars of the "A story in numbers" template are marked with a note, Claude Code makes the tallest one vermilion and the bars rise one after another, its steps shown sped up, and the new cut is pushed in on. Its four steps jump to their place, as the tour's chapters do: a small Worker script (`site/worker.js`) answers byte ranges of the films, which static assets alone did not, so a browser played them from the start. The page is light by default, with a theme toggle in the top bar kept in the browser; GitHub has its mark there. The first screen's Download gives the installer for the visitor's system straight away and names it, with the way to the others; each system has its icon there and in the downloads, and the agents named on the first screen have their makers' marks. The shoot is scripted in `apps/desktop/scripts/shoot/` (Xvfb, ffmpeg, the real pointer through XTest, and `cut.py`).
