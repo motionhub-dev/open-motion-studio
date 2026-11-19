@@ -21,7 +21,7 @@ const stepButtons = Array.from(document.querySelectorAll("#steps button"));
 const starts = stepButtons.map((b) => Number(b.dataset.at));
 function lightStep() {
   const t = loop.currentTime;
-  const end = loop.duration || 26;
+  const end = loop.duration || 18.1;
   stepButtons.forEach((button, i) => {
     const from = starts[i];
     const to = starts[i + 1] ?? end;
@@ -230,13 +230,50 @@ window.addEventListener("load", placeMarks);
 placeMarks();
 onScroll();
 
-/* Download: name the visitor's system and light its row. */
+/* Theme: light unless the visitor chose dark; the choice is kept in the browser (the page's head reads it first). */
+const themeButton = document.querySelector("#theme");
+function showTheme() {
+  const dark = document.documentElement.dataset.theme === "dark";
+  themeButton.setAttribute("aria-label", dark ? "Switch to the light theme" : "Switch to the dark theme");
+  themeButton.title = dark ? "Light theme" : "Dark theme";
+  document.querySelector('meta[name="theme-color"]').content = dark ? "#0F0D0B" : "#FCFCFA";
+}
+themeButton.addEventListener("click", () => {
+  const dark = document.documentElement.dataset.theme !== "dark";
+  if (dark) document.documentElement.dataset.theme = "dark";
+  else delete document.documentElement.dataset.theme;
+  try {
+    localStorage.setItem("oms-theme", dark ? "dark" : "light");
+  } catch {}
+  showTheme();
+});
+showTheme();
+
+/* Download: the hero's button gives the installer for the visitor's system straight away, with a line naming it
+   and the way to the others; the matching row below is lit. The files are the download rows' own links. */
 const platform = navigator.userAgentData?.platform || navigator.platform || "";
 const mobile =
   /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (platform === "MacIntel" && navigator.maxTouchPoints > 1);
 const os = mobile ? "" : /mac/i.test(platform) ? "mac" : /win/i.test(platform) ? "win" : /linux/i.test(platform) ? "linux" : "";
 const row = os && document.querySelector('#os [data-os="' + os + '"]');
-if (row) {
+async function offerDownload() {
+  if (!row) return;
   row.classList.add("sug");
-  document.querySelector("#hero-get").textContent = "Download for " + row.querySelector("b").textContent;
+  const files = Array.from(row.querySelectorAll("a"));
+  // The first link is Apple silicon on a Mac and x64 on Linux; the second, where there is one, is the other chip.
+  // Only Chromium tells the chip; elsewhere the first is offered and the line under the button says which it is.
+  let chosen = files[0];
+  try {
+    const { architecture } = await navigator.userAgentData.getHighEntropyValues(["architecture"]);
+    if (os === "mac" && architecture === "x86" && files[1]) chosen = files[1];
+    if (os === "linux" && architecture === "arm" && files[1]) chosen = files[1];
+  } catch {}
+  const name = row.querySelector("b").textContent;
+  const hero = document.querySelector("#hero-get");
+  hero.textContent = "Download for " + name;
+  hero.href = chosen.href;
+  const version = /\/download\/(v[\d.]+)\//.exec(chosen.href)?.[1];
+  document.querySelector("#hero-build").textContent = [name, chosen.textContent.trim(), version].filter(Boolean).join(" · ");
+  document.querySelector("#hero-file").hidden = false;
 }
+offerDownload();
