@@ -518,6 +518,7 @@ body::before {
   color: #1a1714;
   font-weight: 600;
   font-size: 15px;
+  white-space: nowrap;
   box-shadow: 0 16px 40px -16px #000;
   transition: transform 0.24s var(--ease);
 }
@@ -743,7 +744,7 @@ body::before {
   padding: 6px 8px;
   border-radius: 5px;
   background: rgb(15 13 11 / 0.75);
-  color: var(--text);
+  color: #f1ebe0;
   font: 500 11px/1 var(--mono);
   pointer-events: none;
 }
@@ -1077,6 +1078,10 @@ footer {
   .os {
     grid-template-columns: 1fr;
   }
+  /* Versions: say what the two cuts are before showing them. */
+  .edit-grid > :last-child {
+    order: -1;
+  }
 }
 @media (max-width: 760px) {
   .track button {
@@ -1104,14 +1109,41 @@ footer {
   .roll dt {
     text-align: left;
   }
-  .top-link {
+  .top-link,
+  .top-link.github {
     display: none;
   }
   .top {
-    gap: 12px;
+    gap: 10px;
+  }
+  .tour,
+  .edit,
+  .fits {
+    padding-block: 64px;
+  }
+  .credits,
+  .get {
+    padding-block: 80px;
+  }
+  .pin {
+    padding-block: 64px;
   }
   .cuts {
     grid-template-columns: 1fr;
+  }
+}
+/* The smallest phones: the brand, the theme and Download still fit on one line. */
+@media (max-width: 380px) {
+  .gut {
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .brand {
+    gap: 8px;
+    font-size: 14px;
+  }
+  .top-get {
+    padding-inline: 11px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
