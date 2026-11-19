@@ -3,6 +3,14 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-19 — The website's first film is re-shot, its films can be seeked, and it is light by default
+
+- **What:** The first screen's loop is a new take of the real Studio: the bars of the "A story in numbers" template are marked with a note, Claude Code makes the tallest one vermilion and the bars rise one after another, its steps shown sped up, and the new cut is pushed in on. Its four steps jump to their place, as the tour's chapters do: a small Worker script (`site/worker.js`) answers byte ranges of the films, which static assets alone did not, so a browser played them from the start. The page is light by default, with a theme toggle in the top bar kept in the browser; GitHub has its mark there. The first screen's Download gives the installer for the visitor's system straight away and names it, with the way to the others; each system has its icon there and in the downloads, and the agents named on the first screen have their makers' marks. The shoot is scripted in `apps/desktop/scripts/shoot/` (Xvfb, ffmpeg, the real pointer through XTest, and `cut.py`).
+- **Why:** The first screen has to show a change one can see at a glance; a step or a chapter that played from the start was a broken promise; an open studio reads better in daylight; a download should not need a scroll.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `site/`, `apps/desktop/scripts/shoot/`, `docs/tech/architecture.md`.
+
 ## 2026-11-19 — Windows releases are signed through SignPath Foundation
 
 - **What:** A Windows release built by CI (a `v*` tag, or a run that prepares a draft release) sends its program and then its installer to SignPath, which signs both with SignPath Foundation's certificate once an approver accepts; CI stops unless both carry a valid signature. The `WIN_CSC_LINK` and `WIN_CSC_KEY_PASSWORD` secrets are gone, replaced by the `SIGNPATH_API_TOKEN` secret and the `SIGNPATH_ORGANIZATION_ID` variable. The code signing policy, team roles and privacy statement are in `docs/ops/code-signing.md`, linked from the README and from the download section of studio.motionhub.dev.

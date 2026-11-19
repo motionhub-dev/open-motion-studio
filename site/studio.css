@@ -1,8 +1,8 @@
-/* studio.motionhub.dev: the page is one film in a dark screening room. Native scroll is the playhead; the
-   transport bar at the foot carries the timecode and the scenes. Ink and paper are motionhub's dark tokens
-   (brand/brand.tokens.json in motionhub-dev/motions); colour belongs to the films and the app.
-   Vermilion is the Studio's mark (the eased square, docs/design.md) and Download, and nothing else; cobalt, the one
-   cool colour, is what a person marks on the picture (the Studio's --annotate). */
+/* studio.motionhub.dev: the page is one film. Native scroll is the playhead; the transport bar at the foot carries
+   the timecode and the scenes. Light by default and dark on request (the toggle in the top bar, kept in the browser),
+   in motionhub's paper and ink (brand/brand.tokens.json in motionhub-dev/motions); colour belongs to the films and
+   the app. Vermilion is the Studio's mark (the eased square, docs/design.md) and Download, and nothing else; cobalt,
+   the one cool colour, is what a person marks on the picture (the Studio's --annotate). */
 
 @font-face {
   font-family: Inter;
@@ -18,22 +18,39 @@
 }
 
 :root {
-  color-scheme: dark;
-  --ink: #0f0d0b;
-  --ink-2: #1a1714;
-  --ink-3: #2c2722;
-  --rule: #3b342d;
-  --paper: #f1ebe0;
-  --paper-2: #d3cabc;
-  --dim: #a89e90;
-  --faint: #7a7166;
-  --cobalt: #8fa8ff;
-  --vermilion: #ff6a4d;
+  color-scheme: light;
+  --bg: #fcfcfa;
+  --surface: #f3f1ec;
+  --line: #e3e0da;
+  --line-2: #d3cec5;
+  --text: #2a2622;
+  --text-2: #4a453e;
+  --muted: #69635a;
+  --faint: #7d766c;
+  --cobalt: #2b59c3;
+  --accent: #c4381f;
+  --on-accent: #fbf8f2;
+  --shadow: 0 50px 100px -55px rgb(42 38 34 / 0.45);
   --sans: Inter, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   --top: 64px;
   --foot: 48px;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f0d0b;
+  --surface: #1a1714;
+  --line: #2c2722;
+  --line-2: #3b342d;
+  --text: #f1ebe0;
+  --text-2: #d3cabc;
+  --muted: #a89e90;
+  --faint: #7a7166;
+  --cobalt: #8fa8ff;
+  --accent: #ff6a4d;
+  --on-accent: #0f0d0b;
+  --shadow: 0 60px 120px -50px #000;
 }
 * {
   box-sizing: border-box;
@@ -45,8 +62,8 @@ html {
 body {
   margin: 0;
   padding-bottom: calc(var(--foot) + env(safe-area-inset-bottom, 0px));
-  background: var(--ink);
-  color: var(--paper-2);
+  background: var(--bg);
+  color: var(--text-2);
   font: 16px/1.6 var(--sans);
   font-synthesis: none;
   -webkit-font-smoothing: antialiased;
@@ -63,7 +80,7 @@ figure {
 }
 h1,
 h2 {
-  color: var(--paper);
+  color: var(--text);
   font-weight: 600;
   text-wrap: balance;
 }
@@ -112,8 +129,8 @@ pre {
   z-index: 40;
   padding: 10px 14px;
   border-radius: 8px;
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--text);
+  color: var(--bg);
 }
 .skip:focus {
   top: 16px;
@@ -130,7 +147,7 @@ pre {
   font: 500 12px/1.4 var(--mono);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--dim);
+  color: var(--muted);
 }
 .center {
   text-align: center;
@@ -142,7 +159,7 @@ pre {
 }
 .fine {
   font: 500 12px/1.7 var(--mono);
-  color: var(--dim);
+  color: var(--muted);
 }
 .credit {
   margin-top: 12px;
@@ -164,7 +181,7 @@ body::before {
   inset: 0 0 auto;
   height: env(safe-area-inset-top, 0px);
   z-index: 30;
-  background: var(--ink);
+  background: var(--bg);
 }
 .top {
   position: fixed;
@@ -176,14 +193,14 @@ body::before {
   display: flex;
   align-items: center;
   gap: 24px;
-  background: linear-gradient(var(--ink) 45%, rgb(15 13 11 / 0));
+  background: linear-gradient(var(--bg) 45%, transparent);
 }
 .brand {
   display: inline-flex;
   align-items: center;
   gap: 10px;
   margin-right: auto;
-  color: var(--paper);
+  color: var(--text);
   font-weight: 600;
   font-size: 15px;
   letter-spacing: -0.01em;
@@ -191,17 +208,47 @@ body::before {
 }
 .top-link {
   font-size: 14px;
-  color: var(--dim);
+  color: var(--muted);
   text-decoration: none;
 }
 .top-link:hover {
-  color: var(--paper);
+  color: var(--text);
+}
+.top-link.github {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+/* The theme toggle shows where it goes: a moon in light, a sun in dark. */
+.theme {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  transition:
+    color 0.16s var(--ease),
+    border-color 0.16s var(--ease);
+}
+.theme:hover {
+  color: var(--text);
+  border-color: var(--line-2);
+}
+.theme .to-light,
+:root[data-theme="dark"] .theme .to-dark {
+  display: none;
+}
+:root[data-theme="dark"] .theme .to-light {
+  display: block;
 }
 .top-get {
   padding: 8px 14px;
   border-radius: 8px;
-  background: var(--vermilion);
-  color: var(--ink);
+  background: var(--accent);
+  color: var(--on-accent);
   font-weight: 600;
   font-size: 13.5px;
   text-decoration: none;
@@ -219,14 +266,14 @@ body::before {
   display: flex;
   align-items: center;
   gap: 18px;
-  background: var(--ink);
-  border-top: 1px solid var(--ink-3);
+  background: var(--bg);
+  border-top: 1px solid var(--line);
   font: 500 11.5px/1 var(--mono);
-  color: var(--dim);
+  color: var(--muted);
 }
 .tc {
   min-width: 92px;
-  color: var(--paper);
+  color: var(--text);
   font-variant-numeric: tabular-nums;
 }
 .track {
@@ -244,11 +291,11 @@ body::before {
 }
 .track .line {
   right: 0;
-  background: var(--rule);
+  background: var(--line-2);
 }
 .track .fill {
   width: 0;
-  background: var(--paper-2);
+  background: var(--text-2);
 }
 .track .head {
   position: absolute;
@@ -257,7 +304,7 @@ body::before {
   left: 0;
   width: 2px;
   margin-left: -1px;
-  background: var(--paper);
+  background: var(--text);
 }
 .track button {
   position: absolute;
@@ -265,21 +312,21 @@ body::before {
   height: var(--foot);
   padding: 0 0 0 8px;
   border: 0;
-  border-left: 1px solid var(--rule);
+  border-left: 1px solid var(--line-2);
   background: none;
   color: var(--faint);
   font: 500 10.5px / var(--foot) var(--mono);
   letter-spacing: 0.08em;
 }
 .track button:hover {
-  color: var(--paper-2);
+  color: var(--text-2);
 }
 .track button[aria-current="true"] {
-  color: var(--paper);
+  color: var(--text);
 }
 .now {
   display: none;
-  color: var(--paper);
+  color: var(--text);
   letter-spacing: 0.08em;
 }
 
@@ -316,7 +363,7 @@ body::before {
   max-width: 42ch;
   font-size: clamp(16.5px, 1.35vw, 19px);
   line-height: 1.5;
-  color: var(--paper-2);
+  color: var(--text-2);
 }
 .cta {
   display: flex;
@@ -330,8 +377,8 @@ body::before {
   min-height: 48px;
   padding: 0 20px;
   border-radius: 10px;
-  background: var(--vermilion);
-  color: var(--ink);
+  background: var(--accent);
+  color: var(--on-accent);
   font-weight: 600;
   font-size: 15.5px;
   text-decoration: none;
@@ -344,7 +391,7 @@ body::before {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  color: var(--paper);
+  color: var(--text);
   font-weight: 500;
   text-decoration: none;
 }
@@ -354,12 +401,31 @@ body::before {
 .open .fine {
   max-width: 52ch;
 }
+/* The agents named on the first screen, each with its maker's mark: Claude's in its own colour, OpenAI's in the
+   text colour (motionhub's brand/BRAND.md). */
+.with {
+  white-space: nowrap;
+}
+.agent-mark {
+  display: inline-block;
+  margin-right: 4px;
+  vertical-align: -2px;
+}
+/* Under the download button: which file it gives, and the way to the others. */
+.hero-file {
+  margin-top: -10px;
+  font: 500 12px/1.6 var(--mono);
+  color: var(--muted);
+}
+.hero-file a {
+  color: var(--text-2);
+}
 .window {
   overflow: hidden;
-  border: 1px solid var(--ink-3);
+  border: 1px solid var(--line);
   border-radius: 12px;
-  background: var(--ink-2);
-  box-shadow: 0 60px 120px -50px #000;
+  background: var(--surface);
+  box-shadow: var(--shadow);
 }
 .window video {
   width: 100%;
@@ -368,7 +434,7 @@ body::before {
 }
 .steps {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
   margin-top: 14px;
   padding: 0;
@@ -381,7 +447,7 @@ body::before {
   width: 100%;
   padding: 10px 0 0;
   border: 0;
-  border-top: 2px solid var(--ink-3);
+  border-top: 2px solid var(--line);
   background: none;
   text-align: left;
   color: var(--faint);
@@ -402,13 +468,13 @@ body::before {
   background: var(--cobalt);
 }
 .steps button[aria-current="step"] {
-  color: var(--paper);
+  color: var(--text);
 }
 .steps button[aria-current="step"] span {
   color: var(--cobalt);
 }
 .steps button:hover {
-  color: var(--paper-2);
+  color: var(--text-2);
 }
 
 /* TOUR */
@@ -433,9 +499,9 @@ body::before {
   width: 100%;
   height: auto;
   aspect-ratio: 16 / 9;
-  border: 1px solid var(--ink-3);
+  border: 1px solid var(--line);
   border-radius: 12px;
-  background: var(--ink-2);
+  background: var(--surface);
 }
 .play-cover {
   position: absolute;
@@ -481,10 +547,10 @@ body::before {
   align-items: baseline;
   gap: 8px;
   padding: 6px 11px;
-  border: 1px solid var(--rule);
+  border: 1px solid var(--line-2);
   border-radius: 999px;
   background: none;
-  color: var(--dim);
+  color: var(--muted);
   font-size: 13px;
   transition:
     border-color 0.16s var(--ease),
@@ -494,10 +560,10 @@ body::before {
   font: 500 11.5px var(--mono);
 }
 .chapters button:hover {
-  color: var(--paper);
+  color: var(--text);
 }
 .chapters button[aria-current="step"] {
-  color: var(--paper);
+  color: var(--text);
   border-color: var(--cobalt);
 }
 .tour-options {
@@ -512,17 +578,17 @@ body::before {
 }
 .tour-options select {
   padding: 4px 8px;
-  border: 1px solid var(--rule);
+  border: 1px solid var(--line-2);
   border-radius: 6px;
-  background: var(--ink-2);
-  color: var(--paper);
+  background: var(--surface);
+  color: var(--text);
 }
 
 /* LOOKS: a tall section whose stage stays pinned while the scroll changes the look */
 .taste {
   position: relative;
   height: 320vh;
-  border-top: 1px solid var(--ink-3);
+  border-top: 1px solid var(--line);
 }
 .pin {
   position: sticky;
@@ -557,7 +623,7 @@ body::before {
   align-items: baseline;
   padding: 12px 0;
   border: 0;
-  border-top: 1px solid var(--ink-3);
+  border-top: 1px solid var(--line);
   background: none;
   text-align: left;
   color: var(--faint);
@@ -565,7 +631,7 @@ body::before {
   transition: color 0.25s var(--ease);
 }
 .look-index button:hover {
-  color: var(--paper-2);
+  color: var(--text-2);
 }
 .look-index .n,
 .look-index small {
@@ -573,7 +639,7 @@ body::before {
   letter-spacing: 0.06em;
 }
 .look-index button[aria-pressed="true"] {
-  color: var(--paper);
+  color: var(--text);
 }
 .look-index button[aria-pressed="true"] .n {
   color: var(--cobalt);
@@ -585,7 +651,7 @@ body::before {
   overflow: hidden;
   border-radius: 8px;
   background: #000;
-  box-shadow: 0 60px 120px -60px #000;
+  box-shadow: var(--shadow);
 }
 .look {
   position: absolute;
@@ -610,16 +676,16 @@ body::before {
   gap: 16px;
   margin-top: 14px;
   font: 500 12px var(--mono);
-  color: var(--dim);
+  color: var(--muted);
 }
 .reel-cap span {
-  color: var(--paper);
+  color: var(--text);
 }
 
 /* EDIT */
 .edit {
   padding-block: clamp(80px, 10vw, 140px);
-  border-top: 1px solid var(--ink-3);
+  border-top: 1px solid var(--line);
 }
 .edit-grid {
   display: grid;
@@ -677,7 +743,7 @@ body::before {
   padding: 6px 8px;
   border-radius: 5px;
   background: rgb(15 13 11 / 0.75);
-  color: var(--paper);
+  color: var(--text);
   font: 500 11px/1 var(--mono);
   pointer-events: none;
 }
@@ -716,7 +782,7 @@ body::before {
 .cuts figcaption {
   margin-top: 8px;
   font: 500 12px var(--mono);
-  color: var(--dim);
+  color: var(--muted);
 }
 .log {
   display: grid;
@@ -729,8 +795,8 @@ body::before {
   grid-template-columns: 34px 1fr;
   gap: 10px;
   padding: 14px 0;
-  border-top: 1px solid var(--ink-3);
-  color: var(--dim);
+  border-top: 1px solid var(--line);
+  color: var(--muted);
 }
 .log .v {
   font: 500 11.5px/1.7 var(--mono);
@@ -746,7 +812,7 @@ body::before {
   opacity: 0.85;
 }
 .log li.on {
-  color: var(--paper);
+  color: var(--text);
 }
 .log li.on .v {
   color: var(--cobalt);
@@ -755,7 +821,7 @@ body::before {
 /* YOURS: end credits */
 .credits {
   padding-block: clamp(110px, 14vw, 200px);
-  border-top: 1px solid var(--ink-3);
+  border-top: 1px solid var(--line);
 }
 .credits h2 {
   margin-top: 18px;
@@ -790,20 +856,20 @@ body::before {
   font-size: clamp(17px, 1.8vw, 24px);
   line-height: 1.3;
   letter-spacing: -0.01em;
-  color: var(--paper);
+  color: var(--text);
 }
 .roll small {
   display: block;
   margin-top: 4px;
   font-size: 13.5px;
   letter-spacing: 0;
-  color: var(--dim);
+  color: var(--muted);
 }
 
 /* FITS */
 .fits {
   padding-block: clamp(80px, 10vw, 140px);
-  border-top: 1px solid var(--ink-3);
+  border-top: 1px solid var(--line);
 }
 .fits h2 {
   max-width: 18ch;
@@ -823,13 +889,13 @@ body::before {
   gap: 10px;
   align-content: start;
   padding-top: 20px;
-  border-top: 1px solid var(--rule);
+  border-top: 1px solid var(--line-2);
 }
 .fit-row .who {
   font: 500 12px var(--mono);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--dim);
+  color: var(--muted);
 }
 .fit-row .ours {
   border-top: 2px solid var(--cobalt);
@@ -840,11 +906,11 @@ body::before {
 .dev {
   margin-top: clamp(40px, 5vw, 64px);
   padding-top: 20px;
-  border-top: 1px solid var(--ink-3);
+  border-top: 1px solid var(--line);
 }
 .dev summary {
   cursor: pointer;
-  color: var(--paper);
+  color: var(--text);
   font-weight: 600;
 }
 .dev p {
@@ -856,8 +922,8 @@ body::before {
   overflow-x: auto;
   padding: 16px 18px;
   border-radius: 10px;
-  background: var(--ink-2);
-  color: var(--paper);
+  background: var(--surface);
+  color: var(--text);
   font-size: 13px;
   line-height: 1.7;
 }
@@ -865,7 +931,7 @@ body::before {
 /* ROLL */
 .get {
   padding-block: clamp(100px, 12vw, 180px);
-  border-top: 1px solid var(--ink-3);
+  border-top: 1px solid var(--line);
 }
 .get h2 {
   margin-top: 18px;
@@ -888,13 +954,23 @@ body::before {
   gap: 12px;
   align-content: start;
   padding: 20px 22px;
-  border: 1px solid var(--rule);
+  border: 1px solid var(--line-2);
   border-radius: 12px;
 }
 .os b {
-  color: var(--paper);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--text);
   font-weight: 600;
   font-size: 17px;
+}
+.os-icon {
+  flex: none;
+}
+/* The hero's button carries the icon of the system it downloads for. */
+.button .os-icon {
+  margin-right: 9px;
 }
 .os span {
   display: flex;
@@ -906,24 +982,24 @@ body::before {
   align-items: center;
   min-height: 36px;
   padding: 0 12px;
-  border: 1px solid var(--rule);
+  border: 1px solid var(--line-2);
   border-radius: 8px;
-  color: var(--paper);
+  color: var(--text);
   font-size: 14px;
   font-weight: 500;
   text-decoration: none;
   transition: border-color 0.16s var(--ease);
 }
 .os a:hover {
-  border-color: var(--paper-2);
+  border-color: var(--text-2);
 }
 .os > .sug {
-  border-color: var(--vermilion);
+  border-color: var(--accent);
 }
 .os > .sug a:first-child {
-  background: var(--vermilion);
-  border-color: var(--vermilion);
-  color: var(--ink);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
   font-weight: 600;
 }
 .get .fine {
@@ -935,7 +1011,7 @@ body::before {
 
 footer {
   padding-block: 28px 36px;
-  border-top: 1px solid var(--ink-3);
+  border-top: 1px solid var(--line);
   font-size: 13px;
   color: var(--faint);
 }
@@ -952,7 +1028,7 @@ footer {
   text-decoration: none;
 }
 .foot a:not(.brand):hover {
-  color: var(--paper);
+  color: var(--text);
 }
 
 /* Narrow screens: one column; the looks are not pinned and studio.js steps them on a timer. */
@@ -976,6 +1052,7 @@ footer {
   }
   .open .what,
   .open .cta,
+  .open .hero-file,
   .open .fine {
     order: 4;
   }
@@ -1009,7 +1086,7 @@ footer {
     display: inline;
   }
   .steps {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
   .steps button {
     font-size: 0;
@@ -1029,6 +1106,9 @@ footer {
   }
   .top-link {
     display: none;
+  }
+  .top {
+    gap: 12px;
   }
   .cuts {
     grid-template-columns: 1fr;
