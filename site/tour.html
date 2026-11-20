@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <title data-zh="教程 — OpenMotionStudio">Tour — OpenMotionStudio</title>
+    <meta
+      name="description"
+      content="A 90-second walkthrough of OpenMotionStudio: open a project, brief the agent, mark what to change on the picture, compare the cuts and export an MP4, each step written out."
+      data-zh-content="90 秒看懂 OpenMotionStudio：打开工程，交代给智能体，在画面上圈出要改的地方，对比两版，导出 MP4，每一步都有文字说明。"
+    />
+    <meta property="og:title" content="Tour — OpenMotionStudio" />
+    <meta property="og:description" content="One film, start to finish: open a project, brief the agent, mark the frame, compare the cuts and export an MP4." />
+    <meta property="og:image" content="https://openmotion.studio/media/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#FCFCFA" />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      // Set before the page paints (the same in index.html): light unless the visitor chose dark, and Chinese for ?lang=zh,
+      // the visitor's choice, or else a browser set to Chinese. Both toggles are in the top bar; studio.js swaps the words.
+      try {
+        if (localStorage.getItem("oms-theme") === "dark") document.documentElement.dataset.theme = "dark";
+      } catch {}
+      (() => {
+        let lang = new URLSearchParams(location.search).get("lang");
+        try {
+          if (lang !== "zh" && lang !== "en") lang = localStorage.getItem("oms-lang");
+        } catch {}
+        if (lang !== "zh" && lang !== "en") lang = /^zh\b/i.test(navigator.language) ? "zh" : "en";
+        if (lang === "zh") document.documentElement.lang = "zh-CN";
+      })();
+    </script>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="studio.css" />
+    <script src="studio.js" defer></script>
+  </head>
+  <body class="page">
+    <a class="skip" href="#main" data-zh="跳到正文">Skip to content</a>
+    <header class="top gut">
+      <a class="brand" href="/"
+        ><img src="favicon.svg" alt="" width="26" height="26" /><span class="name">OpenMotion<span>Studio</span></span></a
+      >
+      <nav class="nav" aria-label="Site" data-zh-aria-label="站点">
+        <a class="nav-link" href="/tour" aria-current="page" data-zh="教程">Tour</a>
+      <a class="nav-link" href="https://github.com/motionhubdev/openmotionstudio"
+        ><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+          <path
+            fill="currentColor"
+            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"
+          /></svg
+        >GitHub</a
+      >
+      </nav>
+      <span class="top-sep" aria-hidden="true"></span>
+      <div class="seg seg-lang" id="lang" role="group" aria-label="Language" data-zh-aria-label="语言">
+        <button type="button" data-lang="en" lang="en" title="English">EN</button>
+        <button type="button" data-lang="zh" lang="zh" title="中文">中</button>
+      </div>
+      <div class="seg seg-theme" id="theme" role="group" aria-label="Theme" data-zh-aria-label="主题">
+        <button type="button" data-theme-to="light" aria-label="Light theme" data-zh-aria-label="浅色主题" title="Light theme" data-zh-title="浅色主题">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
+        </button>
+        <button type="button" data-theme-to="dark" aria-label="Dark theme" data-zh-aria-label="深色主题" title="Dark theme" data-zh-title="深色主题">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" /></svg>
+        </button>
+      </div>
+      <a class="btn btn-primary top-get" href="/#get"
+        ><svg class="top-get-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></svg><span data-zh="下载">Download</span></a
+      >
+    </header>
+
+    <main id="main">
+      <!-- TOUR: one real project, start to finish, with each step written out beside the film -->
+      <section class="tour gut" aria-labelledby="tour-title">
+        <div class="max">
+          <div class="head">
+            <div>
+              <p class="kicker" data-zh="教程 · 1:33">Tour · 1:33</p>
+              <h1 id="tour-title" data-zh="一部片子，从头做到尾。">One film, start to finish.</h1>
+            </div>
+            <p
+              class="lede"
+              data-zh="一张照片变成一段 7 秒的杂志动态封面：打开工程，交代给 Codex，圈出刊名，对比两版，导出。智能体和导出的等待时间做了剪短。"
+            >
+              A photograph becomes a seven-second magazine cover: open the project, brief Codex, mark the title, compare
+              the cuts and export. Waits for the agent and the export are shortened.
+            </p>
+          </div>
+          <div class="guide-grid">
+            <div class="guide-film">
+              <div class="filmstage">
+                <video
+                  id="tour-player"
+                  controlslist="noplaybackrate"
+                  width="1440"
+                  height="810"
+                  controls
+                  muted
+                  playsinline
+                  preload="metadata"
+                  poster="media/workspace-tour.webp"
+                  aria-label="Walkthrough: making the Stillform cover film in OpenMotionStudio"
+                  data-zh-aria-label="演示：在 OpenMotionStudio 里制作 Stillform 动态封面"
+                  src="media/edit.mp4"
+                >
+                  <track kind="captions" src="media/edit.vtt" srclang="en" label="English" default />
+                  <track kind="captions" src="media/edit-zh.vtt" srclang="zh" label="中文" />
+                </video>
+                <button class="play-cover" id="play-tour" type="button" hidden>
+                  <i class="play" aria-hidden="true"></i><span data-zh="播放完整演示">Play the tour</span
+                  ><time datetime="PT1M33S">1:33</time>
+                </button>
+              </div>
+              <div class="tour-options" id="tour-options" hidden>
+                <div class="field">
+                  <span id="tour-language-label" data-zh="字幕">Captions</span>
+                  <select class="select" id="tour-language" aria-labelledby="tour-language-label">
+                    <option value="en">English</option>
+                    <option value="zh">中文</option>
+                    <option value="off" data-zh="关闭">Off</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <span id="tour-speed-label" data-zh="倍速">Speed</span>
+                  <select class="select" id="tour-speed" aria-labelledby="tour-speed-label">
+                    <option value="1">1×</option>
+                    <option value="1.5">1.5×</option>
+                    <option value="2">2×</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="guide-steps">
+              <h2 class="kicker" data-zh="分步说明">Step by step</h2>
+              <!-- Each step is a chapter of the film: data-at is where it starts, in seconds (media/edit.vtt). -->
+              <ol class="guide" id="guide">
+                <li data-at="0">
+                  <button type="button"><time>0:00</time><b data-zh="打开工程">Open the project</b></button>
+                  <p
+                    data-zh="在首页点<kbd>Open project</kbd>，选一个文件夹。这个文件夹就是工程：片子、素材和每个版本都留在里面，在你自己的磁盘上。视频里的 Stillform 起始工程已经带有一个空白场景、字体和可复用的封面组件。"
+                  >
+                    On Home, choose <kbd>Open project</kbd> and pick a folder. The folder is the project: the film, its
+                    media and every version stay in it, on your disk. The Stillform starter in the film already holds a
+                    blank scene, typefaces and reusable cover components.
+                  </p>
+                </li>
+                <li data-at="7.208">
+                  <button type="button"><time>0:07</time><b data-zh="导入照片">Import the photograph</b></button>
+                  <p
+                    data-zh="打开<kbd>Assets</kbd>，点<kbd>Import files</kbd>，选中照片（这里是 grand-teton.jpg）。它会出现在工程的字体旁边，智能体随时可以用。"
+                  >
+                    Open <kbd>Assets</kbd>, choose <kbd>Import files</kbd> and select the photograph, here
+                    grand-teton.jpg. It appears beside the project’s typefaces, ready for the agent to use.
+                  </p>
+                </li>
+                <li data-at="17.208">
+                  <button type="button"><time>0:17</time><b data-zh="交代创作要求">Brief the agent</b></button>
+                  <p
+                    data-zh="选好智能体（这里是 Codex；Claude Code 或你接入的模型用法一样），描述初稿：画面里有什么、上面叠什么、什么时候出现。发送后，智能体用工程里的组件搭出场景，并在交回之前检查自己的渲染结果。"
+                  >
+                    Pick the agent (Codex here; Claude Code or a model you connected works the same) and describe the
+                    first cut: what is in the picture, what sits over it and when it comes in. Send it. The agent builds
+                    the scene from the project’s components and checks its own render before handing it back.
+                  </p>
+                </li>
+                <li data-at="39.208">
+                  <button type="button"><time>0:39</time><b data-zh="圈出要改的地方">Mark what to change</b></button>
+                  <p
+                    data-zh="播放初稿，在不对的地方暂停。选择<kbd>Region</kbd>，在画面上框住要改的地方并写下批注：「让照片先停留一下，刊名晚半秒再出现。」把带标注的画面发给智能体，并告诉它其余部分保持不变。"
+                  >
+                    Play the first cut and pause where it goes wrong. Choose <kbd>Region</kbd>, drag a box around what
+                    should change and write the note on it: “Let the photograph breathe. Bring the title in half a second
+                    later.” Send the marked frame and ask the agent to leave the rest of the film as it is.
+                  </p>
+                </li>
+                <li data-at="59.458">
+                  <button type="button"><time>0:59</time><b data-zh="对比修改前后">Compare the cuts</b></button>
+                  <p
+                    data-zh="智能体只改刊名的入场时间，从 0.08 秒改到 0.58 秒，并检查修改后的画面。原速回看，再让两个开场并排同步播放。每次修改都作为一个版本保存。"
+                  >
+                    The agent moves only the title’s entrance, from 0.08 to 0.58 seconds, and checks the revised frames.
+                    Replay the cut, then play both openings side by side. Each revision is kept as a version.
+                  </p>
+                </li>
+                <li data-at="72.958">
+                  <button type="button"><time>1:12</time><b data-zh="导出成片">Export the MP4</b></button>
+                  <p
+                    data-zh="点<kbd>Export MP4</kbd>。Studio 先检查片子，列出输出尺寸和帧率，然后用自带的引擎在本机渲染，无需另装任何东西。文件存到哪里都行，这里存为工程文件夹里的 Stillform.mp4。"
+                  >
+                    Choose <kbd>Export MP4</kbd>. The Studio checks the film, shows the output size and frame rate, and
+                    renders the frames on your machine with its own engine: nothing else to install. Save the file
+                    wherever you like; here, Stillform.mp4 in the project folder.
+                  </p>
+                </li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- NEXT: the way to the download -->
+      <section class="next gut" aria-labelledby="next-title">
+        <div class="max next-row">
+          <div>
+            <h2 id="next-title" data-zh="轮到你了。">Your turn.</h2>
+            <p class="lede" data-zh="下载 Studio，打开一部示例片子，指一处地方试试。准备好了再接入你的模型。">
+              Download the Studio, open a sample film and point at something. Connect your model when you are ready.
+            </p>
+          </div>
+          <div class="cta">
+            <a class="btn btn-primary btn-lg" href="/#get" data-zh="下载 OpenMotionStudio">Download OpenMotionStudio</a>
+            <a class="btn btn-lg" href="/" data-zh="返回首页">Back to the overview</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="gut">
+      <div class="max foot">
+        <a class="brand" href="/"><img src="favicon.svg" alt="" width="22" height="22" /><span class="name">OpenMotion<span>Studio</span></span></a
+        ><span data-zh="开源 · Apache-2.0">Open source · Apache-2.0</span
+        ><a href="/tour" data-zh="教程">Tour</a><a class="foot-hub" href="https://motionhub.dev/"
+          ><img src="media/motionhub-icon.svg" alt="" width="16" height="16" /><span data-zh="MotionHub 上的风格">Looks on MotionHub</span></a
+        ><a href="https://github.com/motionhubdev/openmotionstudio">GitHub</a>
+      </div>
+    </footer>
+
+  </body>
+</html>

@@ -7,6 +7,7 @@
   },
   "scripts": {
     "dev": "pnpm --filter ./apps/desktop dev",
+    "dev:site": "cd site && npx --yes wrangler@4.165.0 dev",
     "typecheck": "pnpm --filter ./apps/desktop typecheck",
     "test": "pnpm --filter ./apps/desktop test",
     "test:ui": "pnpm --filter ./apps/desktop test:ui",

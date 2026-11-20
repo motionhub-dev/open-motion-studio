@@ -16,13 +16,13 @@ Describe the film, point at what to change on the picture, and export an MP4.
 
 [**Download**](https://openmotion.studio/#get) ·
 [Website](https://openmotion.studio/) ·
-[90-second tour](https://openmotion.studio/#tour) ·
+[90-second tour](https://openmotion.studio/tour) ·
 [Documentation](docs/README.md) ·
 [Changelog](CHANGELOG.md)
 
 <br />
 
-<a href="https://openmotion.studio/#tour"><img src="site/media/workspace-tour.webp" width="900" alt="The OpenMotionStudio workspace: the agent's conversation on the left, the film playing in the middle, its outline on the right and the timeline below" /></a>
+<a href="https://openmotion.studio/tour"><img src="site/media/workspace-tour.webp" width="900" alt="The OpenMotionStudio workspace: the agent's conversation on the left, the film playing in the middle, its outline on the right and the timeline below" /></a>
 
 </div>
 
@@ -35,26 +35,36 @@ Describe the film, point at what to change on the picture, and export an MP4.
    as one edit, kept as a version on your disk.
 4. **Export an MP4.** The Studio bundles, plays and renders the film itself. There is nothing else to install.
 
-## One brief, three looks
+## Start from a look
 
 <table>
   <tr>
     <td align="center" width="33%">
-      <a href="https://motionhub.dev/@iamsuosi/riso-pop/"><img src="site/media/look-editorial.webp" alt="A study in motion, in Riso Pop" /></a>
-      <br /><sub><b>Riso Pop</b> · print</sub>
+      <a href="https://motionhub.dev/@iamsuosi/clay-world/"><img src="https://motionhub.dev/m/@iamsuosi/clay-world/poster.jpg" alt="Clay World on MotionHub" /></a>
+      <br /><sub><b>Clay World</b> · 3D clay</sub>
     </td>
     <td align="center" width="33%">
-      <a href="https://motionhub.dev/@iamsuosi/stage-light/"><img src="site/media/look-product.webp" alt="A study in motion, in Stage Light" /></a>
+      <a href="https://motionhub.dev/@iamsuosi/pixel-quest/"><img src="https://motionhub.dev/m/@iamsuosi/pixel-quest/poster.jpg" alt="Pixel Quest on MotionHub" /></a>
+      <br /><sub><b>Pixel Quest</b> · pixel</sub>
+    </td>
+    <td align="center" width="33%">
+      <a href="https://motionhub.dev/@iamsuosi/ink-scroll/"><img src="https://motionhub.dev/m/@iamsuosi/ink-scroll/poster.jpg" alt="Ink Scroll on MotionHub" /></a>
+      <br /><sub><b>Ink Scroll</b> · ink</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="33%">
+      <a href="https://motionhub.dev/@iamsuosi/stage-light/"><img src="https://motionhub.dev/m/@iamsuosi/stage-light/poster.jpg" alt="Stage Light on MotionHub" /></a>
       <br /><sub><b>Stage Light</b> · product</sub>
     </td>
     <td align="center" width="33%">
-      <a href="https://motionhub.dev/@iamsuosi/night-diagram/"><img src="site/media/look-data.webp" alt="A study in motion, in Night Diagram" /></a>
-      <br /><sub><b>Night Diagram</b> · data</sub>
+      <a href="https://motionhub.dev/@iamsuosi/riso-pop/"><img src="https://motionhub.dev/m/@iamsuosi/riso-pop/poster.jpg" alt="Riso Pop on MotionHub" /></a>
+      <br /><sub><b>Riso Pop</b> · print</sub>
     </td>
   </tr>
 </table>
 
-<sub>The same brief, “A study in motion,” made in the Studio with three looks by SuoSi on MotionHub.</sub>
+<sub>Looks by SuoSi on <a href="https://motionhub.dev">MotionHub</a>, ready to use in the Studio.</sub>
 
 ## Yours
 

@@ -53,6 +53,7 @@ downloads Electron.
 
 ```bash
 pnpm dev              # the desktop app with hot reload (electron-vite)
+pnpm dev:site         # the website at http://localhost:8787, served by its Worker as in production (wrangler dev)
 pnpm typecheck        # the gate, in CI's order: typecheck → test → build
 pnpm test
 pnpm test:ui          # a build, then Home, Settings, the select and both languages driven in hidden Electron windows

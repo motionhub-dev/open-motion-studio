@@ -1,5 +1,6 @@
-/* openmotion.studio: the page is one film. Native scroll is the playhead; the transport bar at the foot carries
-   the timecode and the scenes. Light by default and dark on request (the toggle in the top bar, kept in the browser),
+/* openmotion.studio: the front page is one film. Native scroll is the playhead; the transport bar at the foot carries
+   the timecode and the scenes. /tour is the walkthrough with its steps written out. Both are in English or Chinese
+   (studio.js). Light by default and dark on request (the toggle in the top bar, kept in the browser),
    in motionhub's paper and ink (brand/brand.tokens.json in motionhubdev/motionhub); colour belongs to the films and
    the app. Vermilion is the Studio's mark (the eased square, docs/design.md) and Download, and nothing else; cobalt,
    the one cool colour, is what a person marks on the picture (the Studio's --annotate). */
@@ -31,6 +32,16 @@
   --accent: #c4381f;
   --on-accent: #fbf8f2;
   --shadow: 0 50px 100px -55px rgb(42 38 34 / 0.45);
+  --raised: #ffffff;
+  --well: #f0ede7;
+  --bar: rgb(252 252 250 / 0.8);
+  --hilite: rgb(255 255 255 / 0.95);
+  --lift: 0 1px 1px rgb(42 38 34 / 0.06), 0 2px 5px -2px rgb(42 38 34 / 0.16);
+  --sink: inset 0 1px 2px rgb(42 38 34 / 0.08);
+  --press: inset 0 1px 3px rgb(42 38 34 / 0.2);
+  --float: 0 2px 6px -2px rgb(42 38 34 / 0.12), 0 16px 36px -12px rgb(42 38 34 / 0.3);
+  --accent-edge: #a32d17;
+  --accent-lift: 0 1px 1px rgb(120 30 14 / 0.3), 0 4px 10px -4px rgb(196 56 31 / 0.5);
   --sans: Inter, "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
@@ -51,6 +62,16 @@
   --accent: #ff6a4d;
   --on-accent: #0f0d0b;
   --shadow: 0 60px 120px -50px #000;
+  --raised: #2a2520;
+  --well: #161310;
+  --bar: rgb(15 13 11 / 0.78);
+  --hilite: rgb(255 255 255 / 0.07);
+  --lift: 0 1px 1px rgb(0 0 0 / 0.5), 0 2px 6px -2px rgb(0 0 0 / 0.7);
+  --sink: inset 0 1px 2px rgb(0 0 0 / 0.5);
+  --press: inset 0 1px 3px rgb(0 0 0 / 0.6);
+  --float: 0 2px 6px -2px rgb(0 0 0 / 0.6), 0 18px 40px -12px rgb(0 0 0 / 0.85);
+  --accent-edge: #ff8a73;
+  --accent-lift: 0 1px 1px rgb(0 0 0 / 0.5), 0 4px 12px -4px rgb(255 106 77 / 0.35);
 }
 * {
   box-sizing: border-box;
@@ -67,6 +88,10 @@ body {
   font: 16px/1.6 var(--sans);
   font-synthesis: none;
   -webkit-font-smoothing: antialiased;
+}
+/* /tour has no transport bar to leave room for. */
+body.page {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 h1,
 h2,
@@ -174,7 +199,284 @@ pre {
   border-bottom: 6px solid transparent;
 }
 
-/* Top bar */
+/* Components: one family on both pages, after the Studio's own controls (docs/design.md, "The website"). What a
+   person operates is ink; vermilion is Download alone. A raised control is paper with a hairline edge, a lit top edge
+   and a small shadow; what is chosen among sits in a sunk well, the choice raised in it. Heights are 30 (small), 34 and
+   48 (large); radius 6 for controls, 8 for buttons, 10 for a large one. */
+.btn {
+  --h: 34px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: var(--h);
+  padding: 0 14px;
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  background: var(--raised);
+  box-shadow:
+    inset 0 1px 0 var(--hilite),
+    var(--lift);
+  color: var(--text);
+  font: 550 13.5px/1 var(--sans);
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    background-color 0.16s var(--ease),
+    border-color 0.16s var(--ease),
+    box-shadow 0.16s var(--ease),
+    filter 0.16s var(--ease),
+    transform 0.08s var(--ease);
+}
+.btn:hover {
+  border-color: var(--faint);
+}
+.btn:active {
+  transform: translateY(0.5px);
+  box-shadow: var(--press);
+}
+.btn-sm {
+  --h: 30px;
+  gap: 7px;
+  padding: 0 11px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+.btn-lg {
+  --h: 48px;
+  gap: 10px;
+  padding: 0 20px;
+  border-radius: 10px;
+  font-size: 15.5px;
+}
+.btn-primary,
+.os > .sug .btn:first-child {
+  border-color: var(--accent-edge);
+  background: var(--accent);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.22),
+    var(--accent-lift);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+.btn-primary:hover,
+.os > .sug .btn:first-child:hover {
+  border-color: var(--accent-edge);
+  filter: brightness(1.07);
+}
+.btn-primary:active,
+.os > .sug .btn:first-child:active {
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.3);
+}
+.btn-ghost {
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
+}
+.btn-ghost:hover {
+  border-color: transparent;
+  background: var(--well);
+}
+.btn-ghost .play {
+  color: var(--cobalt);
+}
+
+/* A segmented control: the options side by side in a well, the chosen one raised and sliding to the choice. Which is
+   chosen is read from the root (its language, its theme), so it is right before the script runs. */
+.seg {
+  position: relative;
+  flex: none;
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--well);
+  box-shadow: var(--sink);
+}
+.seg::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: calc((100% - 4px) / 2);
+  border-radius: 6px;
+  background: var(--raised);
+  box-shadow:
+    inset 0 1px 0 var(--hilite),
+    0 0 0 1px var(--line-2),
+    var(--lift);
+  transition: transform 0.26s var(--ease);
+}
+:root:lang(zh) .seg-lang::before,
+:root[data-theme="dark"] .seg-theme::before {
+  transform: translateX(100%);
+}
+.seg button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  height: 26px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--faint);
+  font: 600 11.5px/1 var(--mono);
+  letter-spacing: 0.04em;
+  transition: color 0.16s var(--ease);
+}
+.seg button[lang="zh"] {
+  font: 600 12.5px/1 var(--sans);
+  letter-spacing: 0;
+}
+.seg button:hover {
+  color: var(--text-2);
+}
+:root:not(:lang(zh)) .seg-lang [data-lang="en"],
+:root:lang(zh) .seg-lang [data-lang="zh"],
+:root:not([data-theme="dark"]) .seg-theme [data-theme-to="light"],
+:root[data-theme="dark"] .seg-theme [data-theme-to="dark"] {
+  color: var(--text);
+}
+
+/* A select, drawn by the page (studio.js): a raised button with the chosen option and a chevron, over a floating list
+   of the options, the chosen one ticked and the one under the pointer or the arrows in the well's colour. */
+.select-wrap {
+  position: relative;
+  display: inline-block;
+}
+.select {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 30px 0 10px;
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  background: var(--raised);
+  box-shadow:
+    inset 0 1px 0 var(--hilite),
+    var(--lift);
+  color: var(--text);
+  font: 500 13px/1 var(--sans);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.16s var(--ease);
+}
+.select::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  margin-top: -4px;
+  border-right: 1.5px solid var(--muted);
+  border-bottom: 1.5px solid var(--muted);
+  transform: rotate(45deg);
+  transition: transform 0.16s var(--ease);
+}
+.select:hover,
+.select[aria-expanded="true"] {
+  border-color: var(--faint);
+}
+.select[aria-expanded="true"]::after {
+  margin-top: -1px;
+  transform: rotate(225deg);
+}
+.select-value {
+  display: grid;
+}
+.select-value > span {
+  grid-area: 1 / 1;
+  visibility: hidden;
+  white-space: nowrap;
+}
+.select-value > [data-on] {
+  visibility: visible;
+}
+.menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 100%;
+  max-height: 280px;
+  margin: 0;
+  padding: 4px;
+  overflow: auto;
+  list-style: none;
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  background: var(--raised);
+  box-shadow:
+    inset 0 1px 0 var(--hilite),
+    var(--float);
+  animation: menu-in 0.14s var(--ease);
+}
+.menu.up {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+.menu li {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 32px 0 10px;
+  border-radius: 5px;
+  color: var(--text-2);
+  font: 500 13px/1 var(--sans);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.menu li[data-active] {
+  background: var(--well);
+  color: var(--text);
+}
+.menu li[aria-selected="true"] {
+  color: var(--text);
+  font-weight: 600;
+}
+/* The tick: two strokes of a rotated corner. */
+.menu li[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  width: 4px;
+  height: 8px;
+  margin-top: -6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+}
+/* A key or a control's name in running text, as a keycap. */
+kbd {
+  display: inline-block;
+  padding: 2px 6px 1px;
+  border: 1px solid var(--line-2);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--raised);
+  box-shadow: inset 0 1px 0 var(--hilite);
+  color: var(--text);
+  font: 500 12.5px/1.3 var(--sans);
+}
+
+/* Top bar: frosted over the page, with an edge once the page has scrolled under it (studio.js). */
 body::before {
   content: "";
   position: fixed;
@@ -192,8 +494,15 @@ body::before {
   height: var(--top);
   display: flex;
   align-items: center;
-  gap: 24px;
-  background: linear-gradient(var(--bg) 45%, transparent);
+  gap: 8px;
+  border-bottom: 1px solid transparent;
+  background: var(--bar);
+  -webkit-backdrop-filter: saturate(1.6) blur(14px);
+  backdrop-filter: saturate(1.6) blur(14px);
+  transition: border-color 0.2s var(--ease);
+}
+.top[data-scrolled] {
+  border-bottom-color: var(--line);
 }
 .brand {
   display: inline-flex;
@@ -211,52 +520,52 @@ body::before {
   font-weight: 400;
   color: var(--muted);
 }
-.top-link {
-  font-size: 14px;
-  color: var(--muted);
-  text-decoration: none;
+/* The pages: quiet until pointed at; the page one is on is marked by an ink bar under it, as the playhead marks a frame. */
+.nav {
+  display: flex;
+  gap: 2px;
 }
-.top-link:hover {
-  color: var(--text);
-}
-.top-link.github {
+.nav-link {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 7px;
-}
-/* The theme toggle shows where it goes: a moon in light, a sun in dark. */
-.theme {
-  display: inline-grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: none;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 6px;
   color: var(--muted);
+  font: 500 13.5px/1 var(--sans);
+  text-decoration: none;
   transition:
     color 0.16s var(--ease),
-    border-color 0.16s var(--ease);
+    background-color 0.16s var(--ease);
 }
-.theme:hover {
+.nav-link:hover {
+  background: var(--well);
   color: var(--text);
-  border-color: var(--line-2);
 }
-.theme .to-light,
-:root[data-theme="dark"] .theme .to-dark {
-  display: none;
+.nav-link[aria-current="page"] {
+  color: var(--text);
 }
-:root[data-theme="dark"] .theme .to-light {
-  display: block;
+.nav-link[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: -8px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--text);
+}
+.top-sep {
+  flex: none;
+  width: 1px;
+  height: 20px;
+  margin: 0 6px;
+  background: var(--line-2);
 }
 .top-get {
-  padding: 8px 14px;
-  border-radius: 8px;
-  background: var(--accent);
-  color: var(--on-accent);
-  font-weight: 600;
-  font-size: 13.5px;
-  text-decoration: none;
+  margin-left: 6px;
 }
 
 /* Transport bar: the page's navigation, a timecode and the scenes on a track. */
@@ -374,34 +683,7 @@ body::before {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 14px 24px;
-}
-.button {
-  display: inline-flex;
-  align-items: center;
-  min-height: 48px;
-  padding: 0 20px;
-  border-radius: 10px;
-  background: var(--accent);
-  color: var(--on-accent);
-  font-weight: 600;
-  font-size: 15.5px;
-  text-decoration: none;
-  transition: filter 0.16s var(--ease);
-}
-.button:hover {
-  filter: brightness(1.06);
-}
-.text-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--text);
-  font-weight: 500;
-  text-decoration: none;
-}
-.text-link:hover {
-  text-decoration: underline;
+  gap: 12px;
 }
 .open .fine {
   max-width: 52ch;
@@ -463,6 +745,9 @@ body::before {
 .steps button span {
   font: 500 11px var(--mono);
 }
+.steps button b {
+  font-weight: inherit;
+}
 .steps button::before {
   content: "";
   position: absolute;
@@ -481,10 +766,126 @@ body::before {
 .steps button:hover {
   color: var(--text-2);
 }
+/* Under the steps: the way to the full walkthrough on /tour, a small button with its length. */
+.tour-link {
+  margin-top: 18px;
+}
+.tour-link .play {
+  color: var(--cobalt);
+}
+.tour-link time {
+  font: 500 11.5px var(--mono);
+  color: var(--muted);
+}
+.tour-link::after {
+  content: "→";
+  color: var(--muted);
+  transition: transform 0.16s var(--ease);
+}
+.tour-link:hover::after {
+  transform: translateX(3px);
+}
 
-/* TOUR */
+/* TOUR (/tour): the film, sticky beside its steps written out */
 .tour {
-  padding-block: clamp(80px, 10vw, 140px);
+  padding-top: calc(var(--top) + clamp(32px, 5vw, 72px));
+  padding-bottom: clamp(64px, 8vw, 112px);
+}
+.tour h1 {
+  margin-top: 14px;
+  font-size: clamp(36px, 4.6vw, 64px);
+  line-height: 1;
+  letter-spacing: -0.045em;
+}
+.guide-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
+  gap: clamp(24px, 3.5vw, 56px);
+  align-items: start;
+}
+.guide-film {
+  position: sticky;
+  top: calc(var(--top) + 8px);
+}
+.guide-film .tour-options {
+  margin-top: 14px;
+}
+.guide-steps .kicker {
+  margin-bottom: 6px;
+}
+.guide {
+  display: grid;
+  padding: 0;
+  list-style: none;
+}
+.guide li {
+  position: relative;
+  padding: 16px 0 18px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  transition: color 0.25s var(--ease);
+}
+.guide li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: -1px;
+  height: 2px;
+  width: 0;
+  background: var(--cobalt);
+  transition: width 0.4s var(--ease);
+}
+.guide li[aria-current="step"] {
+  color: var(--text-2);
+}
+.guide li[aria-current="step"]::before {
+  width: 100%;
+}
+.guide button {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.guide button time {
+  flex: none;
+  min-width: 34px;
+  font: 500 11.5px var(--mono);
+  letter-spacing: 0;
+  color: var(--faint);
+}
+.guide li[aria-current="step"] time,
+.guide button:hover time {
+  color: var(--cobalt);
+}
+.guide p {
+  margin-top: 6px;
+  padding-left: 46px;
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+/* After the steps, the way to the download. */
+.next {
+  padding-block: clamp(64px, 8vw, 112px);
+  border-top: 1px solid var(--line);
+}
+.next-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 28px 48px;
+}
+.next .lede {
+  margin-top: 16px;
 }
 .head {
   display: flex;
@@ -493,9 +894,6 @@ body::before {
   align-items: flex-end;
   gap: 20px 48px;
   margin-bottom: clamp(28px, 4vw, 48px);
-}
-.head h2 {
-  margin-top: 14px;
 }
 .filmstage {
   position: relative;
@@ -534,66 +932,22 @@ body::before {
   font: 500 12px var(--mono);
   color: #69635a;
 }
-.tour-bar {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px 32px;
-  margin-top: 18px;
-}
-.chapters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  min-width: 0;
-}
-.chapters button {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 6px 11px;
-  border: 1px solid var(--line-2);
-  border-radius: 999px;
-  background: none;
-  color: var(--muted);
-  font-size: 13px;
-  transition:
-    border-color 0.16s var(--ease),
-    color 0.16s var(--ease);
-}
-.chapters button span:first-child {
-  font: 500 11.5px var(--mono);
-}
-.chapters button:hover {
-  color: var(--text);
-}
-.chapters button[aria-current="step"] {
-  color: var(--text);
-  border-color: var(--cobalt);
-}
 .tour-options {
   display: flex;
   gap: 16px;
   font-size: 13px;
 }
-.tour-options label {
+.tour-options .field {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.tour-options select {
-  padding: 4px 8px;
-  border: 1px solid var(--line-2);
-  border-radius: 6px;
-  background: var(--surface);
-  color: var(--text);
-}
 
-/* LOOKS: a tall section whose stage stays pinned while the scroll changes the look */
+/* LOOKS: a tall section whose stage stays pinned while the scroll changes the look, about three quarters of a screen
+   of scroll for each of the five */
 .taste {
   position: relative;
-  height: 320vh;
+  height: 460vh;
   border-top: 1px solid var(--line);
 }
 .pin {
@@ -617,6 +971,26 @@ body::before {
 .taste-copy {
   display: grid;
   gap: 22px;
+}
+/* Where the looks are from: MotionHub's own lockup, light or dark as the page is (its brand/BRAND.md). */
+.hub-kicker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.hub {
+  display: inline-flex;
+}
+.hub img {
+  height: 28px;
+  width: auto;
+}
+.hub-dark,
+:root[data-theme="dark"] .hub-light {
+  display: none;
+}
+:root[data-theme="dark"] .hub-dark {
+  display: block;
 }
 .look-index {
   display: grid;
@@ -655,6 +1029,7 @@ body::before {
   aspect-ratio: 16 / 9;
   max-width: 100%;
   overflow: hidden;
+  border: 1px solid var(--line);
   border-radius: 8px;
   background: #000;
   box-shadow: var(--shadow);
@@ -667,6 +1042,41 @@ body::before {
   object-fit: cover;
   clip-path: inset(0 0 0 100%);
   transition: clip-path 0.9s var(--ease);
+}
+/* A look whose reel is not there yet leaves the slate showing. */
+.look:not([src]) {
+  visibility: hidden;
+}
+.slate {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  background:
+    linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 100% 25%,
+    linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 12.5% 100%,
+    var(--surface);
+  color: var(--text);
+  text-align: center;
+}
+.slate b {
+  font-size: clamp(28px, 3.4vw, 52px);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+.slate-mark,
+.slate-note {
+  font: 500 11.5px var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.slate-mark {
+  position: absolute;
+  top: 16px;
+  left: 18px;
 }
 .look.on {
   z-index: 2;
@@ -974,39 +1384,13 @@ body::before {
 .os-icon {
   flex: none;
 }
-/* The hero's button carries the icon of the system it downloads for. */
-.button .os-icon {
-  margin-right: 9px;
-}
 .os span {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
-.os a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 36px;
-  padding: 0 12px;
-  border: 1px solid var(--line-2);
-  border-radius: 8px;
-  color: var(--text);
-  font-size: 14px;
-  font-weight: 500;
-  text-decoration: none;
-  transition: border-color 0.16s var(--ease);
-}
-.os a:hover {
-  border-color: var(--text-2);
-}
 .os > .sug {
   border-color: var(--accent);
-}
-.os > .sug a:first-child {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--on-accent);
-  font-weight: 600;
 }
 .get .fine {
   margin-top: 20px;
@@ -1033,6 +1417,11 @@ footer {
 .foot a:not(.brand) {
   text-decoration: none;
 }
+.foot-hub {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
 .foot a:not(.brand):hover {
   color: var(--text);
 }
@@ -1041,8 +1430,14 @@ footer {
 @media (max-width: 960px) {
   .open-grid,
   .taste-grid,
-  .edit-grid {
+  .edit-grid,
+  .guide-grid {
     grid-template-columns: 1fr;
+  }
+  /* /tour: the film first, then its steps below it. */
+  .guide-film {
+    position: relative;
+    top: 0;
   }
   .open {
     min-height: 0;
@@ -1089,6 +1484,9 @@ footer {
   }
 }
 @media (max-width: 760px) {
+  .nav-link[href^="https://github.com"] {
+    display: none;
+  }
   .track button {
     display: none;
   }
@@ -1114,14 +1512,17 @@ footer {
   .roll dt {
     text-align: left;
   }
-  .top-link,
-  .top-link.github {
+  /* Phones: the pages are linked from the first screen and the footer; the bar keeps the toggles and Download. */
+  .nav,
+  .top-sep {
     display: none;
   }
-  .top {
-    gap: 10px;
+  .tour {
+    padding-top: calc(var(--top) + 24px);
   }
-  .tour,
+  .guide p {
+    padding-left: 0;
+  }
   .edit,
   .fits {
     padding-block: 64px;
@@ -1137,8 +1538,8 @@ footer {
     grid-template-columns: 1fr;
   }
 }
-/* The smallest phones: the brand, the theme and Download still fit on one line. */
-@media (max-width: 380px) {
+/* Phones: the brand, both toggles and Download on one line, the controls compact. */
+@media (max-width: 560px) {
   .gut {
     padding-left: max(16px, env(safe-area-inset-left, 0px));
     padding-right: max(16px, env(safe-area-inset-right, 0px));
@@ -1147,9 +1548,37 @@ footer {
     gap: 8px;
     font-size: 14px;
   }
+  .top {
+    gap: 6px;
+  }
   .top-get {
+    margin-left: 2px;
     padding-inline: 11px;
   }
+  .top-get-icon {
+    display: none;
+  }
+  .seg button {
+    min-width: 26px;
+    height: 24px;
+    padding: 0 6px;
+  }
+}
+/* Narrow phones: the mark stands for the name in the top bar (the footer still spells it). */
+@media (max-width: 440px) {
+  .top .brand .name {
+    display: none;
+  }
+}
+/* Chinese: CJK glyphs set tight as Latin display type touch; give headlines their own spacing and leading. */
+:root:lang(zh) h1,
+:root:lang(zh) h2 {
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+:root:lang(zh) .kicker,
+:root:lang(zh) .roll dt {
+  letter-spacing: 0.04em;
 }
 @media (prefers-reduced-motion: reduce) {
   html {
@@ -1159,5 +1588,8 @@ footer {
   *::before,
   *::after {
     transition: none !important;
+  }
+  .menu {
+    animation: none;
   }
 }

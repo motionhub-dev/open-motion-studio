@@ -3,6 +3,30 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-20 — The website shows five MotionHub looks, under MotionHub's logo
+
+- **What:** The front page's Looks section names its source with MotionHub's own logo and lists five looks by SuoSi: Clay World, Pixel Quest, Ink Scroll, Stage Light and Riso Pop, each to be shown in its own reel exported by the Studio; until a reel is there, a slate names the look. The footer links MotionHub with its icon. The earlier films of one brief in three looks are gone, and the README shows the five looks' posters from MotionHub.
+- **Why:** The section should show what looks can do at their most striking, and say plainly where they come from.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `site/index.html`, `site/studio.js`, `site/studio.css`, `site/media/`, `README.md`.
+
+## 2026-11-20 — The website's controls are one family
+
+- **What:** The website's buttons, toggles, links and selects follow one set of components, after the Studio's own: raised buttons in three sizes with Download alone in vermilion; language (EN, 中) and theme (light, dark) as segmented controls that show both choices; selects drawn by the page, their lists included, instead of the system; the pages in the top bar marked by an ink bar under the current one; a frosted top bar that takes an edge once the page scrolls. The downloads, the first screen and the tour use the same buttons.
+- **Why:** The top bar's controls read as generic framework widgets; a studio for visual work should look made by one.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `site/studio.css`, `site/studio.js`, `site/index.html`, `site/tour.html`, `docs/design.md`.
+
+## 2026-11-20 — The website reads in Chinese, and the tour has its own page
+
+- **What:** openmotion.studio reads in English or Chinese: a 中文 / EN toggle in the top bar switches every word on the page, kept in the browser; a browser set to Chinese opens in Chinese, and `?lang=zh` or `?lang=en` picks one for a link. The 90-second tour moved from the front page to its own page, openmotion.studio/tour, with each of its six steps written out beside the film, lit as it plays and jumping to its place; its captions follow the page's language. The first screen links to it under the app's loop.
+- **Why:** Many of the Studio's people read Chinese first; and a tour is easier to follow with its steps written down than as one more section of the front page.
+- **Breaking:** None. A link to `/#tour` is sent on to `/tour`.
+- **Upgrade:** Nothing.
+- **Refs:** `site/index.html`, `site/tour.html`, `site/studio.js`, `site/studio.css`, `README.md`, `docs/tech/architecture.md`.
+
 ## 2026-11-19 — OpenMotionStudio v0.1.3
 
 - **What:** A release that looks for updates at the repository's new address, `motionhubdev/openmotionstudio`, sends a failed update to openmotion.studio, and sets the name on Home in two weights. Installers for macOS (Apple silicon and Intel), Windows (x64) and Linux (x64 and ARM64 AppImages) are on GitHub Releases.

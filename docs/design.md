@@ -1,8 +1,8 @@
 # Design
 
-> **Status:** Current · **Updated:** 2026-11-19
+> **Status:** Current · **Updated:** 2026-11-20
 
-The Studio's visual system: its identity, colour, type, shape, icons, the workspace's layout and the rules components follow.
+The Studio's visual system: its identity, colour, type, shape, icons, the workspace's layout, the rules components follow and the website's controls.
 
 OpenMotionStudio is an agent video editor for AI creators with a discerning eye for visual design. Visual quality and interaction quality are the first priorities in every OMS interface decision. Review hierarchy, spacing, action placement and feedback together in the rendered interface.
 
@@ -335,6 +335,30 @@ agents and exports continue. Sessions are retained for this app run; explicit Qu
   none was selected) and synthesize the narration through the project's current agent. Generation requires a connected,
   idle agent and opens the assistant.
 
+
+## The website
+
+openmotion.studio (`site/`) keeps the Studio's paper, ink and rules, in its own tokens on `:root` in `site/studio.css`
+(light by default, dark on request). Its controls are one family, built after the Studio's and shared by both pages:
+
+- **Buttons** (`.btn`): paper raised from the page by a hairline edge, a lit top edge and a small shadow, sinking a
+  half pixel when pressed. Three sizes: 30 px (`.btn-sm`, radius 6), 34 px (radius 8) and 48 px (`.btn-lg`, radius 10).
+  `.btn-primary` is vermilion and is Download alone, in the top bar, on the first screen, on the system's row in the
+  downloads and at the end of the tour; `.btn-ghost` is a label that takes the well's colour when pointed at.
+- **Segmented controls** (`.seg`): options side by side in a sunk well, the chosen one raised and sliding to the
+  choice. Language (EN, 中) and theme (light, dark) are two of them; each shows both options, and which is chosen is
+  read from the root's `lang` and `data-theme`, set before the page paints.
+- **Pages** (`.nav-link`): quiet until pointed at, when they take the well; the page one is on has an ink bar under it,
+  as the playhead marks a frame.
+- **Selects** (`.select`) are drawn by the page, not the system: a raised button with the chosen option and a chevron
+  over a floating list, the chosen option ticked; the native `<select>` stays behind it as the value, and the keys work
+  as on a native one. A control's name in running text is a keycap (`kbd`).
+- **MotionHub** is named by its own files from `motionhubdev/motionhub` (`brand/logo/`), as its `BRAND.md` asks: the
+  lockup (`media/motionhub-logo.svg`, `-dark.svg` on the dark theme) at 28 px where the looks are introduced, and its
+  icon (`media/motionhub-icon.svg`) at 16 px in the footer; never recoloured.
+- **The top bar** is frosted over the page and takes a hairline once the page scrolls under it. Narrower than 760 px it
+  drops GitHub, narrower than 560 px the pages and the controls go compact, and narrower than 440 px the mark stands
+  for the name.
 
 ## Exploration and recovery
 

@@ -2,7 +2,8 @@
 // browser keeps the #fragment): www, and studio.motionhub.dev, which v0.1.x apps open to download an update. And a byte
 // range of a film is answered, which static assets alone do not: a browser seeks a video (the hero's steps, the tour's
 // chapters) by asking for a range; answered with the whole file it can only play from the start.
-export const home = 'openmotion.studio';
+// Only the handler is exported: the Workers runtime takes every named export for an entrypoint and refuses the rest.
+const home = 'openmotion.studio';
 
 export default {
   async fetch(request, env) {
@@ -43,7 +44,7 @@ function withRanges(response) {
 }
 
 // "bytes=a-b", "bytes=a-" or "bytes=-n" as [first, last] within size; null when it asks for none of the file.
-export function parse(header, size) {
+function parse(header, size) {
   const m = /^bytes=(\d*)-(\d*)$/.exec(header.trim());
   if (!m || (m[1] === '' && m[2] === '') || size === 0) return null;
   let start;
