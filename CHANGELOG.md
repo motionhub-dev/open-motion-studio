@@ -3,6 +3,14 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-19 — The repository is motionhubdev/openmotionstudio
+
+- **What:** The repository moved from `motionhub-dev/open-motion-studio` to `motionhubdev/openmotionstudio`, and motionhub's from `motionhub-dev/motionhub` to `motionhubdev/motionhub`. The app now looks for updates at the new address, and the website, the README and the documents link there. Installers keep their file names.
+- **Why:** The organisation was renamed to `motionhubdev` and the repository to the product's one-word name.
+- **Breaking:** None while GitHub redirects the old addresses. v0.1.0 to v0.1.2 look for updates at the old address, which works only through that redirect; it ends if anyone registers `motionhub-dev`.
+- **Upgrade:** Point a clone at the new address: `git remote set-url origin https://github.com/motionhubdev/openmotionstudio`. Install the next release to look for updates at the new address.
+- **Refs:** `apps/desktop/src/main/updates.ts`, `site/index.html`, `README.md`.
+
 ## 2026-11-19 — The name is set in two weights
 
 - **What:** Beside the mark, on the website's top bar and footer and on Home in the app, the name reads **OpenMotion** in weight and Studio in a regular, muted weight, as the address openmotion.studio splits it. In running text the name stays OpenMotionStudio.

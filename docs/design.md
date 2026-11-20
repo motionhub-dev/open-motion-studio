@@ -6,7 +6,7 @@ The Studio's visual system: its identity, colour, type, shape, icons, the worksp
 
 ## Identity
 
-The Studio keeps motionhub's paper, ink and type (`brand/BRAND.md` in `motionhub-dev/motions`) and has a mark of its
+The Studio keeps motionhub's paper, ink and type (`brand/BRAND.md` in `motionhubdev/motionhub`) and has a mark of its
 own, apart from the catalogue's ball in flight: the **eased square**, a rounded square split by an ease-in-out curve
 into a deep and a mid vermilion, the curve drawn light along the seam. It is animation's slow, fast, slow, and reads
 as the S of Studio. Vermilion is the mark and the one action a screen asks for; cobalt, the one cool colour, is what a

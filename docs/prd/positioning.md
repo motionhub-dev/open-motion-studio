@@ -1,6 +1,6 @@
 # Positioning
 
-> **Status:** Plan · **Updated:** 2026-11-15
+> **Status:** Plan · **Updated:** 2026-11-19
 
 What OpenMotionStudio is, who it is for, what it is instead of, what it will not do, and the smallest version worth shipping.
 
@@ -42,7 +42,7 @@ a render script together by hand, and who want to choose (and pay for) their own
 - **No other engine.** A Remotion or HyperFrames project is not opened or converted; the Studio's films are its own
   (ADR 0005).
 - **No plugin marketplace.** Motions come from motionhub.
-- **No new motion format.** The Studio reads and writes the motionhub format as it is specified in `motionhub-dev/motions`;
+- **No new motion format.** The Studio reads and writes the motionhub format as it is specified in `motionhubdev/motionhub`;
   a change to the format is made there first.
 - **No agent vendor lock-in**, and no proxy of ours between a person and their model.
 

@@ -20,9 +20,9 @@ Free code signing provided by [SignPath.io](https://about.signpath.io), certific
 
 ### Team roles
 
-- **Committers and reviewers:** the members of the [motionhub-dev](https://github.com/orgs/motionhub-dev/people)
+- **Committers and reviewers:** the members of the [motionhubdev](https://github.com/orgs/motionhubdev/people)
   organisation with write access to this repository. A change reaches `main` through a reviewed pull request.
-- **Approvers:** the owners of the motionhub-dev organisation, who approve each signing request in SignPath.
+- **Approvers:** the owners of the motionhubdev organisation, who approve each signing request in SignPath.
 
 ### Privacy
 

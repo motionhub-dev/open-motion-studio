@@ -96,7 +96,7 @@ The shape is [`docs/tech/architecture.md`](docs/tech/architecture.md). What ever
   is the person's own `claude` or `codex`, found where its vendor installs it (never in a project), driven through its
   own headless protocol, with nothing fetched or bundled for it and never with their credentials in the Studio's hands
   ([ADR 0008](docs/adr/0008-the-persons-own-coding-agent.md), planned).
-- **The motion format is motionhub's**, specified in `github.com/motionhub-dev/motions`; a change to it lands there
+- **The motion format is motionhub's**, specified in `github.com/motionhubdev/motionhub`; a change to it lands there
   first. A project keeps its motions as `@motionhub/cli` does (`motions/@<scope>/<slug>/` and `motions.lock.json`), and
   the Studio never changes a copy taken from the hub.
 
