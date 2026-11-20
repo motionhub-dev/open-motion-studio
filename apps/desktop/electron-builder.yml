@@ -4,7 +4,7 @@
 # Windows is not signed here: CI sends a release's program and installer to SignPath (docs/ops/code-signing.md).
 appId: dev.motionhub.studio
 productName: OpenMotionStudio
-artifactName: open-motion-studio-${version}-${os}-${arch}.${ext}
+artifactName: OpenMotionStudio-${version}-${os}-${arch}.${ext}
 directories:
   output: dist
 files:

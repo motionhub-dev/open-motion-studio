@@ -75,7 +75,8 @@ Kept in SignPath, under the project; their slugs are the ones the workflow names
 </artifact-configuration>
 ```
 
-`installer`, the NSIS installer:
+`installer`, the NSIS installer. The workflow stages the executable under the existing SignPath
+filename rule and restores the `OpenMotionStudio-` prefix on the signed release asset.
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>

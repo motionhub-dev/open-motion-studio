@@ -107,13 +107,23 @@ jobs:
           mkdir dist
           mv signed-app dist/win-unpacked
           pnpm exec electron-builder --win nsis --prepackaged dist/win-unpacked --publish never
+      - name: Stage the Windows installer for the existing SignPath filename rule
+        if: env.SIGN_WINDOWS == 'true'
+        working-directory: apps/desktop
+        shell: bash
+        run: |
+          mkdir unsigned-installer
+          for installer in dist/OpenMotionStudio-*-win-x64.exe; do
+            name="${installer#dist/OpenMotionStudio-}"
+            cp "$installer" "unsigned-installer/open-motion-studio-$name"
+          done
       - name: Upload the Windows installer for signing
         id: unsigned-installer
         if: env.SIGN_WINDOWS == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: unsigned-installer-windows
-          path: apps/desktop/dist/*.exe
+          path: apps/desktop/unsigned-installer/*.exe
           if-no-files-found: error
       - name: Sign the Windows installer
         if: env.SIGN_WINDOWS == 'true'
@@ -132,7 +142,10 @@ jobs:
         working-directory: apps/desktop
         shell: bash
         run: |
-          mv -f signed-installer/*.exe dist/
+          for installer in signed-installer/open-motion-studio-*-win-x64.exe; do
+            name="${installer#signed-installer/open-motion-studio-}"
+            mv -f "$installer" "dist/OpenMotionStudio-$name"
+          done
           rm -rf signed-installer
           # The installer and the program inside it each carry a valid signature, or the release stops here.
           for file in dist/*.exe dist/win-unpacked/OpenMotionStudio.exe; do
@@ -180,10 +193,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           tag="v$(node -p "require('../apps/desktop/package.json').version")"
-          sha256sum open-motion-studio-* > SHA256SUMS.txt
+          sha256sum OpenMotionStudio-* > SHA256SUMS.txt
           if ! gh release view "$tag" > /dev/null 2>&1; then
             gh release create "$tag" --target "$GITHUB_SHA" --draft --generate-notes --title "OpenMotionStudio $tag"
           fi
           test "$(gh release view "$tag" --json isDraft --jq .isDraft)" = true
           test "$(gh release view "$tag" --json targetCommitish --jq .targetCommitish)" = "$GITHUB_SHA"
-          gh release upload "$tag" open-motion-studio-* SHA256SUMS.txt --clobber
+          gh release upload "$tag" OpenMotionStudio-* SHA256SUMS.txt --clobber
