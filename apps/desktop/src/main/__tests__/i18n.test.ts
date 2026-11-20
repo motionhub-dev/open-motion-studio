@@ -32,7 +32,7 @@ describe('Chinese interface', () => {
   });
   it('keeps static interface labels and help behind the translation boundary', () => {
     const root = fileURLToPath(new URL('../../renderer/src/', import.meta.url));
-    const technical = new Set(['OpenMotionStudio', 'OpenMotionStudio /', 'media/', 'MOTION.md', 'motionhub', 'H.264 ·', 'C', 'eastasia']);
+    const technical = new Set(['OpenMotionStudio', 'OpenMotionStudio /', 'OpenMotion', 'Studio', 'media/', 'MOTION.md', 'motionhub', 'H.264 ·', 'C', 'eastasia']);
     const missing: string[] = [];
     for (const name of readdirSync(root).filter(name => name.endsWith('.tsx'))) {
       const source = ts.createSourceFile(name, readFileSync(root + name, 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);

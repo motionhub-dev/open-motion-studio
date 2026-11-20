@@ -3,6 +3,14 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-19 — The name is set in two weights
+
+- **What:** Beside the mark, on the website's top bar and footer and on Home in the app, the name reads **OpenMotion** in weight and Studio in a regular, muted weight, as the address openmotion.studio splits it. In running text the name stays OpenMotionStudio.
+- **Why:** To tie the name to its address and make it easier to read at a glance.
+- **Breaking:** None.
+- **Upgrade:** Nothing. The app shows it from its next release.
+- **Refs:** `apps/desktop/src/renderer/src/logo.tsx`, `site/index.html`, `docs/design.md`.
+
 ## 2026-11-19 — The website moves to openmotion.studio
 
 - **What:** The introduction page is served at openmotion.studio. studio.motionhub.dev and www.openmotion.studio answer with a permanent redirect to the same page there, path, query and `#` kept. The Studio's update notice now sends people to openmotion.studio to download an update.

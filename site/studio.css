@@ -201,10 +201,15 @@ body::before {
   gap: 10px;
   margin-right: auto;
   color: var(--text);
-  font-weight: 600;
+  font-weight: 650;
   font-size: 15px;
   letter-spacing: -0.01em;
   text-decoration: none;
+}
+/* The name splits as its address does, openmotion.studio: OpenMotion in weight, Studio quiet. */
+.brand .name span {
+  font-weight: 400;
+  color: var(--muted);
 }
 .top-link {
   font-size: 14px;
