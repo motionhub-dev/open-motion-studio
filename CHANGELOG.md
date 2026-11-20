@@ -3,6 +3,14 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-19 — OpenMotionStudio v0.1.3
+
+- **What:** A release that looks for updates at the repository's new address, `motionhubdev/openmotionstudio`, sends a failed update to openmotion.studio, and sets the name on Home in two weights. Installers for macOS (Apple silicon and Intel), Windows (x64) and Linux (x64 and ARM64 AppImages) are on GitHub Releases.
+- **Why:** v0.1.0 to v0.1.2 find updates only through GitHub's redirect from the old address, which ends if anyone registers `motionhub-dev`; v0.1.2 announces this release to them while it still works.
+- **Breaking:** None.
+- **Upgrade:** Install v0.1.3 over v0.1.2. The Windows installer stays unsigned until SignPath is set up.
+- **Refs:** `apps/desktop/package.json`, `apps/desktop/src/main/updates.ts`.
+
 ## 2026-11-19 — The repository is motionhubdev/openmotionstudio
 
 - **What:** The repository moved from `motionhub-dev/open-motion-studio` to `motionhubdev/openmotionstudio`, and motionhub's from `motionhub-dev/motionhub` to `motionhubdev/motionhub`. The app now looks for updates at the new address, and the website, the README and the documents link there. Installers keep their file names.
