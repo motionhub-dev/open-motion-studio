@@ -175,9 +175,6 @@ pre {
   text-transform: uppercase;
   color: var(--muted);
 }
-.center {
-  text-align: center;
-}
 .lede {
   max-width: 46ch;
   font-size: clamp(15.5px, 1.25vw, 18px);
@@ -270,18 +267,6 @@ pre {
 .btn-primary:active,
 .os > .sug .btn:first-child:active {
   box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.3);
-}
-.btn-ghost {
-  border-color: transparent;
-  background: none;
-  box-shadow: none;
-}
-.btn-ghost:hover {
-  border-color: transparent;
-  background: var(--well);
-}
-.btn-ghost .play {
-  color: var(--cobalt);
 }
 
 /* A segmented control: the options side by side in a well, the chosen one raised and sliding to the choice. Which is
@@ -740,18 +725,17 @@ body::before {
 .hero-file a {
   color: var(--text-2);
 }
-/* A film's frame: its rounded corners and hairline are drawn over the picture, and the frame clips the picture square.
-   Chrome on Windows clips a video to rounded corners with a mask that can leave a dark line along the right and the
-   bottom; a square clip leaves none, and the corners outside the curve are filled with the page's ground. */
-.window,
-.reel {
+/* A film's frame (.frame: the demo, the looks' reel, the walkthrough, the two cuts): its rounded corners and hairline
+   are drawn over the picture, and the frame clips the picture square. Chrome on Windows clips a video to rounded
+   corners with a mask that can leave a dark line along the right and the bottom; a square clip leaves none, and the
+   corners outside the curve are filled with the page's ground. */
+.frame {
   --frame-radius: 12px;
   position: relative;
   overflow: hidden;
   background: var(--surface);
 }
-.window::before,
-.reel::before {
+.frame::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -762,14 +746,17 @@ body::before {
   pointer-events: none;
 }
 /* Chrome on Windows draws a hair of black along a scaled video's outermost pixels at some sizes. Laid out 3px larger
-   than its frame on every side, the video leaves that edge outside the frame, which clips it. */
-.window video {
-  cursor: pointer;
+   than its frame on every side, the video leaves that edge outside the frame, which clips it (a look in the reel is
+   placed the same way, below). */
+.frame > video:not(.look) {
   width: calc(100% + 6px);
   max-width: none;
   height: auto;
   aspect-ratio: 16 / 9;
   margin: -3px;
+}
+.window video {
+  cursor: pointer;
 }
 .steps {
   display: grid;
@@ -820,7 +807,9 @@ body::before {
 }
 /* Under the steps: the way to the full walkthrough on /tour, a small button with its length. */
 .tour-link {
-  margin-top: 18px;
+  display: flex;
+  width: fit-content;
+  margin: 18px 0 0 auto;
 }
 .tour-link .play {
   color: var(--cobalt);
@@ -947,18 +936,6 @@ body::before {
   gap: 20px 48px;
   margin-bottom: clamp(28px, 4vw, 48px);
 }
-.filmstage {
-  position: relative;
-  border-radius: 12px;
-}
-.filmstage video {
-  width: 100%;
-  height: auto;
-  aspect-ratio: 16 / 9;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--surface);
-}
 .play-cover {
   position: absolute;
   z-index: 2;
@@ -1080,6 +1057,13 @@ body::before {
 .hub img {
   height: 28px;
   width: auto;
+}
+/* In a line of text, at the least size the brand allows a lockup (24 px), sitting on the line. */
+.hub-inline {
+  vertical-align: -4px;
+}
+.hub-inline img {
+  height: 24px;
 }
 .hub-dark,
 :root[data-theme="dark"] .hub-light {
@@ -1320,12 +1304,8 @@ body::before {
   gap: 12px;
   margin-top: 12px;
 }
-.cuts video {
-  width: 100%;
-  height: auto;
-  aspect-ratio: 16 / 9;
-  border-radius: 6px;
-  background: #000;
+.cuts .frame {
+  --frame-radius: 6px;
 }
 .cuts figcaption {
   margin-top: 8px;
@@ -1371,34 +1351,42 @@ body::before {
   padding-block: clamp(110px, 14vw, 200px);
   border-top: 1px solid var(--line);
 }
+/* The headline at the left, holding its place while the list at the right goes by. */
+.credits-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: clamp(28px, 5vw, 96px);
+  align-items: start;
+}
+.credits-head {
+  position: sticky;
+  top: calc(var(--top) + 40px);
+}
 .credits h2 {
-  margin-top: 18px;
-  font-size: clamp(40px, 6.4vw, 96px);
-  line-height: 0.98;
-  letter-spacing: -0.05em;
-  text-align: center;
+  margin-top: 16px;
 }
 .credits h2 span {
   display: block;
   color: var(--cobalt);
 }
 .credits .lede {
-  margin: 22px auto 0;
+  margin-top: 20px;
 }
 .roll {
   display: grid;
-  gap: clamp(18px, 2.2vw, 26px);
-  max-width: 860px;
-  margin: clamp(56px, 7vw, 96px) auto 0;
 }
 .roll div {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: clamp(16px, 3vw, 40px);
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 24px;
   align-items: baseline;
+  padding: clamp(16px, 1.8vw, 22px) 0;
+  border-top: 1px solid var(--line);
+}
+.roll div:last-child {
+  border-bottom: 1px solid var(--line);
 }
 .roll dt {
-  text-align: right;
   font: 500 12px/1.6 var(--mono);
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1553,7 +1541,7 @@ footer {
 .foot a:not(.brand) {
   text-decoration: none;
 }
-.foot-hub {
+.foot-icon {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -1567,8 +1555,12 @@ footer {
   .open-grid,
   .taste-grid,
   .edit-grid,
-  .guide-grid {
+  .guide-grid,
+  .credits-grid {
     grid-template-columns: 1fr;
+  }
+  .credits-head {
+    position: static;
   }
   /* /tour: the film first, then its steps below it. */
   .guide-film {
@@ -1619,8 +1611,10 @@ footer {
     order: -1;
   }
 }
-@media (max-width: 760px) {
-  .nav-link[href^="https://github.com"] {
+/* Narrower than this, GitHub and Discord leave the bar (the footer keeps them); the tour stays. */
+@media (max-width: 860px) {
+  .nav-link[href^="https://github.com"],
+  .nav-link[href^="https://discord.gg"] {
     display: none;
   }
 }
@@ -1654,9 +1648,6 @@ footer {
   .roll div {
     grid-template-columns: 1fr;
     gap: 4px;
-  }
-  .roll dt {
-    text-align: left;
   }
   .tour {
     padding-top: calc(var(--top) + 24px);
@@ -1724,9 +1715,6 @@ footer {
 }
 :root:lang(zh) h2:not(.kicker) {
   font-size: clamp(28px, 3.4vw, 48px);
-}
-:root:lang(zh) .credits h2 {
-  font-size: clamp(32px, 4.6vw, 68px);
 }
 :root:lang(zh) .get h2 {
   font-size: clamp(44px, 6.4vw, 96px);

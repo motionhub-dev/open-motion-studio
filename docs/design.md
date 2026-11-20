@@ -344,7 +344,7 @@ openmotion.studio (`site/`) keeps the Studio's paper, ink and rules, in its own 
 - **Buttons** (`.btn`): paper raised from the page by a hairline edge, a lit top edge and a small shadow, sinking a
   half pixel when pressed. Three sizes: 30 px (`.btn-sm`, radius 6), 34 px (radius 8) and 48 px (`.btn-lg`, radius 10).
   `.btn-primary` is vermilion and is Download alone, in the top bar, on the first screen, on the system's row in the
-  downloads and at the end of the tour; `.btn-ghost` is a label that takes the well's colour when pointed at.
+  downloads and at the end of the tour.
 - **Segmented controls** (`.seg`): options side by side in a sunk well, the chosen one raised and sliding to the
   choice. The theme (light, dark) is one; which is chosen is read from the root's `data-theme`, set before the page
   paints.
@@ -359,10 +359,10 @@ openmotion.studio (`site/`) keeps the Studio's paper, ink and rules, in its own 
 - **MotionHub** is named by its own files from `motionhubdev/motionhub` (`brand/logo/`), as its `BRAND.md` asks: the
   lockup (`media/motionhub-logo.svg`, `-dark.svg` on the dark theme) at 28 px where the looks are introduced, and its
   icon (`media/motionhub-icon.svg`) at 16 px in the footer; never recoloured.
-- **The top bar** is frosted over the page and takes a hairline once the page scrolls under it. Narrower than 760 px it
-  drops GitHub, narrower than 640 px the pages, narrower than 560 px the controls go compact, and narrower than 440 px
+- **The top bar** is frosted over the page and takes a hairline once the page scrolls under it. Narrower than 860 px it
+  drops Discord and GitHub (the footer keeps them, each with its mark, as MotionHub has its icon there), narrower than 640 px the pages, narrower than 560 px the controls go compact, and narrower than 440 px
   the mark stands for the name.
-- **A film's frame** on the front page (the demo, the looks' reel) clips the picture square, the video laid out 3px
+- **A film's frame** (`.frame`: the demo, the looks' reel, the two cuts and the walkthrough) clips the picture square, the video laid out 3px
   past it on every side, and draws its rounded corners and hairline over the picture, the corners outside the curve
   filled with the page's ground: Chrome on Windows otherwise draws a hair of black along a scaled video's edge, or
   along the right and bottom of a rounded clip. Neither frame has a shadow.
