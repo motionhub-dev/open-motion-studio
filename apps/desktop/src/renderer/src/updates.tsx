@@ -6,7 +6,8 @@ const UpdateContext = createContext<StudioUpdate | null>(null);
 
 export function InstalledVersion() {
   const version = useContext(UpdateContext)?.installed;
-  return version ? <small className="installed-version">v{version}</small> : null;
+  // A version is an identifier, never translated: one string, not a "v" the translation check reads as a label.
+  return version ? <small className="installed-version">{`v${version}`}</small> : null;
 }
 
 function DownloadUpdate() {
