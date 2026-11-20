@@ -269,12 +269,26 @@ if (tour) {
       tour.scrollIntoView({ block: "nearest", behavior: reduce ? "auto" : "smooth" });
     }),
   );
+  // The steps scroll within their column beside the film: the one playing is brought into it when it changes, and the
+  // list fades at its foot while more lies below.
+  const guide = document.querySelector("#guide");
+  const markMore = () => guide.toggleAttribute("data-more", guide.scrollTop + guide.clientHeight < guide.scrollHeight - 4);
+  guide.addEventListener("scroll", markMore, { passive: true });
+  addEventListener("resize", markMore);
+  relabel.push(() => requestAnimationFrame(markMore));
+  let lit = -1;
   const lightChapter = () => {
     const active = starts.findLastIndex((start) => start <= tour.currentTime);
     chapters.forEach((li, i) => {
       if (i === active) li.setAttribute("aria-current", "step");
       else li.removeAttribute("aria-current");
     });
+    if (active === lit || active < 0) return;
+    lit = active;
+    const li = chapters[active];
+    const above = li.offsetTop < guide.scrollTop;
+    const below = li.offsetTop + li.offsetHeight > guide.scrollTop + guide.clientHeight;
+    if (above || below) guide.scrollTo({ top: li.offsetTop - 8, behavior: reduce ? "auto" : "smooth" });
   };
   const showCaptions = () => {
     for (const track of tour.textTracks) track.mode = track.language === captions.value ? "showing" : "disabled";
@@ -304,6 +318,13 @@ if (tour) {
     tour.controls = true;
   });
   playCover.addEventListener("click", playTour);
+  // Full screen: the browser's own, or, on an iPhone, the video's.
+  document.querySelector("#tour-full").addEventListener("click", () => {
+    playTour();
+    const enter = tour.requestFullscreen ?? tour.webkitRequestFullscreen;
+    if (enter) enter.call(tour)?.catch?.(() => {});
+    else tour.webkitEnterFullscreen?.();
+  });
   // Before its controls show, a click on the picture plays it too; after, the browser's own click plays and pauses.
   tour.addEventListener("click", () => {
     if (!tour.controls) playTour();

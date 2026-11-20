@@ -827,60 +827,122 @@ body::before {
   transform: translateX(3px);
 }
 
-/* TOUR (/tour): the film, sticky beside its steps written out */
+/* TOUR (/tour): on a desktop the whole page is one screen, the top bar, the title, the film beside its steps and the
+   footer. The film is as large as the screen's height leaves room for; the steps are as tall as the film, scrolling
+   within. */
+body.page {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+body.page > main {
+  flex: 1;
+}
 .tour {
-  padding-top: calc(var(--top) + clamp(32px, 5vw, 72px));
-  padding-bottom: clamp(64px, 8vw, 112px);
+  /* What the page's height spends on everything but the film: the top bar, the title, the options and the footer. */
+  --tour-chrome: 350px;
+  --tour-gap: 16px;
+  padding-top: calc(var(--top) + 24px);
+  padding-bottom: 28px;
+}
+/* Wider than the other pages' measure, so a large screen gives the film its room. */
+.tour .max {
+  max-width: 1600px;
 }
 .tour h1 {
-  margin-top: 14px;
-  font-size: clamp(36px, 4.6vw, 64px);
-  line-height: 1;
-  letter-spacing: -0.045em;
+  margin-top: 8px;
+  font-size: clamp(28px, 2.6vw, 40px);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+}
+.tour .head .lede {
+  max-width: 62ch;
+  font-size: 15px;
 }
 .guide-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 8fr) minmax(0, 4fr);
-  gap: clamp(24px, 3.5vw, 56px);
-  align-items: start;
+  display: flex;
+  gap: var(--tour-gap);
 }
 .guide-film {
-  position: sticky;
-  top: calc(var(--top) + 8px);
+  flex: none;
+  width: min(calc(100% - 320px - var(--tour-gap)), calc((100vh - var(--tour-chrome)) * 16 / 9));
+  width: min(calc(100% - 320px - var(--tour-gap)), calc((100svh - var(--tour-chrome)) * 16 / 9));
 }
 .guide-film .tour-options {
   margin-top: 14px;
 }
+/* The steps take no height of their own (contain: size), so the row is the film's and they stretch to it, down to the
+   film's foot (above its options: 14px apart, 30px tall). A panel of the surface's tint, each step a card in it. */
+.guide-steps {
+  flex: 1;
+  min-width: 0;
+  contain: size;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 44px;
+  padding: 14px 6px 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
 .guide-steps .kicker {
-  margin-bottom: 6px;
+  flex: none;
+  margin: 0 0 8px 10px;
 }
 .guide {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
   display: grid;
-  padding: 0;
+  align-content: start;
+  gap: 4px;
+  margin: 0;
+  padding: 0 4px 0 0;
   list-style: none;
 }
+/* While more steps lie below, the list fades out at its foot. */
+.guide[data-more] {
+  -webkit-mask-image: linear-gradient(#000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(#000 calc(100% - 40px), transparent);
+}
+/* A step is a card: the whole of it plays from its place (its button's hit area covers it), the one playing raised. */
 .guide li {
   position: relative;
-  padding: 16px 0 18px;
-  border-top: 1px solid var(--line);
+  padding: 12px 12px 14px;
+  border-radius: 8px;
   color: var(--muted);
-  transition: color 0.25s var(--ease);
+  transition:
+    color 0.25s var(--ease),
+    background-color 0.2s var(--ease),
+    box-shadow 0.2s var(--ease);
 }
-.guide li::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: -1px;
-  height: 2px;
-  width: 0;
-  background: var(--cobalt);
-  transition: width 0.4s var(--ease);
+.guide li:hover {
+  background: color-mix(in srgb, var(--text) 5%, transparent);
 }
 .guide li[aria-current="step"] {
+  background: var(--raised);
+  box-shadow:
+    inset 0 1px 0 var(--hilite),
+    0 0 0 1px var(--line),
+    var(--lift);
   color: var(--text-2);
 }
-.guide li[aria-current="step"]::before {
-  width: 100%;
+.guide li:has(button:focus-visible) {
+  outline: 2px solid var(--cobalt);
+  outline-offset: 1px;
+}
+.guide button:focus-visible {
+  outline: none;
+}
+.guide button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
 }
 .guide button {
   display: flex;
@@ -913,28 +975,13 @@ body::before {
   font-size: 14.5px;
   line-height: 1.6;
 }
-/* After the steps, the way to the download. */
-.next {
-  padding-block: clamp(64px, 8vw, 112px);
-  border-top: 1px solid var(--line);
-}
-.next-row {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 28px 48px;
-}
-.next .lede {
-  margin-top: 16px;
-}
 .head {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   align-items: flex-end;
-  gap: 20px 48px;
-  margin-bottom: clamp(28px, 4vw, 48px);
+  gap: 12px 48px;
+  margin-bottom: 20px;
 }
 .play-cover {
   position: absolute;
@@ -1007,8 +1054,12 @@ body::before {
 }
 .tour-options {
   display: flex;
+  align-items: center;
   gap: 16px;
   font-size: 13px;
+}
+.tour-full {
+  margin-left: auto;
 }
 .tour-options .field {
   display: flex;
@@ -1381,10 +1432,10 @@ body::before {
   gap: 24px;
   align-items: baseline;
   padding: clamp(16px, 1.8vw, 22px) 0;
-  border-top: 1px solid var(--line);
 }
-.roll div:last-child {
-  border-bottom: 1px solid var(--line);
+/* A rule between rows, none above the first or below the last. */
+.roll div + div {
+  border-top: 1px solid var(--line);
 }
 .roll dt {
   font: 500 12px/1.6 var(--mono);
@@ -1555,17 +1606,32 @@ footer {
   .open-grid,
   .taste-grid,
   .edit-grid,
-  .guide-grid,
   .credits-grid {
     grid-template-columns: 1fr;
   }
   .credits-head {
     position: static;
   }
-  /* /tour: the film first, then its steps below it. */
+  /* /tour: the film first, then its steps below it, the page scrolling as any page does. */
+  .guide-grid {
+    flex-direction: column;
+  }
   .guide-film {
-    position: relative;
-    top: 0;
+    width: 100%;
+  }
+  .guide-steps {
+    contain: none;
+  }
+  .guide {
+    overflow: visible;
+    padding-right: 0;
+  }
+  .guide-steps {
+    margin-bottom: 0;
+  }
+  .guide[data-more] {
+    -webkit-mask-image: none;
+    mask-image: none;
   }
   .open {
     min-height: 0;
