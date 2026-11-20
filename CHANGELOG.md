@@ -3,6 +3,14 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-20 — The website says what the Studio does, in plain words
+
+- **What:** The front page and the walkthrough are rewritten for people who make video but not animation: each section answers one question a visitor has (what it is, will it look good, can I change one thing, what does it cost and where do my files go, how is it different, how do I start), in words they use (AI, video, style, circle, export) instead of the Studio's own (agent, film, look, reel, brief). The Chinese is written as Chinese, not translated line by line. The chapters on the transport bar are named the same way.
+- **Why:** The page spoke in metaphors and the Studio's vocabulary; a visitor could finish it without knowing what the app does or whether it is free.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `site/index.html`, `site/tour.html`, `site/studio.css`, `docs/design.md`.
+
 ## 2026-11-20 — The Studio downloads its updates and installs them on restart
 
 - **What:** A packaged Studio checks GitHub for a stable release after it starts and every six hours (the automatic-check preference and Check for updates stay in Settings → General), downloads an eligible update in the background, and offers Restart to update or Later. A restart waits until no project has an active task or an unsent draft. On a Mac the update is verified and staged by the system's own updater, from a Developer ID signed, notarized build only. Releases carry update manifests and block maps, assembled and checked against the draft's files before it is touched.
@@ -13,7 +21,7 @@ Every key change to OpenMotionStudio, newest first, by date. What counts as key 
 
 ## 2026-11-20 — The website shows five MotionHub looks, under MotionHub's logo
 
-- **What:** The front page's Looks section names its source with MotionHub's own logo and lists five looks by SuoSi: Clay World, Pixel Quest, Ink Scroll, Stage Light and Riso Pop, each to be shown in its own reel exported by the Studio; until a reel is there, a slate names the look. The footer links MotionHub with its icon. The earlier films of one brief in three looks are gone, and the README shows the five looks' posters from MotionHub.
+- **What:** The front page's Looks section names its source with MotionHub's own logo and lists five looks by SuoSi: Clay World, Pixel Quest, Ink Scroll, Stage Light and Riso Pop, each to be shown in its own reel exported by the Studio, with a mark for each look down the reel's right side; until a reel is there, a slate names the look. The footer links MotionHub with its icon. The earlier films of one brief in three looks are gone, and the README shows the five looks' posters from MotionHub.
 - **Why:** The section should show what looks can do at their most striking, and say plainly where they come from.
 - **Breaking:** None.
 - **Upgrade:** Nothing.
@@ -29,7 +37,7 @@ Every key change to OpenMotionStudio, newest first, by date. What counts as key 
 
 ## 2026-11-20 — The website's controls are one family
 
-- **What:** The website's buttons, toggles, links and selects follow one set of components, after the Studio's own: raised buttons in three sizes with Download alone in vermilion; language (EN, 中) and theme (light, dark) as segmented controls that show both choices; selects drawn by the page, their lists included, instead of the system; the pages in the top bar marked by an ink bar under the current one; a frosted top bar that takes an edge once the page scrolls. The downloads, the first screen and the tour use the same buttons.
+- **What:** The website's buttons, toggles, links and selects follow one set of components, after the Studio's own: raised buttons in three sizes with Download alone in vermilion; the language as on the Studio's Home, its icon and short name opening the languages by their own names, so more can follow; the theme (light, dark) as a segmented control that shows both choices; selects drawn by the page, their lists included, instead of the system; the pages in the top bar marked by an ink bar under the current one; a frosted top bar that takes an edge once the page scrolls; and a transport bar at the foot whose progress is a tinted band and whose chapters are named in the page's language. The downloads, the first screen and the tour use the same buttons.
 - **Why:** The top bar's controls read as generic framework widgets; a studio for visual work should look made by one.
 - **Breaking:** None.
 - **Upgrade:** Nothing.
@@ -37,7 +45,7 @@ Every key change to OpenMotionStudio, newest first, by date. What counts as key 
 
 ## 2026-11-20 — The website reads in Chinese, and the tour has its own page
 
-- **What:** openmotion.studio reads in English or Chinese: a 中文 / EN toggle in the top bar switches every word on the page, kept in the browser; a browser set to Chinese opens in Chinese, and `?lang=zh` or `?lang=en` picks one for a link. The 90-second tour moved from the front page to its own page, openmotion.studio/tour, with each of its six steps written out beside the film, lit as it plays and jumping to its place; its captions follow the page's language. The first screen links to it under the app's loop.
+- **What:** openmotion.studio reads in English or Chinese: the language menu in the top bar switches every word on the page, kept in the browser; a browser set to Chinese opens in Chinese, and `?lang=zh` or `?lang=en` picks one for a link. The 90-second tour moved from the front page to its own page, openmotion.studio/tour, with each of its six steps written out beside the film, lit as it plays and jumping to its place; its captions follow the page's language. The first screen links to it under the app's loop.
 - **Why:** Many of the Studio's people read Chinese first; and a tour is easier to follow with its steps written down than as one more section of the front page.
 - **Breaking:** None. A link to `/#tour` is sent on to `/tour`.
 - **Upgrade:** Nothing.

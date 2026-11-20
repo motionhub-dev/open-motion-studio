@@ -3,16 +3,16 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-    <title data-zh="OpenMotionStudio — 和 AI 智能体一起做动态视频">OpenMotionStudio — make motion video with an AI agent</title>
+    <title data-zh="OpenMotionStudio — 说出你想要的，就能做成动画视频">OpenMotionStudio — describe it, get a motion video</title>
     <meta
       name="description"
-      content="OpenMotionStudio is a free, open-source desktop studio for making motion video with an AI agent. Describe the film, point at what to change on the picture, export an MP4."
-      data-zh-content="OpenMotionStudio 是免费、开源的桌面工作室，和 AI 智能体一起做动态视频。描述你想要的片子，在画面上指出要改的地方，导出 MP4。"
+      content="A free, open-source desktop app: describe the video you want and AI animates it; circle anything on the picture to change just that, then export an MP4. Works with your own AI."
+      data-zh-content="免费开源的桌面应用：描述你想要的视频，AI 帮你做成动画；哪里不满意，在画面上圈出来，只改那一处，最后导出 MP4。可以用你自己的 AI。"
     />
-    <meta property="og:title" content="OpenMotionStudio — You have the eye. Now you have the hands." />
+    <meta property="og:title" content="OpenMotionStudio — Describe it. Get a motion video." />
     <meta
       property="og:description"
-      content="A free, open-source desktop studio for making motion video with an AI agent. Point at the frame, say what to change, export an MP4."
+      content="Free and open source. Describe the video, circle what to change, export an MP4."
     />
     <meta property="og:image" content="https://openmotion.studio/media/og.png" />
     <meta name="twitter:card" content="summary_large_image" />
@@ -56,10 +56,11 @@
       >
       </nav>
       <span class="top-sep" aria-hidden="true"></span>
-      <div class="seg seg-lang" id="lang" role="group" aria-label="Language" data-zh-aria-label="语言">
-        <button type="button" data-lang="en" lang="en" title="English">EN</button>
-        <button type="button" data-lang="zh" lang="zh" title="中文">中</button>
-      </div>
+      <select class="select select-quiet lang-select" id="lang" aria-label="Language" data-zh-aria-label="语言">
+        <!-- Each language by its own name in the list, and by its short name on the button (data-short). -->
+        <option value="en" lang="en" data-short="EN">English</option>
+        <option value="zh" lang="zh" data-short="中文">简体中文</option>
+      </select>
       <div class="seg seg-theme" id="theme" role="group" aria-label="Theme" data-zh-aria-label="主题">
         <button type="button" data-theme-to="light" aria-label="Light theme" data-zh-aria-label="浅色主题" title="Light theme" data-zh-title="浅色主题">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
@@ -69,36 +70,36 @@
         </button>
       </div>
       <a class="btn btn-primary top-get" href="#get"
-        ><svg class="top-get-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></svg><span data-zh="下载">Download</span></a
+        ><svg class="top-get-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></svg><span data-zh="下载客户端">Download</span></a
       >
     </header>
 
     <main id="main">
       <!-- OPEN: what it is, in one screen, over the real app -->
-      <section class="open gut" id="open" data-scene="OPEN" aria-labelledby="title">
+      <section class="open gut" id="open" data-scene="What it is" data-scene-zh="这是什么" aria-labelledby="title">
         <div class="max open-grid">
           <div class="open-copy">
-            <p class="kicker" data-zh="免费桌面应用 · macOS · Windows · Linux">Free desktop app · macOS · Windows · Linux</p>
-            <h1 id="title" data-zh="眼光你有。<span>现在，手也有了。</span>">You have the eye.<span>Now you have the hands.</span></h1>
+            <p class="kicker" data-zh="免费开源 · macOS、Windows、Linux">Free · Open source · macOS, Windows, Linux</p>
+            <h1 id="title" data-zh="说出你想要的，<span>就能做成动画视频。</span>">Describe it.<span>Get a motion video.</span></h1>
             <p
               class="what"
-              data-zh="OpenMotionStudio 是一个开源的动态视频工作室，你和 AI 智能体一起创作：描述你想要的片子，在画面上指出要改的地方，然后导出 MP4。"
+              data-zh="用几句话描述你想要的画面，AI 帮你做成动画。哪里不满意，就在画面上圈出来说一句，只改那一处。做好了直接导出 MP4。"
             >
-              OpenMotionStudio is an open-source studio for making motion video with an AI agent. Describe the film,
-              point at what to change on the picture, and export an MP4.
+              Tell the AI what you want and it makes the animation. Not quite right? Circle the spot on the picture and
+              say what to change: only that part changes. Then export an MP4.
             </p>
             <div class="cta">
               <a class="btn btn-primary btn-lg" id="hero-get" href="#get" data-zh="下载 OpenMotionStudio">Download OpenMotionStudio</a>
               <a class="btn btn-ghost btn-lg" href="/tour"
-                ><i class="play" aria-hidden="true"></i><span data-zh="观看 90 秒演示">Watch the 90-second tour</span></a
+                ><i class="play" aria-hidden="true"></i><span data-zh="看 90 秒演示">Watch a 90-second demo</span></a
               >
             </div>
             <p class="hero-file" id="hero-file" hidden>
               <span id="hero-build"></span> · <a href="#get" data-zh="其他平台">Other platforms</a>
             </p>
             <p class="fine">
-              <span data-zh="可接入你本机的">Works with the</span> <span class="with"><svg class="agent-mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="#D97757" aria-hidden="true"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg>Claude Code</span> <span data-zh="和">and</span> <span class="with"><svg class="agent-mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg>Codex</span><span data-zh="，或任意 AI 模型。Apache-2.0 开源，无需账号。">
-                on your machine, or any AI model. Apache-2.0, no account.</span
+              <span data-zh="可以直接用你电脑上的">Use the</span> <span class="with"><svg class="agent-mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="#D97757" aria-hidden="true"><path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z"/></svg>Claude Code</span> <span data-zh="、">or</span> <span class="with"><svg class="agent-mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg>Codex</span><span data-zh="，或任意 AI 模型的 API Key。不用注册账号。">
+                you already have, or any AI model’s API key. No account needed.</span
               >
             </p>
           </div>
@@ -115,20 +116,20 @@
                 preload="auto"
                 poster="media/studio-loop.webp"
                 src="media/studio-loop.mp4"
-                aria-label="OpenMotionStudio in use: the bars of a chart are marked on the picture with a note asking for the tallest one in vermilion and the bars rising one after another; Claude Code edits the film, and the new cut plays."
-                data-zh-aria-label="OpenMotionStudio 使用中：在图表的柱子上框选并写下批注，要求最高的一根改成朱红色、柱子依次升起；Claude Code 修改影片，新版本随即播放。"
+                aria-label="OpenMotionStudio in use: the bars of a chart are circled on the picture with a note asking for the tallest one in red and the bars rising one after another; Claude Code changes the video, and the new version plays."
+                data-zh-aria-label="OpenMotionStudio 使用中：在画面上圈出图表的柱子，写下要求：最高的一根改成红色，柱子依次升起；Claude Code 修改视频，新版本随即播放。"
               ></video>
             </div>
             <figcaption>
               <ol class="steps" id="steps">
-                <li><button type="button" data-at="0"><span>01</span><b data-zh="在画面上圈选">Mark the frame</b></button></li>
-                <li><button type="button" data-at="4.9"><span>02</span><b data-zh="说出要改什么">Say what to change</b></button></li>
-                <li><button type="button" data-at="11.6"><span>03</span><b data-zh="只改这一处">It edits only that</b></button></li>
-                <li><button type="button" data-at="14.6"><span>04</span><b data-zh="看新版本">Watch the new cut</b></button></li>
+                <li><button type="button" data-at="0"><span>01</span><b data-zh="圈出来">Circle it</b></button></li>
+                <li><button type="button" data-at="4.9"><span>02</span><b data-zh="说要改什么">Say what to change</b></button></li>
+                <li><button type="button" data-at="11.6"><span>03</span><b data-zh="只改那一处">Only that changes</b></button></li>
+                <li><button type="button" data-at="14.6"><span>04</span><b data-zh="看新版本">See the new version</b></button></li>
               </ol>
               <a class="btn btn-sm tour-link" href="/tour"
                 ><i class="play" aria-hidden="true"></i
-                ><span data-zh="完整教程：从零做完一部片子">Full tutorial: one film, start to finish</span
+                ><span data-zh="完整演示：从想法到导出 MP4">Full walkthrough: from idea to MP4</span
                 ><time datetime="PT1M33S">1:33</time></a
               >
             </figcaption>
@@ -137,12 +138,12 @@
       </section>
 
       <!-- LOOKS: MotionHub looks, each in its own reel, played by the Studio's engine; scroll changes the look -->
-      <section class="scene taste" id="looks" data-scene="LOOKS" aria-labelledby="looks-title">
+      <section class="scene taste" id="looks" data-scene="Styles" data-scene-zh="风格模板" aria-labelledby="looks-title">
         <div class="pin gut">
           <div class="max taste-grid">
             <div class="taste-copy">
               <p class="kicker hub-kicker">
-                <span data-zh="风格 · 来自">Looks · from</span>
+                <span data-zh="风格模板 · 来自">Styles · from</span>
                 <a class="hub" href="https://motionhub.dev/"
                   ><img class="hub-light" src="media/motionhub-logo.svg" alt="MotionHub" width="165" height="28" /><img
                     class="hub-dark"
@@ -152,15 +153,15 @@
                     height="28"
                 /></a>
               </p>
-              <h2 id="looks-title" data-zh="从别人的<em>品味</em>出发。">Start from someone’s <em>taste.</em></h2>
+              <h2 id="looks-title" data-zh="不会设计，<em>也能做得好看。</em>">Looks designed, <em>because it was.</em></h2>
               <p
                 class="lede"
-                data-zh="MotionHub 上的一个风格，是一位设计师的规则、字体、配色和组件，智能体照着它们来画。每一段都是这个风格的官方样片，由 Studio 的引擎逐帧渲染。"
+                data-zh="在 MotionHub 上挑一套设计师做好的风格模板，配色、字体、动效都已经定好。AI 照着它来做，第一版就像样。下面是其中五套。"
               >
-                A look on MotionHub is a designer’s rules, type, colour and components. The agent draws with them. Each
-                film here is a look’s own reel, drawn frame by frame by the Studio’s engine.
+                Pick a style a designer made on MotionHub: the colours, the fonts and the way things move. The AI follows
+                it, so even the first draft looks put together. Here are five of them.
               </p>
-              <div class="look-index" id="look-index" role="group" aria-label="Choose a look" data-zh-aria-label="选择风格">
+              <div class="look-index" id="look-index" role="group" aria-label="Choose a style" data-zh-aria-label="选择风格模板">
                 <button type="button" data-slug="clay-world" aria-pressed="true"><span class="n">01</span><span class="name" data-zh="黏土小世界">Clay World</span><small data-zh="黏土 3D">3D CLAY</small></button>
                 <button type="button" data-slug="pixel-quest" aria-pressed="false"><span class="n">02</span><span class="name" data-zh="像素关卡">Pixel Quest</span><small data-zh="像素">PIXEL</small></button>
                 <button type="button" data-slug="ink-scroll" aria-pressed="false"><span class="n">03</span><span class="name" data-zh="墨卷">Ink Scroll</span><small data-zh="水墨">INK</small></button>
@@ -168,39 +169,33 @@
                 <button type="button" data-slug="riso-pop" aria-pressed="false"><span class="n">05</span><span class="name" data-zh="孔版双色">Riso Pop</span><small data-zh="印刷">PRINT</small></button>
               </div>
             </div>
-            <figure>
+            <figure class="reel-figure">
               <!-- Each look's reel goes in its <video> as src="media/look-<slug>.mp4" and poster="media/look-<slug>.webp";
                    until it is there, the slate stands in, naming the look. -->
               <div class="reel" id="reel">
                 <div class="slate" aria-hidden="true">
                   <span class="slate-mark">REEL · 00:20</span>
                   <b id="slate-name">Clay World</b>
-                  <span class="slate-note" data-zh="样片制作中">Reel in production</span>
+                  <span class="slate-note" data-zh="样片即将上线">Sample coming soon</span>
                 </div>
-                <video class="look on" muted loop playsinline preload="metadata" aria-label="Clay World, its reel on MotionHub" data-zh-aria-label="黏土小世界：MotionHub 上的官方样片"></video>
-                <video class="look" muted loop playsinline preload="none" aria-label="Pixel Quest, its reel on MotionHub" data-zh-aria-label="像素关卡：MotionHub 上的官方样片"></video>
-                <video class="look" muted loop playsinline preload="none" aria-label="Ink Scroll, its reel on MotionHub" data-zh-aria-label="墨卷：MotionHub 上的官方样片"></video>
-                <video class="look" muted loop playsinline preload="none" aria-label="Stage Light, its reel on MotionHub" data-zh-aria-label="聚光台：MotionHub 上的官方样片"></video>
-                <video class="look" muted loop playsinline preload="none" aria-label="Riso Pop, its reel on MotionHub" data-zh-aria-label="孔版双色：MotionHub 上的官方样片"></video>
+                <video class="look on" muted loop playsinline preload="metadata" aria-label="A sample in the Clay World style" data-zh-aria-label="「黏土小世界」风格的样片"></video>
+                <video class="look" muted loop playsinline preload="none" aria-label="A sample in the Pixel Quest style" data-zh-aria-label="「像素关卡」风格的样片"></video>
+                <video class="look" muted loop playsinline preload="none" aria-label="A sample in the Ink Scroll style" data-zh-aria-label="「墨卷」风格的样片"></video>
+                <video class="look" muted loop playsinline preload="none" aria-label="A sample in the Stage Light style" data-zh-aria-label="「聚光台」风格的样片"></video>
+                <video class="look" muted loop playsinline preload="none" aria-label="A sample in the Riso Pop style" data-zh-aria-label="「孔版双色」风格的样片"></video>
               </div>
+              <!-- One mark for each look beside the reel; the current one drawn long (studio.js). -->
+              <div class="reel-dots" id="reel-dots" aria-hidden="true"></div>
               <figcaption class="reel-cap">
-                <span id="look-name">Clay World by SuoSi</span>
-                <a id="look-link" href="https://motionhub.dev/@iamsuosi/clay-world/" data-zh="在 MotionHub 打开">Open on MotionHub</a>
+                <a id="look-link" href="https://motionhub.dev/@iamsuosi/clay-world/" data-zh="在 MotionHub 查看这套风格">See this style on MotionHub</a>
               </figcaption>
-              <p
-                class="credit"
-                data-zh="样片出自 SuoSi 在 MotionHub 上的风格，由 OpenMotionStudio 导出。描述文字采用 <a href=&quot;https://creativecommons.org/licenses/by/4.0/&quot;>CC BY 4.0</a> · 组件采用 MIT。"
-              >
-                Reels from SuoSi’s looks on MotionHub, exported by OpenMotionStudio.
-                <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> descriptions · MIT components.
-              </p>
             </figure>
           </div>
         </div>
       </section>
 
       <!-- EDIT: the real first cut and revised cut at the same instant -->
-      <section class="edit gut" id="edit" data-scene="EDIT" aria-labelledby="edit-title">
+      <section class="edit gut" id="edit" data-scene="Precise edits" data-scene-zh="精确修改" aria-labelledby="edit-title">
         <div class="max edit-grid">
           <div>
             <div class="compare" id="compare">
@@ -209,8 +204,8 @@
                 width="1440"
                 height="810"
                 loading="lazy"
-                alt="First cut at 0.30 seconds: the Stillform title is already on the photograph"
-                data-zh-alt="初稿第 0.30 秒：Stillform 刊名已经压在照片上"
+                alt="First version at 0.30 seconds: the Stillform title is already on the photo"
+                data-zh-alt="第一版第 0.30 秒：Stillform 标题已经压在照片上"
               />
               <img
                 class="compare-top"
@@ -218,133 +213,130 @@
                 width="1440"
                 height="810"
                 loading="lazy"
-                alt="Revised cut at 0.30 seconds: the photograph on its own, the title not yet in"
-                data-zh-alt="修改稿第 0.30 秒：只有照片，刊名还没出现"
+                alt="Changed version at 0.30 seconds: the photo on its own, the title not in yet"
+                data-zh-alt="修改后第 0.30 秒：只有照片，标题还没出现"
               />
               <span class="compare-line" aria-hidden="true"></span>
               <span class="tag left" aria-hidden="true">v1 · 00:00:00:07</span>
               <span class="tag right" aria-hidden="true">v2 · 00:00:00:07</span>
-              <input type="range" id="compare-range" min="0" max="100" value="50" aria-label="Slide between the first and the revised cut" data-zh-aria-label="在初稿与修改稿之间滑动对比" />
+              <input type="range" id="compare-range" min="0" max="100" value="50" aria-label="Slide between the two versions" data-zh-aria-label="在两个版本之间滑动对比" />
             </div>
             <div class="cuts">
               <figure>
                 <video controls muted playsinline preload="none" width="1440" height="810" poster="media/same-frame-original.webp" src="media/original.mp4"></video>
-                <figcaption data-zh="v1 · 初稿">v1 · first cut</figcaption>
+                <figcaption data-zh="v1 · 第一版">v1 · first version</figcaption>
               </figure>
               <figure>
                 <video controls muted playsinline preload="none" width="1440" height="810" poster="media/same-frame-revised.webp" src="media/revised.mp4"></video>
-                <figcaption data-zh="v2 · 刊名晚半秒入场">v2 · title half a second later</figcaption>
+                <figcaption data-zh="v2 · 标题晚半秒出现">v2 · title half a second later</figcaption>
               </figure>
             </div>
           </div>
           <div>
-            <p class="kicker" data-zh="版本">Versions</p>
-            <h2 id="edit-title" data-zh="只改一处，<em>其余不动。</em>">Change one thing. <em>Keep the rest.</em></h2>
+            <p class="kicker" data-zh="修改">Edits</p>
+            <h2 id="edit-title" data-zh="哪里不对改哪里，<em>其余不动。</em>">Change one thing. <em>Nothing else moves.</em></h2>
             <p
               class="lede"
-              data-zh="你的片子是一个工程，不是一次性的生成。画面上的一条批注就是一次修改，作为一个版本存在你的磁盘上。同一帧，每次渲染都一样。"
+              data-zh="不像 AI 生视频那样每次重新抽卡：圈出不对的地方，说清楚要怎么改，就只动那一处。每一版都会保存，随时可以退回。"
             >
-              Your film is a project, not a take. A note on the picture becomes one edit, kept as a version on your disk.
-              Same frame, every render.
+              No rolling the dice again, as with AI video generators. Circle what’s wrong, say what you want, and only
+              that part changes. Every version is saved, so you can always go back.
             </p>
             <ol class="log">
               <li>
                 <span class="v">v1</span
-                ><p data-zh="初稿，根据创作要求生成<code>刊名在 0.08 秒入场</code>">First cut, from the brief<code>title enters at 0.08 s</code></p>
+                ><p data-zh="第一版，根据描述生成<code>标题在 0.08 秒出现</code>">First version, from the description<code>title appears at 0.08 s</code></p>
               </li>
               <li class="on">
                 <span class="v">v2</span
-                ><p data-zh="「让照片先停留一下，刊名晚半秒再出现。」<code>刊名在 0.58 秒入场 · 其他都没动</code>">“Let the photograph breathe. Bring the title in half a second later.”<code>title enters at 0.58 s · nothing else moved</code></p>
+                ><p data-zh="「让照片先停留一下，标题晚半秒再出来。」<code>标题在 0.58 秒出现 · 其他都没变</code>">“Let the photo breathe. Bring the title in half a second later.”<code>title appears at 0.58 s · nothing else changed</code></p>
               </li>
             </ol>
             <p
               class="credit"
-              data-zh="<cite>The Tetons—Snake River</cite>（1942），Ansel Adams 摄。公有领域，藏于<a href=&quot;https://www.archives.gov/research/still-pictures/highlights/the-tetons-snake-river&quot;>美国国家档案馆</a>。Stillform 是为这部片子虚构的杂志。"
+              data-zh="<cite>The Tetons—Snake River</cite>（1942），Ansel Adams 摄。公有领域，藏于<a href=&quot;https://www.archives.gov/research/still-pictures/highlights/the-tetons-snake-river&quot;>美国国家档案馆</a>。Stillform 是为这段视频虚构的杂志。"
             >
               <cite>The Tetons—Snake River</cite> (1942), Ansel Adams. Public domain, held by the
               <a href="https://www.archives.gov/research/still-pictures/highlights/the-tetons-snake-river">U.S. National Archives</a>.
-              Stillform is a fictional magazine made for this film.
+              Stillform is a fictional magazine made for this video.
             </p>
           </div>
         </div>
       </section>
 
-      <!-- YOURS: what the person owns, as end credits -->
-      <section class="credits gut" id="yours" data-scene="YOURS" aria-labelledby="yours-title">
+      <!-- YOURS: what it costs and where everything stays, as a list read down like end credits -->
+      <section class="credits gut" id="yours" data-scene="Free &amp; private" data-scene-zh="免费与隐私" aria-labelledby="yours-title">
         <div class="max">
-          <p class="kicker center" data-zh="片尾字幕">Credits</p>
-          <h2 id="yours-title" data-zh="归你。">Yours.</h2>
-          <p class="lede center" data-zh="无需账号，不用积分，你和你的片子之间没有我们的服务器。">
-            No account, no credits, no server of ours between you and your film.
+          <p class="kicker center" data-zh="费用与隐私">Cost &amp; privacy</p>
+          <h2 id="yours-title" data-zh="免费，不用注册，<span>文件只在你电脑上。</span>">Free. No account.<span>Your files stay yours.</span></h2>
+          <p class="lede center" data-zh="没有订阅，没有积分，你和你的视频之间也没有我们的服务器。">
+            No subscription, no credits, and no server of ours between you and your video.
           </p>
           <dl class="roll">
-            <div><dt data-zh="导演">Directed by</dt><dd data-zh="你">You</dd></div>
+            <div><dt data-zh="价格">Price</dt><dd data-zh="免费开源（Apache-2.0）">Free and open source (Apache-2.0)</dd></div>
             <div>
-              <dt data-zh="动画">Animated by</dt>
+              <dt data-zh="AI">The AI</dt>
               <dd
-                data-zh="跑在你所选模型上的智能体<small>Anthropic、兼容 OpenAI 的接口、本地模型，或你已经在用的 Claude Code、Codex</small>"
+                data-zh="用你自己的<small>已经在用的 Claude Code、Codex，或任意模型的 API Key：Anthropic、兼容 OpenAI 的接口、本地模型</small>"
               >
-                An agent on the model you choose<small
-                  >Anthropic, OpenAI-compatible, a local model, or the Claude Code or Codex you already use</small
+                Yours<small
+                  >The Claude Code or Codex you already use, or any model’s API key: Anthropic, OpenAI-compatible or a
+                  local model</small
                 >
               </dd>
             </div>
-            <div><dt data-zh="风格设计">Looks by</dt><dd data-zh="MotionHub 上的设计师">Designers on MotionHub</dd></div>
+            <div><dt data-zh="风格">Styles</dt><dd data-zh="MotionHub 上设计师做好的风格模板">Ready-made, by designers on MotionHub</dd></div>
             <div>
               <dt data-zh="素材">Footage</dt>
-              <dd data-zh="你自己的，包括在别处生成的片段">Yours, including clips you generated elsewhere</dd>
+              <dd data-zh="你自己的照片和视频，包括用别的 AI 生成的片段">Your own photos and clips, including ones made with other AI tools</dd>
             </div>
             <div>
-              <dt data-zh="配音">Voice</dt>
-              <dd data-zh="你选择的语音服务<small>每一句都配有对齐的字幕</small>">
-                The voice provider you pick<small>with captions timed to every line</small>
+              <dt data-zh="配音">Voice-over</dt>
+              <dd data-zh="用你选的语音服务朗读<small>每一句都自动配好字幕</small>">
+                Read by the voice service you pick<small>with captions timed to every line</small>
               </dd>
             </div>
-            <div><dt data-zh="存放于">Filed in</dt><dd data-zh="你磁盘上的一个文件夹">A folder on your disk</dd></div>
-            <div><dt data-zh="密钥保管于">Keys kept in</dt><dd data-zh="系统钥匙串">Your system’s keychain</dd></div>
-            <div>
-              <dt data-zh="引擎与导出">Engine &amp; export</dt>
-              <dd data-zh="内置，无需另装任何东西">Included. Nothing else to install</dd>
-            </div>
-            <div><dt data-zh="许可证">Licence</dt><dd>Apache-2.0</dd></div>
+            <div><dt data-zh="文件">Your files</dt><dd data-zh="就在你电脑上的一个文件夹里">In a folder on your computer</dd></div>
+            <div><dt data-zh="密钥">API keys</dt><dd data-zh="存在系统钥匙串里">Kept in your system’s keychain</dd></div>
+            <div><dt data-zh="导出">Export</dt><dd data-zh="内置，不用另装软件">Built in. Nothing else to install</dd></div>
           </dl>
         </div>
       </section>
 
-      <!-- FITS: three sentences, upstream and downstream -->
-      <section class="fits gut" id="fits" data-scene="FITS" aria-labelledby="fits-title">
+      <!-- FITS: how it differs from what people already know -->
+      <section class="fits gut" id="fits" data-scene="Compare" data-scene-zh="对比" aria-labelledby="fits-title">
         <div class="max">
-          <p class="kicker" data-zh="它的位置">Where it fits</p>
-          <h2 id="fits-title" data-zh="素材在哪儿做都行，成片在这里做。">Make footage anywhere. Make the film here.</h2>
+          <p class="kicker" data-zh="对比">Compared</p>
+          <h2 id="fits-title" data-zh="和其他工具有什么不一样">How it’s different</h2>
           <div class="fit-row">
             <div>
-              <span class="who" data-zh="生成式视频">Generative video</span>
-              <p data-zh="生成素材，每次都是新的一条。把片段作为镜头导入，Studio 为它们配上字体、节奏和品牌。">
-                Makes footage, a new take each time. Bring the clips in as shots; the Studio sets the type, timing and
-                brand around them.
+              <span class="who" data-zh="AI 生视频（Sora、可灵等）">AI video generators</span>
+              <p data-zh="适合生成素材，但想改一处就得重新生成，结果每次都不一样。生成的片段可以直接导进来用。">
+                Great for footage, but every change means generating again, and you get something different each time.
+                Bring the clips in and use them here.
               </p>
             </div>
             <div>
-              <span class="who">Remotion · HyperFrames</span>
-              <p data-zh="写代码的人用的引擎。MotionHub 的风格两者都能用，需要时 Studio 还能导出 Remotion 工程。">
-                Engines for people who write code. MotionHub looks work in both, and the Studio exports a Remotion project
-                when you need one.
+              <span class="who" data-zh="剪映、After Effects 等">After Effects and other editors</span>
+              <p data-zh="什么都能做，但每个动画都得自己一帧一帧调，要时间也要手艺。">
+                You can make anything, if you have the time and the skill to animate it frame by frame yourself.
               </p>
             </div>
             <div class="ours">
               <span class="who">OpenMotionStudio</span>
-              <p data-zh="用来当导演。你看、你指、你拍板；智能体写片子，并检查自己渲染出的画面。">
-                For directing. You look, point and decide; the agent writes the film and checks its own frames.
+              <p data-zh="你来描述，AI 来做，哪里不对圈出来改。像剪辑软件一样精确，像 AI 一样快。">
+                You describe it, the AI animates it, and you circle what to change. Precise like an editor, fast like
+                AI.
               </p>
             </div>
           </div>
           <details class="dev">
             <summary data-zh="给开发者">For developers</summary>
             <p
-              data-zh="一部片子就是 <code>film.tsx</code>：用 <code>@motionhub/runtime</code> 随时间绘制的场景、图层和媒体，由 Studio 自己播放和导出。<a href=&quot;https://github.com/motionhubdev/openmotionstudio/tree/main/docs&quot;>阅读文档</a>"
+              data-zh="每个视频就是一个 React 文件 <code>film.tsx</code>，用 <code>@motionhub/runtime</code> 按时间绘制，由 Studio 自己播放和导出；需要时也能导出成 Remotion 工程。<a href=&quot;https://github.com/motionhubdev/openmotionstudio/tree/main/docs&quot;>阅读文档</a>"
             >
-              A film is <code>film.tsx</code>: scenes, layers and media drawn over time with
-              <code>@motionhub/runtime</code>, which the Studio plays and exports itself.
+              Each video is a React file, <code>film.tsx</code>, drawn over time with <code>@motionhub/runtime</code>; the
+              Studio plays and exports it itself, and can export a Remotion project when you need one.
               <a href="https://github.com/motionhubdev/openmotionstudio/tree/main/docs">Read the documentation</a>
             </p>
             <pre><code>git clone --branch v0.1.3 https://github.com/motionhubdev/openmotionstudio
@@ -356,13 +348,13 @@ pnpm dev</code></pre>
         </div>
       </section>
 
-      <!-- ROLL: download -->
-      <section class="get gut" id="get" data-scene="ROLL" aria-labelledby="get-title">
+      <!-- GET: download -->
+      <section class="get gut" id="get" data-scene="Get it" data-scene-zh="下载" aria-labelledby="get-title">
         <div class="max">
-          <p class="kicker" data-zh="v0.1.3 · 桌面版">v0.1.3 · desktop</p>
-          <h2 id="get-title" data-zh="开拍。">Roll.</h2>
-          <p class="lede" data-zh="打开一部示例片子，指一处地方，看它变化。准备好了再接入你的模型。">
-            Open a sample film, point at something, and watch it change. Connect your model when you are ready.
+          <p class="kicker" data-zh="v0.1.3 · 桌面客户端">v0.1.3 · desktop app</p>
+          <h2 id="get-title" data-zh="现在就试试。">Try it now.</h2>
+          <p class="lede" data-zh="打开一个示例视频，圈一处，看它怎么变。准备好了再接入你的 AI。">
+            Open a sample video, circle something and watch it change. Connect your AI whenever you’re ready.
           </p>
           <div class="os" id="os">
             <div data-os="mac">
@@ -428,11 +420,11 @@ pnpm dev</code></pre>
       </div>
     </footer>
 
-    <nav class="transport gut" aria-label="Scenes">
+    <nav class="transport gut" aria-label="Chapters" data-zh-aria-label="章节">
       <span class="tc" id="tc">00:00:00:00</span>
       <span class="now" id="now">OPEN</span>
       <div class="track" id="track">
-        <span class="line"></span><span class="fill" id="fill"></span><span class="head" id="head"></span>
+        <span class="fill" id="fill"></span><span class="head" id="head"></span>
       </div>
     </nav>
   </body>

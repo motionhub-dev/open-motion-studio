@@ -37,26 +37,29 @@ function translate() {
   }
   relabel.forEach((write) => write());
 }
-// The language's segmented control: the stylesheet shows the choice from the root; aria-pressed says it.
-const langButtons = Array.from(document.querySelectorAll("#lang [data-lang]"));
+// The language's menu, as on the Studio's Home: its icon and the language's short name, the languages listed by their own
+// names (a select, drawn by the page below), so another language is one more option.
+const langSelect = document.querySelector("#lang");
 const languageSwitched = [];
-relabel.push(() => langButtons.forEach((b) => b.setAttribute("aria-pressed", String((b.dataset.lang === "zh") === zh))));
-for (const button of langButtons)
-  button.addEventListener("click", () => {
-    if ((button.dataset.lang === "zh") === zh) return;
-    zh = !zh;
-    try {
-      localStorage.setItem("oms-lang", zh ? "zh" : "en");
-    } catch {}
-    // A ?lang= in the address would undo the choice on the next visit to it.
-    const url = new URL(location.href);
-    if (url.searchParams.has("lang")) {
-      url.searchParams.delete("lang");
-      history.replaceState(null, "", url);
-    }
-    translate();
-    languageSwitched.forEach((follow) => follow());
-  });
+relabel.push(() => {
+  langSelect.value = zh ? "zh" : "en";
+  showSelect(langSelect);
+});
+langSelect.addEventListener("change", () => {
+  if ((langSelect.value === "zh") === zh) return;
+  zh = langSelect.value === "zh";
+  try {
+    localStorage.setItem("oms-lang", zh ? "zh" : "en");
+  } catch {}
+  // A ?lang= in the address would undo the choice on the next visit to it.
+  const url = new URL(location.href);
+  if (url.searchParams.has("lang")) {
+    url.searchParams.delete("lang");
+    history.replaceState(null, "", url);
+  }
+  translate();
+  languageSwitched.forEach((follow) => follow());
+});
 
 /* Theme: light unless the visitor chose dark; the choice is kept in the browser (the page's head reads it first). */
 const themeButtons = Array.from(document.querySelectorAll("#theme [data-theme-to]"));
@@ -89,7 +92,7 @@ document.querySelectorAll("select.select").forEach((select, n) => {
   const options = Array.from(select.options);
   const button = document.createElement("button");
   button.type = "button";
-  button.className = "select";
+  button.className = select.className;
   button.setAttribute("role", "combobox");
   button.setAttribute("aria-haspopup", "listbox");
   button.setAttribute("aria-expanded", "false");
@@ -106,9 +109,10 @@ document.querySelectorAll("select.select").forEach((select, n) => {
   list.setAttribute("role", "listbox");
   if (labelledBy) list.setAttribute("aria-labelledby", labelledBy);
   list.hidden = true;
-  const items = options.map((_, i) => {
+  const items = options.map((option, i) => {
     const item = document.createElement("li");
     item.id = id + "-" + i;
+    if (option.lang) item.lang = option.lang;
     item.setAttribute("role", "option");
     // The button keeps the focus while an option is clicked.
     item.addEventListener("pointerdown", (e) => e.preventDefault());
@@ -126,9 +130,13 @@ document.querySelectorAll("select.select").forEach((select, n) => {
   let active = -1;
   const isOpen = () => !list.hidden;
   const show = () => {
+    // Named by a label, or by the select's own aria-label, which follows the page's language.
+    if (!labelledBy) button.setAttribute("aria-label", select.getAttribute("aria-label") ?? "");
     options.forEach((option, i) => {
       const chosen = i === select.selectedIndex;
-      labels[i].textContent = items[i].textContent = option.textContent;
+      items[i].textContent = option.textContent;
+      // A short name on the button where the option has one (data-short), the whole name in the list.
+      labels[i].textContent = option.dataset.short ?? option.textContent;
       labels[i].toggleAttribute("data-on", chosen);
       items[i].setAttribute("aria-selected", String(chosen));
     });
@@ -302,15 +310,23 @@ if (taste) {
   const looks = Array.from(taste.querySelectorAll(".look"));
   const lookButtons = Array.from(document.querySelectorAll("#look-index button"));
   lookCount = looks.length;
-  const lookName = document.querySelector("#look-name");
   const slateName = document.querySelector("#slate-name");
+  // The marks beside the reel: a shortcut for the pointer, the list being the control a keyboard and a reader use.
+  const dots = lookButtons.map((button) => {
+    const dot = document.createElement("button");
+    dot.type = "button";
+    dot.tabIndex = -1;
+    dot.addEventListener("click", () => button.click());
+    return dot;
+  });
+  document.querySelector("#reel-dots").append(...dots);
+  const markLook = () => dots.forEach((dot, j) => dot.toggleAttribute("data-on", j === look));
   const lookLink = document.querySelector("#look-link");
   let look = 0;
   let looksInView = false;
+  markLook();
   const nameLook = () => {
-    const name = lookButtons[look].querySelector(".name").textContent;
-    lookName.textContent = name + t(" by SuoSi", " · SuoSi 设计");
-    slateName.textContent = name;
+    slateName.textContent = lookButtons[look].querySelector(".name").textContent;
   };
   relabel.push(nameLook);
   const playLook = () => {
@@ -328,6 +344,7 @@ if (taste) {
     lookButtons.forEach((b, j) => b.setAttribute("aria-pressed", String(j === i)));
     look = i;
     nameLook();
+    markLook();
     lookLink.href = "https://motionhub.dev/@iamsuosi/" + lookButtons[i].dataset.slug + "/";
     looks[i].preload = "auto";
     looks[i].currentTime = 0;
@@ -370,7 +387,8 @@ if (compare) {
   slide();
 }
 
-/* The transport bar follows the scroll; its scene marks jump to the scenes. */
+/* The transport bar follows the scroll; its marks name the page's chapters (data-scene, data-scene-zh) and jump to them,
+   each label held to the room before the next. */
 const track = document.querySelector("#track");
 if (track) {
   const scenes = Array.from(document.querySelectorAll("[data-scene]"));
@@ -378,17 +396,28 @@ if (track) {
   const head = document.querySelector("#head");
   const tc = document.querySelector("#tc");
   const now = document.querySelector("#now");
+  const chapter = (scene) => t(scene.dataset.scene, scene.dataset.sceneZh);
+  let current = 0;
   const marks = scenes.map((scene) => {
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = scene.dataset.scene;
     button.addEventListener("click", () => scene.scrollIntoView({ behavior: reduce ? "auto" : "smooth" }));
     track.append(button);
     return button;
   });
   const placeMarks = () => {
     const max = document.documentElement.scrollHeight - innerHeight;
-    scenes.forEach((scene, i) => (marks[i].style.left = Math.min(scene.offsetTop / max, 1) * 100 + "%"));
+    const width = track.clientWidth;
+    const at = scenes.map((scene) => Math.min(scene.offsetTop / max, 1) * width);
+    // The last chapter starts near the end of the scroll: it stands back from the edge to show its whole name, and the
+    // one before it gives way.
+    const n = marks.length - 1;
+    marks[n].style.maxWidth = "";
+    at[n] = Math.min(at[n], width - marks[n].scrollWidth - 12);
+    marks.forEach((mark, i) => {
+      mark.style.left = at[i] + "px";
+      if (i < n) mark.style.maxWidth = at[i + 1] - at[i] + "px";
+    });
   };
   const onScroll = () => {
     const max = document.documentElement.scrollHeight - innerHeight;
@@ -396,12 +425,12 @@ if (track) {
     fill.style.width = p * 100 + "%";
     head.style.left = p * 100 + "%";
     tc.textContent = smpte(p * 90);
-    let current = 0;
+    current = 0;
     scenes.forEach((scene, i) => {
       if (scrollY + innerHeight * 0.4 >= scene.offsetTop) current = i;
     });
     marks.forEach((m, i) => m.setAttribute("aria-current", String(i === current)));
-    now.textContent = scenes[current].dataset.scene;
+    now.textContent = chapter(scenes[current]);
     const inLooks = through();
     if (inLooks !== null) showLook(Math.min(lookCount - 1, Math.floor(inLooks * lookCount)));
   };
@@ -411,8 +440,13 @@ if (track) {
     onScroll();
   });
   window.addEventListener("load", placeMarks);
-  // A switch of language reflows the page, and the scenes move.
-  relabel.push(() => requestAnimationFrame(placeMarks));
+  // A switch of language renames the chapters and reflows the page, and the chapters move.
+  relabel.push(() => {
+    // A label cut short by its room keeps its whole name in the mark's tip.
+    marks.forEach((mark, i) => (mark.textContent = mark.title = chapter(scenes[i])));
+    now.textContent = chapter(scenes[current]);
+    requestAnimationFrame(placeMarks);
+  });
   placeMarks();
   onScroll();
 }

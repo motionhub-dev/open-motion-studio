@@ -1,5 +1,5 @@
 /* openmotion.studio: the front page is one film. Native scroll is the playhead; the transport bar at the foot carries
-   the timecode and the scenes. /tour is the walkthrough with its steps written out. Both are in English or Chinese
+   the timecode and the chapters. /tour is the walkthrough with its steps written out. Both are in English or Chinese
    (studio.js). Light by default and dark on request (the toggle in the top bar, kept in the browser),
    in motionhub's paper and ink (brand/brand.tokens.json in motionhubdev/motionhub); colour belongs to the films and
    the app. Vermilion is the Studio's mark (the eased square, docs/design.md) and Download, and nothing else; cobalt,
@@ -312,7 +312,6 @@ pre {
     var(--lift);
   transition: transform 0.26s var(--ease);
 }
-:root:lang(zh) .seg-lang::before,
 :root[data-theme="dark"] .seg-theme::before {
   transform: translateX(100%);
 }
@@ -331,15 +330,9 @@ pre {
   letter-spacing: 0.04em;
   transition: color 0.16s var(--ease);
 }
-.seg button[lang="zh"] {
-  font: 600 12.5px/1 var(--sans);
-  letter-spacing: 0;
-}
 .seg button:hover {
   color: var(--text-2);
 }
-:root:not(:lang(zh)) .seg-lang [data-lang="en"],
-:root:lang(zh) .seg-lang [data-lang="zh"],
 :root:not([data-theme="dark"]) .seg-theme [data-theme-to="light"],
 :root[data-theme="dark"] .seg-theme [data-theme-to="dark"] {
   color: var(--text);
@@ -450,6 +443,36 @@ pre {
   color: var(--text);
   font-weight: 600;
 }
+/* A quiet select, as the Studio's Home sets its language: no box until pointed at. */
+.select-quiet {
+  height: 32px;
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
+  color: var(--muted);
+}
+.select-quiet:hover,
+.select-quiet[aria-expanded="true"] {
+  border-color: transparent;
+  background: var(--well);
+  color: var(--text);
+}
+/* The language's: Lucide's Languages icon before the language's short name. */
+.lang-select {
+  padding-left: 32px;
+}
+.lang-select::before {
+  content: "";
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  margin-top: -8px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 8 6 6'/%3E%3Cpath d='m4 14 6-6 2-3'/%3E%3Cpath d='M2 5h12'/%3E%3Cpath d='M7 2h1'/%3E%3Cpath d='m22 22-5-10-5 10'/%3E%3Cpath d='M14 18h6'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 8 6 6'/%3E%3Cpath d='m4 14 6-6 2-3'/%3E%3Cpath d='M2 5h12'/%3E%3Cpath d='M7 2h1'/%3E%3Cpath d='m22 22-5-10-5 10'/%3E%3Cpath d='M14 18h6'/%3E%3C/svg%3E") center / contain no-repeat;
+}
 /* The tick: two strokes of a rotated corner. */
 .menu li[aria-selected="true"]::after {
   content: "";
@@ -535,6 +558,7 @@ body::before {
   border-radius: 6px;
   color: var(--muted);
   font: 500 13.5px/1 var(--sans);
+  white-space: nowrap;
   text-decoration: none;
   transition:
     color 0.16s var(--ease),
@@ -580,8 +604,11 @@ body::before {
   display: flex;
   align-items: center;
   gap: 18px;
-  background: var(--bg);
   border-top: 1px solid var(--line);
+  /* Frosted over the page, as the top bar is. */
+  background: var(--bar);
+  -webkit-backdrop-filter: saturate(1.6) blur(14px);
+  backdrop-filter: saturate(1.6) blur(14px);
   font: 500 11.5px/1 var(--mono);
   color: var(--muted);
 }
@@ -590,31 +617,30 @@ body::before {
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
+/* The track runs to the window's edge, so the end of the page fills it. */
+.transport.gut {
+  padding-right: 0;
+}
 .track {
   position: relative;
   flex: 1;
+  align-self: stretch;
   height: var(--foot);
-  margin-right: 48px;
 }
-.track .line,
+/* What has played is a band of ink's tint behind the scenes, as a timeline shades what has been rendered; the head is the
+   playhead at its edge. */
 .track .fill {
   position: absolute;
+  top: 0;
+  bottom: 0;
   left: 0;
-  top: 50%;
-  height: 1px;
-}
-.track .line {
-  right: 0;
-  background: var(--line-2);
-}
-.track .fill {
   width: 0;
-  background: var(--text-2);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
 }
 .track .head {
   position: absolute;
-  top: 12px;
-  bottom: 12px;
+  top: 0;
+  bottom: 0;
   left: 0;
   width: 2px;
   margin-left: -1px;
@@ -631,6 +657,11 @@ body::before {
   color: var(--faint);
   font: 500 10.5px / var(--foot) var(--mono);
   letter-spacing: 0.08em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .track button:hover {
   color: var(--text-2);
@@ -642,6 +673,7 @@ body::before {
   display: none;
   color: var(--text);
   letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 /* OPEN: one screen, copy beside the real app */
@@ -1086,16 +1118,56 @@ body::before {
   z-index: 1;
   clip-path: inset(0);
 }
+/* The reel with its marks to its right; the caption and credit under the reel alone. */
+.reel-figure {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 18px;
+  align-items: center;
+}
+.reel-figure > :not(.reel, .reel-dots) {
+  grid-column: 1;
+}
+/* A mark for each look, as a timeline marks its scenes: dots, the current one drawn long in ink. */
+.reel-dots {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.reel-dots button {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  padding: 5px 0;
+  border: 0;
+  background: none;
+}
+.reel-dots button::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--line-2);
+  transition:
+    height 0.3s var(--ease),
+    background-color 0.2s var(--ease);
+}
+.reel-dots button:hover::after {
+  background: var(--faint);
+}
+.reel-dots button[data-on]::after {
+  height: 24px;
+  background: var(--text);
+}
+/* Under the reel, at its right: the way to the look on MotionHub. */
 .reel-cap {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 16px;
   margin-top: 14px;
   font: 500 12px var(--mono);
   color: var(--muted);
-}
-.reel-cap span {
-  color: var(--text);
 }
 
 /* EDIT */
@@ -1241,10 +1313,14 @@ body::before {
 }
 .credits h2 {
   margin-top: 18px;
-  font-size: clamp(56px, 11vw, 168px);
-  line-height: 0.9;
-  letter-spacing: -0.06em;
+  font-size: clamp(40px, 6.4vw, 96px);
+  line-height: 0.98;
+  letter-spacing: -0.05em;
   text-align: center;
+}
+.credits h2 span {
+  display: block;
+  color: var(--cobalt);
 }
 .credits .lede {
   margin: 22px auto 0;
@@ -1487,6 +1563,16 @@ footer {
   .nav-link[href^="https://github.com"] {
     display: none;
   }
+}
+/* Narrower still, the pages leave the bar too (they are linked from the first screen and the footer): the bar keeps the
+   language, the theme and Download. */
+@media (max-width: 640px) {
+  .nav,
+  .top-sep {
+    display: none;
+  }
+}
+@media (max-width: 760px) {
   .track button {
     display: none;
   }
@@ -1511,11 +1597,6 @@ footer {
   }
   .roll dt {
     text-align: left;
-  }
-  /* Phones: the pages are linked from the first screen and the footer; the bar keeps the toggles and Download. */
-  .nav,
-  .top-sep {
-    display: none;
   }
   .tour {
     padding-top: calc(var(--top) + 24px);
@@ -1575,6 +1656,30 @@ footer {
 :root:lang(zh) h2 {
   letter-spacing: -0.01em;
   line-height: 1.15;
+}
+/* A Chinese headline is a sentence, wider than the English set as large: a size smaller, and its second phrase (the
+   coloured one) kept whole, so a line never breaks inside a word. */
+:root:lang(zh) .open h1 {
+  font-size: clamp(34px, 3.7vw, 54px);
+}
+:root:lang(zh) h2:not(.kicker) {
+  font-size: clamp(28px, 3.4vw, 48px);
+}
+:root:lang(zh) .credits h2 {
+  font-size: clamp(32px, 4.6vw, 68px);
+}
+:root:lang(zh) .get h2 {
+  font-size: clamp(44px, 6.4vw, 96px);
+}
+:root:lang(zh) h1 span,
+:root:lang(zh) h2 em,
+:root:lang(zh) h2 span {
+  white-space: nowrap;
+}
+/* Balancing would split the first phrase to even the lines; let it fill its line instead. */
+:root:lang(zh) h1,
+:root:lang(zh) h2 {
+  text-wrap: wrap;
 }
 :root:lang(zh) .kicker,
 :root:lang(zh) .roll dt {

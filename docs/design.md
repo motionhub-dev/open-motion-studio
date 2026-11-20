@@ -346,8 +346,11 @@ openmotion.studio (`site/`) keeps the Studio's paper, ink and rules, in its own 
   `.btn-primary` is vermilion and is Download alone, in the top bar, on the first screen, on the system's row in the
   downloads and at the end of the tour; `.btn-ghost` is a label that takes the well's colour when pointed at.
 - **Segmented controls** (`.seg`): options side by side in a sunk well, the chosen one raised and sliding to the
-  choice. Language (EN, 中) and theme (light, dark) are two of them; each shows both options, and which is chosen is
-  read from the root's `lang` and `data-theme`, set before the page paints.
+  choice. The theme (light, dark) is one; which is chosen is read from the root's `data-theme`, set before the page
+  paints.
+- **The language** is set as on the Studio's Home: a quiet select (`.select-quiet`) showing Lucide's Languages icon and
+  the language's short name (EN, 中文), opening the languages by their own names (English, 简体中文). Another language
+  is one more option.
 - **Pages** (`.nav-link`): quiet until pointed at, when they take the well; the page one is on has an ink bar under it,
   as the playhead marks a frame.
 - **Selects** (`.select`) are drawn by the page, not the system: a raised button with the chosen option and a chevron
@@ -357,8 +360,14 @@ openmotion.studio (`site/`) keeps the Studio's paper, ink and rules, in its own 
   lockup (`media/motionhub-logo.svg`, `-dark.svg` on the dark theme) at 28 px where the looks are introduced, and its
   icon (`media/motionhub-icon.svg`) at 16 px in the footer; never recoloured.
 - **The top bar** is frosted over the page and takes a hairline once the page scrolls under it. Narrower than 760 px it
-  drops GitHub, narrower than 560 px the pages and the controls go compact, and narrower than 440 px the mark stands
-  for the name.
+  drops GitHub, narrower than 640 px the pages, narrower than 560 px the controls go compact, and narrower than 440 px
+  the mark stands for the name.
+- **The transport bar** at the foot of the front page is its timeline, frosted over the page as the top bar is: what
+  has scrolled by is a band of ink's tint running to the window's edge at the page's end, with the playhead at its edge, and each chapter is marked by its name (What it is, Styles, Precise edits, Free & private,
+  Compare, Get it; in Chinese too), cut short with its whole name in a tip where its room is
+  small.
+- **The looks' reel** has a mark for each look down its right side, as a timeline marks its scenes: dots, the current
+  one drawn long in ink; a click shows that look (the list beside it is the control a keyboard and a reader use).
 
 ## Exploration and recovery
 
