@@ -19,9 +19,14 @@ LEFT_BOTTOM = "crop=1280:720:0:360"  # the composer and the timeline
 AGENT = "crop=864:486:0:36,scale=1440:810:flags=lanczos"  # the assistant close, while it works
 SPOT = "drawbox=x=716:y=0:w=724:h=810:color=black@0.72:t=fill"  # the film beside it dimmed (it rebuilds meanwhile)
 # From the assistant beside the film (1280 wide at 0,0) to the film alone (1100 wide at 432,75): hold 0.9 s, push in
-# over 0.9 s with an ease. The take is doubled first so the moving crop is steady.
+# over 0.9 s with an ease. It ends a little inside the film (INSET), so no edge of the app around it shows. The take is
+# doubled first so the moving crop is steady.
 E = "(st(0,clip((in/30-0.9)/0.9,0,1))*0+ld(0)*ld(0)*(3-2*ld(0)))"
-PUSH = f"scale=3840:2160:flags=lanczos,zoompan=z='1.5+0.2455*{E}':x='864*{E}':y='150*{E}':d=1:s=1440x810:fps=30"
+FILM_X, FILM_Y, FILM_W, INSET = 432, 75, 1100, 1.025
+end_w = FILM_W / INSET
+end_x, end_y = FILM_X + (FILM_W - end_w) / 2, FILM_Y + (FILM_W - end_w) * 9 / 32
+PUSH = (f"scale=3840:2160:flags=lanczos,zoompan=z='1.5+{1920 / end_w - 1.5:.4f}*{E}'"
+        f":x='{2 * end_x:.1f}*{E}':y='{2 * end_y:.1f}*{E}':d=1:s=1440x810:fps=30")
 WORK = 3.6  # the agent's turn, however long, sped up to this many seconds
 HOLD = 1.2  # the last frame held
 

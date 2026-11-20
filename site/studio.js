@@ -1,4 +1,4 @@
-// openmotion.studio, both pages: the language and the theme; on the front page the hero's loop of the real app, the
+// openmotion.studio, both pages: the language and the theme; on the front page the hero's demo of the real app, the
 // looks, the two cuts, the transport bar and the download; on /tour the walkthrough and its steps.
 const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const pad = (n) => String(n).padStart(2, "0");
@@ -8,13 +8,6 @@ const smpte = (seconds) => {
   const s = Math.floor(f / 24);
   return pad(Math.floor(s / 3600)) + ":" + pad(Math.floor(s / 60) % 60) + ":" + pad(s % 60) + ":" + pad(f % 24);
 };
-// Play a muted video while it is on screen, pause it when it is not.
-function playInView(video, wanted = () => true) {
-  new IntersectionObserver(([entry]) => {
-    if (entry.isIntersecting && wanted()) video.play().catch(() => {});
-    else video.pause();
-  }).observe(video);
-}
 
 /* Language: English or Chinese. The page is written in English, and an element that reads differently in Chinese
    carries its Chinese beside it: data-zh for its content (HTML), data-zh-<attribute> for an attribute. The head picked
@@ -205,7 +198,8 @@ const edgeTopBar = () => topBar.toggleAttribute("data-scrolled", scrollY > 4);
 window.addEventListener("scroll", edgeTopBar, { passive: true });
 edgeTopBar();
 
-/* OPEN: the loop of the real app, with its four steps lit as it plays. */
+/* OPEN: the demo of the real app, paused at its first frame until it is played (by its button, a click on it or a step),
+   and back at its first frame, paused, when it ends; its four steps lit as it plays. */
 const loop = document.querySelector("#loop");
 // The tour was a section of this page until it had its own; links to it still say #tour.
 if (loop && location.hash === "#tour") location.replace("/tour" + location.search);
@@ -225,16 +219,32 @@ if (loop) {
     });
     if (!loop.paused) requestAnimationFrame(lightStep);
   };
-  loop.addEventListener("play", () => requestAnimationFrame(lightStep));
+  const cover = document.querySelector("#play-loop");
+  const play = () => loop.play().catch(() => {});
+  loop.addEventListener("play", () => {
+    cover.hidden = true;
+    requestAnimationFrame(lightStep);
+  });
+  loop.addEventListener("pause", () => (cover.hidden = false));
+  loop.addEventListener("ended", () => {
+    loop.currentTime = 0;
+    cover.hidden = false;
+  });
   loop.addEventListener("seeked", lightStep);
+  loop.addEventListener("click", () => (loop.paused ? play() : loop.pause()));
+  cover.addEventListener("click", play);
   stepButtons.forEach((button, i) =>
     button.addEventListener("click", () => {
       loop.currentTime = starts[i];
-      loop.play().catch(() => {});
+      play();
     }),
   );
-  if (reduce) loop.controls = true;
-  else playInView(loop);
+  // Out of sight it stops where it is.
+  new IntersectionObserver(([entry]) => {
+    if (!entry.isIntersecting) loop.pause();
+  }).observe(loop);
+  cover.hidden = false;
+  lightStep();
 }
 
 /* TOUR (/tour): the steps beside the film are its chapters, lit as it plays; captions follow the page's language
@@ -294,6 +304,10 @@ if (tour) {
     tour.controls = true;
   });
   playCover.addEventListener("click", playTour);
+  // Before its controls show, a click on the picture plays it too; after, the browser's own click plays and pauses.
+  tour.addEventListener("click", () => {
+    if (!tour.controls) playTour();
+  });
   document.querySelector("#tour-options").hidden = false;
   playCover.hidden = false;
   tour.controls = false;

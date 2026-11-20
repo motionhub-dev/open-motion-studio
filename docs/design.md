@@ -362,6 +362,13 @@ openmotion.studio (`site/`) keeps the Studio's paper, ink and rules, in its own 
 - **The top bar** is frosted over the page and takes a hairline once the page scrolls under it. Narrower than 760 px it
   drops GitHub, narrower than 640 px the pages, narrower than 560 px the controls go compact, and narrower than 440 px
   the mark stands for the name.
+- **A film's frame** on the front page (the demo, the looks' reel) clips the picture square, the video laid out 3px
+  past it on every side, and draws its rounded corners and hairline over the picture, the corners outside the curve
+  filled with the page's ground: Chrome on Windows otherwise draws a hair of black along a scaled video's edge, or
+  along the right and bottom of a rounded clip. Neither frame has a shadow.
+- **A paused film** shows a play button in the headlines' cobalt, its play mark in a disc, over the picture dimmed a
+  little; a click anywhere on the picture plays or pauses it, and the first screen's demo returns to its first frame
+  when it ends.
 - **The transport bar** at the foot of the front page is its timeline, frosted over the page as the top bar is: what
   has scrolled by is a band of ink's tint running to the window's edge at the page's end, with the playhead at its edge, and each chapter is marked by its name (What it is, Styles, Precise edits, Free & private,
   Compare, Get it; in Chinese too), cut short with its whole name in a tip where its room is

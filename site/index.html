@@ -111,7 +111,6 @@
                 width="1440"
                 height="810"
                 muted
-                loop
                 playsinline
                 preload="auto"
                 poster="media/studio-loop.webp"
@@ -119,6 +118,11 @@
                 aria-label="OpenMotionStudio in use: the bars of a chart are circled on the picture with a note asking for the tallest one in red and the bars rising one after another; Claude Code changes the video, and the new version plays."
                 data-zh-aria-label="OpenMotionStudio 使用中：在画面上圈出图表的柱子，写下要求：最高的一根改成红色，柱子依次升起；Claude Code 修改视频，新版本随即播放。"
               ></video>
+              <!-- Shown while the demo is paused: at its first frame on arrival and after it ends (studio.js). -->
+              <button class="play-cover" id="play-loop" type="button" hidden>
+                <i class="play" aria-hidden="true"></i><span data-zh="播放演示">Play the demo</span
+                ><time datetime="PT18S">0:18</time>
+              </button>
             </div>
             <figcaption>
               <ol class="steps" id="steps">
