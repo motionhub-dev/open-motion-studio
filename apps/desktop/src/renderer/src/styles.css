@@ -158,8 +158,7 @@ button:disabled {
 }
 
 .button.accent:hover:not(:disabled) {
-  filter: brightness(1.06);
-  background: var(--accent);
+  background: color-mix(in srgb, var(--accent) 92%, var(--text));
 }
 
 .button.ghost,
@@ -567,6 +566,14 @@ button.status:hover {
   background: transparent;
   color: inherit;
   border-color: currentColor;
+}
+
+.toast .button:hover:not(:disabled) {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.toast .button:focus-visible {
+  outline-color: currentColor;
 }
 
 .workspace {
@@ -1015,6 +1022,12 @@ button.status:hover {
 
 .stage-bar .play:hover:not(:disabled) {
   background: rgb(255 255 255 / 0.85);
+}
+
+.stage-bar > button:focus-visible,
+.stage-bar .pointing > button:focus-visible,
+.stage-bar .spec:focus-visible {
+  outline-color: #fff;
 }
 
 .stage-bar .timecode {
@@ -2161,7 +2174,7 @@ button.status:hover {
 }
 
 .lightbox figcaption {
-  color: var(--sheet);
+  color: #fff;
   font-size: 12px;
   text-align: center;
 }
@@ -2172,6 +2185,16 @@ button.status:hover {
   right: 8px;
   background: var(--overlay);
   color: #fff;
+}
+
+.lightbox .icon-button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--overlay) 92%, #fff);
+  color: #fff;
+}
+
+.lightbox .icon-button:focus-visible {
+  outline-color: #fff;
+  outline-offset: -3px;
 }
 
 /* The motion panel. */
