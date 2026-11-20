@@ -11,11 +11,13 @@ files:
   - out/**
   - resources/**
   - package.json
-# Binaries the app runs as processes cannot be read from inside the archive.
+# Binaries the app runs as processes cannot be read from inside the archive, nor can esbuild read three.js there,
+# which it bundles into a film that imports it (src/main/film/film.ts).
 asarUnpack:
   - '**/node_modules/esbuild/**'
   - '**/node_modules/@esbuild/**'
   - '**/node_modules/ffmpeg-static/**'
+  - '**/node_modules/three/**'
 npmRebuild: false
 # The Studio's eased-square icon (resources/icon.svg, docs/design.md): a 1024 px picture electron-builder turns
 # into the .icns and Linux's PNGs, and for Windows an .ico of 16 to 256 px. The window takes the same files

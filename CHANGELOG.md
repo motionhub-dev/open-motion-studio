@@ -11,6 +11,14 @@ Every key change to OpenMotionStudio, newest first, by date. What counts as key 
 - **Upgrade:** Nothing.
 - **Refs:** `site/index.html`, `site/studio.js`, `site/studio.css`, `site/media/`, `README.md`.
 
+## 2026-11-20 — Looks drawn in real 3D build in the Studio
+
+- **What:** A film that uses a look drawn with three.js (such as Clay World on MotionHub) builds, plays and exports: the Studio bundles its own three.js 0.187.0, the version motionhub's player uses, with its addons. The agent is told it is there, and a Remotion export pins the same version.
+- **Why:** motionhub's spec lets a look's components import three.js, but the Studio provided only React and the runtime, and runs no package installer, so such a film could not build.
+- **Breaking:** None. A project's own `node_modules/three` is no longer used for its film; the Studio's copy is.
+- **Upgrade:** Nothing. It arrives with the next release.
+- **Refs:** `apps/desktop/src/main/film/film.ts`, `apps/desktop/src/main/film/film.md`, `apps/desktop/src/main/film/remotion-export.ts`, `apps/desktop/electron-builder.yml`, `apps/desktop/package.json`, `docs/tech/architecture.md`.
+
 ## 2026-11-20 — The website's controls are one family
 
 - **What:** The website's buttons, toggles, links and selects follow one set of components, after the Studio's own: raised buttons in three sizes with Download alone in vermilion; language (EN, 中) and theme (light, dark) as segmented controls that show both choices; selects drawn by the page, their lists included, instead of the system; the pages in the top bar marked by an ink bar under the current one; a frosted top bar that takes an edge once the page scrolls. The downloads, the first screen and the tour use the same buttons.

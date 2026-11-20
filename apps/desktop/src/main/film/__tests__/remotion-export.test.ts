@@ -48,13 +48,16 @@ describe('writeRemotionProject', () => {
   });
 
   it('keeps a package.json’s own dependencies, and a README the film already has', async () => {
-    await writeFile(join(film, 'package.json'), JSON.stringify({ name: 'mine', dependencies: { three: '0.180.0', react: '18.0.0' } }));
+    const own = { d3: '7.9.0', three: '0.180.0', react: '18.0.0' };
+    await writeFile(join(film, 'package.json'), JSON.stringify({ name: 'mine', dependencies: own }));
     await writeFile(join(film, 'README.md'), 'Mine.\n');
     const out = join(root, 'out');
     await writeRemotionProject(film, out, 'heat pump', ['intro', 'how']);
     const manifest = JSON.parse(await readFile(join(out, 'package.json'), 'utf8'));
     expect(manifest.name).toBe('mine');
-    expect(manifest.dependencies).toEqual({ ...REMOTION_DEPENDENCIES, three: '0.180.0' });
+    // The project's own packages stay; React, the runtime and three.js are the versions the Studio drew the film with.
+    expect(manifest.dependencies).toEqual({ ...REMOTION_DEPENDENCIES, d3: '7.9.0' });
+    expect(manifest.dependencies.three).toBe('0.187.0');
     expect(await readFile(join(out, 'README.md'), 'utf8')).toBe('Mine.\n');
   });
 

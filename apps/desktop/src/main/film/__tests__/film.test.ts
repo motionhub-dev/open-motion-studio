@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -61,6 +61,36 @@ describe('watchFilm', () => {
     expect(bundle).toContain('require("@motionhub/runtime")');
     expect(bundle).toContain('require("react/jsx-runtime")');
     expect(bundle).not.toContain('react.production');
+  });
+
+  it('bundles three.js and its addons from the Studio, at the version motionhub pins, over a copy in the project', async () => {
+    // A project's own node_modules/three, which a film must not pick up instead.
+    await mkdir(join(root, 'node_modules', 'three'), { recursive: true });
+    await writeFile(join(root, 'node_modules', 'three', 'package.json'), '{"name":"three","main":"index.js"}');
+    await writeFile(join(root, 'node_modules', 'three', 'index.js'), 'export const REVISION = "project";');
+    await writeFile(
+      join(root, FILM),
+      `import * as THREE from 'three';
+import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+export const film = {width: 1280, height: 720};
+export const parts = [THREE.REVISION, new RoundedBoxGeometry(1, 1, 1).type];
+export default function Main() { return null; }
+`,
+    );
+    const [result] = await builds(1);
+    expect(result).toEqual({ ok: true, version: 1, errors: [] });
+    const bundle = await readFile(join(buildDir(root), 'film.js'), 'utf8');
+    expect(bundle).toContain('REVISION = "187"');
+    expect(bundle).toContain('RoundedBoxGeometry');
+    expect(bundle).not.toContain('require("three');
+    expect(bundle).not.toContain('"project"');
+  });
+
+  it('refuses a package it does not provide and the project does not hold', async () => {
+    await writeFile(join(root, FILM), "import lodash from 'lodash';\nexport default function Main() { return lodash; }\n");
+    const [result] = await builds(1);
+    expect(result?.ok).toBe(false);
+    expect(result?.errors[0]).toContain('lodash');
   });
 
   it('reports an error, and the next build when it is fixed', async () => {

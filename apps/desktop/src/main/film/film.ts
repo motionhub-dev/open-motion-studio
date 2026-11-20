@@ -6,14 +6,14 @@
 //   export default function Main() { return <Film><Scene id="intro" duration={4}>…</Scene></Film>; }
 //
 // The Studio bundles it with esbuild into .motion-studio/build/film.js, leaving React and
-// the runtime to the preview core (src/preview/core.tsx), and plays, stills and exports
-// it from there; the faces of the project's motions go beside it in fonts.css.
+// the runtime to the preview core (src/preview/core.tsx) and bundling three.js from its own copy,
+// and plays, stills and exports it from there; the faces of the project's motions go beside it in fonts.css.
 
 import type { BuildContext, Message, Plugin } from 'esbuild';
 import { createRequire } from 'node:module';
 import { existsSync } from 'node:fs';
 import { copyFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import type { BuildResult } from '../../shared/api';
 import { motionFaces } from '../motions';
 import { STATE_DIR } from '../project';
@@ -39,6 +39,22 @@ export const FACES = 'fonts.css';
 
 /** What the preview core provides; everything else a film imports is bundled. */
 const PROVIDED = ['react', 'react/jsx-runtime', '@motionhub/runtime'];
+
+/**
+ * three.js, which a motion's parts may import with its subpaths (motionhub's SPEC.md, "react/parts"): the Studio's own copy,
+ * at the version motionhub's player pins, bundled into a film that imports it. Read from outside app.asar, which esbuild's
+ * process cannot read (electron-builder.yml unpacks it); a project's own node_modules does not replace it.
+ */
+const threeModules = dirname(dirname(dirname(require.resolve('three')))).replace(/([/\\])app\.asar([/\\])/, '$1app.asar.unpacked$2');
+const THREE = Symbol('three');
+const studioThree: Plugin = {
+  name: 'studio-three',
+  setup(build) {
+    build.onResolve({ filter: /^three(\/|$)/ }, (args) =>
+      args.pluginData === THREE ? undefined : build.resolve(args.path, { kind: args.kind, resolveDir: threeModules, pluginData: THREE }),
+    );
+  },
+};
 
 /** The kinds of file a film may import, served beside its bundle. */
 const ASSETS = [
@@ -158,7 +174,7 @@ export async function watchFilm(dir: string, onBuilt: (result: BuildResult) => v
       publicPath: 'build',
       sourcemap: 'inline',
       logLevel: 'silent',
-      plugins: [reporter(onBuilt, dir)],
+      plugins: [studioThree, reporter(onBuilt, dir)],
     });
     await ctx.watch();
     return ctx;

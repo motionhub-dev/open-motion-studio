@@ -161,9 +161,12 @@ One engine, the Studio's own ([ADR 0005](../adr/0005-the-studio-has-one-engine-i
   are the film's length, so `film.seconds` is refused, and so is a film whose default export draws no `<Film>`. The preview core draws the film once, off the page, to learn its structure from what
   `<Film>` reports (`onFilm`), and sends it with the film (`FilmInfo.scenes`, `FilmInfo.layers`). esbuild bundles it into
   `.motion-studio/build/film.js` on every change of a file it imports, leaving React and the runtime to the preview core,
-  which provides them to the bundle as `require`. In a packaged app the main process loads esbuild's API from
-  `app.asar.unpacked` as well as unpacking its binary: the API resolves the executable relative to its own entry,
-  and child processes cannot execute paths inside the virtual archive.
+  which provides them to the bundle as `require`. three.js, which motionhub's spec lets a motion's parts import with
+  its subpaths, is the Studio's own copy at the version motionhub's player pins (0.187.0), bundled into a film that
+  imports it; a project's `node_modules/three` does not replace it, and a Remotion export pins the same version. In a
+  packaged app the main process loads esbuild's API from `app.asar.unpacked` as well as unpacking its binary: the API
+  resolves the executable relative to its own entry, and child processes cannot execute paths inside the virtual
+  archive; three.js is unpacked too, since esbuild's process cannot read the archive.
 - **The preview speaks one message protocol** (`src/shared/preview.ts`): the Studio sends `play`, `pause`, `seek`,
   `play-range`, `pick(x, y, depth)` and `solo(layer)` (every other `<Layer>` hidden, for a layer played alone), the page answers `ready` (the film's length, size, frame rate and scenes), `time`, `error` and `picked`. The core
   answers the first three and sets `window.__omsFrame` (the film's size); `studio/pick.js` answers `pick` with the

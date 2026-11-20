@@ -23,6 +23,8 @@ export const REMOTION_DEPENDENCIES: Record<string, string> = {
   react: '19.3.1',
   'react-dom': '19.3.1',
   remotion: '4.0.542',
+  // What the Studio bundles for a motion's real-3D parts (film.ts), at the same version.
+  three: '0.187.0',
 };
 
 /** What of a project is not copied: the Studio's state, installed packages and git's own. */
