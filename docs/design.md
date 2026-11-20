@@ -1,6 +1,6 @@
 # Design
 
-> **Status:** Current · **Updated:** 2026-11-18
+> **Status:** Current · **Updated:** 2026-11-19
 
 The Studio's visual system: its identity, colour, type, shape, icons, the workspace's layout and the rules components follow.
 
@@ -23,6 +23,10 @@ curve `#FFB4A1`, corners at 22.5 %) is its source. `icon.png` is it at 1024 px, 
 Mac's and Linux's icons, and `icon.ico` is Windows', 16 to 256 px; both are rendered from `icon.svg` and change with
 it. The window, the tray and Home's logo (`logo.tsx`) take the same files. The website (`site/favicon.svg`) uses the
 same drawing.
+
+The name beside the mark is one word set in two weights, split as the address openmotion.studio is: **OpenMotion** in
+weight 650 and ink, **Studio** in 400 and `--muted` (`Wordmark` in `logo.tsx`, `.brand` on the website). In running
+text the name stays plain: OpenMotionStudio.
 
 The window has no menu bar on Windows and Linux; on a Mac the system's menu bar keeps the app's menu, File, Edit and
 Window, for their keys (Quit, New Window, copy and paste in text, minimise).

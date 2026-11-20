@@ -5246,6 +5246,16 @@ input.switch:disabled {
   font-size: 18px;
 }
 
+.wordmark {
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.wordmark span {
+  font-weight: 400;
+  color: var(--muted);
+}
+
 .home-nav {
   display: flex;
   flex-direction: column;

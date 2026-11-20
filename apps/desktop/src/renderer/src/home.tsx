@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { MAX_BRIEF } from '../../shared/api';
 import type { Agents, Example, LibraryProject, Project, ProjectTask, Providers, VoiceKind, WorkspaceSettings } from '../../shared/api';
-import { Logo } from './logo';
+import { Logo, Wordmark } from './logo';
 import { SETTINGS_SECTIONS, Settings, type SettingsSection } from './settings';
 import { Select } from './select';
 import { SystemMessage, usePreferences } from './preferences';
@@ -834,7 +834,7 @@ export function Home({ providers, workspace, tasks, examples, busy, error, revis
       <header className="home-header">
         <div className="home-brand">
           <Logo size={30} />
-          <strong>OpenMotionStudio</strong>
+          <Wordmark />
         </div>
         <span className="spacer" />
         {/* The language and the look, one click each; Follow system stays in Settings. */}
