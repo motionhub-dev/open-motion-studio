@@ -490,7 +490,7 @@ export interface SystemStartup {
 
 export interface StudioUpdate {
   installed: string;
-  status: 'idle' | 'checking' | 'checked' | 'error';
+  status: 'idle' | 'checking' | 'checked' | 'error' | 'downloading' | 'ready' | 'installing' | 'download-error';
   available: string | null;
   dismissed: string | null;
 }
@@ -498,6 +498,7 @@ export interface StudioUpdate {
 export interface StudioApi {
   updateStatus(): Promise<StudioUpdate>;
   checkForUpdates(): Promise<void>;
+  installUpdate(): Promise<string | null>;
   openUpdateDownload(): Promise<void>;
   dismissUpdate(version: string): Promise<void>;
   onUpdateChanged(listener: (state: StudioUpdate) => void): () => void;
@@ -676,6 +677,7 @@ export const CHANNELS = {
   updateStatus: 'updates:status',
   checkForUpdates: 'updates:check',
   openUpdateDownload: 'updates:download',
+  installUpdate: 'updates:install',
   dismissUpdate: 'updates:dismiss',
   projectLibrary: 'library:list',
   libraryAction: 'library:action',

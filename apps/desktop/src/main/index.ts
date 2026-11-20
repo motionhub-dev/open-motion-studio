@@ -2,6 +2,7 @@
 
 import './logging-startup';
 import { StudioUpdates, downloads } from './updates';
+import { createUpdateDownloader } from './installer-update';
 import { BaseWindow, BrowserWindow, Menu, Tray, app, dialog, ipcMain, nativeImage, webContents, session, shell, type Session, type WebContents } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { mkdir, realpath, open as openFile, rm } from 'node:fs/promises';
@@ -38,6 +39,8 @@ let activeEditor: Editor | null = null;
 let tray: Tray;
 let quitting = false;
 let quitReady = false;
+let installingUpdate = false;
+let pendingActions = 0;
 let taskUpdate: NodeJS.Timeout | undefined;
 const libraryFile = () => join(app.getPath('userData'), 'projects.json');
 const icon = () => join(app.getAppPath(), 'resources', process.platform === 'win32' ? 'icon.ico' : 'icon.png');
@@ -268,6 +271,16 @@ async function renameKnown(path: string, name: unknown): Promise<void> {
 }
 
 async function openKnown(path: unknown, separate: unknown): Promise<void> {
+  if (quitting || installingUpdate) return;
+  pendingActions++;
+  try {
+    await openKnownProject(path, separate);
+  } finally {
+    pendingActions--;
+  }
+}
+
+async function openKnownProject(path: unknown, separate: unknown): Promise<void> {
   if (typeof path !== 'string' || (separate !== undefined && typeof separate !== 'boolean')) throw new Error('Choose a project to open.');
   const known = [...editors.values()].find((e) => e.project.path === path);
   if (!known && !(await inLibrary(libraryFile(), path))) throw new Error('That project is not in your library.');
@@ -319,43 +332,107 @@ async function createMain(): Promise<void> {
   await loadUI(mainWindow.webContents);
 }
 
+async function lockUpdateView(contents: WebContents): Promise<boolean> {
+  let timeout: NodeJS.Timeout | undefined;
+  try {
+    return await Promise.race([
+      contents.executeJavaScript('window.studioUpdateLock?.(true) === true'),
+      new Promise<boolean>(resolve => { timeout = setTimeout(() => resolve(false), 2000); }),
+    ]);
+  } catch {
+    return false;
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
+async function shutdown(exit: () => void): Promise<void> {
+  quitting = true;
+  if (taskUpdate) clearTimeout(taskUpdate);
+  try {
+    await Promise.allSettled([homeWorkspace, ...[...editors.values()].map(e => e.workspace)].filter(Boolean).map(w => w.dispose()));
+    for (const entry of editors.values()) {
+      detach(entry);
+      if (entry.window && !entry.window.isDestroyed()) entry.window.destroy();
+      entry.view.webContents.session.protocol.unhandle(SCHEME);
+      entry.renderSession.protocol.unhandle(SCHEME);
+      entry.view.webContents.close();
+    }
+    tray?.destroy();
+  } catch (error) {
+    logFailure('app.shutdown', error);
+  }
+  quitReady = true;
+  try { exit(); }
+  catch (error) {
+    logFailure('app.relaunch', error);
+    app.quit();
+  }
+}
+
 registerPreviewScheme();
 const primary = app.requestSingleInstanceLock();
 if (!primary) app.quit();
 else {
   app.on('second-instance', () => { void app.whenReady().then(() => { if (mainWindow) showMain(); }); });
-  app.on('before-quit', (event) => {
+  app.on('before-quit', event => {
     if (quitReady) return;
     event.preventDefault();
-    if (quitting) return;
-    quitting = true;
-    if (taskUpdate) clearTimeout(taskUpdate);
-    void (async () => {
-      await Promise.allSettled([homeWorkspace, ...[...editors.values()].map(e => e.workspace)].filter(Boolean).map(w => w.dispose()));
-      for (const entry of editors.values()) {
-        detach(entry);
-        if (entry.window && !entry.window.isDestroyed()) entry.window.destroy();
-        entry.view.webContents.session.protocol.unhandle(SCHEME);
-        entry.renderSession.protocol.unhandle(SCHEME);
-        entry.view.webContents.close();
-      }
-      tray?.destroy();
-      quitReady = true;
-      app.quit();
-    })().catch(error => { console.error('OpenMotionStudio could not finish shutting down:', error); quitReady = true; app.quit(); });
+    if (!quitting && !installingUpdate) void shutdown(() => app.quit());
   });
   void app.whenReady().then(async () => {
     const updates = new StudioUpdates(app.getVersion(), (url, options) => session.defaultSession.fetch(url, options), state => {
       for (const id of surfaces.keys()) webContents.fromId(id)?.send(EVENTS.update, state);
-    });
+    }, await createUpdateDownloader());
+    async function installUpdate(): Promise<string | null> {
+      if (installingUpdate || updates.state.status !== 'ready') return null;
+      installingUpdate = true;
+      const views: WebContents[] = [];
+      try {
+        const busy = [...editors.values()].find(entry => entry.workspace.busy());
+        if (busy) return busy.project.name;
+        if (pendingActions || homeWorkspace.busy()) {
+          log('updates.restart-deferred', { reason: 'work', pendingActions });
+          return 'OpenMotionStudio';
+        }
+        for (const [id, workspace] of surfaces) {
+          const contents = webContents.fromId(id);
+          const name = workspace.project()?.name ?? 'OpenMotionStudio';
+          if (!contents || contents.isDestroyed()) return name;
+          views.push(contents);
+          if (!await lockUpdateView(contents)) {
+            log('updates.restart-deferred', { reason: 'view' });
+            return name;
+          }
+        }
+        const running = [...editors.values()].find(entry => entry.workspace.busy());
+        if (running) return running.project.name;
+        if (homeWorkspace.busy()) return 'OpenMotionStudio';
+        const restart = await updates.prepareInstall();
+        await shutdown(restart);
+        return null;
+      } finally {
+        if (!quitting) {
+          for (const contents of views) {
+            if (!contents.isDestroyed()) void contents.executeJavaScript('window.studioUpdateLock?.(false)').catch(() => {});
+          }
+          installingUpdate = false;
+        }
+      }
+    }
     for (const channel of Object.values(CHANNELS)) ipcMain.handle(channel, async (event, ...args) => {
       const started = Date.now();
+      let tracked = false;
       try {
         const workspace = surfaces.get(event.sender.id);
         if (quitting || !workspace || event.senderFrame !== event.sender.mainFrame) throw new Error('This view cannot call the Studio.');
         const entry = [...editors.values()].find(e => e.view.webContents.id === event.sender.id);
         if (channel === CHANNELS.updateStatus) return updates.state;
+        if (channel === CHANNELS.installUpdate) return await installUpdate();
+        if (installingUpdate) throw new Error('An update restart is in progress.');
         if (channel === CHANNELS.checkForUpdates) return updates.check();
+        pendingActions++;
+        tracked = true;
         if (channel === CHANNELS.dismissUpdate) return updates.dismiss(args[0]);
         if (channel === CHANNELS.openUpdateDownload) return shell.openExternal(downloads);
         if (channel === CHANNELS.projectLibrary) return projectLibrary(libraryFile());
@@ -467,17 +544,21 @@ else {
       } catch (error) {
         logFailure('ipc.failed', error, { channel, elapsedMs: Date.now() - started });
         throw error;
+      } finally {
+        if (tracked) pendingActions--;
       }
     });
     Menu.setApplicationMenu(process.platform === 'darwin' ? Menu.buildFromTemplate([
       { role: 'appMenu' },
-      { label: 'File', submenu: [{ label: 'Open in Editor Window', accelerator: 'CmdOrCtrl+Shift+N', click: () => { if (activeEditor) openSeparate(activeEditor); } }] },
+      { label: 'File', submenu: [{ label: 'Open in Editor Window', accelerator: 'CmdOrCtrl+Shift+N', click: () => { if (activeEditor && !installingUpdate && !quitting) openSeparate(activeEditor); } }] },
       { role: 'editMenu' }, { role: 'windowMenu' },
     ]) : null);
     await createMain();
     if (app.isPackaged) {
       const check = async () => {
-        if (!quitting && (await providers().preferences()).checkUpdatesAutomatically !== false) await updates.check();
+        if (quitting || installingUpdate) return;
+        const { checkUpdatesAutomatically } = await providers().preferences();
+        if (!quitting && !installingUpdate && checkUpdatesAutomatically !== false) await updates.check();
       };
       const background = () => { void check().catch(error => logFailure('updates.check', error)); };
       setTimeout(background, 10000).unref();

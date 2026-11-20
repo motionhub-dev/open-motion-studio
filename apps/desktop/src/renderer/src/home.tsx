@@ -455,6 +455,7 @@ function Prompt({ field, available, disabled, onCreate, onOpen, onSetUp }: {
         rows={3}
         maxLength={MAX_BRIEF}
         value={brief}
+        data-update-draft={!!brief}
         aria-label={t('Describe the film you want to make')}
         placeholder={t('Describe the film you want to make…')}
         onChange={(event) => setBrief(event.target.value)}

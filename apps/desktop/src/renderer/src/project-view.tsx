@@ -197,6 +197,7 @@ function ProjectMenu({ project, onError, onVersions }: { project: Project; onErr
           value={naming}
           autoFocus
           onFocus={(event) => event.currentTarget.select()}
+          data-update-draft={true}
           onChange={(event) => setNaming(event.target.value)}
           onKeyDown={(event) => {
             event.stopPropagation();

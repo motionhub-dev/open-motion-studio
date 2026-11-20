@@ -21,8 +21,47 @@ function DownloadUpdate() {
   </>;
 }
 
+function UpdateAction({ state }: { state: StudioUpdate }) {
+  const { t } = usePreferences();
+  const [pending, setPending] = useState(false);
+  const [blocked, setBlocked] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  if (state.status === 'downloading') return <span>{t('Downloading update…')}</span>;
+  if (state.status === 'installing') return <span>{t('Preparing to restart…')}</span>;
+  if (state.status !== 'ready') return <DownloadUpdate />;
+  return <>
+    <button className="button" disabled={pending} onClick={async () => {
+      setPending(true);
+      setBlocked(null);
+      setFailed(false);
+      try { setBlocked(await window.studio.installUpdate()); }
+      catch { setFailed(true); }
+      finally { setPending(false); }
+    }}>{t('Restart to update')}</button>
+    {blocked && <small role="status">{t('Finish active work and save or discard drafts in {name}, then try again.', { name: blocked })}</small>}
+    {failed && <small role="alert">{t('Could not prepare the update. Check for updates to try again.')}</small>}
+  </>;
+}
+
+declare global {
+  interface Window {
+    studioUpdateLock?: (locked: boolean) => boolean;
+  }
+}
+
 export function StudioUpdateProvider({ children }: { children: ReactNode }) {
   const { t } = usePreferences();
+  useEffect(() => {
+    window.studioUpdateLock = locked => {
+      if (locked && document.querySelector('[data-update-draft="true"]')) return false;
+      document.body.inert = locked;
+      return true;
+    };
+    return () => {
+      delete window.studioUpdateLock;
+      document.body.inert = false;
+    };
+  }, []);
   const [state, setState] = useState<StudioUpdate | null>(null);
   useEffect(() => {
     let acceptSnapshot = true;
@@ -38,7 +77,8 @@ export function StudioUpdateProvider({ children }: { children: ReactNode }) {
     {children}
     {version && version !== state.dismissed && <aside className="toast update-notice" aria-label={t('Studio updates')}>
       <span role="status">{t('OpenMotionStudio {version} is available.', { version })}</span>
-      <DownloadUpdate />
+      <UpdateAction state={state} />
+      {state.status === 'download-error' && <small role="status">{t('Could not prepare the update. Check for updates to try again.')}</small>}
       <button className="button" onClick={() => void window.studio.dismissUpdate(version)}>{t('Later')}</button>
     </aside>}
   </UpdateContext.Provider>;
@@ -65,15 +105,16 @@ export function UpdateSettings() {
         }} />
     </label>
     <div className="update-actions">
-      <button className="button" disabled={state?.status === 'checking'} onClick={() => {
+      <button className="button" disabled={state?.status === 'checking' || state?.status === 'downloading' || state?.status === 'installing'} onClick={() => {
         setFailed(false);
         void window.studio.checkForUpdates().catch(() => setFailed(true));
       }}>{state?.status === 'checking' ? t('Checking for updates…') : t('Check for updates')}</button>
-      {state?.available && <DownloadUpdate />}
+      {state?.available && <UpdateAction state={state} />}
     </div>
     <div role="status">
       {state?.available && <p>{t('OpenMotionStudio {version} is available.', { version: state.available })}</p>}
       {state?.status === 'checked' && !state.available && <p>{t('You have the latest version.')}</p>}
+      {state?.status === 'download-error' && <p>{t('Could not prepare the update. Check for updates to try again.')}</p>}
       {state?.status === 'error' && <p>{t('Could not check for updates. Try again later.')}</p>}
       {failed && <p>{t('Could not complete this action. Please try again.')}</p>}
     </div>

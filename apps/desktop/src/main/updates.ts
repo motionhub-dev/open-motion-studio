@@ -1,3 +1,5 @@
+import type { PreparedUpdate } from './installer-update';
+import { log } from './log';
 import type { StudioUpdate } from '../shared/api';
 
 const releaseApi = 'https://api.github.com/repos/motionhubdev/openmotionstudio/releases/latest';
@@ -27,8 +29,10 @@ type ReleaseRequest = (url: string, options: {
 export class StudioUpdates {
   state: StudioUpdate;
   private pending?: Promise<void>;
+  private prepared?: PreparedUpdate;
 
-  constructor(installed: string, private request: ReleaseRequest, private notify: (state: StudioUpdate) => void) {
+  constructor(installed: string, private request: ReleaseRequest, private notify: (state: StudioUpdate) => void,
+    private download?: (version: string) => Promise<PreparedUpdate>) {
     this.state = { installed, status: 'idle', available: null, dismissed: null };
   }
 
@@ -41,12 +45,27 @@ export class StudioUpdates {
     if (version === this.state.available) this.set({ dismissed: version });
   }
 
+  async prepareInstall(): Promise<() => void> {
+    if (this.state.status !== 'ready' || !this.prepared) throw new Error('No update is ready');
+    this.set({ status: 'installing' });
+    try {
+      return await this.prepared.prepareInstall();
+    } catch (error) {
+      this.prepared = undefined;
+      this.set({ status: 'download-error' });
+      log('updates.install-error', { version: this.state.available, platform: process.platform, arch: process.arch });
+      throw error;
+    }
+  }
+
   check(): Promise<void> {
+    if (this.state.status === 'installing') return Promise.resolve();
     if (!this.pending) this.pending = this.refresh().finally(() => { this.pending = undefined; });
     return this.pending;
   }
 
   private async refresh() {
+    const previous = this.state;
     this.set({ status: 'checking' });
     try {
       const response = await this.request(releaseApi, {
@@ -56,9 +75,26 @@ export class StudioUpdates {
       });
       if (!response.ok) throw new Error('Release service unavailable');
       const available = newerStableVersion(this.state.installed, await response.json());
-      this.set({ status: 'checked', available });
+      if (available && available === previous.available && this.prepared) {
+        this.set({ status: 'ready' });
+        return;
+      }
+      this.prepared = undefined;
+      if (!available || !this.download) {
+        this.set({ status: 'checked', available });
+        return;
+      }
+      this.set({ status: 'downloading', available });
+      try {
+        this.prepared = await this.download(available);
+        this.set({ status: 'ready', dismissed: null });
+        log('updates.ready', { version: available, platform: process.platform, arch: process.arch });
+      } catch {
+        this.set({ status: 'download-error' });
+        log('updates.download-error', { version: available, platform: process.platform, arch: process.arch });
+      }
     } catch {
-      this.set({ status: 'error' });
+      this.set({ status: this.prepared ? 'ready' : 'error' });
     }
   }
 }

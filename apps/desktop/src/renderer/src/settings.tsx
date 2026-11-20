@@ -123,7 +123,9 @@ function VoicePane({
   const [sample, setSample] = useState<string | null>(null);
   const [busy, setBusy] = useState<'saving' | 'listing' | 'speaking' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [voiceDirty, setVoiceDirty] = useState(false);
   const edit = (change: Partial<VoiceInput>) => {
+    setVoiceDirty(true);
     setDraft((d) => ({ ...d, ...change }));
   };
   async function act<T>(what: 'saving' | 'listing' | 'speaking', work: () => Promise<T>): Promise<T | null> {
@@ -141,7 +143,7 @@ function VoicePane({
   const chosen = choices?.find((c) => c.id === voice);
   const sampleText = (chosen?.language ?? voice).toLowerCase().startsWith('zh') ? SAMPLE.zh : SAMPLE.en;
   return (
-    <div className="provider-form agent-pane voice-pane">
+    <div data-update-draft={voiceDirty} className="provider-form agent-pane voice-pane">
       <div className="panel-head">
         <h2>{guide.name}</h2>
 
@@ -210,6 +212,7 @@ function VoicePane({
               options={(choices ?? []).map((c) => ({ value: c.id, label: c.language ? `${c.name} · ${c.language}` : c.name }))}
               onValueChange={(next) => {
                 setVoice(next);
+                setVoiceDirty(true);
                 setSample(null);
               }}
             />
@@ -273,6 +276,7 @@ function VoicePane({
             void act('saving', () => window.studio.saveVoice({ ...draft, voiceId: voice.trim() })).then((next) => {
               if (!next) return;
               setDraft(d => ({ ...d, key: '' }));
+              setVoiceDirty(false);
               onVoices(next);
 
             })
@@ -443,7 +447,7 @@ function AgentPane({
     }
   }
   return (
-    <div className="provider-form agent-pane">
+    <div className="provider-form agent-pane" data-update-draft={!saved && JSON.stringify(draft) !== JSON.stringify(settings[harness.kind])}>
       <div className="local-agent-heading">
         <h2>{tr('{0} settings', {0: harness.name})}</h2>
         <button type="button" className="button" disabled={busy !== null} onClick={() => void act('checking')}>
@@ -708,6 +712,10 @@ export function Settings({
   const { t, t: tr } = usePreferences();
   const page = useRef<HTMLDivElement>(null);
   const dirty = useRef(false);
+  function setDirty(value: boolean) {
+    dirty.current = value;
+    if (page.current) page.current.dataset.updateDraft = String(value);
+  }
   const continuation = useRef<(() => void) | null>(null);
   const [pending, setPending] = useState<HTMLElement | null>(null);
   const [notice, setNotice] = useState('');
@@ -720,7 +728,7 @@ export function Settings({
     }
   }), []);
   function markSaved() {
-    dirty.current = false;
+    setDirty(false);
     setNotice("Settings saved.");
     continuation.current?.();
     continuation.current = null;
@@ -746,7 +754,7 @@ export function Settings({
     return () => document.removeEventListener('click', hold, true);
   }, [!!embedded]);
   function continueNavigation(target: HTMLElement) {
-    dirty.current = false;
+    setDirty(false);
     flushSync(() => setPending(null));
     target.click();
   }
@@ -872,7 +880,7 @@ export function Settings({
   }
 
   function reloadSettings() {
-    dirty.current = false;
+    setDirty(false);
     setReload((n) => n + 1);
     setNotice('');
     const current = providers.providers.find((p) => p.id === form.id);
@@ -886,7 +894,7 @@ export function Settings({
       onInputCapture={() => {
         if (section === 'general') return;
         continuation.current = null;
-        dirty.current = true;
+        setDirty(true);
         setNotice('');
       }}
       onClickCapture={(event) => {

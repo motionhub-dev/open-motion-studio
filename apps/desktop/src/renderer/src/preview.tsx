@@ -651,7 +651,7 @@ export function Stage({
         {draft && (
           <div
             ref={ask}
-            className="mark-ask"
+            className="mark-ask" data-update-draft={true}
             role="dialog"
             aria-label={tr("Mark {0}", {0: marks.length + 1})}
             style={askAt ?? { left: 0, top: 0, visibility: 'hidden' }}

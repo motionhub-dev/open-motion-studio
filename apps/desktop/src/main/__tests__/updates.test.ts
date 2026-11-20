@@ -50,3 +50,38 @@ describe('Studio release checks', () => {
     expect(updates.state.available).toBeNull();
   });
 });
+
+describe('Prepared desktop updates', () => {
+  it('downloads once and prepares installation only after an explicit request', async () => {
+    const restart = vi.fn();
+    const prepareInstall = vi.fn().mockResolvedValue(restart);
+    const download = vi.fn().mockResolvedValue({ prepareInstall });
+    const updates = new StudioUpdates('1.0.0', async () => release('v1.1.0'), vi.fn(), download);
+    await Promise.all([updates.check(), updates.check()]);
+    expect(updates.state).toMatchObject({ status: 'ready', available: '1.1.0' });
+    updates.dismiss('1.1.0');
+    await updates.check();
+    expect(updates.state.dismissed).toBe('1.1.0');
+    expect(download).toHaveBeenCalledExactlyOnceWith('1.1.0');
+    expect(prepareInstall).not.toHaveBeenCalled();
+    expect(await updates.prepareInstall()).toBe(restart);
+    expect(updates.state.status).toBe('installing');
+    await expect(updates.prepareInstall()).rejects.toThrow();
+    expect(restart).not.toHaveBeenCalled();
+  });
+
+  it('retains the manual download path through failed downloads and installation preparation', async () => {
+    const download = vi.fn()
+      .mockRejectedValueOnce(new Error('invalid download'))
+      .mockResolvedValue({ prepareInstall: () => Promise.reject(new Error('invalid installer')) });
+    const updates = new StudioUpdates('1.0.0', async () => release('v1.1.0'), vi.fn(), download);
+    await updates.check();
+    expect(updates.state).toMatchObject({ status: 'download-error', available: '1.1.0' });
+    await updates.check();
+    expect(updates.state.status).toBe('ready');
+    await expect(updates.prepareInstall()).rejects.toThrow('invalid installer');
+    expect(updates.state).toMatchObject({ status: 'download-error', available: '1.1.0' });
+    await updates.check();
+    expect(updates.state.status).toBe('ready');
+  });
+});

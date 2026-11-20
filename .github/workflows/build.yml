@@ -163,6 +163,30 @@ jobs:
           esbuild=$(find "$tools_dir" -path "*/@esbuild/*/esbuild$suffix" -type f -print -quit)
           "$ffmpeg" -version
           "$esbuild" --version
+      - name: Collect update metadata
+        shell: bash
+        env:
+          MAC_NOTARIZED: ${{ runner.os == 'macOS' && secrets.CSC_LINK != '' && secrets.APPLE_TEAM_ID != '' }}
+        run: |
+          cd apps/desktop/dist
+          if [[ "$RUNNER_OS" == Linux ]]; then
+            if [[ "$RUNNER_ARCH" == X64 ]]; then
+              cp latest-linux.yml update-linux-x64.yml
+            else
+              cp latest-linux-arm64.yml update-linux-arm64.yml
+            fi
+          elif [[ "$MAC_NOTARIZED" == true ]]; then
+            if [[ "$RUNNER_ARCH" == ARM64 ]]; then arch=arm64; else arch=x64; fi
+            shopt -s failglob
+            zip=(OpenMotionStudio-*-mac-"$arch".zip)
+            extracted=$(mktemp -d)
+            trap 'rm -rf "$extracted"' EXIT
+            ditto -x -k "${zip[0]}" "$extracted"
+            bundle="$extracted/OpenMotionStudio.app"
+            codesign --verify --deep --strict -R 'anchor apple generic and certificate leaf[field.1.2.840.113635.100.6.1.13] exists' "$bundle"
+            xcrun stapler validate "$bundle"
+            cp latest-mac.yml "update-mac-$arch.yml"
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: installers-${{ runner.os }}-${{ runner.arch }}
@@ -172,6 +196,9 @@ jobs:
             apps/desktop/dist/*.exe
             apps/desktop/dist/*.AppImage
             apps/desktop/dist/*.tar.gz
+            apps/desktop/dist/*.dmg.blockmap
+            apps/desktop/dist/*.zip.blockmap
+            apps/desktop/dist/update-*.yml
           if-no-files-found: error
 
   release:
@@ -186,17 +213,20 @@ jobs:
         with:
           pattern: installers-*
           path: installers
-          merge-multiple: true
       - name: Attach the installers and their checksums to a draft
         working-directory: installers
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           tag="v$(node -p "require('../apps/desktop/package.json').version")"
+          mkdir release
+          ruby ../apps/desktop/scripts/assemble-updates.rb "$tag" release installers-*
+          cd release
           sha256sum OpenMotionStudio-* > SHA256SUMS.txt
           if ! gh release view "$tag" > /dev/null 2>&1; then
             gh release create "$tag" --target "$GITHUB_SHA" --draft --generate-notes --title "OpenMotionStudio $tag"
           fi
           test "$(gh release view "$tag" --json isDraft --jq .isDraft)" = true
           test "$(gh release view "$tag" --json targetCommitish --jq .targetCommitish)" = "$GITHUB_SHA"
-          gh release upload "$tag" OpenMotionStudio-* SHA256SUMS.txt --clobber
+          # The draft was created from this commit. Never modify a published release.
+          gh release upload "$tag" ./* --clobber

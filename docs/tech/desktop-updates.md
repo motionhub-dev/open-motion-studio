@@ -1,14 +1,14 @@
 # Desktop updates
 
-> **Status:** Plan · **Updated:** 2026-11-18
+> **Status:** Current · **Updated:** 2026-11-20
 
 How can an installed Studio receive a new version while a creator's films, drafts and background jobs remain safe?
 
-The desktop source now implements stable-version checks, an automatic-check preference, a dismissible reminder and a link to the official downloads. The install and relaunch behavior below is planned.
+The desktop client checks the latest stable GitHub release and downloads eligible updates in the background. A downloaded update waits for an explicit restart. Installations without an updater use the official downloads page.
 
 ## Release scope
 
-v0.1.1 introduces checks and download reminders. A v0.1.0 installation needs one manual upgrade from the Studio website. Automatic installation will require a later bootstrap client that includes an installer updater. Use the existing GitHub Releases repository for distribution. The proposed experience is a background check and download, followed by an explicit restart when Studio is idle.
+Existing clients need one manual upgrade from the Studio website to install a build with the updater. Subsequent updates use assets from the existing GitHub Releases repository.
 
 | Installation | First delivery | Evidence required to enable in-app installation |
 | --- | --- | --- |
@@ -19,21 +19,17 @@ v0.1.1 introduces checks and download reminders. A v0.1.0 installation needs one
 
 ## Client and restart lifecycle
 
-1. Pin a compatible `electron-updater` runtime dependency alongside the existing electron-builder 26 toolchain. In the main process, start one updater after app readiness for the packaged application. Proposed defaults are a check after startup and every six hours while running. Coalesce manual checks, timer events and repeated clicks into one operation. Compare semantic versions and accept newer stable releases only.
-2. Put **Check for updates**, the running version, last result and background-check preference in Settings → General. With background checks disabled, a manual check still works. Report checking, current, downloading, ready, manual download and recoverable errors through the existing typed preload API. Home and editor windows subscribe to the same state and read its current snapshot on attachment. Provide English and Chinese labels. The main process owns all URLs and opens the fixed downloads page for manual installations.
-3. Show **Restart to update** and **Later** when a verified download is ready. Closing the main window still hides it to the tray. Selecting Later dismisses the prompt for this session. Keep the ordinary quit and install paths explicit. Disable automatic install-on-quit where supported. Confirm macOS native staging behavior with the pinned updater. If native staging would apply on a later quit without consent, delay handing the ZIP to the native updater until the user accepts.
-4. On restart request, acquire a main-process transition lock before checking every retained workspace, including Home and detached editor views. Reuse `workspace.busy()` for agent turns, pending approvals, exports, narration and tracked tasks. Ask each live UI surface about unsaved settings, edits and composer drafts. A missing response defers restart. Identify the project or view that needs attention and allow the user to return there. Release the lock on deferral. Becoming idle re-enables the button and leaves the restart decision with the user.
-5. During the final check and shutdown, prevent new tasks, edits and project opens from racing the install. Flush pending saves, distinguish update-driven closure from hide-to-tray, then invoke the updater's install/relaunch path once. Explicit Quit currently aborts active tasks. Calling it as a shortcut would cancel the work this feature must preserve. Test the app's actual event order, including updater-initiated window closure. [Session lifecycle](../adr/0014-project-sessions-outlive-editor-windows.md)
-
-Implementation surfaces are `apps/desktop/src/main/index.ts` and `workspace.ts` for lifecycle and task ownership, `src/shared/api.ts` and the preload bridge for commands and events, and the renderer's Settings, preferences and translations for the UI. Record version, platform, architecture, transition and error category in existing diagnostics. Keep provider keys, signed download URLs and project content out of logs.
+1. The packaged application checks after startup and every six hours. Settings → General offers an automatic-check preference and a manual check. Concurrent checks share one operation. Eligible updates download with `electron-updater` and are checked against the release manifest.
+2. When an update is ready, select **Restart to update** or **Later**. A dismissed update stays available in Settings. On macOS, the ZIP is passed to the native updater for signature verification and staging only after the restart request.
+3. The restart transition checks all retained workspaces for active tasks and asks every renderer whether it has a draft. It defers when a view is unavailable, a workspace is busy, or a draft remains. New work is gated during the transition. Once approved, Studio disposes idle workspaces and relaunches. Linux prepares and verifies a copy alongside the existing AppImage before atomically replacing it at the same path. [Session lifecycle](../adr/0014-project-sessions-outlive-editor-windows.md)
 
 ## Build and publication
 
-Keep all five native build jobs and the existing draft release workflow. Configure the GitHub provider in the packaged client and use the matching builder to generate update manifests and block maps. Inspect a packaged app for its embedded provider configuration. Confirm manifest generation under the actual packaging command, which currently passes `--publish never`. If a separate generation mode is needed, keep runner uploads confined to CI artifacts and give only the draft assembly job release-write access. [Builder v26 update guide](https://www.electron.build/v26/docs/features/auto-update/)
+Installers use `OpenMotionStudio-<version>-<os>-<arch>.<extension>`. The five native build jobs run with `--publish never` and upload their outputs to CI artifacts. Draft assembly verifies update manifest versions, referenced filenames, sizes and SHA-512 hashes before attaching installers, update manifests and SHA256SUMS to the draft.
 
-Collect each runner's output under a separate directory. Today's workflow flattens artifacts and uploads only installers and a checksum list. Both native Mac jobs can emit `latest-mac.yml`. Assemble one Mac manifest from both same-version file lists before uploading and exercise the pinned client's ZIP selection on each CPU. Preserve builder-generated Linux architecture-specific manifest names. Include generated block maps needed for supported downloads. Windows manual notifications can read the public latest stable release without an installation manifest or client credentials.
+Each Mac job has its own manifest in the draft, `latest-arm64-mac.yml` or `latest-x64-mac.yml`. The workflow only includes the manifests from Developer ID signed builds with a valid notarization staple. Linux retains the builder's `latest-linux.yml` and `latest-linux-arm64.yml` feed names. The updater downloads full archives. Windows uses GitHub's latest stable release for version checks and links to the official downloads page.
 
-Before exposing a release, resolve every manifest entry against the draft attachments, recompute its SHA-512 and size, confirm the version matches the tag and embedded app version, and verify signed Mac builds and both ZIPs. Reject missing architectures, duplicate filenames with differing contents and incomplete uploads. Keep SHA256SUMS for manual downloads. Publish the complete draft, check the public feed anonymously, then switch the versioned download links and bootstrap instructions on the Studio website.
+Publish the complete draft after verifying packaged upgrades for the supported targets, then switch the website's versioned download links and bootstrap instructions to the published assets.
 
 ## Verification plan
 

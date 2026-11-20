@@ -13,6 +13,7 @@ function subscribe<T>(channel: string, listener: (value: T) => void): () => void
 const api: StudioApi = {
   updateStatus: () => ipcRenderer.invoke(CHANNELS.updateStatus),
   checkForUpdates: () => ipcRenderer.invoke(CHANNELS.checkForUpdates),
+  installUpdate: () => ipcRenderer.invoke(CHANNELS.installUpdate),
   openUpdateDownload: () => ipcRenderer.invoke(CHANNELS.openUpdateDownload),
   dismissUpdate: version => ipcRenderer.invoke(CHANNELS.dismissUpdate, version),
   onUpdateChanged: listener => subscribe(EVENTS.update, listener),

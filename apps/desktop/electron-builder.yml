@@ -23,8 +23,11 @@ npmRebuild: false
 # into the .icns and Linux's PNGs, and for Windows an .ico of 16 to 256 px. The window takes the same files
 # (src/main/index.ts).
 icon: resources/icon.png
-# No update channel yet (auto-update is not in the first version), so no update metadata.
-publish: null
+# Generate update metadata with --publish never. CI attaches it to the draft release.
+publish:
+  provider: github
+  owner: motionhubdev
+  repo: openmotionstudio
 mac:
   category: public.app-category.video
   hardenedRuntime: true

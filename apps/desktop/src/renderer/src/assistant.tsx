@@ -1242,6 +1242,7 @@ export function Assistant({
         </div>
       )}
       <form
+        data-update-draft={!!(draft || queued || refs.length || marks.length)}
         className={`composer${dropping ? ' dropping' : ''}`}
         onSubmit={send}
         hidden={asking}

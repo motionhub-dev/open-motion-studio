@@ -3,6 +3,14 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-20 — The Studio downloads its updates and installs them on restart
+
+- **What:** A packaged Studio checks GitHub for a stable release after it starts and every six hours (the automatic-check preference and Check for updates stay in Settings → General), downloads an eligible update in the background, and offers Restart to update or Later. A restart waits until no project has an active task or an unsent draft. On a Mac the update is verified and staged by the system's own updater, from a Developer ID signed, notarized build only. Releases carry update manifests and block maps, assembled and checked against the draft's files before it is touched.
+- **Why:** Updating meant downloading and installing each release by hand.
+- **Breaking:** None.
+- **Upgrade:** Install the first release with the updater once by hand from openmotion.studio; later releases arrive in the app. Updates install only on builds the updater can verify.
+- **Refs:** `apps/desktop/src/main/updates.ts`, `apps/desktop/src/main/installer-update.ts`, `apps/desktop/src/main/index.ts`, `apps/desktop/src/renderer/src/updates.tsx`, `apps/desktop/scripts/assemble-updates.rb`, `.github/workflows/build.yml`, `apps/desktop/electron-builder.yml`, `docs/tech/desktop-updates.md`.
+
 ## 2026-11-20 — The website shows five MotionHub looks, under MotionHub's logo
 
 - **What:** The front page's Looks section names its source with MotionHub's own logo and lists five looks by SuoSi: Clay World, Pixel Quest, Ink Scroll, Stage Light and Riso Pop, each to be shown in its own reel exported by the Studio; until a reel is there, a slate names the look. The footer links MotionHub with its icon. The earlier films of one brief in three looks are gone, and the README shows the five looks' posters from MotionHub.

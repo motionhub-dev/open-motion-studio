@@ -10,7 +10,7 @@ export function Brief({ onUse }: { onUse(text: string): void }) {
   const [duration, setDuration] = useState('15');
   const [ratio, setRatio] = useState('16:9');
   return (
-    <div className="brief">
+    <div className="brief" data-update-draft={!!(subject || audience || duration !== '15' || ratio !== '16:9')}>
       <form
         onSubmit={(e) => {
           e.preventDefault();
