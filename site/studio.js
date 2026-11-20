@@ -404,10 +404,6 @@ if (taste) {
       window.scrollTo({ top: taste.offsetTop + ((i + 0.5) / lookCount) * span, behavior: reduce ? "auto" : "smooth" });
     }),
   );
-  if (!reduce)
-    setInterval(() => {
-      if (through() === null && looksInView) showLook((look + 1) % lookCount);
-    }, 6000);
 }
 
 /* EDIT: slide between the same instant of the two cuts. */

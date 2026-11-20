@@ -174,19 +174,16 @@
               </div>
             </div>
             <figure class="reel-figure">
-              <!-- Each look's reel goes in its <video> as src="media/look-<slug>.mp4" and poster="media/look-<slug>.webp";
-                   until it is there, the slate stands in, naming the look. -->
               <div class="reel frame" id="reel">
                 <div class="slate" aria-hidden="true">
                   <span class="slate-mark">REEL · 00:20</span>
                   <b id="slate-name">Clay World</b>
-                  <span class="slate-note" data-zh="样片即将上线">Sample coming soon</span>
                 </div>
-                <video class="look on" muted loop playsinline preload="metadata" aria-label="A sample in the Clay World style" data-zh-aria-label="「黏土小世界」风格的样片"></video>
-                <video class="look" muted loop playsinline preload="none" aria-label="A sample in the Pixel Quest style" data-zh-aria-label="「像素关卡」风格的样片"></video>
-                <video class="look" muted loop playsinline preload="none" aria-label="A sample in the Ink Scroll style" data-zh-aria-label="「墨卷」风格的样片"></video>
-                <video class="look" muted loop playsinline preload="none" aria-label="A sample in the Stage Light style" data-zh-aria-label="「聚光台」风格的样片"></video>
-                <video class="look" muted loop playsinline preload="none" aria-label="A sample in the Riso Pop style" data-zh-aria-label="「孔版双色」风格的样片"></video>
+                <video class="look on" muted loop playsinline preload="metadata" src="media/look-clay-world.mp4" poster="media/look-clay-world.webp" aria-label="A sample in the Clay World style" data-zh-aria-label="「黏土小世界」风格的样片"></video>
+                <video class="look" muted loop playsinline preload="none" src="media/look-pixel-quest.mp4" poster="media/look-pixel-quest.webp" aria-label="A sample in the Pixel Quest style" data-zh-aria-label="「像素关卡」风格的样片"></video>
+                <video class="look" muted loop playsinline preload="none" src="media/look-ink-scroll.mp4" poster="media/look-ink-scroll.webp" aria-label="A sample in the Ink Scroll style" data-zh-aria-label="「墨卷」风格的样片"></video>
+                <video class="look" muted loop playsinline preload="none" src="media/look-stage-light.mp4" poster="media/look-stage-light.webp" aria-label="A sample in the Stage Light style" data-zh-aria-label="「聚光台」风格的样片"></video>
+                <video class="look" muted loop playsinline preload="none" src="media/look-riso-pop.mp4" poster="media/look-riso-pop.webp" aria-label="A sample in the Riso Pop style" data-zh-aria-label="「孔版双色」风格的样片"></video>
               </div>
               <!-- One mark for each look beside the reel; the current one drawn long (studio.js). -->
               <div class="reel-dots" id="reel-dots" aria-hidden="true"></div>

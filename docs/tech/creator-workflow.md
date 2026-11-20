@@ -122,3 +122,9 @@ All disk and network operations stay in the main process. The preview scheme ref
 dependencies and symlinks escaping the permitted root. New modal dialogs use native focus containment and Escape;
 film shortcuts do not run while a dialog is open. Colour meanings stay paper/ink, vermilion for Export, cobalt for
 picture annotations, in both system themes.
+
+## GPU-assisted export
+
+OpenMotionStudio captures film frames in an offscreen Electron window. The desktop app normally lets Chromium choose its graphics backend. To explicitly request GPU rasterization, launch a new Studio process with `OMS_RENDER_GPU=1`. The setting selects ANGLE with D3D11 on Windows, Metal on macOS, or EGL on Linux and applies to the entire Studio process.
+
+The local `graphics.status` log records Chromium's compositing, rasterization, and WebGL status. Chromium can use software rendering when hardware acceleration is unavailable. MP4 export encodes the captured frames with FFmpeg's `libx264`.

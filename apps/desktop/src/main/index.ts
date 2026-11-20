@@ -17,6 +17,19 @@ import { createWorkspace, type WorkspaceHost } from './workspace';
 import { WebContentsView } from 'electron';
 import { log, logFailure } from './log';
 
+// Chromium's graphics backend is selected before app readiness and applies to
+// every window, including the offscreen stage used for export.
+if (process.env.OMS_RENDER_GPU === '1') {
+  app.commandLine.appendSwitch('use-gl', 'angle');
+  app.commandLine.appendSwitch('use-angle', process.platform === 'win32' ? 'd3d11' : process.platform === 'darwin' ? 'metal' : 'gl-egl');
+  app.commandLine.appendSwitch('enable-gpu-rasterization');
+}
+
+app.once('gpu-info-update', () => {
+  const { gpu_compositing, rasterization, webgl } = app.getGPUFeatureStatus();
+  log('graphics.status', { requested: process.env.OMS_RENDER_GPU === '1', gpu_compositing, rasterization, webgl });
+});
+
 type Workspace = ReturnType<typeof createWorkspace>;
 interface Editor {
   project: Project;

@@ -1,71 +1,76 @@
 WEBVTT
 
 00:00:00.000 --> 00:00:03.300
-We'll make a seven-second moving cover for Stillform,
-an alpine photography journal.
+Let's make a moving cover for Stillform.
 
 00:00:03.375 --> 00:00:07.150
-Choose Open project and open the Stillform starter folder.
+Open the Stillform starter project.
 
 00:00:07.208 --> 00:00:11.000
-The starter has a blank scene, typefaces and reusable
-cover components. Open Assets to add the photograph.
+It already has fonts and cover components. Open Assets to add the photo.
 
 00:00:11.083 --> 00:00:14.750
-Choose Import files, select grand-teton.jpg and open it.
+Click Import Files and choose the mountain photo.
 
 00:00:14.792 --> 00:00:17.150
-The photograph now appears alongside the project's typefaces.
+The photo now appears in your project assets.
 
-00:00:17.208 --> 00:00:23.070 line:4%
-With Codex selected, describe the first cut: one photograph,
-a masthead over it and a title entrance at 0.08 seconds.
+00:00:17.208 --> 00:00:23.070
+Tell Codex to use one photo, add the masthead, and bring it in almost immediately.
 
 00:00:23.125 --> 00:00:25.650
-Send the brief to Codex inside OMS.
+Send the brief from the assistant panel.
 
 00:00:25.708 --> 00:00:31.700
-Codex assembles the scene using Photograph and Cover,
-then checks its render. The processing wait is shortened.
+Codex builds the cover and checks the render. We have shortened the wait.
 
 00:00:31.750 --> 00:00:39.150
-Play the first cut. Watch how quickly the title
-appears over the landscape.
+Play the first cut. Notice how quickly the title arrives.
 
-00:00:39.208 --> 00:00:42.650 line:4%
-Pause at two seconds. Select Region
-and drag a box around the masthead.
+00:00:39.208 --> 00:00:42.650
+Pause, choose Select Region, and box the title.
 
-00:00:42.700 --> 00:00:47.990 line:4%
-Add the note: “Let the photograph breathe.
-Bring the title in half a second later.”
+00:00:42.700 --> 00:00:47.990
+Ask for the title to enter half a second later.
 
-00:00:48.042 --> 00:00:53.280 line:4%
-Send the marked frame to Codex and ask it
-to leave the rest of the film as it is.
+00:00:48.042 --> 00:00:53.280
+Send the marked frame with your note.
 
 00:00:53.333 --> 00:00:59.400
-Codex moves the entrance to 0.58 seconds and checks
-the revised frames. The processing wait is shortened.
+Codex updates the entrance timing and checks the revised frames.
 
 00:00:59.458 --> 00:01:06.900
-Replay the seven-second cut at normal speed.
-The landscape now has a moment before the masthead enters.
+Replay it. The photo now has time to breathe before the title arrives.
 
 00:01:06.958 --> 00:01:12.890
-Both openings play together at normal speed, twice.
-Watch the photograph on the right.
+Compare both openings. The revision is on the right.
 
 00:01:12.958 --> 00:01:16.030
-Choose Export MP4. OMS checks the film
-and shows the output dimensions and frame rate.
+Choose Export MP4 and check the dimensions and frame rate.
 
 00:01:16.083 --> 00:01:19.860
-Save Stillform.mp4 in the project folder.
+Choose a location and save the file.
 
 00:01:19.917 --> 00:01:25.850
-OMS renders the frames locally and confirms the file is ready.
-The middle of the render wait is cut.
+Studio renders on your computer. Wait for the export to finish.
 
 00:01:25.917 --> 00:01:28.000
-The exported MP4, played at normal speed.
+Here's the exported cover.
+
+00:01:33.097 --> 00:01:39.067
+Here is a second project, started from the kinetic type template. Open Motions and search for Clay World.
+
+00:01:39.147 --> 00:01:44.867
+Click the card to play its sample in the drawer. Add Only saves the motion in this project so you can use it later.
+
+00:01:45.217 --> 00:01:56.217
+Back in the editor, choose Assets, then Import Files. Pick your audio file. It appears alongside the other media in the project.
+
+00:01:57.067 --> 00:02:06.717
+Ask the assistant to use the sound as a quiet background track and keep your timing. Say when the clip should start and how long it should play.
+
+00:02:07.167 --> 00:02:13.667
+In this prepared example, the timeline shows the sound under the scenes. Play the preview to check when it comes in.
+
+00:02:16.117 --> 00:02:21.417
+Export again to include the audio in your MP4.
