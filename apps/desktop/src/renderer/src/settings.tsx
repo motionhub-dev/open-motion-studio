@@ -1,9 +1,12 @@
 // Settings, a page over Home or the editor: General (theme, language, launch at login), the model providers, the
-// person's own coding agents (ADR 0008), the voice providers (ADR 0012), the workspace and diagnostics.
+// person's own coding agents (ADR 0008), the voice providers (ADR 0012), and the workspace.
 // Provider secrets remain in the main process and are never read back.
 
 import { SystemMessage, Translated, usePreferences } from './preferences';
 import { UpdateSettings } from './updates';
+import { flushSync } from 'react-dom';
+import { Dialog } from './dialog';
+import { AgentLogo } from './agent-logo';
 import { Select } from './select';
 import { ArrowLeft, Check, ExternalLink, Folder, KeyRound, Loader, Plus, RefreshCw, Volume2 } from 'lucide-react';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
@@ -284,7 +287,7 @@ function VoicePane({
 }
 
 /** What each state of a coding agent is called. */
-const STATES: Record<HarnessState, string> = { missing: 'Not installed', old: 'Needs an update', 'signed-out': 'Not signed in', ready: 'Ready' };
+const STATES: Record<HarnessState, string> = { unknown: 'Status unavailable', missing: 'Not installed', old: 'Needs an update', 'signed-out': 'Not signed in', ready: 'Ready' };
 
 type OutsideKind = HarnessView['kind'];
 
@@ -417,8 +420,10 @@ function AgentPane({
   const [busy, setBusy] = useState<'checking' | 'signing-in' | 'saving' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState(settings[harness.kind]);
+  const [dismissedStatus, setDismissedStatus] = useState(false);
   const [saved, setSaved] = useState(false);
   async function act(kind: 'checking' | 'signing-in' | 'saving') {
+    setDismissedStatus(false);
     setBusy(kind);
     setError(null);
     setSaved(false);
@@ -439,14 +444,20 @@ function AgentPane({
   }
   return (
     <div className="provider-form agent-pane">
-      <div className="panel-head">
-        <h2>{harness.name}</h2>
-
+      <div className="local-agent-heading">
+        <h2>{tr('{0} settings', {0: harness.name})}</h2>
+        <button type="button" className="button" disabled={busy !== null} onClick={() => void act('checking')}>
+          {busy === 'checking' ? <Loader size={14} className="spin" /> : <RefreshCw size={14} />}
+          {tr("Check again")}
+        </button>
       </div>
-      <p className={`agent-state ${harness.state}`}>
-        <strong>{tr(STATES[harness.state])}</strong>
-        {harness.version && <span className="mono">{harness.version}</span>}
-      </p>
+      {harness.state === 'unknown' ? !dismissedStatus && (
+        <div className="callout" role="status">
+          <span>{tr('Could not read the status of {0}.', {0: harness.name})}</span>
+          {harness.hint && <details><summary>{tr('Technical details')}</summary><pre>{harness.hint}</pre></details>}
+          <button type="button" className="quiet" onClick={() => setDismissedStatus(true)}>{tr('Close')}</button>
+        </div>
+      ) : (
       <p className="note">
         {harness.state === 'ready'
           ? tr("Your own {0}, on its own sign-in and plan. Pick it for a project at the top of the assistant; the Studio gives it the film's tools and asks you before it goes beyond its sandbox.", {0: harness.name})
@@ -456,6 +467,7 @@ function AgentPane({
               : tr("{0} is installed. {1}: it signs in on its own, and the Studio never sees your account's credentials.", {0: harness.name, 1: tr(harness.hint ?? '')})
             : tr("{0}. The Studio looks for it where its installer puts it, never in a project.", {0: tr(harness.hint ?? '')})}
       </p>
+      )}
       {harness.state === 'ready' && (
         <AgentSettingsFields
           kind={harness.kind}
@@ -479,10 +491,7 @@ function AgentPane({
       )}
       <div className="actions">
         <span className="spacer" />
-        <button type="button" className="button" disabled={busy !== null} onClick={() => void act('checking')}>
-          {busy === 'checking' ? <Loader size={14} className="spin" /> : <RefreshCw size={14} />}
-          {tr("Check again")}
-        </button>
+
         {harness.link && (harness.state === 'missing' || harness.state === 'old') && (
           <a className="button primary" href={harness.link} target="_blank" rel="noreferrer">
             <ExternalLink size={14} />
@@ -662,10 +671,9 @@ function GeneralPane() {
 /** Settings' sections, in the order a sidebar lists them. */
 export const SETTINGS_SECTIONS = [
   ['general', 'General'],
+  ['agents', 'Local Agents'],
   ['models', 'Model Providers'],
-  ['agents', 'Coding Agents'],
   ['voices', 'Voice Services'],
-  ['diagnostics', 'Diagnostics'],
 ] as const;
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number][0];
 
@@ -705,6 +713,7 @@ export function Settings({
   const [notice, setNotice] = useState('');
   const [reload, setReload] = useState(0);
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [confirmReload, setConfirmReload] = useState(false);
   useEffect(() => window.studio.onSettingsChanged(external => {
     if (external) {
       setNotice("Settings changed in another window. Your input has been kept. Reload to use the latest settings.");
@@ -738,7 +747,7 @@ export function Settings({
   }, [!!embedded]);
   function continueNavigation(target: HTMLElement) {
     dirty.current = false;
-    setPending(null);
+    flushSync(() => setPending(null));
     target.click();
   }
   /** The person's own coding agents, and which one is open in the right pane, if any. */
@@ -747,6 +756,7 @@ export function Settings({
   /** The voice providers set up, and which one is open in the right pane, if any. */
   const [voices, setVoices] = useState<VoiceView[] | null>(null);
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [agentError, setAgentError] = useState('');
   const [voiceShown, setVoiceShown] = useState<VoiceKind | null>(voice ?? null);
   const [section, setSection] = useState<SettingsSection>(
     embedded ?? (agent ? 'agents' : voice ? 'voices' : models ? 'models' : 'general'),
@@ -757,9 +767,10 @@ export function Settings({
   }, []);
   useEffect(() => {
     let live = true;
+    setAgentError('');
     window.studio.agents().then(
       (found) => live && setAgents(found),
-      () => undefined,
+      (e) => live && setAgentError(reason(e)),
     );
     window.studio.voices().then(
       (found) => live && setVoices(found),
@@ -844,6 +855,7 @@ export function Settings({
   }, [embedded]);
 
   function saveAndContinue(target: HTMLElement) {
+    flushSync(() => setPending(null));
     const buttons = Array.from(page.current?.querySelectorAll<HTMLButtonElement>('.provider-form button') ?? []);
     const saveButton = buttons.find((button) => button.dataset.action === 'save');
     if (saveButton && !saveButton.disabled) {
@@ -873,12 +885,13 @@ export function Settings({
       ref={page}
       onInputCapture={() => {
         if (section === 'general') return;
+        continuation.current = null;
         dirty.current = true;
         setNotice('');
       }}
       onClickCapture={(event) => {
         // Leaving a form with edits asks first: the click is held until the person chooses.
-        const target = (event.target as HTMLElement).closest<HTMLElement>('.settings-nav button, .settings-services button, .settings-header button');
+        const target = (event.target as HTMLElement).closest<HTMLElement>('.settings-nav button, .settings-services button, .settings-header button, .presets button[aria-pressed="false"]');
         if (target && dirty.current) {
           event.preventDefault();
           event.stopPropagation();
@@ -896,30 +909,44 @@ export function Settings({
         </header>
       )}
       {pending && (
-        <div className="settings-notice" role="alert">
-          <span>{t('You have unsaved changes.')}</span>
-          <button className="button primary" onClick={() => saveAndContinue(pending)}>
-            {t('Save and continue')}
-          </button>
-          <button className="button" onClick={() => discardAndContinue(pending)}>
-            {t('Discard changes')}
-          </button>
-          <button
-            className="quiet"
-            onClick={() => {
-              setPending(null);
-              continuation.current = null;
-            }}
-          >
-            {t('Keep editing')}
-          </button>
-        </div>
+        <Dialog label={t('You have unsaved changes.')} onClose={() => setPending(null)}>
+          <h2>{t('You have unsaved changes.')}</h2>
+          <p className="confirmation-detail">{t('Discarding will restore the last saved settings.')}</p>
+          <div className="dialog-actions">
+            <button
+              className="quiet"
+              onClick={() => {
+                setPending(null);
+                continuation.current = null;
+              }}
+            >
+              {t('Keep editing')}
+            </button>
+            <button className="button" onClick={() => discardAndContinue(pending)}>
+              {t('Discard changes')}
+            </button>
+            <button className="button primary" onClick={() => saveAndContinue(pending)}>
+              {t('Save and continue')}
+            </button>
+          </div>
+        </Dialog>
+      )}
+      {confirmReload && (
+        <Dialog label={t('You have unsaved changes.')} onClose={() => setConfirmReload(false)}>
+          <h2>{t('You have unsaved changes.')}</h2>
+          <div className="dialog-actions">
+            <button className="button" onClick={() => setConfirmReload(false)}>{t('Keep editing')}</button>
+            <button className="button primary" onClick={() => { setConfirmReload(false); reloadSettings(); }}>
+              {t('Reload settings (discard edits)')}
+            </button>
+          </div>
+        </Dialog>
       )}
       {notice && (
         <div className="settings-notice" role="status">
           {t(notice)}
           {notice.startsWith('Settings changed') && (
-            <button className="button" onClick={reloadSettings}>
+            <button className="button" onClick={() => dirty.current ? setConfirmReload(true) : reloadSettings()}>
               {t('Reload settings (discard edits)')}
             </button>
           )}
@@ -947,19 +974,6 @@ export function Settings({
             <UpdateSettings />
             <WorkspacePane key={reload} />
           </>
-        ) : section === 'diagnostics' ? (
-          <div className="provider-form">
-            <h2>{t('Diagnostics')}</h2>
-            <p className="note">{t('Local runtime logs help diagnose startup, build and export failures.')}</p>
-            <button className="button" onClick={() => window.studio.showLogs().catch((e) => setError(reason(e)))}>
-              <Folder size={16} /> {t('Open logs folder')}
-            </button>
-            {error && (
-              <p role="alert" className="error">
-                <SystemMessage text={error} error />
-              </p>
-            )}
-          </div>
         ) : <>
         <div className="settings-services">
           {section === 'models' && <>
@@ -993,27 +1007,33 @@ export function Settings({
           </button>
           </>}
           {section === 'agents' && <>
-          <h2><Translated text="Coding Agents" /></h2>
+          <h2><Translated text="Local Agents" /></h2>
           <p className="note"><Translated text="An agent you already use, on its own sign-in and plan." /></p>
-          {!agents ? (
-            <p className="note">
-              <Loader size={12} className="spin" /> <Translated text="Looking for them…" />
-            </p>
+          {!agents ? (agentError ? (
+            <div className="agent-discovery" role="alert">
+              <SystemMessage text={agentError} error />
+              <button className="button" onClick={() => setReload(n => n + 1)}>{tr('Retry')}</button>
+            </div>
+          ) : (
+            <div className="agent-discovery" role="status">
+              <Loader size={16} className="spin" aria-hidden="true" />
+              {tr('Loading local agent status…')}
+            </div>
+          )
           ) : (
             <ul>
               {agents.harnesses.map((h) => (
                 <li key={h.kind}>
                   <button
                     type="button"
-                    className={`provider-row${shown === h.kind ? ' selected' : ''}`}
+                    className={`provider-row${harness?.kind === h.kind ? ' selected' : ''}`}
+                    aria-pressed={harness?.kind === h.kind}
                     onClick={() => {
                       setVoiceShown(null);
                       setShown(h.kind);
                     }}
                   >
-                    <span className="avatar" aria-hidden="true">
-                      {initials(h.name)}
-                    </span>
+                    <AgentLogo kind={h.kind} />
                     <span className="who">
                       <strong>{h.name}</strong>
                       <span className="mono">{h.version ? `${tr(STATES[h.state])} · ${h.version}` : tr(STATES[h.state])}</span>
@@ -1073,7 +1093,7 @@ export function Settings({
               )}
             </div>
           )
-        ) : section === 'agents' && !harness ? <p className="note">{agents ? tr("No coding agents available.") : tr("Loading coding agents…")}</p> : harness ? (
+        ) : section === 'agents' && !harness ? (agents && <p className="note">{tr("No coding agents available.")}</p>) : harness ? (
           <AgentPane key={`${harness.kind}-${reload}`} harness={harness} settings={agents!.settings} onAgents={next => { setAgents(next); }} onSaved={markSaved} onClose={onClose} />
         ) : (
         <form className="provider-form" onSubmit={save}>
@@ -1095,9 +1115,9 @@ export function Settings({
                   className={`preset${i === preset ? ' selected' : ''}`}
                   aria-pressed={i === preset}
                   onClick={() => {
-                    dirty.current = true;
+                    if (i === preset) return;
                     setPreset(i);
-                    select({ ...fromPreset(p), key: form.key });
+                    select(fromPreset(p));
                   }}
                 >
                   <strong>{tr(p.name)}</strong>
@@ -1165,22 +1185,24 @@ export function Settings({
           )}
 
           {confirmRemove && stored && (
-            <div className="settings-notice" role="alert">
-              {tr('Remove {0}?', { 0: stored.name })}
-              <button
-                type="button"
-                className="button"
-                onClick={() => {
-                  setConfirmRemove(false);
-                  void remove(stored.id);
-                }}
-              >
-                {tr('Confirm remove')}
-              </button>
-              <button type="button" className="quiet" onClick={() => setConfirmRemove(false)}>
-                {tr('Cancel')}
-              </button>
-            </div>
+            <Dialog label={tr('Remove {0}?', { 0: stored.name })} onClose={() => setConfirmRemove(false)}>
+              <h2>{tr('Remove {0}?', { 0: stored.name })}</h2>
+              <div className="dialog-actions">
+                <button type="button" className="quiet" onClick={() => setConfirmRemove(false)}>
+                  {tr('Cancel')}
+                </button>
+                <button
+                  type="button"
+                  className="button"
+                  onClick={() => {
+                    setConfirmRemove(false);
+                    void remove(stored.id);
+                  }}
+                >
+                  {tr('Confirm remove')}
+                </button>
+              </div>
+            </Dialog>
           )}
           <div className="actions">
             {stored && (

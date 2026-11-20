@@ -4,6 +4,8 @@
 
 The Studio's visual system: its identity, colour, type, shape, icons, the workspace's layout and the rules components follow.
 
+OpenMotionStudio is an agent video editor for AI creators with a discerning eye for visual design. Visual quality and interaction quality are the first priorities in every OMS interface decision. Review hierarchy, spacing, action placement and feedback together in the rendered interface.
+
 ## Identity
 
 The Studio keeps motionhub's paper, ink and type (`brand/BRAND.md` in `motionhubdev/motionhub`) and has a mark of its

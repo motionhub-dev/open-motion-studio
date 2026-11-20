@@ -284,9 +284,18 @@ export function createWorkspace(host: WorkspaceHost, renderSession: Session, cha
       : { kind: 'claude', name: 'Claude Code', state: 'signed-out', version: found.version, hint: 'Run `claude auth login` in a terminal to sign in' };
   }
 
+  let pendingChecks: Promise<HarnessView[]> | undefined;
+  function unavailable(kind: HarnessView['kind'], name: string, cause: unknown): HarnessView {
+    return { kind, name, state: 'unknown', hint: cause instanceof Error ? cause.message : String(cause) };
+  }
+
   async function agents(): Promise<Agents> {
-    const [codex, claude] = await Promise.all([harnesses(), claudeHarness()]);
-    return { current: open ? (await agentOf(open)).kind : 'built-in', harnesses: [...codex, claude], settings: await providers().agentSettings() };
+    pendingChecks ??= Promise.all([
+      harnesses().catch(e => [unavailable('codex', 'Codex', e)]),
+      claudeHarness().catch(e => unavailable('claude', 'Claude Code', e)),
+    ]).then(([codex, claude]) => [...codex, claude]).finally(() => { pendingChecks = undefined; });
+    const checked = await pendingChecks;
+    return { current: open ? (await agentOf(open)).kind : 'built-in', harnesses: checked, settings: await providers().agentSettings() };
   }
 
   /** The folder whose film the preview scheme serves, while one is open. */

@@ -4,6 +4,11 @@ import { usePreferences } from './preferences';
 
 const UpdateContext = createContext<StudioUpdate | null>(null);
 
+export function InstalledVersion() {
+  const version = useContext(UpdateContext)?.installed;
+  return version ? <small className="installed-version">v{version}</small> : null;
+}
+
 function DownloadUpdate() {
   const { t } = usePreferences();
   const [failed, setFailed] = useState(false);

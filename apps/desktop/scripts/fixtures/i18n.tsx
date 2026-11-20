@@ -16,6 +16,7 @@ const providers = { active: 'test', weakKeyStorage: false, providers: [{id: 'tes
 const agents = {current: 'built-in', settings: {claude: {model: '', effort: '', fallbackModel: '', budgetUsd: null}, codex: {model: '', effort: ''}}, harnesses: [{kind: 'codex', name: 'Codex', state: 'signed-out', version: '1.0', hint: 'Sign in with your ChatGPT account'}]};
 let update: StudioUpdate = { installed: '0.1.0', available: null, dismissed: null, status: 'idle' };
 let openedDownloads = 0;
+let openedLogs = 0;
 const updateListeners = new Set<(state: StudioUpdate) => void>();
 function publishUpdate(change: Partial<StudioUpdate>) {
   update = { ...update, ...change };
@@ -29,6 +30,7 @@ const api = {
   },
   checkForUpdates: async () => publishUpdate({ available: '0.2.0', status: 'checked' }),
   openUpdateDownload: async () => { openedDownloads++; },
+  showLogs: async () => { openedLogs++; },
   dismissUpdate: async (dismissed: string) => publishUpdate({ dismissed }),
   preferences: async () => ({ theme: 'light', language, onboardingComplete: complete }),
   onPreferencesChanged: (callback: () => void) => { listeners.add(callback); return () => listeners.delete(callback); },
@@ -38,7 +40,7 @@ const api = {
   libraryAction: async (path: string, action: string) => { if (action === 'remove') library = library.filter(project => project.path !== path); },
   currentProject: async () => editor ? {name: 'English project name', path: '/test', film: true, display: '/test'} : null,
   providers: async () => providers, workspace: async () => ({path: '/English/workspace'}),
-  agents: async () => agents, voices: async () => [], systemStartup: async () => ({supported: false, enabled: false}),
+  agents: async () => structuredClone(agents), voices: async () => [], systemStartup: async () => ({supported: false, enabled: false}),
   tasks: async () => [],
   examples: async () => [{id:'data', name:'A story in numbers', title:'SMALL STEPS. BIG CHANGE.', line:'Turn a change into a clear visual.', seconds:7}],
   lastBuild: async () => null, projectUsage: async () => null,
@@ -77,10 +79,29 @@ const nav = async (label: string) => action(() => { const found = Array.from(doc
   assert(text().includes('测试连接') && text().includes('English provider name') && text().includes('模型支持图像'), 'Provider labels or user name changed');
   await nav('语音服务');
   assert(text().includes('在 Azure 门户创建语音资源') && text().includes('获取音色列表'), 'Voice help not localized');
-  await nav('编程 Agent');
+  await nav('本地 Agent');
+  const logo = document.querySelector<HTMLImageElement>('.provider-row img.agent-logo');
+  assert(logo, 'Missing bundled agent artwork');
+  await logo!.decode();
   assert(text().includes('未登录') && text().includes('浏览器中完成登录'), 'Agent help not localized');
+  const originalHarness = agents.harnesses[0]!;
+  agents.harnesses[0] = { ...originalHarness, state: 'unknown', hint: 'Status command timed out' };
+  await action(() => button('重新检查').click());
+  const warning = document.querySelector<HTMLElement>('.agent-pane .callout');
+  assert(warning?.textContent?.includes('暂时无法读取 Codex 的状态'), 'Failed check must appear within agent settings');
+  await action(() => warning!.querySelector('button')!.click());
+  assert(!document.querySelector('.agent-pane .callout'), 'Status warning was not dismissed');
+  agents.harnesses[0] = originalHarness;
+  await action(() => button('重新检查').click());
+  assert(text().includes('浏览器中完成登录'), 'Retry must render the refreshed status');
   await nav('通用');
   assert(text().includes('已有项目仍保留在原位置'), 'Workspace help not localized');
+  assert(!document.querySelector('.home-nav button[aria-label="诊断"]'), 'Diagnostics still has a sidebar entry');
+  await nav('帮助');
+  assert(text().includes('快速上手') && text().includes('常见问题排查') && text().includes('诊断'), 'Help content not localized');
+  await action(() => button('打开日志文件夹').click());
+  assert(openedLogs === 1, 'Help did not open the logs folder');
+  await nav('通用');
   await switchLanguage('en');
   assert(text().includes('Default workspace') && !text().includes('已有项目仍保留在原位置'), 'Settings did not switch back live');
   await action(() => root.render(<></>));

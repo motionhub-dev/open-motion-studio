@@ -24,20 +24,21 @@ import {
   Cpu,
   Mic,
   SlidersHorizontal,
-  Stethoscope,
   TerminalSquare,
   Sun,
 } from 'lucide-react';
 import { MAX_BRIEF } from '../../shared/api';
 import type { Agents, Example, LibraryProject, Project, ProjectTask, Providers, VoiceKind, WorkspaceSettings } from '../../shared/api';
 import { Logo, Wordmark } from './logo';
+import { InstalledVersion } from './updates';
+import { HelpPage } from './help';
 import { SETTINGS_SECTIONS, Settings, type SettingsSection } from './settings';
 import { Select } from './select';
 import { SystemMessage, usePreferences } from './preferences';
 import { reason } from './reason';
 import { timecode } from './preview';
 
-type Page = 'home' | 'projects' | 'templates';
+type Page = 'home' | 'projects' | 'templates' | 'help';
 /** What asks for Settings: a section to open on, or one of its panes (a coding agent, a voice provider). */
 export type SettingsTarget = { models?: boolean; workspace?: boolean; agent?: 'codex' | 'claude'; voice?: VoiceKind };
 
@@ -46,7 +47,7 @@ const sectionOf = (target: SettingsTarget): SettingsSection =>
   target.agent ? 'agents' : target.voice ? 'voices' : target.models ? 'models' : 'general';
 
 /** Each section's icon in Home's sidebar. */
-const SECTION_ICONS = { general: SlidersHorizontal, models: Cpu, agents: TerminalSquare, voices: Mic, diagnostics: Stethoscope } as const;
+const SECTION_ICONS = { general: SlidersHorizontal, models: Cpu, agents: TerminalSquare, voices: Mic } as const;
 
 /**
  * Each template's film as the Studio's own export drew it, and its poster frame (scripts/render-templates.mjs, run by
@@ -504,7 +505,7 @@ function Prompt({ field, available, disabled, onCreate, onOpen, onSetUp }: {
 const typing = (target: EventTarget | null) =>
   target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
 
-export function Home({ providers, workspace, tasks, examples, busy, error, revision, settings, onAction, onSettingsShown, onSettingsLeft, onProviders }: {
+export function Home({ providers, workspace, tasks, examples, busy, error, revision, settings, onAction, onDismissError, onSettingsShown, onSettingsLeft, onProviders }: {
   providers: Providers | null;
   workspace: WorkspaceSettings | null;
   tasks: ProjectTask[];
@@ -515,6 +516,7 @@ export function Home({ providers, workspace, tasks, examples, busy, error, revis
   error: string | null;
   /** Runs an action that may open a project; whether it went. */
   onAction(action: () => Promise<Project | null>): Promise<boolean>;
+  onDismissError(): void;
   /** Settings asked for from outside Home (Ctrl/⌘ ,): opened among Home's pages, then said to have been. */
   settings: SettingsTarget | null;
   onSettingsShown(): void;
@@ -549,7 +551,6 @@ export function Home({ providers, workspace, tasks, examples, busy, error, revis
   const [menu, setMenu] = useState<string | null>(null);
   const [preview, setPreview] = useState<Example | null>(null);
   const [showTasks, setShowTasks] = useState(false);
-  const [help, setHelp] = useState(false);
   const prompt = useRef<HTMLTextAreaElement>(null);
   const search = useRef<HTMLInputElement>(null);
 
@@ -694,6 +695,7 @@ export function Home({ providers, workspace, tasks, examples, busy, error, revis
   }
 
   function body() {
+    if (page === 'help') return <HelpPage />;
     if (library === null || !ready) {
       // The page's shape while the library is read, so nothing jumps when it arrives.
       return (
@@ -835,6 +837,7 @@ export function Home({ providers, workspace, tasks, examples, busy, error, revis
         <div className="home-brand">
           <Logo size={30} />
           <Wordmark />
+          <InstalledVersion />
         </div>
         <span className="spacer" />
         {/* The language and the look, one click each; Follow system stays in Settings. */}
@@ -892,7 +895,7 @@ export function Home({ providers, workspace, tasks, examples, busy, error, revis
           })}
         </nav>
         <div className="home-nav-foot">
-          <button aria-expanded={help} onClick={() => setHelp(!help)}>
+          <button aria-current={!setting && page === 'help' ? 'page' : undefined} onClick={() => visit('help')}>
             <CircleHelp size={17} aria-hidden="true" />
             {t('Help')}
           </button>
@@ -912,20 +915,10 @@ export function Home({ providers, workspace, tasks, examples, busy, error, revis
               >
                 {t('Retry')}
               </button>
-            </div>
-          )}
-          {help && (
-            <section className="home-help">
-              <strong>{t('A few things to know')}</strong>
-              <p>{t('Projects are folders on your computer. Templates create a new copy. Closing a window keeps active tasks running in the tray.')}</p>
-              <p className="note">
-                {t('Keyboard shortcuts')}: <kbd>{MOD}</kbd> <kbd>{'N'}</kbd> {t('New film')} · <kbd>{MOD}</kbd> <kbd>{'O'}</kbd> {t('Open project')} ·{' '}
-                <kbd>{MOD}</kbd> <kbd>,</kbd> {t('Settings')} · <kbd>/</kbd> {t('Search projects')}
-              </p>
-              <button className="quiet" onClick={() => setHelp(false)}>
+              <button type="button" className="quiet" onClick={() => { setProblem(''); onDismissError(); }}>
                 {t('Close')}
               </button>
-            </section>
+            </div>
           )}
           {/* Each page, and a template opened, comes in with a short rise; Settings is one of them. */}
           {setting && providers && (
@@ -959,6 +952,3 @@ export function Home({ providers, workspace, tasks, examples, busy, error, revis
     </main>
   );
 }
-
-/** The modifier the app's shortcuts are held with on this computer. */
-const MOD = navigator.platform.startsWith('Mac') ? '⌘' : 'Ctrl';

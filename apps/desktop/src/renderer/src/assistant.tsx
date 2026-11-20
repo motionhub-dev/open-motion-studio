@@ -354,7 +354,7 @@ function AgentChip({
 }
 
 /** What the dot beside the agent says. */
-const STATE_WORDS: Record<HarnessState, string> = { ready: 'ready', 'signed-out': 'not signed in', old: 'needs an update', missing: 'not installed' };
+const STATE_WORDS: Record<HarnessState, string> = { unknown: 'Status unavailable', ready: 'ready', 'signed-out': 'not signed in', old: 'needs an update', missing: 'not installed' };
 
 interface Props {
   ref?: Ref<AssistantHandle>;

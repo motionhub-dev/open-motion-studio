@@ -154,6 +154,7 @@ function WorkspaceApp() {
       busy={busy}
       error={error}
       onAction={run}
+      onDismissError={() => setError(null)}
       settings={settings || null}
       onSettingsShown={() => setSettings(false)}
       onSettingsLeft={() => {

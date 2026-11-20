@@ -74,7 +74,7 @@ export type Protocol = 'anthropic' | 'openai';
 export type AgentKind = 'built-in' | 'codex' | 'claude';
 
 /** Where a person's own coding agent stands: not installed, too old, installed but not signed in, or ready. */
-export type HarnessState = 'missing' | 'old' | 'signed-out' | 'ready';
+export type HarnessState = 'unknown' | 'missing' | 'old' | 'signed-out' | 'ready';
 
 /** A person's own coding agent as the composer and Models show it. */
 export interface HarnessView {
