@@ -9,8 +9,8 @@
 An open-source desktop studio for making motion video with an AI agent.<br />
 Describe the film, point at what to change on the picture, and export an MP4.
 
-[![Release](https://img.shields.io/github/v/release/motionhub-dev/open-motion-studio?color=EE6348&label=release)](https://github.com/motionhub-dev/open-motion-studio/releases/latest)
-[![Build](https://img.shields.io/github/actions/workflow/status/motionhub-dev/open-motion-studio/build.yml?branch=main&label=build)](https://github.com/motionhub-dev/open-motion-studio/actions/workflows/build.yml)
+[![Release](https://img.shields.io/github/v/release/motionhubdev/openmotionstudio?color=EE6348&label=release)](https://github.com/motionhubdev/openmotionstudio/releases/latest)
+[![Build](https://img.shields.io/github/actions/workflow/status/motionhubdev/openmotionstudio/build.yml?branch=main&label=build)](https://github.com/motionhubdev/openmotionstudio/actions/workflows/build.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-8A3021)](LICENSE)
 ![Platforms](https://img.shields.io/badge/macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-desktop-555)
 

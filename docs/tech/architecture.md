@@ -77,7 +77,7 @@ site/                  the introduction page at openmotion.studio: static HTML, 
 | `film/*` | Turning `film.tsx` into a playable preview, a still at a time, and an MP4 | Know about the agent or the UI |
 | `agent` | The conversation, the tools, what the agent may do | Hold a key longer than a turn, or write the Studio's state, a motion from motionhub, dependencies or git |
 | `providers` | The providers and the app's preferences (theme, language, first-run state) in `settings.json` (userData); each key sealed with `safeStorage` in `keys.json`, opened for a call | Put a key in a reply to the renderer, a log, an error or a project |
-| `motions` | Reading the public catalogue and taking a motion into a project, the way `@motionhub/cli get` does | Publish; a person's motion reaches the catalogue as a pull request to `motionhub-dev/motions` |
+| `motions` | Reading the public catalogue and taking a motion into a project, the way `@motionhub/cli get` does | Publish; a person's motion reaches the catalogue as a pull request to `motionhubdev/motionhub` |
 | renderer | Panels, selection, marks, settings | Reach the disk or network except through preload (posters from motionhub.dev are the one exception) |
 
 One main BrowserWindow hosts Home and switches between retained project WebContentsViews. A project's view can move

@@ -1,6 +1,6 @@
 import type { StudioUpdate } from '../shared/api';
 
-const releaseApi = 'https://api.github.com/repos/motionhub-dev/open-motion-studio/releases/latest';
+const releaseApi = 'https://api.github.com/repos/motionhubdev/openmotionstudio/releases/latest';
 export const downloads = 'https://openmotion.studio/#get';
 
 // Public Studio release tags are vMAJOR.MINOR.PATCH. Ignore draft and prerelease metadata.

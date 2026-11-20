@@ -1,6 +1,6 @@
 # Sound, narration and captions
 
-> **Status:** Plan, slices A, B and C built · **Updated:** 2026-11-17
+> **Status:** Plan, slices A, B and C built · **Updated:** 2026-11-19
 
 How a film gets sound, a spoken narration and captions, in three slices: music and effects that play and export, captions
 drawn from a film's lines, and a narration synthesized line by line whose word times time the captions.
@@ -16,7 +16,7 @@ comparison with HyperFrames, VisoTalk and Remotion that led here is the
 ## What lands in `@motionhub/runtime` first
 
 A film imports only `@motionhub/runtime`, and the engine supplies what its parts do (`preview/core.tsx`), so the format
-changes land in `motionhub-dev/motions` (`packages/runtime`) before the Studio uses them, as CLAUDE.md requires:
+changes land in `motionhubdev/motionhub` (`packages/runtime`) before the Studio uses them, as CLAUDE.md requires:
 
 - `<Sound src at dur? trim? loop volume fadeIn fadeOut duck?>`: draws nothing; `<Film>` reports it with the scenes.
 - `<Line at? dur?>`: an optional place in its scene, in seconds; without it a line's time is the engine's to give.
