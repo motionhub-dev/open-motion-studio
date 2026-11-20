@@ -611,7 +611,9 @@ body::before {
   position: relative;
   flex: 1;
   align-self: stretch;
-  height: var(--foot);
+  /* The whole height of the bar, through the safe area at a phone's foot, so the band and the playhead run to the
+     bottom edge. */
+  margin-bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
 }
 /* What has played is a band of ink's tint behind the scenes, as a timeline shades what has been rendered; the head is the
    playhead at its edge. */
@@ -975,7 +977,8 @@ body.page > main {
   font-size: 14.5px;
   line-height: 1.6;
 }
-.head {
+/* The walkthrough's title row (scoped: the transport bar's playhead is a .head too). */
+.tour .head {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
