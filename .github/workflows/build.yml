@@ -183,7 +183,7 @@ jobs:
             trap 'rm -rf "$extracted"' EXIT
             ditto -x -k "${zip[0]}" "$extracted"
             bundle="$extracted/OpenMotionStudio.app"
-            codesign --verify --deep --strict -R 'anchor apple generic and certificate leaf[field.1.2.840.113635.100.6.1.13] exists' "$bundle"
+            codesign --verify --deep --strict -R '=anchor apple generic and certificate leaf[field.1.2.840.113635.100.6.1.13] exists' "$bundle"
             xcrun stapler validate "$bundle"
             cp latest-mac.yml "update-mac-$arch.yml"
           fi
