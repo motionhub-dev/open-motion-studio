@@ -23,6 +23,17 @@ export function ExportDialog({
 }) {
   const { t: tr } = usePreferences();
   const blocked = !review || stale || review.issues.some((i) => i.severity === 'error');
+  // What the MP4's sound track holds: the export mixes the voiced lines with the <Sound>s (film/capture.ts).
+  const sounds = review?.film?.sounds.length ?? 0;
+  const narrated = !!review?.film?.narration.length;
+  const kind = sounds === 1 ? 'sound' : 'sounds';
+  const audio = narrated
+    ? sounds
+      ? tr("AAC sound: the narration and {0} {1} mixed", {0: sounds, 1: kind})
+      : tr("AAC sound: the narration")
+    : sounds
+      ? tr("AAC sound, {0} {1} mixed", {0: sounds, 1: kind})
+      : tr("picture only");
   return (
     <Dialog label={tr("Export your film")} onClose={onClose} dismissible>
       <div className="panel-head">
@@ -38,9 +49,7 @@ export function ExportDialog({
           <strong>{tr("MP4 video")}</strong>
           <p>
             H.264 ·{' '}
-            {review?.film?.sounds.length
-              ? tr("AAC sound, {0} {1} mixed", {0: review.film.sounds.length, 1: review.film.sounds.length === 1 ? 'sound' : 'sounds'})
-              : tr("picture only")}{' '}
+            {audio}{' '}
             {tr("· original film size")}
           </p>
           {review?.film && review.film.scenes.some((scene) => scene.lines.length > 0) && (

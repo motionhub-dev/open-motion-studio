@@ -632,6 +632,8 @@ export const zh: Record<string, string> = {
   "Remove mark {0}": "移除标记 {0}",
   "{0} seconds": "{0} 秒",
   "AAC sound, {0} {1} mixed": "AAC 音频，混合 {0} 段声音",
+  "AAC sound: the narration": "AAC 音频：旁白",
+  "AAC sound: the narration and {0} {1} mixed": "AAC 音频：旁白，另混合 {0} 段声音",
   "{0} sampled frames draw successfully.": "{0} 个抽样帧均渲染成功。",
   "Restored before “{0}”": "已恢复到“{0}”之前",
   "Undo “{0}” and the agent changes after it.": "撤销“{0}”及之后的 Agent 修改。",

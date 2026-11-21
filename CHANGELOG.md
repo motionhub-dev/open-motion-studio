@@ -3,6 +3,14 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-21 — Export names the narration in a narrated film's sound
+
+- **What:** The export dialog says a narrated film's MP4 carries its narration ("AAC sound: the narration", with any other sounds counted beside it) instead of "picture only". The export already mixed the voiced lines in; only the label was wrong.
+- **Why:** A film whose every line was voiced was announced as picture only, which reads as the voice being lost.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/export-dialog.tsx`, `apps/desktop/src/shared/translations.ts`.
+
 ## 2026-11-20 — The website says what the Studio does, in plain words
 
 - **What:** The front page and the walkthrough are rewritten for people who make video but not animation: each section answers one question a visitor has (what it is, will it look good, can I change one thing, what does it cost and where do my files go, how is it different, how do I start), in words they use (AI, video, style, circle, export) instead of the Studio's own (agent, film, look, reel, brief). The Chinese is written as Chinese, not translated line by line. The chapters on the transport bar are named the same way. The first screen asks for one thing, Download, with the full walkthrough linked under the demo at its right; the cost and privacy section sets its headline at the left beside the list. The top bar and the footer link the community on Discord, the footer with GitHub's and Discord's marks. On a desktop the walkthrough is one screen, its film as large as the screen allows and playable full screen, its steps beside it as tall as the film and scrolling within.
