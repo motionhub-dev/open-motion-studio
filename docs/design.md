@@ -11,14 +11,21 @@ OpenMotionStudio is an agent video editor for AI creators with a discerning eye 
 The Studio keeps motionhub's paper, ink and type (`brand/BRAND.md` in `motionhubdev/motionhub`) and has a mark of its
 own, apart from the catalogue's ball in flight: the **eased square**, a rounded square split by an ease-in-out curve
 into a deep and a mid vermilion, the curve drawn light along the seam. It is animation's slow, fast, slow, and reads
-as the S of Studio. Vermilion is the mark and the one action a screen asks for; cobalt, the one cool colour, is what a
-person marks on the picture. The interface stays quiet so the film is loud: no colour on screen but the film's, the
-film sits on ink, and each colour has one job.
+as the S of Studio. Vermilion is the mark and the one action a screen asks for; cobalt, the one cool colour, is where
+the person's attention is. The interface stays quiet so the film is loud: no colour on screen but the film's, the
+film sits on ink, and each colour has one job. The Studio and the website share one palette, by the same token names
+and values (`styles.css` and `site/studio.css`).
 
-- **Vermilion (`--accent`)** is Export, and nothing else: the one action a screen asks for, in the mark's colour.
-- **Cobalt (`--annotate`)** is what the person marks on the picture (a box, its number, its flag on the timeline, its
-  chip by the message): the cool counterpoint to the mark's vermilion.
-- Buttons, links, focus and the playhead are ink (`--text`), never a colour.
+- **Vermilion (`--accent`)** is Export, and nothing else: the one action a screen asks for, in the mark's colour, raised
+  as the website's Download is (`--accent-edge`, `--accent-lift`). At most one on a screen.
+- **Cobalt (`--cobalt`)** is where the person's attention is: what they mark on the picture (a box, its number, its
+  flag on the timeline, its chip by the message) and what they select or point at; what is running or playing now (the
+  agent's current phase, a task's progress, the line being said, Pick or Region while on, the play button on a
+  template's poster); the keyboard's focus, a 2 px ring; and the second phrase of a headline, as the website's headlines
+  have it: Home's, set large and centred on one line, and the first run's, on a line of its own. Never a button's fill but a play button's, never body copy,
+  never a result.
+- Buttons, links, switches, the current tab and the playhead are ink (`--text`), never a colour. A result is `--good` or
+  `--bad`, a rose kept apart from the mark's vermilion so that a failure never reads as the brand.
 
 The mark is the app's icon, full bleed: `apps/desktop/resources/icon.svg` (vermilion `#8A3021`, `#EE6348` and the
 curve `#FFB4A1`, corners at 22.5 %) is its source. `icon.png` is it at 1024 px, from which electron-builder makes the
@@ -40,19 +47,22 @@ choice, or the one chosen in Settings → General, set as `data-theme` on `<html
 
 | Token | Light | Dark | Used for |
 | --- | --- | --- | --- |
-| `--bg` | `#F3EEE4` | `#1A1714` | the ground the panels sit on |
-| `--sheet` | `#FBF8F2` | `#221E1A` | panels, cards, the dialog |
-| `--s2` | `#EAE2D4` | `#2C2722` | selected, hover, the person's message, clips |
-| `--line` | `#DDD3C3` | `#3B342D` | every border and rule |
+| `--bg` | `#F3F1EC` | `#0F0D0B` | the ground the panels sit on (the website's surface and page) |
+| `--sheet` | `#FCFCFA` | `#1A1714` | panels, cards, the dialog |
+| `--s2` | `#EBE8E1` | `#2A2520` | selected, hover, the person's message, clips |
+| `--line` | `#E3E0DA` | `#2F2A24` | every border and rule |
+| `--raised` | `#FFFFFF` | `#2A2520` | a button's face, with `--hilite` along its top and `--lift` under it |
 | `--text` | `#2A2622` | `#F1EBE0` | headings, primary buttons, the playhead |
 | `--text2` | `#4A453E` | `#D3CABC` | body copy |
-| `--muted` | `#6B645A` | `#A89E90` | labels, times, counts |
-| `--stage` | `#2A2622` | `#0F0D0B` | the ink under the film |
+| `--muted` | `#69635A` | `#A89E90` | labels, times, counts |
+| `--stage` | `#2A2622` | `#080706` | the ink under the film |
 | `--accent` | `#C4381F` | `#FF6A4D` | Export, in the mark's vermilion |
-| `--on-accent` | `#FBF8F2` | `#1A1714` | the label on Export |
-| `--annotate` | `#2B59C3` | `#8FA8FF` | marks on the picture |
+| `--accent-edge` | `#A32D17` | `#FF8A73` | Export's edge |
+| `--on-accent` | `#FBF8F2` | `#0F0D0B` | the label on Export |
+| `--cobalt` | `#2B59C3` | `#8FA8FF` | where the person's attention is: marks, selection, now, focus |
+| `--on-cobalt` | `#FBF8F2` | `#0F0D0B` | a label on cobalt |
 | `--good` | `#2E7D4F` | `#6CC08B` | built, done |
-| `--bad` | `#A1301B` | `#FF8A73` | does not build, failed |
+| `--bad` | `#B3243F` | `#FF8099` | does not build, failed |
 
 ## Type and shape
 
@@ -62,7 +72,8 @@ choice, or the one chosen in Settings → General, set as `data-theme` on `<html
   title on Home). Times are always `mm:ss.cc` in mono (`timecode()`).
 - Radius: 6 controls, 8 buttons, 12 panels, 16 dialogs. Spacing steps by 4: 4, 8, 12, 16, 24, 32.
 - Panels sit 8 px apart on the ground, separated by a line, not a shadow; only the dialog and toasts float. The film's
-  frame carries the one other shadow, on the ink.
+  frame carries the one other shadow, on the ink. A button is paper raised by a hairline, a lit top edge and a small
+  shadow, sinking a half pixel when pressed, as the website's are.
 
 ## Icons
 
@@ -140,7 +151,8 @@ A top bar over a grid of panels (`project-view.tsx`):
   picture at once. With a change made, its actions are Add to message and Apply, which sends it to the agent now;
   Cancel puts the picture back. A mark's row in the composer counts its changes. A mark in hand in the composer is drawn lit
   (thicker, with a soft cobalt halo) on the picture and the timeline.
-- The stage draws the film's frame contained and centred on ink with a shadow.
+- The stage draws the film's frame contained and centred on ink with a shadow, and is edged by a hairline (`--line`) so
+  that its ink stays apart from the dark ground.
 - Keys, grouped in one table (`SHORTCUTS` in `project-view.tsx`) that ? lists in a dialog: Space or K plays, ← → step
   a frame (Shift, a second), ↑ ↓ go to the previous or next scene, Home and End to the start and end; C cycles Pick,
   Region and off, G shows the safe-area guides, Esc lets a mark go, then puts the tool down, then clears the selection;
@@ -253,7 +265,7 @@ agents and exports continue. Sessions are retained for this app run; explicit Qu
   parts on hover; the files it changed; its last check's result; the film's new length), what changed as small pills
   (a removed one struck through), and Go back to before this (the last turn's) and Copy (its answer); for turns run
   while the project is open. While a turn runs, the progress card shows its phases as a row (Thinking, Editing,
-  Checking, Looking; those passed ticked, the current inked), what it is doing and the clock, and Send is a red Stop. A question the agent asks with
+  Checking, Looking; those passed ticked, the current in cobalt), what it is doing and the clock, and Send is a red Stop. A question the agent asks with
   answers takes the composer's place as a floating sheet with an ink edge, the conversation dimmed to 45% behind it:
   the question, each answer as a row (the first marked Recommended in green), and a dashed "Something else…" that
   brings the composer back; in the conversation it is a dashed card, "Answer below" until answered, then "Answered:"

@@ -166,7 +166,8 @@ jobs:
       - name: Collect update metadata
         shell: bash
         env:
-          MAC_NOTARIZED: ${{ runner.os == 'macOS' && secrets.CSC_LINK != '' && secrets.APPLE_TEAM_ID != '' }}
+          # electron-builder skips signing in a pull request's build, so only a push or a release is notarised.
+          MAC_NOTARIZED: ${{ runner.os == 'macOS' && github.event_name != 'pull_request' && secrets.CSC_LINK != '' && secrets.APPLE_TEAM_ID != '' }}
         run: |
           cd apps/desktop/dist
           if [[ "$RUNNER_OS" == Linux ]]; then
@@ -183,7 +184,7 @@ jobs:
             trap 'rm -rf "$extracted"' EXIT
             ditto -x -k "${zip[0]}" "$extracted"
             bundle="$extracted/OpenMotionStudio.app"
-            codesign --verify --deep --strict -R 'anchor apple generic and certificate leaf[field.1.2.840.113635.100.6.1.13] exists' "$bundle"
+            codesign --verify --deep --strict -R '=anchor apple generic and certificate leaf[field.1.2.840.113635.100.6.1.13] exists' "$bundle"
             xcrun stapler validate "$bundle"
             cp latest-mac.yml "update-mac-$arch.yml"
           fi

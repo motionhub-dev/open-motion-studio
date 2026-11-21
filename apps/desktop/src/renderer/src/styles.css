@@ -1,28 +1,34 @@
 /*
  * The Studio's visual system (docs/design.md): paper and ink, and the vermilion of its mark.
  * The interface stays quiet so the film is loud: no colour but the film's, `--accent`
- * (vermilion) for Export alone, `--annotate` (cobalt, the one cool colour) for what the person
- * marks on the picture. Every colour is a token here, light and dark; nothing below names a
- * colour.
+ * (vermilion) for Export alone, `--cobalt` (the one cool colour) for where the person's attention
+ * is: what they mark and select, what is running or playing now, the keyboard's focus. The values
+ * are the website's (site/studio.css). Every colour is a token here, light and dark; nothing
+ * below names a colour.
  */
 
 :root {
-  --bg: #f3eee4;
-  --sheet: #fbf8f2;
-  --s2: #eae2d4;
-  --line: #ddd3c3;
+  --bg: #f3f1ec;
+  --sheet: #fcfcfa;
+  --s2: #ebe8e1;
+  --line: #e3e0da;
   --text: #2a2622;
   --text2: #4a453e;
-  --muted: #6b645a;
+  --muted: #69635a;
   --stage: #2a2622;
   --accent: #c4381f;
   --on-accent: #fbf8f2;
-  --annotate: #2b59c3;
-  --on-annotate: #fbf8f2;
+  --accent-edge: #a32d17;
+  --accent-lift: 0 1px 1px rgb(120 30 14 / 0.3), 0 4px 10px -4px rgb(196 56 31 / 0.5);
+  --cobalt: #2b59c3;
+  --on-cobalt: #fbf8f2;
   --good: #2e7d4f;
-  --bad: #a1301b;
-  --bad-ground: #fbefeb;
-  --bad-line: #e8b9ae;
+  --bad: #b3243f;
+  --bad-ground: #fbedf0;
+  --bad-line: #ecb6c1;
+  --raised: #ffffff;
+  --hilite: rgb(255 255 255 / 0.95);
+  --lift: 0 1px 1px rgb(42 38 34 / 0.06), 0 2px 5px -2px rgb(42 38 34 / 0.16);
   --overlay: rgb(20 18 16 / 0.72);
   --float-shadow: 0 30px 80px rgb(42 38 34 / 0.25);
   --lift-shadow: 0 10px 28px rgb(42 38 34 / 0.12);
@@ -41,22 +47,27 @@
 }
 
 :root[data-theme="dark"] {
-    --bg: #1a1714;
-    --sheet: #221e1a;
-    --s2: #2c2722;
-    --line: #3b342d;
+    --bg: #0f0d0b;
+    --sheet: #1a1714;
+    --s2: #2a2520;
+    --line: #2f2a24;
     --text: #f1ebe0;
     --text2: #d3cabc;
     --muted: #a89e90;
-    --stage: #0f0d0b;
+    --stage: #080706;
     --accent: #ff6a4d;
-    --on-accent: #1a1714;
-    --annotate: #8fa8ff;
-    --on-annotate: #1a1714;
+    --on-accent: #0f0d0b;
+    --accent-edge: #ff8a73;
+    --accent-lift: 0 1px 1px rgb(0 0 0 / 0.5), 0 4px 12px -4px rgb(255 106 77 / 0.35);
+    --cobalt: #8fa8ff;
+    --on-cobalt: #0f0d0b;
     --good: #6cc08b;
-    --bad: #ff8a73;
-    --bad-ground: #2e1d18;
-    --bad-line: #5c2d22;
+    --bad: #ff8099;
+    --bad-ground: #2b161b;
+    --bad-line: #5e2633;
+    --raised: #2a2520;
+    --hilite: rgb(255 255 255 / 0.07);
+    --lift: 0 1px 1px rgb(0 0 0 / 0.5), 0 2px 6px -2px rgb(0 0 0 / 0.7);
     --float-shadow: 0 30px 80px rgb(0 0 0 / 0.5);
     --lift-shadow: 0 10px 28px rgb(0 0 0 / 0.35);
     color-scheme: dark;
@@ -103,7 +114,8 @@ p {
   white-space: nowrap;
 }
 
-/* Buttons: ink for the primary one, vermilion for Export alone, a line for the rest. */
+/* Buttons: paper raised by a hairline, a lit top edge and a small shadow, as on the website; ink for the primary one,
+   vermilion for Export alone. */
 
 button {
   font: inherit;
@@ -117,8 +129,8 @@ button:disabled {
 }
 
 :focus-visible {
-  outline: 1px solid var(--muted);
-  outline-offset: 1px;
+  outline: 2px solid var(--cobalt);
+  outline-offset: 2px;
 }
 
 .button {
@@ -130,7 +142,8 @@ button:disabled {
   padding: 0 14px;
   border-radius: var(--r-button);
   border: 1px solid var(--line);
-  background: var(--sheet);
+  background: var(--raised);
+  box-shadow: inset 0 1px 0 var(--hilite), var(--lift);
   color: var(--text);
   white-space: nowrap;
 }
@@ -139,9 +152,14 @@ button:disabled {
   background: var(--s2);
 }
 
+.button:active:not(:disabled) {
+  transform: translateY(0.5px);
+}
+
 .button.primary {
   border-color: var(--text);
   background: var(--text);
+  box-shadow: var(--lift);
   color: var(--bg);
   font-weight: 500;
 }
@@ -151,8 +169,9 @@ button:disabled {
 }
 
 .button.accent {
-  border-color: var(--accent);
+  border-color: var(--accent-edge);
   background: var(--accent);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.18), var(--accent-lift);
   color: var(--on-accent);
   font-weight: 600;
 }
@@ -165,6 +184,7 @@ button:disabled {
 button.quiet {
   border-color: transparent;
   background: transparent;
+  box-shadow: none;
   color: var(--muted);
 }
 
@@ -287,8 +307,8 @@ button.status:hover {
   height: 18px;
   padding: 0 4px;
   border-radius: 9px;
-  background: var(--annotate);
-  color: var(--on-annotate);
+  background: var(--cobalt);
+  color: var(--on-cobalt);
   font-size: 10px;
   font-weight: 600;
 }
@@ -937,7 +957,7 @@ button.status:hover {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--annotate);
+  background: var(--cobalt);
   animation: task-pulse 1.6s ease-in-out infinite;
 }
 
@@ -966,6 +986,7 @@ button.status:hover {
   min-height: 0;
   display: flex;
   flex-direction: column;
+  border: 1px solid var(--line);
   border-radius: var(--r-panel);
   background: var(--stage);
   overflow: hidden;
@@ -1204,8 +1225,8 @@ button.status:hover {
 }
 
 .pointing button[aria-pressed='true'] {
-  background: rgb(255 255 255 / 0.9);
-  color: var(--stage);
+  background: var(--cobalt);
+  color: var(--on-cobalt);
 }
 
 .pointing button:disabled {
@@ -1214,6 +1235,7 @@ button.status:hover {
 
 /* Full screen, the stage is the screen: no corners, and the picture takes all but its foot. */
 .stage:fullscreen {
+  border: 0;
   border-radius: 0;
 }
 
@@ -1276,7 +1298,7 @@ button.status:hover {
 
 .mark {
   position: absolute;
-  border: 2px solid var(--annotate);
+  border: 2px solid var(--cobalt);
   border-radius: 3px;
 }
 
@@ -1292,7 +1314,7 @@ button.status:hover {
 
 .mark.lit {
   border-width: 3px;
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--annotate) 30%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--cobalt) 30%, transparent);
 }
 
 /* The box beside a mark being made, which asks what should change there. */
@@ -1375,7 +1397,7 @@ button.status:hover {
 
 .mark-look input[type='range'] {
   width: 100%;
-  accent-color: var(--annotate);
+  accent-color: var(--cobalt);
 }
 
 .mark-look output {
@@ -1543,7 +1565,7 @@ button.status:hover {
 }
 
 .timeline .flag.lit {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--annotate) 30%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cobalt) 30%, transparent);
 }
 
 /* Dragging along the marks lane marks a stretch of the film; empty, it says so. */
@@ -1553,7 +1575,7 @@ button.status:hover {
 }
 
 .marks-lane:not(.full):hover {
-  background: color-mix(in srgb, var(--annotate) 6%, transparent);
+  background: color-mix(in srgb, var(--cobalt) 6%, transparent);
 }
 
 .marks-lane .hint {
@@ -1577,9 +1599,9 @@ button.status:hover {
   height: 18px;
   min-width: 2px;
   padding: 0;
-  border: 1px solid var(--annotate);
+  border: 1px solid var(--cobalt);
   border-radius: 4px;
-  background: color-mix(in srgb, var(--annotate) 18%, transparent);
+  background: color-mix(in srgb, var(--cobalt) 18%, transparent);
   display: flex;
   align-items: center;
 }
@@ -1590,7 +1612,7 @@ button.status:hover {
 }
 
 .mark-range.lit {
-  background: color-mix(in srgb, var(--annotate) 34%, transparent);
+  background: color-mix(in srgb, var(--cobalt) 34%, transparent);
 }
 
 .mark-range .number {
@@ -2779,17 +2801,17 @@ kbd {
   background: var(--s2);
 }
 .outline-row.hovered {
-  box-shadow: inset 2px 0 var(--annotate);
+  box-shadow: inset 2px 0 var(--cobalt);
 }
 .outline-row.selected {
-  background: color-mix(in srgb, var(--annotate) 12%, transparent);
+  background: color-mix(in srgb, var(--cobalt) 12%, transparent);
 }
 /* Its outline is drawn over the row, so the actions on its end never cover it. */
 .outline-row.selected::after {
   content: '';
   position: absolute;
   inset: 0;
-  border: 1px solid var(--annotate);
+  border: 1px solid var(--cobalt);
   border-radius: inherit;
   pointer-events: none;
 }
@@ -2892,7 +2914,7 @@ kbd {
   background: linear-gradient(to right, transparent, var(--row) 16px);
 }
 .outline-row.selected > .row-actions {
-  --row: color-mix(in srgb, var(--annotate) 12%, var(--sheet));
+  --row: color-mix(in srgb, var(--cobalt) 12%, var(--sheet));
 }
 .outline-children .row-actions,
 .outline-global .row-actions {
@@ -2919,21 +2941,21 @@ kbd {
 }
 .selection-box {
   position: absolute;
-  border: 1px dashed var(--annotate);
+  border: 1px dashed var(--cobalt);
   pointer-events: none;
 }
 /* The layer under the pointer in the outline or on the timeline. */
 .selection-box.hovered {
-  border: 1.5px dashed var(--annotate);
-  background: color-mix(in srgb, var(--annotate) 8%, transparent);
+  border: 1.5px dashed var(--cobalt);
+  background: color-mix(in srgb, var(--cobalt) 8%, transparent);
 }
 .selection-box > span {
   position: absolute;
   bottom: 100%;
   left: 0;
   padding: 3px 6px;
-  background: var(--annotate);
-  color: var(--on-annotate);
+  background: var(--cobalt);
+  color: var(--on-cobalt);
   font-size: 10px;
   white-space: nowrap;
 }
@@ -2953,7 +2975,7 @@ kbd {
   border-radius: var(--r-button);
   background: var(--bg);
   border: 1px solid var(--line);
-  border-left: 2px solid var(--annotate);
+  border-left: 2px solid var(--cobalt);
 }
 .reference-locate {
   display: flex;
@@ -3064,26 +3086,26 @@ kbd {
   border-color: var(--muted);
 }
 .layer-span.selected {
-  background: color-mix(in srgb, var(--annotate) 14%, var(--sheet));
-  border: 1px solid var(--annotate);
+  background: color-mix(in srgb, var(--cobalt) 14%, var(--sheet));
+  border: 1px solid var(--cobalt);
   color: var(--text);
 }
 .timeline .scene.selected {
-  outline: 2px solid var(--annotate);
+  outline: 2px solid var(--cobalt);
   outline-offset: 1px;
 }
 /* The layer under the pointer here or in the outline, and the scene it is in. */
 .layer-span.hovered {
-  border: 1px dashed var(--annotate);
-  background: color-mix(in srgb, var(--annotate) 10%, var(--sheet));
+  border: 1px dashed var(--cobalt);
+  background: color-mix(in srgb, var(--cobalt) 10%, var(--sheet));
   color: var(--text);
 }
 .timeline .scene.holds-hovered:not(.selected) {
-  box-shadow: inset 0 -2px var(--annotate);
+  box-shadow: inset 0 -2px var(--cobalt);
 }
 /* The scene a selected layer or line is in. */
 .timeline .scene.holds-selected {
-  outline: 1px solid var(--annotate);
+  outline: 1px solid var(--cobalt);
   outline-offset: 1px;
 }
 .timeline-seek {
@@ -3266,9 +3288,9 @@ kbd {
   color: var(--good);
 }
 .phases li.on {
-  background: var(--text);
-  border-color: var(--text);
-  color: var(--bg);
+  background: var(--cobalt);
+  border-color: var(--cobalt);
+  color: var(--on-cobalt);
 }
 .export-lede {
   color: var(--muted);
@@ -3552,7 +3574,7 @@ kbd {
 
 /* Files from the computer over the workspace: it says it will import them. */
 .workspace.file-drop {
-  outline: 2px dashed var(--annotate);
+  outline: 2px dashed var(--cobalt);
   outline-offset: -6px;
 }
 
@@ -3620,8 +3642,8 @@ kbd {
 }
 /* The lines that write what was asked for from the outline, lit in the annotation's cobalt. */
 .code-line.lit {
-  background: color-mix(in srgb, var(--annotate) 12%, transparent);
-  box-shadow: inset 2px 0 var(--annotate);
+  background: color-mix(in srgb, var(--cobalt) 12%, transparent);
+  box-shadow: inset 2px 0 var(--cobalt);
 }
 .code-number {
   position: sticky;
@@ -3634,7 +3656,7 @@ kbd {
   user-select: none;
 }
 .code-line.lit .code-number {
-  background: color-mix(in srgb, var(--annotate) 12%, var(--sheet));
+  background: color-mix(in srgb, var(--cobalt) 12%, var(--sheet));
 }
 .code-tokens {
   white-space: pre;
@@ -3642,14 +3664,14 @@ kbd {
 }
 /* Syntax in the Studio's own few colours, quiet: the film is the loud thing. */
 .tok-keyword {
-  color: var(--annotate);
+  color: var(--cobalt);
 }
 .tok-string {
   color: var(--good);
 }
 .tok-entity,
 .tok-class {
-  color: color-mix(in srgb, var(--annotate) 60%, var(--text));
+  color: color-mix(in srgb, var(--cobalt) 60%, var(--text));
 }
 .tok-property,
 .tok-jsxliterals {
@@ -3698,7 +3720,7 @@ kbd {
   color: var(--text);
 }
 .code-file[aria-current='page'] {
-  background: color-mix(in srgb, var(--annotate) 12%, transparent);
+  background: color-mix(in srgb, var(--cobalt) 12%, transparent);
   color: var(--text);
 }
 .code-folder svg:first-child {
@@ -3788,7 +3810,7 @@ kbd {
 
 .picture.dropping,
 .composer.dropping {
-  outline: 2px dashed var(--annotate);
+  outline: 2px dashed var(--cobalt);
   outline-offset: -4px;
 }
 .asset-audio {
@@ -3898,7 +3920,7 @@ kbd {
   padding: 4px 4px 4px 6px;
   border-radius: var(--r-button);
   border: 1px solid var(--line);
-  border-left: 2px solid var(--annotate);
+  border-left: 2px solid var(--cobalt);
   background: var(--bg);
 }
 
@@ -4874,14 +4896,14 @@ kbd {
   top: 4px;
   height: 22px;
   padding: 0;
-  border: 1px solid color-mix(in srgb, var(--annotate) 45%, var(--line));
+  border: 1px solid color-mix(in srgb, var(--cobalt) 45%, var(--line));
   border-radius: 4px;
-  background: color-mix(in srgb, var(--annotate) 10%, var(--bg));
+  background: color-mix(in srgb, var(--cobalt) 10%, var(--bg));
   color: var(--text2);
   overflow: hidden;
 }
 .sound-span:hover {
-  border-color: var(--annotate);
+  border-color: var(--cobalt);
 }
 .sound-span svg {
   position: absolute;
@@ -4890,7 +4912,7 @@ kbd {
   height: calc(100% - 4px);
 }
 .sound-span path {
-  fill: color-mix(in srgb, var(--annotate) 55%, transparent);
+  fill: color-mix(in srgb, var(--cobalt) 55%, transparent);
 }
 .sound-span span {
   position: relative;
@@ -4932,8 +4954,8 @@ kbd {
   color: var(--text);
 }
 .line-span.selected {
-  border-color: var(--annotate);
-  background: color-mix(in srgb, var(--annotate) 12%, var(--sheet));
+  border-color: var(--cobalt);
+  background: color-mix(in srgb, var(--cobalt) 12%, var(--sheet));
 }
 
 /* Global settings is a page; the editor remains mounted behind it. */
@@ -5426,6 +5448,19 @@ input.switch:disabled {
   margin: 8px 0 12px;
 }
 
+/* The headline's second phrase in cobalt, as on the website: on a line of its own in the first run, on the same line
+   on Home. */
+.home-hero h1 em,
+.onboarding h1 em {
+  display: block;
+  font-style: normal;
+  color: var(--cobalt);
+}
+
+.home-hero h1 em {
+  display: inline;
+}
+
 .home-content h2 {
   font-size: 17px;
 }
@@ -5630,8 +5665,8 @@ input.switch:disabled {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: var(--stage);
-  color: #fff;
+  background: var(--cobalt);
+  color: var(--on-cobalt);
   transition: opacity 0.15s, transform 0.15s;
 }
 
@@ -5705,8 +5740,8 @@ input.switch:disabled {
 }
 
 .setup-steps .selected span {
-  background: var(--text);
-  color: var(--bg);
+  background: var(--cobalt);
+  color: var(--on-cobalt);
 }
 
 .setup-panel {
@@ -5992,7 +6027,13 @@ input.switch:disabled {
 
 /* Home's prompt: what to make, in the person's words, as the first thing on Home. */
 .home-hero h1 {
-  margin-top: 4px;
+  margin: 28px 0 28px;
+  font-size: 44px;
+  font-weight: 650;
+  line-height: 1.1;
+  letter-spacing: -0.045em;
+  text-align: center;
+  text-wrap: balance;
 }
 
 .home-prompt {
@@ -6186,13 +6227,13 @@ input.switch:disabled {
 
 /* Something waits on the person: the attention colour, wherever a task says so. */
 .state-dot.waiting {
-  border-color: var(--annotate);
-  background: var(--annotate);
+  border-color: var(--cobalt);
+  background: var(--cobalt);
 }
 
 .task-badge.waiting {
-  border-color: var(--annotate);
-  color: var(--annotate);
+  border-color: var(--cobalt);
+  color: var(--cobalt);
 }
 
 .task-ring {
@@ -6211,7 +6252,7 @@ input.switch:disabled {
 }
 
 .task-ring circle:last-child {
-  stroke: var(--text);
+  stroke: var(--cobalt);
   stroke-linecap: round;
   transition: stroke-dasharray 0.3s;
 }
@@ -6224,7 +6265,7 @@ input.switch:disabled {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--annotate);
+  background: var(--cobalt);
   animation: task-pulse 1.6s ease-in-out infinite;
 }
 
@@ -6239,7 +6280,7 @@ input.switch:disabled {
   left: 0;
   bottom: 0;
   height: 3px;
-  background: var(--text);
+  background: var(--cobalt);
   transition: width 0.3s;
 }
 
@@ -6377,8 +6418,8 @@ input.switch:disabled {
 }
 /* The line being said, while the film plays it. */
 .voice-line.now {
-  background: color-mix(in srgb, var(--annotate) 12%, transparent);
-  box-shadow: inset 2px 0 var(--annotate);
+  background: color-mix(in srgb, var(--cobalt) 12%, transparent);
+  box-shadow: inset 2px 0 var(--cobalt);
 }
 .voice-text {
   padding-top: 4px;
@@ -6395,7 +6436,7 @@ input.switch:disabled {
   white-space: nowrap;
 }
 .voice-line.waiting .voice-state {
-  color: var(--annotate);
+  color: var(--cobalt);
 }
 .voice-ask {
   opacity: 0;
@@ -6487,8 +6528,8 @@ input.switch:disabled {
   background: var(--s2);
 }
 .voice-choices li.chosen {
-  background: color-mix(in srgb, var(--annotate) 12%, transparent);
-  box-shadow: inset 2px 0 var(--annotate);
+  background: color-mix(in srgb, var(--cobalt) 12%, transparent);
+  box-shadow: inset 2px 0 var(--cobalt);
 }
 .voice-choice {
   flex: 1;
