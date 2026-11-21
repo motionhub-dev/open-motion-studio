@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <title data-zh="从一句话到成片：做一支产品发布片 — OpenMotionStudio">Make a launch film, start to finish — OpenMotionStudio</title>
+    <meta
+      name="description"
+      content="One real Studio session: describe a 30-second launch film, pick a look on MotionHub, bring your photos, mark what to change on the picture, add a voice and export an MP4."
+      data-zh-content="一次完整的真实创作：描述一支 30 秒产品发布片，挑 MotionHub 风格，放进照片，在画面上圈改，配上旁白，导出 MP4。"
+    />
+    <meta property="og:title" content="Make a launch film, start to finish — OpenMotionStudio" />
+    <meta property="og:description" content="Watch a real Studio session turn one paragraph into a narrated 30-second launch film." />
+    <meta property="og:image" content="https://openmotion.studio/media/launch-poster.webp" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#FCFCFA" />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      // Set before the page paints (the same in index.html): light unless the visitor chose dark, and Chinese for ?lang=zh,
+      // the visitor's choice, or else a browser set to Chinese. Both toggles are in the top bar; studio.js swaps the words.
+      try {
+        if (localStorage.getItem("oms-theme") === "dark") document.documentElement.dataset.theme = "dark";
+      } catch {}
+      (() => {
+        let lang = new URLSearchParams(location.search).get("lang");
+        try {
+          if (lang !== "zh" && lang !== "en") lang = localStorage.getItem("oms-lang");
+        } catch {}
+        if (lang !== "zh" && lang !== "en") lang = /^zh\b/i.test(navigator.language) ? "zh" : "en";
+        if (lang === "zh") document.documentElement.lang = "zh-CN";
+      })();
+    </script>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href="/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="/studio.css" />
+    <script src="/studio.js" defer></script>
+  </head>
+  <body class="page">
+    <a class="skip" href="#main" data-zh="跳到正文">Skip to content</a>
+    <header class="top gut">
+      <a class="brand" href="/"
+        ><img src="/favicon.svg" alt="" width="26" height="26" /><span class="name">OpenMotion<span>Studio</span></span></a
+      >
+      <nav class="nav" aria-label="Site" data-zh-aria-label="站点">
+        <a class="nav-link" href="/tour" aria-current="page" data-zh="教程">Tutorials</a>
+      <a class="nav-link" href="https://discord.gg/yWWyRuGYMV"
+        ><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z" /></svg>Discord</a
+      >
+      <a class="nav-link" href="https://github.com/motionhubdev/openmotionstudio"
+        ><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+          <path
+            fill="currentColor"
+            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"
+          /></svg
+        >GitHub</a
+      >
+      </nav>
+      <span class="top-sep" aria-hidden="true"></span>
+      <select class="select select-quiet lang-select" id="lang" aria-label="Language" data-zh-aria-label="语言">
+        <!-- Each language by its own name in the list, and by its short name on the button (data-short). -->
+        <option value="en" lang="en" data-short="EN">English</option>
+        <option value="zh" lang="zh" data-short="中文">简体中文</option>
+      </select>
+      <div class="seg seg-theme" id="theme" role="group" aria-label="Theme" data-zh-aria-label="主题">
+        <button type="button" data-theme-to="light" aria-label="Light theme" data-zh-aria-label="浅色主题" title="Light theme" data-zh-title="浅色主题">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
+        </button>
+        <button type="button" data-theme-to="dark" aria-label="Dark theme" data-zh-aria-label="深色主题" title="Dark theme" data-zh-title="深色主题">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" /></svg>
+        </button>
+      </div>
+      <a class="btn btn-primary top-get" href="/#get"
+        ><svg class="top-get-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" /></svg><span data-zh="下载客户端">Download</span></a
+      >
+    </header>
+
+    <main id="main">
+      <!-- TUTORIAL: one real session, start to finish, with each chapter written out beside the film -->
+      <section class="tour gut" aria-labelledby="tour-title">
+        <div class="max">
+          <div class="head">
+            <div>
+              <a class="crumb" href="/tour" data-zh="← 全部教程">← All tutorials</a>
+              <p class="kicker" data-zh="入门 · 完整实录 · 4:03">Start here · Full session · 4:03</p>
+              <h1 id="tour-title" data-zh="从一句话到成片：<em>做一支产品发布片。</em>">Make a launch film, <em>start to finish.</em></h1>
+            </div>
+            <p class="lede" data-zh="一段描述、一套 MotionHub 风格、两张产品照片，做成一支有旁白的 30 秒发布片。全程真实录制，AI 工作和导出的等待都标明了快进倍速。旁白和字幕跟随页面语言。">One paragraph, one look from MotionHub and two product photos become a narrated 30-second launch film. Recorded as it happened: every wait for the agent and the export is marked as sped up. The narration follows the page's language.</p>
+          </div>
+          <div class="guide-grid">
+            <div class="guide-film">
+              <div class="filmstage frame">
+                <video
+                  id="tour-player"
+                  controlslist="noplaybackrate"
+                  width="1920"
+                  height="1080"
+                  controls
+                  playsinline
+                  preload="metadata"
+                  poster="/media/launch-poster.webp?v=launch-1"
+                  aria-label="Make a launch film for Ember in OpenMotionStudio, start to finish"
+                  data-zh-aria-label="在 OpenMotionStudio 里从头做一支 Ember 台灯发布片"
+                  src="/media/launch-en.mp4?v=launch-1"
+                  data-zh-src="/media/launch-zh.mp4?v=launch-1"
+                >
+                  <track kind="captions" src="/media/launch-en.vtt?v=launch-1" srclang="en" label="English" default />
+                  <track kind="captions" src="/media/launch-zh.vtt?v=launch-1" srclang="zh" label="简体中文" />
+                </video>
+                <button class="play-cover" id="play-tour" type="button" hidden>
+                  <i class="play" aria-hidden="true"></i><span data-zh="播放教程">Play the tutorial</span
+                  ><time datetime="PT244S">4:03</time>
+                </button>
+              </div>
+              <div class="tour-options" id="tour-options" hidden>
+                <div class="field">
+                  <span id="tour-language-label" data-zh="字幕">Captions</span>
+                  <select class="select" id="tour-language" aria-labelledby="tour-language-label">
+                    <option value="en">English</option>
+                    <option value="zh">简体中文</option>
+                    <option value="off" data-zh="关闭">Off</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <span id="tour-speed-label" data-zh="倍速">Speed</span>
+                  <select class="select" id="tour-speed" aria-labelledby="tour-speed-label">
+                    <option value="1">1×</option>
+                    <option value="1.5">1.5×</option>
+                    <option value="2">2×</option>
+                  </select>
+                </div>
+                <button class="btn btn-sm tour-full" id="tour-full" type="button">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3" /></svg
+                  ><span data-zh="全屏播放">Full screen</span>
+                </button>
+              </div>
+              <div class="tour-practice">
+                <a class="btn btn-sm" href="/media/launch-practice.zip" download data-zh="下载练习包（照片和提示词）">Download the practice pack (photos and prompts)</a>
+                <a class="btn btn-sm" href="/media/launch-film.mp4?v=launch-1" data-zh="看 30 秒成片">Watch the 30-second film</a>
+              </div>
+              <details class="tour-prompts">
+                <summary data-zh="查看并复制提示词">Read and copy the prompts</summary>
+                <section>
+                  <h3 data-zh="在首页描述这支片子">Describe the film at Home</h3>
+                  <p id="prompt-1" lang="en">A 30-second launch film for Ember, a desk lamp that follows the sun. Use the Stage Light look and my two photos in media/. Four beats: desks go dark at 5 pm; Ember lights up; three facts: warms from 6500 K to 2700 K as the sun sets, 14 hours on a charge, 480 g; end on “Ember. Light that keeps time.” 16:9.</p>
+                  <button type="button" class="btn btn-sm" data-copy-prompt="prompt-1" data-zh="复制英文指令">Copy prompt</button>
+                </section>
+                <section>
+                  <h3 data-zh="框出结尾标语（第 28 秒）">Region over the closing tagline, at 28 s</h3>
+                  <p id="prompt-2" lang="en">Make this tagline smaller and warm white, and bring it in a beat after EMBER.</p>
+                  <button type="button" class="btn btn-sm" data-copy-prompt="prompt-2" data-zh="复制英文指令">Copy prompt</button>
+                </section>
+                <section>
+                  <h3 data-zh="框出台灯（第 9 秒）">Region over the lamp, at 9 s</h3>
+                  <p id="prompt-3" lang="en">Push in slowly on the lamp as it lights, and let its glow spill wider across the floor.</p>
+                  <button type="button" class="btn btn-sm" data-copy-prompt="prompt-3" data-zh="复制英文指令">Copy prompt</button>
+                </section>
+                <section>
+                  <h3 data-zh="带着两处标记发送">Send with both marks</h3>
+                  <p id="prompt-4" lang="en">Keep everything else as it is.</p>
+                  <button type="button" class="btn btn-sm" data-copy-prompt="prompt-4" data-zh="复制英文指令">Copy prompt</button>
+                </section>
+                <section>
+                  <h3 data-zh="试一个大胆的版本，再退回">Try something bold, then take it back</h3>
+                  <p id="prompt-5" lang="en">Try it as a bright daytime film: paper-white background, dark type, no night photos.</p>
+                  <button type="button" class="btn btn-sm" data-copy-prompt="prompt-5" data-zh="复制英文指令">Copy prompt</button>
+                </section>
+                <span id="copy-status" role="status" aria-live="polite"></span>
+              </details>
+            </div>
+
+            <div class="guide-steps">
+              <h2 class="kicker" data-zh="教程章节">Chapters</h2>
+              <!-- Each step is a chapter of the film: data-at is where it starts, in seconds. -->
+              <ol class="guide" id="guide">
+                <li data-at="0.000">
+                  <button type="button"><time>0:00</time><b data-zh="先看成片">The film we're making</b></button>
+                  <p data-zh="一支 30 秒台灯发布片，从一段文字开始。">Thirty seconds for a desk lamp, made from one paragraph.</p>
+                </li>
+                <li data-at="16.267">
+                  <button type="button"><time>0:16</time><b data-zh="描述你的片子">Describe it</b></button>
+                  <p data-zh="用自己的话写清楚：给谁看、分几段、多长、什么比例。">Say what it's for, its beats, its length and its shape, in your own words.</p>
+                </li>
+                <li data-at="33.045">
+                  <button type="button"><time>0:33</time><b data-zh="挑一套风格">Pick a look</b></button>
+                  <p data-zh="在 Studio 里浏览 MotionHub，看风格样片，加入 Stage Light。">Browse MotionHub inside the Studio, watch a reel, and add Stage Light.</p>
+                </li>
+                <li data-at="62.450">
+                  <button type="button"><time>1:02</time><b data-zh="放进自己的素材">Bring your photos</b></button>
+                  <p data-zh="导入两张产品照片，原文件不动。">Import two product photos; the originals stay where they are.</p>
+                </li>
+                <li data-at="73.690">
+                  <button type="button"><time>1:13</time><b data-zh="连上你的 AI">Connect your agent</b></button>
+                  <p data-zh="选 Claude Code、Codex 或自己的模型 Key。AI 写片子，并自己截帧检查。">Choose Claude Code, Codex or your own key. The agent writes the film and checks its frames.</p>
+                </li>
+                <li data-at="101.428">
+                  <button type="button"><time>1:41</time><b data-zh="第一版">The first cut</b></button>
+                  <p data-zh="四个场景，30 秒，每句字幕都在时间线上。">Four scenes, thirty seconds, every line on the timeline.</p>
+                </li>
+                <li data-at="113.728">
+                  <button type="button"><time>1:53</time><b data-zh="在画面上圈出来">Mark what to change</b></button>
+                  <p data-zh="在画面上框出区域，写下要改什么。两处标记，一条消息。">Draw a region on the picture and say what should change there. Two marks, one message.</p>
+                </li>
+                <li data-at="146.888">
+                  <button type="button"><time>2:26</time><b data-zh="只改圈出的地方">Only that changes</b></button>
+                  <p data-zh="只有标语和台灯镜头变了，其余不动。左右对比两个版本。">The tagline and the lamp shot change; nothing else moves. Compare the cuts side by side.</p>
+                </li>
+                <li data-at="163.759">
+                  <button type="button"><time>2:43</time><b data-zh="配上旁白">Give it a voice</b></button>
+                  <p data-zh="从你自己的语音服务挑声音，逐句合成旁白，字幕跟着声音走。">Pick a voice from your own provider; each line is spoken and the captions follow it.</p>
+                </li>
+                <li data-at="180.537">
+                  <button type="button"><time>3:00</time><b data-zh="大胆试，随时退回">Try it, take it back</b></button>
+                  <p data-zh="试一个明亮的白天版本，再一键退回。">Ask for a bold daytime version, then Go back to before this.</p>
+                </li>
+                <li data-at="197.837">
+                  <button type="button"><time>3:17</time><b data-zh="导出 MP4">Export MP4</b></button>
+                  <p data-zh="Studio 检查片子并在本机渲染，旁白和字幕一起导出。">The Studio checks the film and renders it on your computer, narration and subtitles included.</p>
+                </li>
+                <li data-at="211.166">
+                  <button type="button"><time>3:31</time><b data-zh="观看成片">Watch the finished film</b></button>
+                  <p data-zh="完整 30 秒，带旁白。">The thirty seconds, with its narration.</p>
+                </li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="gut">
+      <div class="max foot">
+        <a class="brand" href="/"><img src="/favicon.svg" alt="" width="22" height="22" /><span class="name">OpenMotion<span>Studio</span></span></a
+        ><span data-zh="开源 · Apache-2.0">Open source · Apache-2.0</span
+        ><a href="/tour" data-zh="教程">Tutorials</a><a class="foot-icon" href="https://motionhub.dev/"
+          ><img src="/media/motionhub-icon.svg" alt="" width="16" height="16" /><span data-zh="MotionHub 上的风格">Looks on MotionHub</span></a
+        ><a class="foot-icon" href="https://github.com/motionhubdev/openmotionstudio"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+          <path
+            fill="currentColor"
+            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"
+          /></svg><span>GitHub</span></a
+        ><a class="foot-icon" href="https://discord.gg/yWWyRuGYMV"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z" /></svg><span>Discord</span></a>
+      </div>
+    </footer>
+
+  </body>
+</html>

@@ -1,6 +1,6 @@
 # Design
 
-> **Status:** Current · **Updated:** 2026-11-20
+> **Status:** Current · **Updated:** 2026-11-21
 
 The Studio's visual system: its identity, colour, type, shape, icons, the workspace's layout, the rules components follow and the website's controls.
 
@@ -369,11 +369,13 @@ openmotion.studio (`site/`) keeps the Studio's paper, ink and rules, in its own 
 - **A paused film** shows a play button in the headlines' cobalt, its play mark in a disc, over the picture dimmed a
   little; a click anywhere on the picture plays or pauses it, and the first screen's demo returns to its first frame
   when it ends.
-- **The walkthrough** (/tour) is one screen on a desktop: the top bar, the title, the film beside its steps and the
-  footer. The film is as large as the screen's height leaves room for, with a Full screen button beside its captions
-  and speed; the steps, in a panel of the surface's tint, are as tall as the picture and scroll within, each a card
-  that plays from its place wherever it is clicked, the one playing raised and brought into view, the list fading at its
-  foot while more lies below. Narrower than 960 px the steps follow the film and the page scrolls.
+- **The tutorials** (/tour) are a list, each a card: its poster in a film's frame with its length in a cobalt pill, its
+  level, interface language and agent in muted mono, its title, one sentence and what it teaches as quiet tags. A
+  tutorial (/tour/<name>) is one screen on a desktop: the top bar, the way back to the list, the title, the film beside
+  its steps and the footer. The film is as large as the screen's height leaves room for, with a Full screen button
+  beside its captions and speed; the steps, in a panel of the surface's tint, are as tall as the picture and scroll
+  within, each a card that plays from its place wherever it is clicked, the one playing raised and brought into view,
+  the list fading at its foot while more lies below. Narrower than 960 px the steps follow the film and the page scrolls.
 - **The transport bar** at the foot of the front page is its timeline, frosted over the page as the top bar is: what
   has scrolled by is a band of ink's tint running to the window's edge at the page's end, with the playhead at its edge, and each chapter is marked by its name (What it is, Styles, Precise edits, Free & private,
   Compare, Get it; in Chinese too), cut short with its whole name in a tip where its room is

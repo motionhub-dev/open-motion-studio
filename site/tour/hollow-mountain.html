@@ -30,19 +30,19 @@
         if (lang === "zh") document.documentElement.lang = "zh-CN";
       })();
     </script>
-    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-    <link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="stylesheet" href="studio.css" />
-    <script src="studio.js" defer></script>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href="/fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="/studio.css" />
+    <script src="/studio.js" defer></script>
   </head>
   <body class="page">
     <a class="skip" href="#main" data-zh="跳到正文">Skip to content</a>
     <header class="top gut">
       <a class="brand" href="/"
-        ><img src="favicon.svg" alt="" width="26" height="26" /><span class="name">OpenMotion<span>Studio</span></span></a
+        ><img src="/favicon.svg" alt="" width="26" height="26" /><span class="name">OpenMotion<span>Studio</span></span></a
       >
       <nav class="nav" aria-label="Site" data-zh-aria-label="站点">
-        <a class="nav-link" href="/tour" aria-current="page" data-zh="教程">Tour</a>
+        <a class="nav-link" href="/tour" aria-current="page" data-zh="教程">Tutorials</a>
       <a class="nav-link" href="https://discord.gg/yWWyRuGYMV"
         ><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z" /></svg>Discord</a
       >
@@ -80,6 +80,7 @@
         <div class="max">
           <div class="head">
             <div>
+              <a class="crumb" href="/tour" data-zh="← 全部教程">← All tutorials</a>
               <p class="kicker" data-zh="英文创作实录 · 2:48">Creative session · 2:48</p>
               <h1 id="tour-title" data-zh="指导一支火山短片">Direct <em>The Hollow Mountain.</em></h1>
             </div>
@@ -96,12 +97,12 @@
                   controls
                   playsinline
                   preload="metadata"
-                  poster="media/crater-workshop.webp?v=hollow-director-1"
+                  poster="/media/crater-workshop.webp?v=hollow-director-1"
                   aria-label="Direct The Hollow Mountain in an English Studio session"
                   data-zh-aria-label="在英文 Studio 中指导《The Hollow Mountain》"
-                  src="media/edit.mp4?v=hollow-director-1"
+                  src="/media/edit.mp4?v=hollow-director-1"
                 >
-                  <track kind="captions" src="media/edit.vtt?v=hollow-director-1" srclang="en" label="English" default />
+                  <track kind="captions" src="/media/edit.vtt?v=hollow-director-1" srclang="en" label="English" default />
                 </video>
                 <button class="play-cover" id="play-tour" type="button" hidden>
                   <i class="play" aria-hidden="true"></i><span data-zh="播放演示">Play the walkthrough</span
@@ -130,8 +131,8 @@
                 </button>
               </div>
               <div class="tour-practice">
-                <a class="btn btn-sm" href="media/crater-practice.zip" download data-zh="下载英文练习包">Download the practice pack</a>
-                <a class="btn btn-sm" href="media/crater-film.mp4?v=hollow-director-1" data-zh="看 30 秒有声成片">Watch the 30-second film</a>
+                <a class="btn btn-sm" href="/media/crater-practice.zip" download data-zh="下载英文练习包">Download the practice pack</a>
+                <a class="btn btn-sm" href="/media/crater-film.mp4?v=hollow-director-1" data-zh="看 30 秒有声成片">Watch the 30-second film</a>
               </div>
               <details class="tour-prompts">
                 <summary data-zh="查看创作提示词">Read and copy the directing prompts</summary>
@@ -213,10 +214,10 @@
 
     <footer class="gut">
       <div class="max foot">
-        <a class="brand" href="/"><img src="favicon.svg" alt="" width="22" height="22" /><span class="name">OpenMotion<span>Studio</span></span></a
+        <a class="brand" href="/"><img src="/favicon.svg" alt="" width="22" height="22" /><span class="name">OpenMotion<span>Studio</span></span></a
         ><span data-zh="开源 · Apache-2.0">Open source · Apache-2.0</span
-        ><a href="/tour" data-zh="教程">Tour</a><a class="foot-icon" href="https://motionhub.dev/"
-          ><img src="media/motionhub-icon.svg" alt="" width="16" height="16" /><span data-zh="MotionHub 上的风格">Looks on MotionHub</span></a
+        ><a href="/tour" data-zh="教程">Tutorials</a><a class="foot-icon" href="https://motionhub.dev/"
+          ><img src="/media/motionhub-icon.svg" alt="" width="16" height="16" /><span data-zh="MotionHub 上的风格">Looks on MotionHub</span></a
         ><a class="foot-icon" href="https://github.com/motionhubdev/openmotionstudio"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
           <path
             fill="currentColor"

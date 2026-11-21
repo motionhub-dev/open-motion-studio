@@ -3,6 +3,14 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-21 — openmotion.studio/tour lists tutorials, starting with a launch film made start to finish
+
+- **What:** /tour is now a list of tutorials, each a card with its poster, length, level and what it teaches. The first is new: a 4-minute recording of one real session, in which a paragraph, the Stage Light look from MotionHub and two product photos become a narrated 30-second launch film for a desk lamp. It shows describing the film at Home, adding a look, importing photos, connecting Claude Code, two regions marked on the picture and the change they make side by side, a voice from the person's own provider, trying a version and going back to before it, and the export. Every wait for the agent or the export is shown sped up with its real length. It is narrated in English and in Chinese (the page's language picks the voice and the captions), with the prompts to copy and a practice pack of the photos and prompts. The Hollow Mountain workshop moved to /tour/hollow-mountain, and the front page's link under the demo opens the new tutorial.
+- **Why:** The only walkthrough was an advanced terrain project cut from fragments; it did not show most of what the Studio does, or a whole film being made.
+- **Breaking:** None. /tour still answers, now with the list; the workshop's old address is the list's second card.
+- **Upgrade:** Nothing.
+- **Refs:** `site/tour.html`, `site/tour/launch-film.html`, `site/tour/hollow-mountain.html`, `site/studio.css`, `site/studio.js`, `site/index.html`, `README.md`, `docs/design.md`, `docs/tech/architecture.md`.
+
 ## 2026-11-21 — Export names the narration in a narrated film's sound
 
 - **What:** The export dialog says a narrated film's MP4 carries its narration ("AAC sound: the narration", with any other sounds counted beside it) instead of "picture only". The export already mixed the voiced lines in; only the label was wrong.

@@ -1,5 +1,5 @@
 // openmotion.studio, both pages: the language and the theme; on the front page the hero's demo of the real app, the
-// looks, the two cuts, the transport bar and the download; on /tour the walkthrough and its steps.
+// looks, the two cuts, the transport bar and the download; on a tutorial (/tour/<name>) its film and its steps.
 const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const pad = (n) => String(n).padStart(2, "0");
 // SMPTE timecode at 24 fps: hh:mm:ss:ff.
@@ -247,7 +247,7 @@ if (loop) {
   lightStep();
 }
 
-/* TOUR (/tour): the steps beside the film are its chapters, lit as it plays; captions follow the page's language
+/* TUTORIAL (/tour/<name>): the steps beside the film are its chapters, lit as it plays; captions follow the page's language
    unless ?captions= or the picker says otherwise. */
 const tour = document.querySelector("#tour-player");
 if (tour) {
@@ -290,6 +290,27 @@ if (tour) {
     const below = li.offsetTop + li.offsetHeight > guide.scrollTop + guide.clientHeight;
     if (above || below) guide.scrollTo({ top: li.offsetTop - 8, behavior: reduce ? "auto" : "smooth" });
   };
+  // A tutorial narrated in both languages names its Chinese cut in data-zh-src: the page's language picks the voice,
+  // and a switch carries on from the same moment.
+  const englishCut = tour.getAttribute("src");
+  const voiceCut = () => {
+    const wanted = zh && tour.dataset.zhSrc ? tour.dataset.zhSrc : englishCut;
+    if (tour.getAttribute("src") === wanted) return;
+    const at = tour.currentTime;
+    const playing = !tour.paused;
+    tour.src = wanted;
+    tour.addEventListener(
+      "loadedmetadata",
+      () => {
+        // Seeking shows a frame in place of the poster, so a film not yet started is left at its poster.
+        if (at > 0) tour.currentTime = at;
+        if (playing) tour.play().catch(() => {});
+      },
+      { once: true },
+    );
+  };
+  voiceCut();
+  languageSwitched.push(voiceCut);
   const showCaptions = () => {
     for (const track of tour.textTracks) track.mode = track.language === captions.value ? "showing" : "disabled";
     showSelect(captions);

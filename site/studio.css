@@ -1079,6 +1079,123 @@ body.page > main {
   align-items: center;
   gap: 8px;
 }
+/* A tutorial's way back to the list, over its kicker. */
+.crumb {
+  display: inline-block;
+  margin-bottom: 6px;
+  font-size: 13.5px;
+  color: var(--muted);
+  text-decoration: none;
+}
+.crumb:hover {
+  color: var(--text);
+}
+
+/* TUTORIALS (/tour): the list, each tutorial a card with its poster, its length over it, and what it teaches. */
+.tutorials {
+  padding-top: calc(var(--top) + 40px);
+  padding-bottom: 72px;
+}
+.tutorials .head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px 48px;
+  margin-bottom: 36px;
+}
+.tutorials h1 {
+  margin-top: 10px;
+  font-size: clamp(32px, 3.6vw, 52px);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+.tutorials h1 em {
+  font-style: normal;
+  color: var(--cobalt);
+}
+.tutorial-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 400px), 1fr));
+  gap: 40px 28px;
+  padding: 0;
+  list-style: none;
+}
+.tutorial-link {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-decoration: none;
+}
+.tutorial-poster {
+  position: relative;
+  aspect-ratio: 16 / 9;
+}
+.tutorial-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s var(--ease);
+}
+.tutorial-link:hover .tutorial-poster img {
+  transform: scale(1.02);
+}
+.tutorial-time {
+  position: absolute;
+  z-index: 2;
+  left: 12px;
+  bottom: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px 5px 9px;
+  border-radius: 999px;
+  background: var(--cobalt);
+  color: var(--on-cobalt);
+  font: 500 12px var(--mono);
+}
+.tutorial-time .play {
+  border-left-width: 7px;
+  border-top-width: 5px;
+  border-bottom-width: 5px;
+}
+.tutorial-meta {
+  margin-top: 4px;
+  font: 500 12px/1.4 var(--mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.tutorial-title {
+  color: var(--text);
+  font-size: clamp(20px, 1.7vw, 24px);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+.tutorial-link:hover .tutorial-title span {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+.tutorial-sum {
+  max-width: 60ch;
+  font-size: 15px;
+  line-height: 1.55;
+}
+.tutorial-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tutorial-tags span {
+  padding: 2px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 12.5px;
+  color: var(--muted);
+}
 
 /* LOOKS: a tall section whose stage stays pinned while the scroll changes the look, about three quarters of a screen
    of scroll for each of the five */

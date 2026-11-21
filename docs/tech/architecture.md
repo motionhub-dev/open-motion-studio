@@ -1,6 +1,6 @@
 # Architecture
 
-> **Status:** Plan — steps 1 to 3 and 6 built, 7 under way; signing waits for its accounts · **Updated:** 2026-11-20
+> **Status:** Plan — steps 1 to 3 and 6 built, 7 under way; signing waits for its accounts · **Updated:** 2026-11-21
 
 The components of the Studio and what each owns, the film, the agent and its providers, what is expensive to change, and the order of work.
 
@@ -65,7 +65,8 @@ apps/desktop/
   src/shared/          what both sides agree on: StudioApi, the preview bridge's messages, and the interface's
                        messages in Chinese (i18n.ts, translations.ts)
   src/renderer/        React UI
-site/                  the introduction pages at openmotion.studio, index.html and the walkthrough tour.html (/tour), in English
+site/                  the introduction pages at openmotion.studio, index.html, the tutorials' list tour.html (/tour) and each
+                       tutorial in tour/<name>.html (/tour/<name>), in English
                        and Chinese (each element's Chinese beside it in data-zh, swapped by studio.js): static HTML,
                        recordings of the app and films made in it, no build, served by a static-assets Worker whose one
                        script, worker.js, answers byte ranges of the films so they can be seeked (wrangler.jsonc;
