@@ -295,12 +295,14 @@ if (tour) {
     showSelect(captions);
   };
   const asked = new URLSearchParams(location.search).get("captions");
-  captions.value = ["en", "zh", "off"].includes(asked) ? asked : zh ? "zh" : "en";
+  const availableCaptions = Array.from(captions.options, (option) => option.value);
+  const preferredCaptions = () => zh && availableCaptions.includes("zh") ? "zh" : "en";
+  captions.value = availableCaptions.includes(asked) ? asked : preferredCaptions();
   showCaptions();
   captions.addEventListener("change", showCaptions);
   languageSwitched.push(() => {
     if (captions.value === "off") return;
-    captions.value = zh ? "zh" : "en";
+    captions.value = preferredCaptions();
     showCaptions();
   });
   tour.textTracks.addEventListener("change", () => {
@@ -516,5 +518,23 @@ async function offerDownload() {
   document.querySelector("#hero-file").hidden = false;
 }
 offerDownload();
+
+for (const button of document.querySelectorAll("[data-copy-prompt]")) {
+  button.addEventListener("click", async () => {
+    const prompt = document.getElementById(button.dataset.copyPrompt);
+    const status = document.getElementById("copy-status");
+    try {
+      await navigator.clipboard.writeText(prompt.textContent);
+      status.textContent = t("Prompt copied.", "已复制英文指令。");
+    } catch {
+      const range = document.createRange();
+      range.selectNodeContents(prompt);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      status.textContent = t("Prompt selected. Use your system’s Copy shortcut.", "已选中指令，请使用系统的复制快捷键。");
+    }
+  });
+}
 
 translate();

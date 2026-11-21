@@ -16,7 +16,7 @@ Describe the film, point at what to change on the picture, and export an MP4.
 
 [**Download**](https://openmotion.studio/#get) ·
 [Website](https://openmotion.studio/) ·
-[90-second tour](https://openmotion.studio/tour) ·
+[Terrain film tutorial](https://openmotion.studio/tour) ·
 [Documentation](docs/README.md) ·
 [Changelog](CHANGELOG.md)
 

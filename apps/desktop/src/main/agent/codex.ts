@@ -314,11 +314,14 @@ export function translate(method: string, params: Params, reading: Reading): Age
         return reading.said ? [{ type: 'text', text: '\n\n' }] : [];
       case 'reasoning':
         return [{ type: 'phase', phase: 'thinking' }];
-      case 'commandExecution':
+      case 'commandExecution': {
+        const command = String(item.command ?? '');
+        const script = command.replace(/^(?:"[^"]*[\\/](?:pwsh|powershell)\.exe"|(?:pwsh|powershell)(?:\.exe)?)\s+-Command\s+/i, '');
         return [
           { type: 'phase', phase: 'reviewing' },
-          { type: 'tool', id: item.id, name: 'shell', summary: `Running ${String(item.command).slice(0, 120)}` },
+          { type: 'tool', id: item.id, name: 'shell', summary: `Running ${script.slice(0, 120)}`, command },
         ];
+      }
       case 'fileChange': {
         const paths = ((item.changes as { path: string }[] | undefined) ?? []).map((c) => c.path);
         const first = paths[0] ?? 'files';

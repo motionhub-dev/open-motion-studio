@@ -3,15 +3,15 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-    <title data-zh="完整演示 — OpenMotionStudio">Walkthrough — OpenMotionStudio</title>
+    <title data-zh="指导一支火山短片 — OpenMotionStudio">Direct The Hollow Mountain — OpenMotionStudio</title>
     <meta
       name="description"
-      content="Follow a narrated OpenMotionStudio walkthrough. Make and revise an animated cover, explore the Motion library, add sound and export an MP4."
-      data-zh-content="跟着带旁白的 OpenMotionStudio 实录做一段动态封面，圈选修改，浏览 Motion 风格，加入声音并导出 MP4。"
+      content="Direct a thirty-second film from a creative brief, through terrain research and a marked camera revision, to a scored Studio export."
+      data-zh-content="看 Agent 提案、寻找高程、生成镜头，并按时间线反馈改出一支有声火山短片。"
     />
-    <meta property="og:title" content="Walkthrough — OpenMotionStudio" />
-    <meta property="og:description" content="A narrated OpenMotionStudio walkthrough, from the first cut to targeted edits, Motion styles and sound." />
-    <meta property="og:image" content="https://openmotion.studio/media/og.png" />
+    <meta property="og:title" content="Direct The Hollow Mountain — OpenMotionStudio" />
+    <meta property="og:description" content="Follow a real Studio session from a creative pitch to a scored, thirty-second terrain film." />
+    <meta property="og:image" content="https://openmotion.studio/media/crater-workshop.webp" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="theme-color" content="#FCFCFA" />
     <meta name="color-scheme" content="light dark" />
@@ -80,16 +80,10 @@
         <div class="max">
           <div class="head">
             <div>
-              <p class="kicker" data-zh="实录教程 · 2:22">Walkthrough · 2:22</p>
-              <h1 id="tour-title" data-zh="从创意到成片。">From idea to MP4.</h1>
+              <p class="kicker" data-zh="英文创作实录 · 2:48">Creative session · 2:48</p>
+              <h1 id="tour-title" data-zh="指导一支火山短片">Direct <em>The Hollow Mountain.</em></h1>
             </div>
-            <p
-              class="lede"
-              data-zh="跟着英文旁白和中英字幕，把一张风景照做成动态杂志封面。再用一个模板项目练习预览 Motion 风格、导入音频和带声导出。视频剪短了 AI 处理和渲染的等待时间。"
-            >
-              Follow along with English narration and English or Chinese captions. Make an animated magazine cover, then
-              use a template project to preview a Motion, add audio and export with sound. AI and render waits are shortened.
-            </p>
+            <p class="lede" data-zh="怎样拍出一座山消失的部分？跟随真实的英文 Studio 创作过程，看 Agent 提出视觉方案、取得真实地形，再根据一条审片意见改出 30 秒有声短片。">How do you film the missing part of a mountain? Follow a creative brief through two pitches, a real terrain download and one marked camera revision. Watch the finished 30-second film with its original score.</p>
           </div>
           <div class="guide-grid">
             <div class="guide-film">
@@ -102,17 +96,16 @@
                   controls
                   playsinline
                   preload="metadata"
-                  poster="media/workspace-tour.webp"
-                  aria-label="Narrated walkthrough: make the Stillform cover, preview a Motion and export with sound"
-                  data-zh-aria-label="有声教程：制作 Stillform 动态封面、预览 Motion 风格并导出带声视频"
-                  src="media/edit.mp4"
+                  poster="media/crater-workshop.webp?v=hollow-director-1"
+                  aria-label="Direct The Hollow Mountain in an English Studio session"
+                  data-zh-aria-label="在英文 Studio 中指导《The Hollow Mountain》"
+                  src="media/edit.mp4?v=hollow-director-1"
                 >
-                  <track kind="captions" src="media/edit.vtt" srclang="en" label="English" default />
-                  <track kind="captions" src="media/edit-zh.vtt" srclang="zh" label="中文" />
+                  <track kind="captions" src="media/edit.vtt?v=hollow-director-1" srclang="en" label="English" default />
                 </video>
                 <button class="play-cover" id="play-tour" type="button" hidden>
                   <i class="play" aria-hidden="true"></i><span data-zh="播放演示">Play the walkthrough</span
-                  ><time datetime="PT2M22S">2:22</time>
+                  ><time datetime="PT168S">2:48</time>
                 </button>
               </div>
               <div class="tour-options" id="tour-options" hidden>
@@ -120,7 +113,6 @@
                   <span id="tour-language-label" data-zh="字幕">Captions</span>
                   <select class="select" id="tour-language" aria-labelledby="tour-language-label">
                     <option value="en">English</option>
-                    <option value="zh">中文</option>
                     <option value="off" data-zh="关闭">Off</option>
                   </select>
                 </div>
@@ -137,85 +129,79 @@
                   ><span data-zh="全屏播放">Full screen</span>
                 </button>
               </div>
+              <div class="tour-practice">
+                <a class="btn btn-sm" href="media/crater-practice.zip" download data-zh="下载英文练习包">Download the practice pack</a>
+                <a class="btn btn-sm" href="media/crater-film.mp4?v=hollow-director-1" data-zh="看 30 秒有声成片">Watch the 30-second film</a>
+              </div>
+              <details class="tour-prompts">
+                <summary data-zh="查看创作提示词">Read and copy the directing prompts</summary>
+                <section>
+                  <h3 data-zh="请 Agent 提出两种方案">Ask for two treatments</h3>
+                  <p id="prompt-1" lang="en">The Hollow Mountain. Pitch two visual and sonic treatments for a 30-second film about Mount St. Helens. Make the viewer feel the scale of what is missing. Wait for my choice.</p>
+                  <button type="button" class="btn btn-sm" data-copy-prompt="prompt-1" data-zh="复制英文指令">Copy prompt</button>
+                </section>
+                <section>
+                  <h3 data-zh="选择徒步者并寻找地形数据">Choose the walker and source the terrain</h3>
+                  <p id="prompt-2" lang="en">One Pair of Boots. Put a lone amber walker inside a real crater. Find the Mount St. Helens Skadi elevation tile on AWS, download it and save a cropped height grid and its source in media. Show me the data before building.</p>
+                  <button type="button" class="btn btn-sm" data-copy-prompt="prompt-2" data-zh="复制英文指令">Copy prompt</button>
+                </section>
+                <section>
+                  <h3 data-zh="指导第一个版本">Direct the first cut</h3>
+                  <p id="prompt-3" lang="en">Build One Pair of Boots as a 30-second, 1280 x 720 film at 24 fps. Use the Landscape rig and original-score.wav. Start six metres behind the walker, then pull back through the northern breach to five kilometres. Let the title arrive over the wide shot. Check the render.</p>
+                  <button type="button" class="btn btn-sm" data-copy-prompt="prompt-3" data-zh="复制英文指令">Copy prompt</button>
+                </section>
+                <section>
+                  <h3 data-zh="给标记的时间段写反馈">Give a note on the marked interval</h3>
+                  <p id="prompt-4" lang="en">I lose the walker here. Stay within 12 metres through 13 seconds. Then climb into the wide shot on the musical swell. Bring the score up to -2 dB.</p>
+                  <button type="button" class="btn btn-sm" data-copy-prompt="prompt-4" data-zh="复制英文指令">Copy prompt</button>
+                </section>
+                <span id="copy-status" role="status" aria-live="polite"></span>
+              </details>
             </div>
 
             <div class="guide-steps">
-              <h2 class="kicker" data-zh="分步说明">Step by step</h2>
+              <h2 class="kicker" data-zh="创作章节">Inside the session</h2>
               <!-- Each step is a chapter of the film: data-at is where it starts, in seconds (media/edit.vtt). -->
               <ol class="guide" id="guide">
-                <li data-at="0">
-                  <button type="button"><time>0:00</time><b data-zh="打开一个文件夹">Open a folder</b></button>
-                  <p
-                    data-zh="在首页点<kbd>Open project</kbd>，选一个文件夹。视频、素材和每一个版本都保存在这个文件夹里，就在你自己的电脑上。演示里用的文件夹已经放好了字体和封面模板。"
-                  >
-                    On Home, choose <kbd>Open project</kbd> and pick a folder. The video, its media and every version are
-                    saved in it, on your own computer. The folder in the demo already has fonts and cover templates.
-                  </p>
+                <li data-at="0.000">
+                  <button type="button"><time>0:00</time><b data-zh="创作命题">The film we’re directing</b></button>
+                  <p data-zh="用一个徒步者让观众感受到火山口的尺度。">A single walker gives the crater a human scale.</p>
                 </li>
-                <li data-at="7.208">
-                  <button type="button"><time>0:07</time><b data-zh="放入你的照片">Add your photo</b></button>
-                  <p
-                    data-zh="打开<kbd>Assets</kbd>，点<kbd>Import files</kbd>，选中照片（这里是 grand-teton.jpg）。导入后 AI 就能用它。"
-                  >
-                    Open <kbd>Assets</kbd>, choose <kbd>Import files</kbd> and pick the photo, here grand-teton.jpg. Once
-                    it’s in, the AI can use it.
-                  </p>
+                <li data-at="10.208">
+                  <button type="button"><time>0:10</time><b data-zh="写下想让观众感受到什么">Write for a feeling</b></button>
+                  <p data-zh="先要两种视听方案，再决定镜头。">Ask for two visual and sonic treatments before choosing a shot.</p>
                 </li>
-                <li data-at="17.208">
-                  <button type="button"><time>0:17</time><b data-zh="描述你想要的">Describe what you want</b></button>
-                  <p
-                    data-zh="选一个 AI（这里是 Codex；Claude Code 或你接入的其他模型用法一样），用几句话描述第一版：画面里有什么、上面放什么字、什么时候出现。AI 做好后会先自己检查一遍画面，再交给你。"
-                  >
-                    Pick an AI (Codex here; Claude Code or another model you connected works the same) and describe the
-                    first version in a few sentences: what’s in the picture, what text goes on it and when it appears. The
-                    AI checks its own frames before handing it to you.
-                  </p>
+                <li data-at="21.333">
+                  <button type="button"><time>0:21</time><b data-zh="选择视觉方案">Choose a treatment</b></button>
+                  <p data-zh="比较照片接缝和逐渐远去的徒步者。">A photographic seam or a retreating walker? Compare the ideas.</p>
                 </li>
-                <li data-at="39.208">
-                  <button type="button"><time>0:39</time><b data-zh="圈出要改的地方">Circle what to change</b></button>
-                  <p
-                    data-zh="播放第一版，在不对的地方暂停。选择<kbd>Region</kbd>，在画面上框住要改的地方，写一句：「让照片先停留一下，标题晚半秒再出来。」发给 AI，并告诉它其余部分保持不变。"
-                  >
-                    Play the first version and pause where it’s wrong. Choose <kbd>Region</kbd>, draw a box around what
-                    should change and write a note: “Let the photo breathe. Bring the title in half a second later.” Send
-                    it, and ask the AI to leave the rest as it is.
-                  </p>
+                <li data-at="38.250">
+                  <button type="button"><time>0:38</time><b data-zh="取得真实地形">Find the real terrain</b></button>
+                  <p data-zh="跟随实际下载命令，看高程瓦片如何形成地表。">Follow the live download command from the AWS tile to the sampled surface.</p>
                 </li>
-                <li data-at="59.458">
-                  <button type="button"><time>0:59</time><b data-zh="对比两个版本">Compare the versions</b></button>
-                  <p
-                    data-zh="AI 只改了标题出现的时间，从 0.08 秒改到 0.58 秒，别的都没动。两个版本可以并排同时播放，一眼看出差别。每一版都会保存，随时能退回。"
-                  >
-                    The AI changes only when the title appears, from 0.08 to 0.58 seconds, and nothing else. Play both
-                    versions side by side to see the difference. Every version is saved, so you can always go back.
-                  </p>
+                <li data-at="56.167">
+                  <button type="button"><time>0:56</time><b data-zh="指导初版镜头">Direct the first cut</b></button>
+                  <p data-zh="提供地形渲染器和配乐，描述镜头的起点与终点。">Give the agent a terrain renderer, a score and a camera intention.</p>
                 </li>
-                <li data-at="72.958">
-                  <button type="button"><time>1:12</time><b data-zh="导出 MP4">Export the MP4</b></button>
-                  <p
-                    data-zh="点<kbd>Export MP4</kbd>，确认尺寸和帧率，选好保存位置。渲染在你自己的电脑上完成，不用另装任何软件。"
-                  >
-                    Choose <kbd>Export MP4</kbd>, check the size and frame rate, and pick where to save it. It renders on
-                    your own computer, with nothing else to install.
-                  </p>
+                <li data-at="73.958">
+                  <button type="button"><time>1:13</time><b data-zh="审看初版">Read the first cut</b></button>
+                  <p data-zh="观察从哪一刻开始很难再找到徒步者。">Watch where the walker becomes too small to follow.</p>
                 </li>
-                <li data-at="92.917">
-                  <button type="button"><time>1:33</time><b data-zh="预览 Motion 风格">Preview a Motion</b></button>
-                  <p
-                    data-zh="打开<kbd>Motions</kbd>，搜索 Clay World，点卡片预览样片。<kbd>Add only</kbd> 会把风格素材和组件保存到当前项目，供后续使用。"
-                  >
-                    Open <kbd>Motions</kbd>, search for Clay World and open the card to watch its sample.
-                    <kbd>Add only</kbd> saves the Motion to the project for later use.
-                  </p>
+                <li data-at="84.500">
+                  <button type="button"><time>1:24</time><b data-zh="给出带时间的反馈">Give one timed note</b></button>
+                  <p data-zh="标记第 8 到 13 秒，说明观众此刻还应该能看清什么。">Mark seconds eight to thirteen and describe what the viewer should still see.</p>
                 </li>
-                <li data-at="104.917">
-                  <button type="button"><time>1:45</time><b data-zh="加入声音并导出">Add sound and export</b></button>
-                  <p
-                    data-zh="在<kbd>Assets</kbd>中导入音频。请助手将它加入时间线，指定开始时间和时长。播放检查后，再次导出带声 MP4。"
-                  >
-                    Import an audio file in <kbd>Assets</kbd>. Ask the assistant to put it on the timeline at a specific
-                    time and duration. Play the preview, then export the MP4 with sound.
-                  </p>
+                <li data-at="98.917">
+                  <button type="button"><time>1:38</time><b data-zh="看 Agent 修改代码">See the camera code change</b></button>
+                  <p data-zh="Agent 分析配乐并修改控制镜头距离的曲线。">The agent measures the score and changes the camera distance curve.</p>
+                </li>
+                <li data-at="114.583">
+                  <button type="button"><time>1:54</time><b data-zh="同步对比">Compare the same seconds</b></button>
+                  <p data-zh="对比同一时间段里人物与山体的比例。">Two synchronized cuts make the change in scale visible.</p>
+                </li>
+                <li data-at="138.083">
+                  <button type="button"><time>2:18</time><b data-zh="观看完整成片">Watch the complete film</b></button>
+                  <p data-zh="连续播放 30 秒，聆听风声、脚步和原创配乐。">Thirty seconds of continuous motion, with wind, footsteps and an original score.</p>
                 </li>
               </ol>
             </div>

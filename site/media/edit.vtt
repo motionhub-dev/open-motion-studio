@@ -1,76 +1,127 @@
 WEBVTT
 
-00:00:00.000 --> 00:00:03.300
-Let's make a moving cover for Stillform.
+00:00:00.280 --> 00:00:02.789
+How do you film something that is missing?
 
-00:00:03.375 --> 00:00:07.150
-Open the Stillform starter project.
+00:00:02.789 --> 00:00:04.984
+Look at the opening in this mountain.
 
-00:00:07.208 --> 00:00:11.000
-It already has fonts and cover components. Open Assets to add the photo.
+00:00:04.984 --> 00:00:09.688
+Weâ€™ll give the crater a human scale, using one walker and one continuous camera move.
 
-00:00:11.083 --> 00:00:14.750
-Click Import Files and choose the mountain photo.
+00:00:10.488 --> 00:00:12.918
+I start with what the audience should feel.
 
-00:00:14.792 --> 00:00:17.150
-The photo now appears in your project assets.
+00:00:12.918 --> 00:00:16.866
+I give the agent thirty seconds, a place, and a question about scale.
 
-00:00:17.208 --> 00:00:23.070
-Tell Codex to use one photo, add the masthead, and bring it in almost immediately.
+00:00:16.866 --> 00:00:20.814
+I ask for two ways to tell it before anyone builds the shot.
 
-00:00:23.125 --> 00:00:25.650
-Send the brief from the assistant panel.
+00:00:21.613 --> 00:00:24.484
+The first pitch uses a seam between photographs.
 
-00:00:25.708 --> 00:00:31.700
-Codex builds the cover and checks the render. We have shortened the wait.
+00:00:24.484 --> 00:00:26.996
+The old summit gives way to sky.
 
-00:00:31.750 --> 00:00:39.150
-Play the first cut. Notice how quickly the title arrives.
+00:00:26.996 --> 00:00:32.380
+The second keeps us beside a walker, then pulls back until the person almost disappears.
 
-00:00:39.208 --> 00:00:42.650
-Pause, choose Select Region, and box the title.
+00:00:32.380 --> 00:00:33.815
+I choose the walker.
 
-00:00:42.700 --> 00:00:47.990
-Ask for the title to enter half a second later.
+00:00:33.815 --> 00:00:37.763
+A familiar body gives us a measure for an unfamiliar landscape.
 
-00:00:48.042 --> 00:00:53.280
-Send the marked frame with your note.
+00:00:38.530 --> 00:00:40.928
+Now the choice has a practical consequence.
 
-00:00:53.333 --> 00:00:59.400
-Codex updates the entrance timing and checks the revised frames.
+00:00:40.928 --> 00:00:43.669
+We need the walls of this particular crater.
 
-00:00:59.458 --> 00:01:06.900
-Replay it. The photo now has time to breathe before the title arrives.
+00:00:43.669 --> 00:00:48.808
+Watch the agent find the public terrain tile, run the download, and check the file.
 
-00:01:06.958 --> 00:01:12.890
-Compare both openings. The revision is on the right.
+00:00:48.808 --> 00:00:51.892
+The grid on the right comes from that tile.
 
-00:01:12.958 --> 00:01:16.030
-Choose Export MP4 and check the dimensions and frame rate.
+00:00:51.892 --> 00:00:53.948
+Its rows run north to south.
 
-00:01:16.083 --> 00:01:19.860
-Choose a location and save the file.
+00:00:53.948 --> 00:00:55.661
+Each sample carries an elevation.
 
-00:01:19.917 --> 00:01:25.850
-Studio renders on your computer. Wait for the export to finish.
+00:00:56.447 --> 00:01:02.346
+For the first cut, I give the agent an editable terrain renderer and an original stereo score.
 
-00:01:25.917 --> 00:01:28.000
-Here's the exported cover.
+00:01:02.346 --> 00:01:04.428
+My direction is about the shot:
 
-00:01:33.097 --> 00:01:39.067
-Here is a second project, started from the kinetic type template. Open Motions and search for Clay World.
+00:01:04.428 --> 00:01:09.979
+begin six metres behind the walker, leave through the northern breach, and finish five kilometres away.
 
-00:01:39.147 --> 00:01:44.867
-Click the card to play its sample in the drawer. Add Only saves the motion in this project so you can use it later.
+00:01:09.979 --> 00:01:13.449
+The agent writes the camera path and builds the scene.
 
-00:01:45.217 --> 00:01:56.217
-Back in the editor, choose Assets, then Import Files. Pick your audio file. It appears alongside the other media in the project.
+00:01:14.238 --> 00:01:15.496
+Hereâ€™s the first cut.
 
-00:01:57.067 --> 00:02:06.717
-Ask the assistant to use the sound as a quiet background track and keep your timing. Say when the clip should start and how long it should play.
+00:01:15.496 --> 00:01:17.383
+Keep your eye on the coat.
 
-00:02:07.167 --> 00:02:13.667
-In this prepared example, the timeline shows the sound under the scenes. Play the preview to check when it comes in.
+00:01:17.383 --> 00:01:19.585
+By thirteen seconds itâ€™s already a dot.
 
-00:02:16.117 --> 00:02:21.417
-Export again to include the audio in your MP4.
+00:01:19.585 --> 00:01:23.988
+The camera is covering distance, but we lose our sense of whoâ€™s standing there.
+
+00:01:24.780 --> 00:01:27.926 position:74% size:48% align:center
+I mark the stretch where I lose the walker.
+
+00:01:27.926 --> 00:01:31.072 position:74% size:48% align:center
+My note gives the agent something it can test:
+
+00:01:31.072 --> 00:01:35.266 position:74% size:48% align:center
+stay within twelve metres through second thirteen, then climb on the swell.
+
+00:01:35.266 --> 00:01:38.412 position:74% size:48% align:center
+The mark carries that exact interval into the conversation.
+
+00:01:39.197 --> 00:01:42.723 line:12% size:67% align:center
+The agent measures the score and changes the code.
+
+00:01:42.723 --> 00:01:46.250 line:12% size:67% align:center
+This close range holds the camera near the walker.
+
+00:01:46.250 --> 00:01:51.736 line:12% size:67% align:center
+Starting at thirteen seconds, the next line blends back into the original five-kilometre pullback.
+
+00:01:51.736 --> 00:01:54.087 line:12% size:67% align:center
+The same terrain now reads differently.
+
+00:01:54.863 --> 00:01:57.072
+Both cuts start here at eight seconds.
+
+00:01:57.072 --> 00:01:58.965
+Watch the coat on the right.
+
+00:01:58.965 --> 00:02:02.120
+At thirteen seconds you can still see a person walking.
+
+00:02:02.120 --> 00:02:06.853
+When the camera finally leaves, you remember the size of the body against the wall.
+
+00:02:07.613 --> 00:02:10.368
+Studio renders the scene with the stereo score.
+
+00:02:10.368 --> 00:02:12.433
+Here is the complete thirty-second film.
+
+00:02:12.433 --> 00:02:17.597
+Listen for the footfalls to give way to wind as the rim comes into view.
+
+00:02:18.083 --> 00:02:22.583
+[Footsteps on gravel. Low wind and music.]
+
+00:02:36.083 --> 00:02:42.083
+[The score swells as the camera rises.]

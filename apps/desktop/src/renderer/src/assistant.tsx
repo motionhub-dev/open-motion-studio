@@ -140,7 +140,8 @@ function Work({ steps, tools, live, onStill }: { steps: Step[]; tools: Tool[]; l
                     {!step.result ? <Loader size={12} className="spin" /> : step.result.ok ? <Check size={12} className="ok" /> : <X size={12} />}
                     <span><SystemMessage text={step.summary} /></span>
                   </summary>
-                  {step.result && !step.result.image && <pre>{step.result.text}</pre>}
+                  {step.command && <pre>{step.command}</pre>}
+                  {step.result?.text && !step.result.image && <pre>{step.result.text}</pre>}
                 </details>
               </li>
             ),

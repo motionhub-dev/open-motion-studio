@@ -293,6 +293,7 @@ export type ChatItem =
       id: string;
       name: string;
       summary: string;
+      command?: string;
       at?: number;
       /** For ask_person: the question the agent put to the person, and the answers it offers. */
       ask?: Question;
@@ -314,7 +315,7 @@ export interface PastConversation {
 export type AgentEvent =
   | { type: 'phase'; phase: 'thinking' | 'editing' | 'checking' | 'reviewing' }
   | { type: 'text'; text: string }
-  | { type: 'tool'; id: string; name: string; summary: string; at?: number; ask?: Question }
+  | { type: 'tool'; id: string; name: string; summary: string; command?: string; at?: number; ask?: Question }
   | { type: 'tool-result'; id: string; ok: boolean; text: string; image?: string }
   /** An outside agent asks leave to do something beyond its sandbox; the panel answers with answerApproval. */
   | { type: 'approval'; approval: Approval }
@@ -363,7 +364,7 @@ export function applyEvent(items: ChatItem[], event: AgentEvent): ChatItem[] {
       return [...items, { kind: 'assistant', text: event.text }];
     }
     case 'tool':
-      return [...items, { kind: 'tool', id: event.id, name: event.name, summary: event.summary, at: event.at, ask: event.ask }];
+      return [...items, { kind: 'tool', id: event.id, name: event.name, summary: event.summary, command: event.command, at: event.at, ask: event.ask }];
     case 'tool-result':
       return items.map((item) =>
         item.kind === 'tool' && item.id === event.id ? { ...item, result: { ok: event.ok, text: event.text, image: event.image } } : item,

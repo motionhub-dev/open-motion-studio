@@ -36,7 +36,7 @@ describe('a turn of Codex, as the panel tells it', () => {
       { type: 'phase', phase: 'thinking' },
       { type: 'text', text: 'Looking.' },
       { type: 'phase', phase: 'reviewing' },
-      { type: 'tool', id: 'c', name: 'shell', summary: 'Running rg Scene film.tsx' },
+      { type: 'tool', id: 'c', name: 'shell', summary: 'Running rg Scene film.tsx', command: 'rg Scene film.tsx' },
       { type: 'tool-result', id: 'c', ok: true, text: 'film.tsx:7' },
       { type: 'phase', phase: 'editing' },
       { type: 'tool', id: 'f', name: 'edit_file', summary: 'Editing film.tsx and 1 more' },
@@ -44,6 +44,13 @@ describe('a turn of Codex, as the panel tells it', () => {
       { type: 'text', text: '\n\n' },
       { type: 'tool-result', id: 'x', ok: false, text: 'Exit code 2.' },
     ]);
+  });
+
+  it('shows the script after a Windows launcher and retains the full command for inspection', () => {
+    const script = 'Get-ChildItem ' + 'x'.repeat(160);
+    const command = `"C:\\Program Files\\PowerShell\\7\\pwsh.exe" -Command ${script}`;
+    const events = translate('item/started', { item: { type: 'commandExecution', id: 'c', command } }, { said: false });
+    expect(events[1]).toMatchObject({ summary: `Running ${script.slice(0, 120)}`, command });
   });
 
   it('says how a turn ended', () => {

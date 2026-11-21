@@ -874,6 +874,15 @@ body.page > main {
 .guide-film .tour-options {
   margin-top: 14px;
 }
+.tour-practice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 14px;
+}
 /* The steps take no height of their own (contain: size), so the row is the film's and they stretch to it, down to the
    film's foot (above its options: 14px apart, 30px tall). A panel of the surface's tint, each step a card in it. */
 .guide-steps {
@@ -1057,6 +1066,7 @@ body.page > main {
 }
 .tour-options {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 16px;
   font-size: 13px;
@@ -1815,3 +1825,10 @@ footer {
     animation: none;
   }
 }
+
+.tour-prompts { margin-top: 1rem; font-size: .9rem; }
+.tour-prompts summary { cursor: pointer; width: fit-content; font-weight: 600; }
+.tour-prompts section { padding: .85rem 0; border-bottom: 1px solid var(--line); }
+.tour-prompts h3 { font-size: 1rem; }
+.tour-prompts p { margin: .5rem 0 .8rem; line-height: 1.55; }
+#copy-status { display: block; margin-top: .45rem; }
