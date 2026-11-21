@@ -203,7 +203,9 @@ function Onboarding({ workspace, agents, available, disabled, work, onSettings, 
       <span className="eyebrow">
         {t('Welcome to')} <span className="verbatim">OpenMotionStudio</span>
       </span>
-      <h1>{t('Make room for your first film.')}</h1>
+      <h1>
+        {t('Make room for')} <em>{t('your first film.')}</em>
+      </h1>
       <p className="note">{t('A few preferences, a place to save, and your creative assistant. You can also explore templates first.')}</p>
       <ol className="setup-steps">
         {steps.map((label, index) => (
@@ -751,7 +753,9 @@ export function Home({ providers, workspace, tasks, examples, busy, error, revis
       return (
         <>
           <section className="home-hero">
-            <h1>{t(library.length ? 'What do you want to make next?' : 'What do you want to make?')}</h1>
+            <h1>
+              {t('What do you want')} <em>{t(library.length ? 'to make next?' : 'to make?')}</em>
+            </h1>
             <Prompt
               field={prompt}
               available={available}

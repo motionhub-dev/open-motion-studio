@@ -3,6 +3,14 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-21 — The Studio takes the website's colours, and cobalt shows where attention is
+
+- **What:** The Studio's paper and ink are now the website's: a cleaner, less yellow ground in light (`#F3F1EC` under `#FCFCFA` panels) and a step deeper in dark (`#0F0D0B` under `#1A1714`). Buttons are raised as on the website, and Export MP4 has Download's vermilion edge and glow. Cobalt, until now only for marks and selection, also shows what is running or playing (the agent's current phase, a task's progress on Home, Pick and Region while on, a template's play button), the keyboard's focus as a 2 px ring, and the second phrase of Home's and the first run's headline, as on the website. Failures are a rose red, no longer the vermilion of the mark and Export.
+- **Why:** The website and the app used the same two accents differently and sat on different papers, so the app looked unlike its own pictures on the site; focus was a 1 px grey ring that was hard to see; and a failed build read in the brand's colour.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `apps/desktop/src/renderer/src/styles.css`, `apps/desktop/src/renderer/src/home.tsx`, `apps/desktop/src/shared/translations.ts`, `docs/design.md`, `site/studio.css`.
+
 ## 2026-11-21 — The front page names what the Studio is, and its demo plays with music
 
 - **What:** Over the first screen's headline, the Studio is named for what it is: "The open-source motion studio for your own AI" (in Chinese too). The demo under it now opens and closes on the Studio's name and that line, and plays with music (Cat Walk by Arulo, under the Mixkit free licence), cut so the new version arrives on the track's drop; its four steps keep their places in the longer film.
