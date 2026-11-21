@@ -151,7 +151,8 @@ A top bar over a grid of panels (`project-view.tsx`):
   picture at once. With a change made, its actions are Add to message and Apply, which sends it to the agent now;
   Cancel puts the picture back. A mark's row in the composer counts its changes. A mark in hand in the composer is drawn lit
   (thicker, with a soft cobalt halo) on the picture and the timeline.
-- The stage draws the film's frame contained and centred on ink with a shadow.
+- The stage draws the film's frame contained and centred on ink with a shadow, and is edged by a hairline (`--line`) so
+  that its ink stays apart from the dark ground; Pick or Region in hand is a cobalt edge over a cobalt tint.
 - Keys, grouped in one table (`SHORTCUTS` in `project-view.tsx`) that ? lists in a dialog: Space or K plays, ← → step
   a frame (Shift, a second), ↑ ↓ go to the previous or next scene, Home and End to the start and end; C cycles Pick,
   Region and off, G shows the safe-area guides, Esc lets a mark go, then puts the tool down, then clears the selection;
