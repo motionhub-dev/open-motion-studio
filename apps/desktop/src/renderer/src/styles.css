@@ -1224,12 +1224,9 @@ button.status:hover {
   color: #fff;
 }
 
-/* A tool in hand: a cobalt edge over a cobalt tint, lightened for the ink under it so it is seen without outshining
-   the film. */
 .pointing button[aria-pressed='true'] {
-  background: color-mix(in srgb, var(--cobalt) 28%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cobalt) 70%, #fff);
-  color: #fff;
+  background: var(--cobalt);
+  color: var(--on-cobalt);
 }
 
 .pointing button:disabled {
@@ -5451,12 +5448,17 @@ input.switch:disabled {
   margin: 8px 0 12px;
 }
 
-/* The headline's second phrase, in cobalt on a line of its own, as on the website. */
+/* The headline's second phrase in cobalt, as on the website: on a line of its own in the first run, on the same line
+   on Home. */
 .home-hero h1 em,
 .onboarding h1 em {
   display: block;
   font-style: normal;
   color: var(--cobalt);
+}
+
+.home-hero h1 em {
+  display: inline;
 }
 
 .home-content h2 {
@@ -6025,7 +6027,13 @@ input.switch:disabled {
 
 /* Home's prompt: what to make, in the person's words, as the first thing on Home. */
 .home-hero h1 {
-  margin-top: 4px;
+  margin: 28px 0 28px;
+  font-size: 44px;
+  font-weight: 650;
+  line-height: 1.1;
+  letter-spacing: -0.045em;
+  text-align: center;
+  text-wrap: balance;
 }
 
 .home-prompt {

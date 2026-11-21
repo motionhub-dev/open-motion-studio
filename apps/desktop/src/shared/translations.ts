@@ -908,7 +908,7 @@ export const zh: Record<string, string> = {
   "Projects you create or open appear here.": "新建或打开的项目会出现在这里。",
   "A 15-second launch teaser for ": "为以下产品做一段 15 秒的发布短片：",
   "Kinetic type for the line “": "用动态文字呈现这句话：“",
-  "What do you want": "你想",
+  "What do you want ": "你想",
   "to make next?": "接下来做个什么视频？",
   "to make?": "做一个什么样的视频？",
   "App": "应用",

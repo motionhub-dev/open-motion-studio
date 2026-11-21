@@ -21,8 +21,8 @@ and values (`styles.css` and `site/studio.css`).
 - **Cobalt (`--cobalt`)** is where the person's attention is: what they mark on the picture (a box, its number, its
   flag on the timeline, its chip by the message) and what they select or point at; what is running or playing now (the
   agent's current phase, a task's progress, the line being said, Pick or Region while on, the play button on a
-  template's poster); the keyboard's focus, a 2 px ring; and the second phrase of a headline on Home and the first run,
-  on a line of its own, as the website's headlines have it. Never a button's fill but a play button's, never body copy,
+  template's poster); the keyboard's focus, a 2 px ring; and the second phrase of a headline, as the website's headlines
+  have it: Home's, set large and centred on one line, and the first run's, on a line of its own. Never a button's fill but a play button's, never body copy,
   never a result.
 - Buttons, links, switches, the current tab and the playhead are ink (`--text`), never a colour. A result is `--good` or
   `--bad`, a rose kept apart from the mark's vermilion so that a failure never reads as the brand.
@@ -152,7 +152,7 @@ A top bar over a grid of panels (`project-view.tsx`):
   Cancel puts the picture back. A mark's row in the composer counts its changes. A mark in hand in the composer is drawn lit
   (thicker, with a soft cobalt halo) on the picture and the timeline.
 - The stage draws the film's frame contained and centred on ink with a shadow, and is edged by a hairline (`--line`) so
-  that its ink stays apart from the dark ground; Pick or Region in hand is a cobalt edge over a cobalt tint.
+  that its ink stays apart from the dark ground.
 - Keys, grouped in one table (`SHORTCUTS` in `project-view.tsx`) that ? lists in a dialog: Space or K plays, ← → step
   a frame (Shift, a second), ↑ ↓ go to the previous or next scene, Home and End to the start and end; C cycles Pick,
   Region and off, G shows the safe-area guides, Esc lets a mark go, then puts the tool down, then clears the selection;

@@ -754,7 +754,7 @@ export function Home({ providers, workspace, tasks, examples, busy, error, revis
         <>
           <section className="home-hero">
             <h1>
-              {t('What do you want')} <em>{t(library.length ? 'to make next?' : 'to make?')}</em>
+              {t('What do you want ')}<em>{t(library.length ? 'to make next?' : 'to make?')}</em>
             </h1>
             <Prompt
               field={prompt}
