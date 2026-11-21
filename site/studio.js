@@ -208,7 +208,7 @@ if (loop) {
   const starts = stepButtons.map((b) => Number(b.dataset.at));
   const lightStep = () => {
     const at = loop.currentTime;
-    const end = loop.duration || 18.1;
+    const end = loop.duration || 23;
     stepButtons.forEach((button, i) => {
       const from = starts[i];
       const to = starts[i + 1] ?? end;

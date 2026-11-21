@@ -3,6 +3,14 @@
 Every key change to OpenMotionStudio, newest first, by date. What counts as key and the entry format are in
 `CLAUDE.md`, "The changelog".
 
+## 2026-11-21 — The front page names what the Studio is, and its demo plays with music
+
+- **What:** Over the first screen's headline, the Studio is named for what it is: "The open-source motion studio for your own AI" (in Chinese too). The demo under it now opens and closes on the Studio's name and that line, and plays with music (Cat Walk by Arulo, under the Mixkit free licence), cut so the new version arrives on the track's drop; its four steps keep their places in the longer film.
+- **Why:** The first screen said what the Studio does but not what it is, and the demo played in silence, which made it read as a recording rather than a film.
+- **Breaking:** None.
+- **Upgrade:** Nothing.
+- **Refs:** `site/index.html`, `site/studio.js`, `site/media/studio-loop.mp4`.
+
 ## 2026-11-21 — openmotion.studio/tour lists tutorials, starting with a launch film made start to finish
 
 - **What:** /tour is now a list of tutorials, each a card with its poster, length, level and what it teaches. The first is new: a 4-minute recording of one real session, in which a paragraph, the Stage Light look from MotionHub and two product photos become a narrated 30-second launch film for a desk lamp. It shows describing the film at Home, adding a look, importing photos, connecting Claude Code, two regions marked on the picture and the change they make side by side, a voice from the person's own provider, trying a version and going back to before it, and the export. Every wait for the agent or the export is shown sped up with its real length. It is narrated in English and in Chinese (the page's language picks the voice and the captions), with the prompts to copy and a practice pack of the photos and prompts. The Hollow Mountain workshop moved to /tour/hollow-mountain, and the front page's link under the demo opens the new tutorial.
